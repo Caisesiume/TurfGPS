@@ -1,0 +1,19 @@
+{
+    "title": "Route Planner",
+    "form": {
+      "checkpoint": "Checkpoint {number}",
+      "addCheckpoint": "Add Checkpoint",
+      "removeCheckpoint": "Remove",
+      "planRoute": "Plan Route",
+      "placeholder": "Enter location"
+    },
+    "map": {
+      "attribution": "Map data © {year} contributors"
+    },
+    "errors": {
+      "fetchZones": "Failed to fetch zones",
+      "invalidLocation": "Invalid location"
+    }
+  }
+  
+  

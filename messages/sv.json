@@ -1,0 +1,19 @@
+{
+    "title": "Ruttplanerare",
+    "form": {
+      "checkpoint": "Zon {number}",
+      "addCheckpoint": "Lägg till zon",
+      "removeCheckpoint": "Ta bort",
+      "planRoute": "Planera rutt",
+      "placeholder": "Ange plats"
+    },
+    "map": {
+      "attribution": "Kartdata © {year} bidragsgivare"
+    },
+    "errors": {
+      "fetchZones": "Det gick inte att hämta zoner",
+      "invalidLocation": "Ogiltig plats"
+    }
+  }
+  
+  
