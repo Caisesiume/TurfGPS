@@ -1,25 +1,29 @@
-'use client'
+'use client';
 
-import { useLocale } from 'next-intl'
-import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
 
 export default function LanguageSwitcher() {
-  const locale = useLocale()
-  const router = useRouter()
+	const locale = useLocale();
+	const router = useRouter();
 
-  const handleChange = (newLocale: string) => {
-    const newPath = window.location.pathname.replace(`/${locale}`, `/${newLocale}`)
-    router.push(newPath)
-  }
+	const handleChange = (newLocale: string) => {
+		const currentPath = window.location.pathname;
+		console.log({ currentPath });
+		const newPath = currentPath.replace(`/${locale}`, `/${newLocale}`);
 
-  return (
-    <select
-      value={locale}
-      onChange={(e) => handleChange(e.target.value)}
-      className="bg-white text-gray-900 p-2 rounded border border-gray-300"
-    >
-      <option value="en">English</option>
-      <option value="sv">Svenska</option>
-    </select>
-  )
+		router.push(newPath);
+	};
+
+	return (
+		<select
+			value={locale}
+			onChange={(e) => handleChange(e.target.value)}
+			className='bg-white text-gray-900 p-2 rounded border border-gray-300'
+		>
+			<option value='en'>English</option>
+			<option value='sv'>Svenska</option>
+			<option value='de'>Deutsch</option>
+		</select>
+	);
 }

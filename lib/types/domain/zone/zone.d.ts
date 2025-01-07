@@ -1,4 +1,6 @@
-export interface Zone {
+import { LocationCoordinates } from "../../global/coordinates";
+
+export interface IZone {
     area: number; // Kommun
     currentOwner: {
         id: number;
@@ -6,10 +8,9 @@ export interface Zone {
     };
     dateCreated: string;
     dateLastTaken: string;
-    id: number;
+    zoneId: number;
     isActive: boolean;
-    latitude: number;
-    longitude: number;
+    location: LocationCoordinates;
     name: string;
     owner: string;
     pointsPerHour: number;
@@ -24,4 +25,8 @@ export interface Zone {
     };
     takeoverPoints: number;
     totalTakeovers: number;
+    type: {
+        id: number;
+        name: string;
+    }
 }

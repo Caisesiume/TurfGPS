@@ -1,0 +1,19 @@
+{
+    "title": "Routenplaner",
+    "form": {
+        "checkpoint": "Checkpoint {number}",
+        "addCheckpoint": "Checkpoint hinzufügen",
+        "removeCheckpoint": "Entfernen",
+        "planRoute": "Route planen",
+        "placeholder": "Ort eingeben"
+    },
+    "map": {
+        "waitingForLocation": "Warten auf Standort",
+        "allowLocation": "Erlauben Sie den Standortzugriff, um schneller zu Ihrem Standort zu gelangen",
+        "attribution": "Kartendaten © {year} Mitwirkende"
+    },
+    "errors": {
+        "fetchZones": "Zonen konnten nicht abgerufen werden",
+        "invalidLocation": "Ungültiger Standort"
+    }
+}
