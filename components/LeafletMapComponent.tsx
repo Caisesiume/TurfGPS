@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BoundBox, Coordinates, IZone, LocationCoordinates } from '@/lib/types';
+import { debounce } from 'lodash';
 
 interface Cluster {
 	location: LocationCoordinates;
@@ -51,6 +52,9 @@ const LeafletMapComponent: React.FC = () => {
 	const [center, setCenter] = useState<[number, number]>([60.156, 16.207]);
 	const [zoom, setZoom] = useState<number>(11);
 	const [loading, setLoading] = useState<boolean>(true);
+	const [fetchQueue, setFetchQueue] = useState<(() => Promise<void>)[]>([]);
+	const [isFetching, setIsFetching] = useState<boolean>(false);
+	const [hasFetched, setHasFetched] = useState<boolean>(false);
 
 	useEffect(() => {
 		navigator.geolocation.getCurrentPosition(
@@ -84,17 +88,16 @@ const LeafletMapComponent: React.FC = () => {
 		tileYStart: number,
 		tileYEnd: number,
 	) {
-		const tilePromises = [];
+		const bounds = [];
 		for (let x = tileXStart; x <= tileXEnd; x++) {
 			for (let y = tileYStart; y <= tileYEnd; y++) {
-				tilePromises.push(fetchTileData(zoom, x, y));
+				bounds.push(getTileBounds(x, y, zoom));
 			}
 		}
-
-		const allTiles = await Promise.all(tilePromises);
-		const flatTiles = allTiles.flat();
+	
+		const flatTiles = bounds.flat();
 		console.log({ flatTiles });
-		
+	
 		// Determine the northEast and southWest-most bounds
 		const northEast = {
 			lat: Math.max(...flatTiles.map((bound) => bound.northEast.latitude)),
@@ -104,7 +107,7 @@ const LeafletMapComponent: React.FC = () => {
 			lat: Math.min(...flatTiles.map((bound) => bound.southWest.latitude)),
 			lng: Math.min(...flatTiles.map((bound) => bound.southWest.longitude)),
 		};
-
+	
 		// Fetch the entire tile from the API using the calculated bounds
 		const response = await fetch(
 			`/api/zones?minLng=${southWest.lng}
@@ -137,22 +140,29 @@ const LeafletMapComponent: React.FC = () => {
 		};
 	}
 
+	const enqueueFetch = useCallback((fetchFn: () => Promise<void>) => {
+		setFetchQueue((prev) => [...prev, fetchFn]);
+	}, []);
+
 	const MapController = () => {
 		const map = useMap();
 		// @ts-ignore
 		useEffect(() => {
-			const onMoveEnd = () => {
-				const bounds = map.getBounds();
-				const zoom = map.getZoom();
-				console.log({ bounds });
+			const onMoveEnd = debounce(() => {
+				if (!hasFetched) {
+					const bounds = map.getBounds();
+					const zoom = map.getZoom();
+					console.log({ bounds });
+			
+					updateClusters(bounds, zoom);
+					setHasFetched(true);
+				}
+			}, 3000);
 
-				updateClusters(bounds, zoom);
-			};
-
-			map.on('moveend', onMoveEnd);
+			map.on('dragend', onMoveEnd);
 			onMoveEnd(); // Trigger on initial load
 
-			return () => map.off('moveend', onMoveEnd);
+			return () => map.off('dragend', onMoveEnd);
 		}, [map]);
 
 		return null;

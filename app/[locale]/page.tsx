@@ -12,11 +12,15 @@ const LeafletMapComponent = dynamic(() => import('../../components/LeafletMapCom
 	ssr: false,
 });
 
-import { fetchZonesInBounds } from '@/services/turfApiService';
-import { IZone } from '@/lib/types/domain';
-
 export default function RoutePlanner() {
 	const t = useTranslations();
+	const [isMapRendered, setIsMapRendered] = useState(false);
+
+	useEffect(() => {
+		if (!isMapRendered) {
+			setIsMapRendered(true);
+		}
+	}, [isMapRendered]);
 
 	return (
 		<Provider store={store}>
@@ -26,7 +30,7 @@ export default function RoutePlanner() {
 					<LanguageSwitcher />
 					<CheckpointForm onSubmit={(checkpoints) => console.log(checkpoints)} />
 					<div className='h-[600px] w-full rounded-lg overflow-hidden shadow-lg'>
-						<LeafletMapComponent />
+						{isMapRendered && <LeafletMapComponent />}
 					</div>
 				</div>
 			</div>

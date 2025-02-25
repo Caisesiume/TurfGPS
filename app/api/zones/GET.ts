@@ -27,7 +27,6 @@ async function fetchZonesFromDatabase(
 		})
 		.select({
 			zoneId: 1,
-			name: 1,
 			location: 1,
 			_id: 0,
 		})
