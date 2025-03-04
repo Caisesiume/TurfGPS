@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Provider } from 'react-redux';
 import { useTranslations } from 'next-intl';
@@ -14,14 +14,10 @@ const LeafletMapComponent = dynamic(() => import('../../components/LeafletMapCom
 
 export default function RoutePlanner() {
 	const t = useTranslations();
-	const [isMapRendered, setIsMapRendered] = useState(false);
 
-	useEffect(() => {
-		if (!isMapRendered) {
-			setIsMapRendered(true);
-		}
-	}, [isMapRendered]);
-
+	const LeafletMap = useMemo(() => <LeafletMapComponent />, []);
+	console.log(" RENDERING ");
+	
 	return (
 		<Provider store={store}>
 			<div className='min-h-screen bg-green-900 text-gray-900'>
@@ -30,7 +26,7 @@ export default function RoutePlanner() {
 					<LanguageSwitcher />
 					<CheckpointForm onSubmit={(checkpoints) => console.log(checkpoints)} />
 					<div className='h-[600px] w-full rounded-lg overflow-hidden shadow-lg'>
-						{isMapRendered && <LeafletMapComponent />}
+						{LeafletMap}
 					</div>
 				</div>
 			</div>

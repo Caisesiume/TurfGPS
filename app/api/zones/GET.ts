@@ -41,26 +41,35 @@ export async function getHandler(req: NextRequest) {
 	const minLat = parseFloat(searchParams.get('minLat')!);
 	const maxLat = parseFloat(searchParams.get('maxLat')!);
 
-	const cacheKey = `tile:${maxLat},${maxLng}:${minLat},${minLng}`;
-
-	// Check in-memory cache
-	const cachedData = cache.get(cacheKey);
-	if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY_MS) {
-		return NextResponse.json(cachedData.zones);
+	if (!minLng || !maxLng || !minLat || !maxLat) {
+		return NextResponse.json({ error: 'Invalid coordinates | gz100' }, { status: 400 });
 	}
 
-	const zones = await fetchZonesFromDatabase(
-		minLng,
-		maxLng,
-		minLat,
-		maxLat,
-	);
-	console.log(' ---- Fetched zones from database ---- ');
-	
-	
-	// Update in-memory cache
-	cache.set(cacheKey, { zones, timestamp: Date.now() });
-	console.log(' ---- Updated in-memory cache ---- ');
-	
-	return NextResponse.json(zones);
+	const cacheKey = `tile:${maxLat},${maxLng}:${minLat},${minLng}`;
+
+	try {
+		// Check in-memory cache
+		const cachedData = cache.get(cacheKey);
+		if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY_MS) {
+			return NextResponse.json(cachedData.zones);
+		}
+
+		const zones = await fetchZonesFromDatabase(
+			minLng,
+			maxLng,
+			minLat,
+			maxLat,
+		);
+		console.log(' ---- Fetched zones from database ---- ');
+		
+		
+		// Update in-memory cache
+		cache.set(cacheKey, { zones, timestamp: Date.now() });
+		console.log(' ---- Updated in-memory cache ---- ');
+		
+		return NextResponse.json(zones);
+	} catch (error) {
+		console.error('Error fetching zones:', error);
+		return NextResponse.json({ error: 'Internal server error | gz101' }, { status: 500 });
+	}
 }

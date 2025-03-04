@@ -1,199 +1,68 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Polygon, useMap, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { BoundBox, Coordinates, IZone, LocationCoordinates } from '@/lib/types';
-import { debounce } from 'lodash';
-
-interface Cluster {
-	location: LocationCoordinates;
-	id: number;
-	coordinates: [number, number];
-	cluster: boolean;
-}
-
-const TILE_SIZE = 256;
-
-const getTileKey = (zoom: number, x: number, y: number) => `${zoom}/${x}/${y}`;
-
-const calculateTileBounds = (bounds: L.LatLngBounds, zoom: number) => {
-	const tileXStart = Math.floor(((bounds.getWest() + 180) / 360) * (1 << zoom));
-	const tileXEnd = Math.floor(((bounds.getEast() + 180) / 360) * (1 << zoom));
-	const tileYStart = Math.floor(
-		((1 -
-			Math.log(
-				Math.tan((bounds.getNorth() * Math.PI) / 180) +
-					1 / Math.cos((bounds.getNorth() * Math.PI) / 180),
-			) /
-				Math.PI) /
-			2) *
-			(1 << zoom),
-	);
-	const tileYEnd = Math.floor(
-		((1 -
-			Math.log(
-				Math.tan((bounds.getSouth() * Math.PI) / 180) +
-					1 / Math.cos((bounds.getSouth() * Math.PI) / 180),
-			) /
-				Math.PI) /
-			2) *
-			(1 << zoom),
-	);
-	//console.log({ tileXStart, tileXEnd, tileYStart, tileYEnd });
-
-	return { tileXStart, tileXEnd, tileYStart, tileYEnd };
-};
+import L from 'leaflet';
+import { IZone } from '@/lib/types';
 
 const LeafletMapComponent: React.FC = () => {
-	const [clusters, setClusters] = useState<IZone[]>([]);
-	const [tileCache, setTileCache] = useState<Record<string, Cluster[]>>({});
-	const [center, setCenter] = useState<[number, number]>([60.156, 16.207]);
-	const [zoom, setZoom] = useState<number>(11);
-	const [loading, setLoading] = useState<boolean>(true);
-	const [fetchQueue, setFetchQueue] = useState<(() => Promise<void>)[]>([]);
-	const [isFetching, setIsFetching] = useState<boolean>(false);
-	const [hasFetched, setHasFetched] = useState<boolean>(false);
+	const [zones, setZones] = useState<IZone[]>([]);
 
-	useEffect(() => {
-		navigator.geolocation.getCurrentPosition(
-			(position) => {
-				setCenter([position.coords.latitude, position.coords.longitude]);
-				setZoom(11);
-				setLoading(false);
-			},
-			() => {
-				setCenter([60.156, 16.207]); // Avesta, Dalarna, Sweden
-				setZoom(11);
-				setLoading(false);
-			},
-		);
-	}, []);
+	const fetchZones = (bounds: L.LatLngBounds) => {
+		const minLat = bounds.getSouth();
+		const maxLat = bounds.getNorth();
+		const minLng = bounds.getWest();
+		const maxLng = bounds.getEast();
 
-	const fetchTileData = async (zoom: number, x: number, y: number) => {
-		const bounds = getTileBounds(x, y, zoom);
-		return bounds;
-	};
-
-	const updateClusters = async (bounds: L.LatLngBounds, zoom: number) => {
-		const { tileXStart, tileXEnd, tileYStart, tileYEnd } = calculateTileBounds(bounds, zoom);
-		setClusters(await fetchAllZonesInTile(zoom, tileXStart, tileXEnd, tileYStart, tileYEnd));
-	};
-
-	async function fetchAllZonesInTile(
-		zoom: number,
-		tileXStart: number,
-		tileXEnd: number,
-		tileYStart: number,
-		tileYEnd: number,
-	) {
-		const bounds = [];
-		for (let x = tileXStart; x <= tileXEnd; x++) {
-			for (let y = tileYStart; y <= tileYEnd; y++) {
-				bounds.push(getTileBounds(x, y, zoom));
-			}
-		}
-	
-		const flatTiles = bounds.flat();
-		console.log({ flatTiles });
-	
-		// Determine the northEast and southWest-most bounds
-		const northEast = {
-			lat: Math.max(...flatTiles.map((bound) => bound.northEast.latitude)),
-			lng: Math.max(...flatTiles.map((bound) => bound.northEast.longitude)),
-		};
-		const southWest = {
-			lat: Math.min(...flatTiles.map((bound) => bound.southWest.latitude)),
-			lng: Math.min(...flatTiles.map((bound) => bound.southWest.longitude)),
-		};
-	
-		// Fetch the entire tile from the API using the calculated bounds
-		const response = await fetch(
-			`/api/zones?minLng=${southWest.lng}
-			&maxLng=${northEast.lng}
-			&minLat=${southWest.lat}
-			&maxLat=${northEast.lat}`.replace(/\s+/g, ''),
-		);
-		const data = await response.json();
-		console.log({ data });
-		return data;
-	}
-
-	function getTileBounds(x: number, y: number, z: number): BoundBox {
-		const n = Math.pow(2, z);
-		const lonDeg = (x / n) * 360.0 - 180.0;
-		const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)));
-		const latDeg = (latRad * 180.0) / Math.PI;
-
-		const tileNorthEast: Coordinates = {
-			latitude: latDeg + 360.0 / n,
-			longitude: lonDeg + 360.0 / n,
-		};
-		const tileSouthWest: Coordinates = {
-			latitude: latDeg,
-			longitude: lonDeg,
-		};
-		return {
-			northEast: tileNorthEast,
-			southWest: tileSouthWest,
-		};
-	}
-
-	const enqueueFetch = useCallback((fetchFn: () => Promise<void>) => {
-		setFetchQueue((prev) => [...prev, fetchFn]);
-	}, []);
-
-	const MapController = () => {
-		const map = useMap();
-		// @ts-ignore
-		useEffect(() => {
-			const onMoveEnd = debounce(() => {
-				if (!hasFetched) {
-					const bounds = map.getBounds();
-					const zoom = map.getZoom();
-					console.log({ bounds });
-			
-					updateClusters(bounds, zoom);
-					setHasFetched(true);
+		fetch(`/api/zones?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}`)
+			.then(response => response.json())
+			.then(data => {
+				if (JSON.stringify(data) !== JSON.stringify(zones)) {
+					setZones(data as IZone[]);
 				}
-			}, 3000);
+			})
+			.catch(error => console.error('Error fetching zones:', error));
+	};
 
-			map.on('dragend', onMoveEnd);
-			onMoveEnd(); // Trigger on initial load
+	const MapEventHandler: React.FC = () => {
+		const map = useMap();
 
-			return () => map.off('dragend', onMoveEnd);
+		useEffect(() => {
+			const handleMoveEnd = () => {
+				const bounds = map.getBounds();
+				fetchZones(bounds);
+			};
+
+			map.on('moveend', handleMoveEnd);
+			handleMoveEnd(); // Fetch zones on initial load
+
+			return () => {
+				map.off('moveend', handleMoveEnd);
+			};
 		}, [map]);
 
 		return null;
 	};
-
-	if (loading) {
-		return <div>Loading...</div>;
-	}
-
+	const center = new L.LatLng(60.115, 16.187);
+	
 	return (
-		<MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
+		<MapContainer center={center} zoom={11} style={{ height: '100vh', width: '100%' }}>
 			<TileLayer
+				key={Math.random()}
 				url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-				attribution='&copy; OpenStreetMap contributors'
-				tileSize={TILE_SIZE}
+				attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 			/>
-			<MapController />
-			{clusters.map((zone) =>
-				(
-					<CircleMarker
-						key={`cluster-${zone.zoneId}`}
-						center={[zone.location.coordinates[1], zone.location.coordinates[0]]}
-						radius={2}
-						pathOptions={{ color: '#ff0000' }}
-					>
-						<Popup>
-							<div>{zone.name} zone</div>
-						</Popup>
+			<MapEventHandler />
+			{zones.length > 0 && zones.map(zone => {
+				const coordinates = zone.location.coordinates;
+				const position = new L.LatLng(coordinates[0], coordinates[1]);
+				console.log('Rendering zone:', zone.zoneId);
+				
+				return (
+					<CircleMarker key={zone.zoneId} center={position} radius={100} color='red'>
+						<p>{zone.zoneId}</p>
 					</CircleMarker>
-				)
-			)}
+				);
+			})}
 		</MapContainer>
 	);
 };
