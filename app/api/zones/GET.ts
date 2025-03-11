@@ -45,6 +45,7 @@ export async function getHandler(req: NextRequest) {
 		return NextResponse.json({ error: 'Invalid coordinates | gz100' }, { status: 400 });
 	}
 
+	// Build cache key based on the bounding box (optionally include zoom if needed)
 	const cacheKey = `tile:${maxLat},${maxLng}:${minLat},${minLng}`;
 
 	try {
@@ -54,20 +55,45 @@ export async function getHandler(req: NextRequest) {
 			return NextResponse.json(cachedData.zones);
 		}
 
-		const zones = await fetchZonesFromDatabase(
-			minLng,
-			maxLng,
-			minLat,
-			maxLat,
-		);
+		// Fetch zones from the database
+		const zones = await fetchZonesFromDatabase(minLng, maxLng, minLat, maxLat);
 		console.log(' ---- Fetched zones from database ---- ');
-		
-		
-		// Update in-memory cache
+
+		// Update cache with raw zones (optional, if needed elsewhere)
 		cache.set(cacheKey, { zones, timestamp: Date.now() });
 		console.log(' ---- Updated in-memory cache ---- ');
-		
-		return NextResponse.json(zones);
+
+		// Get zoom level (default to 11 if not provided)
+		const zoomParam = searchParams.get('zoom');
+		const zoomLevel = zoomParam ? parseInt(zoomParam) : 11;
+
+		// Dynamically import Supercluster
+		const Supercluster = (await import('supercluster')).default;
+
+		// Convert zones to GeoJSON features
+		const features = zones.map((zone: any) => ({
+			type: "Feature" as const,
+			properties: { zoneId: zone.zoneId },
+			geometry: zone.location, // expecting GeoJSON format (i.e., { type: 'Point', coordinates: [lng, lat] })
+		}));
+
+		// Initialize Supercluster with desired options
+		const superclusterInstance = new Supercluster({
+			radius: 40, // Cluster radius in pixels (adjust as needed)
+			maxZoom: 10, // Maximum zoom level at which to create clusters
+		});
+		superclusterInstance.load(features);
+
+		// Get clusters within the bounding box at the given zoom level
+		const clusters = superclusterInstance.getClusters(
+			[minLng, minLat, maxLng, maxLat],
+			zoomLevel
+		);
+
+		// Update cache with clusters instead of raw zones
+		cache.set(cacheKey, { zones: clusters, timestamp: Date.now() });
+
+		return NextResponse.json(clusters);
 	} catch (error) {
 		console.error('Error fetching zones:', error);
 		return NextResponse.json({ error: 'Internal server error | gz101' }, { status: 500 });
