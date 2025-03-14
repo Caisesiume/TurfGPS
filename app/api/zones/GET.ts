@@ -77,9 +77,12 @@ export async function getHandler(req: NextRequest) {
 			geometry: zone.location, // expecting GeoJSON format (i.e., { type: 'Point', coordinates: [lng, lat] })
 		}));
 
+		// Calculate dynamic radius based on zoom level
+		const dynamicRadius = Math.max(40, 100 - zoomLevel * 5); // Adjust the formula as needed
+
 		// Initialize Supercluster with desired options
 		const superclusterInstance = new Supercluster({
-			radius: 40, // Cluster radius in pixels (adjust as needed)
+			radius: dynamicRadius, // Cluster radius in pixels (adjust as needed)
 			maxZoom: 10, // Maximum zoom level at which to create clusters
 		});
 		superclusterInstance.load(features);
