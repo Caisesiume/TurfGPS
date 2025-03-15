@@ -1,19 +1,113 @@
 {
 	"title": "Route Planner",
 	"form": {
-		"checkpoint": "Checkpoint {number}",
-		"addCheckpoint": "Add Checkpoint",
-		"removeCheckpoint": "Remove",
-		"planRoute": "Plan Route",
-		"placeholder": "Enter location"
+	  "zone": "Zone {number}",
+	  "addZone": "Add Zone",
+	  "removeCheckpoint": "Remove",
+	  "planRoute": "Plan Route",
+	  "placeholder": "Enter location"
 	},
 	"map": {
-		"waitingForLocation": "Waiting for location",
-		"allowLocation": "Allow location to get to your location faster",
-		"attribution": "Map data © {year} contributors"
+	  "waitingForLocation": "Waiting for location",
+	  "allowLocation": "Allow location to get to your location faster",
+	  "attribution": "Map data © {year} contributors"
 	},
 	"errors": {
-		"fetchZones": "Failed to fetch zones",
-		"invalidLocation": "Invalid location"
+	  "fetchZones": "Failed to fetch zones",
+	  "invalidLocation": "Invalid location"
+	},
+	"landing": {
+	  "navigation": {
+		"features": "Features",
+		"about": "About",
+		"faq": "FAQ",
+		"routePlanner": "Route Planner",
+		"getStarted": "Get Started"
+	  },
+	  "hero": {
+		"title": "Plan Your Perfect Turf Route",
+		"description": "Optimize your Turfgame experience with our free route planning tool. Find the most efficient paths between zones and maximize your points.",
+		"tryButton": "Try Route Planner",
+		"learnButton": "Learn More",
+		"freeText": "100% free. No account required."
+	  },
+	  "features": {
+		"badge": "Features",
+		"title": "Tools Built for Turfers",
+		"description": "Our platform provides all the tools you need to enhance your Turfgame experience.",
+		"routePlanning": {
+		  "title": "Route Planning",
+		  "description": "Calculate the most efficient routes between zones to maximize your points and minimize travel time."
+		},
+		"zoneFinder": {
+		  "title": "Zone Finder",
+		  "description": "Easily locate and filter zones based on your preferences and current location."
+		},
+		"interactiveMaps": {
+		  "title": "Interactive Maps",
+		  "description": "Visualize zones and routes on interactive maps with real-time updates."
+		},
+		"offlineAccess": {
+		  "title": "Offline Access",
+		  "description": "Save your routes and access them even when you're offline during your turf sessions."
+		}
+	  },
+	  "about": {
+		"badge": "About",
+		"title": "Built by Turfers, for Turfers",
+		"description1": "TurfTools started as a hobby project to solve common challenges faced by Turfgame players. As avid turfers ourselves, we wanted to create tools that would enhance the game experience.",
+		"description2": "Our mission is to provide completely free, high-quality tools that help the Turf community plan better routes, discover new zones, and enjoy the game even more.",
+		"tryButton": "Try Our Tools",
+		"githubButton": "View on GitHub"
+	  },
+	  "faq": {
+		"badge": "FAQ",
+		"title": "Frequently Asked Questions",
+		"description": "Got questions? We've got answers.",
+		"questions": [
+		  {
+			"question": "Is TurfTools affiliated with the official Turfgame?",
+			"answer": "No, TurfTools is an independent, fan-made project created to enhance the Turfgame experience. We are not officially affiliated with or endorsed by Turfgame."
+		  },
+		  {
+			"question": "Do I need to create an account to use TurfTools?",
+			"answer": "No, all of our tools are available without requiring an account or login. Just visit the site and start planning your routes!"
+		  },
+		  {
+			"question": "How accurate is the route planning?",
+			"answer": "Our route planning algorithm calculates efficient paths between zones based on distance and other factors. While we strive for accuracy, the actual optimal route may vary depending on real-world conditions like traffic, terrain, and accessibility."
+		  },
+		  {
+			"question": "Can I contribute to the project?",
+			"answer": "TurfTools is an open-source project, and we welcome contributions from the community. Check out our GitHub repository to get started."
+		  },
+		  {
+			"question": "How do I report bugs or suggest features?",
+			"answer": "You can report bugs or suggest features by opening an issue on our GitHub repository or by contacting us directly through the provided contact information."
+		  }
+		]
+	  },
+	  "cta": {
+		"title": "Ready to Optimize Your Turf Routes?",
+		"description": "Join hundreds of turfers who use our tools to plan better routes and discover new zones.",
+		"tryButton": "Try Route Planner",
+		"exploreButton": "Explore Features"
+	  },
+	  "footer": {
+		"description": "Free tools to enhance your Turfgame experience.",
+		"tools": "Tools",
+		"routePlanner": "Route Planner",
+		"zoneFinder": "Zone Finder",
+		"statistics": "Statistics",
+		"links": "Links",
+		"about": "About",
+		"faq": "FAQ",
+		"github": "GitHub",
+		"officialTurfgame": "Official Turfgame",
+		"copyright": "© {year} TurfTools. This is a fan project not affiliated with the official Turfgame.",
+		"privacyPolicy": "Privacy Policy",
+		"termsOfUse": "Terms of Use"
+	  }
 	}
-}
+  }
+  

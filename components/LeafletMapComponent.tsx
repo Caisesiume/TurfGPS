@@ -28,7 +28,7 @@ const LeafletMapComponent: React.FC = () => {
 	const lastFetchedCenterRef = useRef<L.LatLng | null>(null);
 
 	// Updated fetchZones using async/await for clarity and error handling.
-	const fetchZones = async (bounds: L.LatLngBounds) => {
+	const fetchZones = async (bounds: L.LatLngBounds, zoomLevel: number) => {
 		const minLat = bounds.getSouth();
 		const maxLat = bounds.getNorth();
 		const minLng = bounds.getWest();
@@ -36,7 +36,7 @@ const LeafletMapComponent: React.FC = () => {
 		try {
 			// Pass current zoom to the API so that clustering is performed at that level.
 			const response = await fetch(
-				`/api/zones?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&zoom=${currentZoom}`,
+				`/api/zones?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&zoom=${zoomLevel}`,
 			);
 			const data: ClusterFeature[] = await response.json();
 			// Compare lengths (consider a deeper comparison if necessary)
@@ -59,7 +59,7 @@ const LeafletMapComponent: React.FC = () => {
 				lastFetchedCenterRef.current = initialCenter;
 				const currentZoomLevel = map.getZoom();
 				setCurrentZoom(currentZoomLevel);
-				fetchZones(map.getBounds());
+				fetchZones(map.getBounds(), currentZoomLevel);
 			}
 
 			// Define the handler for moveend/zoomend events.
@@ -78,9 +78,9 @@ const LeafletMapComponent: React.FC = () => {
 					(currentZoomLevel > 8 && currentZoomLevel !== lastFetchedZoomRef.current) ||
 					movedDistance > moveDistanceThreshold
 				) {
-					fetchZones(map.getBounds());
 					lastFetchedZoomRef.current = currentZoomLevel;
 					lastFetchedCenterRef.current = currentCenter;
+					fetchZones(map.getBounds(), currentZoomLevel);
 				}
 			};
 
@@ -105,7 +105,8 @@ const LeafletMapComponent: React.FC = () => {
 
 	const center = new L.LatLng(60.115, 16.187);
 	const radius = computeRadius(currentZoom);
-
+	console.log({ zoom: currentZoom });
+	
 	return (
 		<MapContainer
 			center={center}

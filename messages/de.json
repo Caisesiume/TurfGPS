@@ -1,19 +1,114 @@
 {
     "title": "Routenplaner",
     "form": {
-        "checkpoint": "Checkpoint {number}",
-        "addCheckpoint": "Checkpoint hinzufügen",
-        "removeCheckpoint": "Entfernen",
-        "planRoute": "Route planen",
-        "placeholder": "Ort eingeben"
+      "zone": "Zone {number}",
+      "addZone": "Zone hinzufügen",
+      "removeCheckpoint": "Entfernen",
+      "planRoute": "Route planen",
+      "placeholder": "Ort eingeben"
     },
     "map": {
-        "waitingForLocation": "Warten auf Standort",
-        "allowLocation": "Erlauben Sie den Standortzugriff, um schneller zu Ihrem Standort zu gelangen",
-        "attribution": "Kartendaten © {year} Mitwirkende"
+      "waitingForLocation": "Warten auf Standort",
+      "allowLocation": "Erlauben Sie den Standortzugriff, um schneller zu Ihrem Standort zu gelangen",
+      "attribution": "Kartendaten © {year} Mitwirkende"
     },
     "errors": {
-        "fetchZones": "Zonen konnten nicht abgerufen werden",
-        "invalidLocation": "Ungültiger Standort"
+      "fetchZones": "Zonen konnten nicht abgerufen werden",
+      "invalidLocation": "Ungültiger Standort"
+    },
+    "landing": {
+      "navigation": {
+        "features": "Funktionen",
+        "about": "Über uns",
+        "faq": "FAQ",
+        "routePlanner": "Routenplaner",
+        "getStarted": "Loslegen"
+      },
+      "hero": {
+        "title": "Plane deine perfekte Turf-Route",
+        "description": "Optimiere deine Turfgame-Erfahrung mit unserem kostenlosen Routenplanungstool. Finde die effizientesten Wege zwischen Zonen und maximiere deine Punkte.",
+        "tryButton": "Routenplaner ausprobieren",
+        "learnButton": "Mehr erfahren",
+        "freeText": "100% kostenlos. Kein Konto erforderlich."
+      },
+      "features": {
+        "badge": "Funktionen",
+        "title": "Tools für Turfer",
+        "description": "Unsere Plattform bietet alle Tools, die du brauchst, um deine Turfgame-Erfahrung zu verbessern.",
+        "routePlanning": {
+          "title": "Routenplanung",
+          "description": "Berechne die effizientesten Routen zwischen Zonen, um deine Punkte zu maximieren und die Reisezeit zu minimieren."
+        },
+        "zoneFinder": {
+          "title": "Zonenfinder",
+          "description": "Finde und filtere Zonen ganz einfach nach deinen Vorlieben und deinem aktuellen Standort."
+        },
+        "interactiveMaps": {
+          "title": "Interaktive Karten",
+          "description": "Visualisiere Zonen und Routen auf interaktiven Karten mit Echtzeit-Updates."
+        },
+        "offlineAccess": {
+          "title": "Offline-Zugriff",
+          "description": "Speichere deine Routen und greife auch offline während deiner Turf-Sessions darauf zu."
+        }
+      },
+      "about": {
+        "badge": "Über uns",
+        "title": "Von Turfern für Turfer",
+        "description1": "TurfTools begann als Hobbyprojekt, um häufige Herausforderungen von Turfgame-Spielern zu lösen. Als begeisterte Turfer wollten wir Tools erstellen, die das Spielerlebnis verbessern.",
+        "description2": "Unsere Mission ist es, völlig kostenlose, hochwertige Tools bereitzustellen, die der Turf-Community helfen, bessere Routen zu planen, neue Zonen zu entdecken und das Spiel noch mehr zu genießen.",
+        "tryButton": "Unsere Tools ausprobieren",
+        "githubButton": "Auf GitHub ansehen"
+      },
+      "faq": {
+        "badge": "FAQ",
+        "title": "Häufig gestellte Fragen",
+        "description": "Hast du Fragen? Wir haben Antworten.",
+        "questions": [
+          {
+            "question": "Ist TurfTools mit dem offiziellen Turfgame verbunden?",
+            "answer": "Nein, TurfTools ist ein unabhängiges, von Fans erstelltes Projekt zur Verbesserung der Turfgame-Erfahrung. Wir sind nicht offiziell mit Turfgame verbunden oder von Turfgame unterstützt."
+          },
+          {
+            "question": "Muss ich ein Konto erstellen, um TurfTools zu nutzen?",
+            "answer": "Nein, alle unsere Tools sind ohne Konto oder Login verfügbar. Besuche einfach die Website und beginne mit der Routenplanung!"
+          },
+          {
+            "question": "Wie genau ist die Routenplanung?",
+            "answer": "Unser Routenplanungsalgorithmus berechnet effiziente Wege zwischen Zonen basierend auf Entfernung und anderen Faktoren. Obwohl wir nach Genauigkeit streben, kann die tatsächlich optimale Route je nach realen Bedingungen wie Verkehr, Gelände und Zugänglichkeit variieren."
+          },
+          {
+            "question": "Kann ich zum Projekt beitragen?",
+            "answer": "TurfTools ist ein Open-Source-Projekt, und wir begrüßen Beiträge aus der Community. Schau dir unser GitHub-Repository an, um loszulegen."
+          },
+          {
+            "question": "Wie melde ich Fehler oder schlage Funktionen vor?",
+            "answer": "Du kannst Fehler melden oder Funktionen vorschlagen, indem du ein Issue in unserem GitHub-Repository öffnest oder uns direkt über die angegebenen Kontaktinformationen kontaktierst."
+          }
+        ]
+      },
+      "cta": {
+        "title": "Bereit, deine Turf-Routen zu optimieren?",
+        "description": "Schließe dich Hunderten von Turfern an, die unsere Tools nutzen, um bessere Routen zu planen und neue Zonen zu entdecken.",
+        "tryButton": "Routenplaner ausprobieren",
+        "exploreButton": "Funktionen erkunden"
+      },
+      "footer": {
+        "description": "Kostenlose Tools zur Verbesserung deiner Turfgame-Erfahrung.",
+        "tools": "Tools",
+        "routePlanner": "Routenplaner",
+        "zoneFinder": "Zonenfinder",
+        "statistics": "Statistiken",
+        "links": "Links",
+        "about": "Über uns",
+        "faq": "FAQ",
+        "github": "GitHub",
+        "officialTurfgame": "Offizielles Turfgame",
+        "copyright": "© {year} TurfTools. Dies ist ein Fan-Projekt, das nicht mit dem offiziellen Turfgame verbunden ist.",
+        "privacyPolicy": "Datenschutzrichtlinie",
+        "termsOfUse": "Nutzungsbedingungen"
+      }
     }
-}
+  }
+  
+  
