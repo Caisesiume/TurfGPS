@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { ArrowRight, MapPin, Github, Menu, Route } from 'lucide-react';
 import { useState } from 'react';
 
+
 export default function LandingPage() {
 	const t = useTranslations('landing');
 	const locale = useLocale();

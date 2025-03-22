@@ -26,15 +26,15 @@
 	  },
 	  "hero": {
 		"title": "Planera din perfekta Turf-rutt",
-		"description": "Optimera din Turfgame-upplevelse med vårt kostnadsfria ruttplaneringsverktyg. Hitta de mest effektiva vägarna mellan zoner och maximera dina poäng.",
+		"description": "Optimera din Turf-upplevelse med ruttplaneringsverktyget. Hitta de mest effektiva vägarna mellan zoner och maximera dina poäng.",
 		"tryButton": "Prova ruttplaneraren",
 		"learnButton": "Läs mer",
 		"freeText": "100% gratis. Inget konto krävs."
 	  },
 	  "features": {
 		"badge": "Funktioner",
-		"title": "Verktyg byggda för Turfare",
-		"description": "Vår plattform ger dig alla verktyg du behöver för att förbättra din Turfgame-upplevelse.",
+		"title": "Verktyg för oss Turfare",
+		"description": "Vår plattform ger dig alla verktyg du behöver för att förbättra din Turf-upplevelse.",
 		"routePlanning": {
 		  "title": "Ruttplanering",
 		  "description": "Beräkna de mest effektiva rutterna mellan zoner för att maximera dina poäng och minimera restiden."
@@ -108,6 +108,12 @@
 		"privacyPolicy": "Integritetspolicy",
 		"termsOfUse": "Användarvillkor"
 	  }
+	},
+	"notFound": {
+	  "title": "Sidan kunde inte hittas",
+	  "description": "Tyvärr kunde jag inte hitta sidan du försökte komma åt.",
+	  "goHome": "Till startsidan",
+	  "toMap": "Till kartan"
 	}
   }
   

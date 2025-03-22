@@ -23,10 +23,12 @@ export const metadata: Metadata = {
 	keywords: ['Turf', 'Turfgame', 'GPS', 'Route', 'Planner', 'Map', 'Zone', 'Zones'],
 	authors: [{ name: 'Caisesiume', url: 'https://github.com/Caisesiume' }],
 	creator: 'Caisesiume',
+	publisher: 'Caisesiume',
+	robots: 'index, follow',
 };
 
 export function generateStaticParams() {
-	return [{ locale: 'en' }, { locale: 'sv' }];
+	return [{ locale: 'en' }, { locale: 'sv' }, { locale: 'de' }];
 }
 
 export default async function RootLayout({

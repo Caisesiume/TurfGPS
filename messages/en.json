@@ -26,15 +26,15 @@
 	  },
 	  "hero": {
 		"title": "Plan Your Perfect Turf Route",
-		"description": "Optimize your Turfgame experience with our free route planning tool. Find the most efficient paths between zones and maximize your points.",
+		"description": "Optimize your Turf experience with our free route planning tool. Find the most efficient paths between zones and maximize your points.",
 		"tryButton": "Try Route Planner",
 		"learnButton": "Learn More",
 		"freeText": "100% free. No account required."
 	  },
 	  "features": {
 		"badge": "Features",
-		"title": "Tools Built for Turfers",
-		"description": "Our platform provides all the tools you need to enhance your Turfgame experience.",
+		"title": "Tools for us Turfers",
+		"description": "Our platform provides all the tools you need to enhance your Turf experience.",
 		"routePlanning": {
 		  "title": "Route Planning",
 		  "description": "Calculate the most efficient routes between zones to maximize your points and minimize travel time."
@@ -108,6 +108,12 @@
 		"privacyPolicy": "Privacy Policy",
 		"termsOfUse": "Terms of Use"
 	  }
+	},
+	"notFound": {
+	  "title": "Page Not Found",
+	  "description": "Sorry, I couldn't find the page you were trying to access.",
+	  "goHome": "Go Home",
+	  "toMap": "Go to Map"
 	}
   }
   
