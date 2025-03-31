@@ -1,4 +1,3 @@
-Collecting workspace information```markdown
 # TurfGPS
 
 TurfGPS is a web application designed to provide an interactive map interface for visualizing and managing routes between turf zones.
