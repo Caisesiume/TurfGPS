@@ -27,7 +27,7 @@
 	  "hero": {
 		"title": "Plan Your Perfect Turf Route",
 		"description": "Optimize your Turf experience with our free route planning tool. Find the most efficient paths between zones and maximize your points.",
-		"tryButton": "Try Route Planner",
+		"tryButton": "To Route Planner",
 		"learnButton": "Learn More",
 		"freeText": "100% free. No account required."
 	  },
@@ -55,7 +55,7 @@
 	  "about": {
 		"badge": "About",
 		"title": "Built by Turfers, for Turfers",
-		"description1": "TurfTools started as a hobby project to solve common challenges faced by Turfgame players. As avid turfers ourselves, we wanted to create tools that would enhance the game experience.",
+		"description1": "TurfGPS started as a hobby project to solve common challenges faced by Turfgame players. As avid turfers ourselves, we wanted to create tools that would enhance the game experience.",
 		"description2": "Our mission is to provide completely free, high-quality tools that help the Turf community plan better routes, discover new zones, and enjoy the game even more.",
 		"tryButton": "Try Our Tools",
 		"githubButton": "View on GitHub"
@@ -66,11 +66,11 @@
 		"description": "Got questions? We've got answers.",
 		"questions": [
 		  {
-			"question": "Is TurfTools affiliated with the official Turfgame?",
-			"answer": "No, TurfTools is an independent, fan-made project created to enhance the Turfgame experience. We are not officially affiliated with or endorsed by Turfgame."
+			"question": "Is TurfGPS affiliated with the official Turfgame?",
+			"answer": "No, TurfGPS is an independent, fan-made project created to enhance the Turfgame experience. We are not officially affiliated with or endorsed by Turfgame."
 		  },
 		  {
-			"question": "Do I need to create an account to use TurfTools?",
+			"question": "Do I need to create an account to use TurfGPS?",
 			"answer": "No, all of our tools are available without requiring an account or login. Just visit the site and start planning your routes!"
 		  },
 		  {
@@ -79,7 +79,7 @@
 		  },
 		  {
 			"question": "Can I contribute to the project?",
-			"answer": "TurfTools is an open-source project, and we welcome contributions from the community. Check out our GitHub repository to get started."
+			"answer": "TurfGPS is an open-source project, feel free to contribute. Check out our GitHub repository to get started with contributions, report bugs, or suggest new features."
 		  },
 		  {
 			"question": "How do I report bugs or suggest features?",
@@ -104,7 +104,7 @@
 		"faq": "FAQ",
 		"github": "GitHub",
 		"officialTurfgame": "Official Turfgame",
-		"copyright": "© {year} TurfTools. This is a fan project not affiliated with the official Turfgame.",
+		"copyright": "© {year} TurfGPS. This is a fan project not affiliated with the official Turfgame.",
 		"privacyPolicy": "Privacy Policy",
 		"termsOfUse": "Terms of Use"
 	  }

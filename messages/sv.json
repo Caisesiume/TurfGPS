@@ -27,7 +27,7 @@
 	  "hero": {
 		"title": "Planera din perfekta Turf-rutt",
 		"description": "Optimera din Turf-upplevelse med ruttplaneringsverktyget. Hitta de mest effektiva vägarna mellan zoner och maximera dina poäng.",
-		"tryButton": "Prova ruttplaneraren",
+		"tryButton": "Till Ruttplaneraren",
 		"learnButton": "Läs mer",
 		"freeText": "100% gratis. Inget konto krävs."
 	  },
@@ -55,7 +55,7 @@
 	  "about": {
 		"badge": "Om oss",
 		"title": "Byggt av Turfare, för Turfare",
-		"description1": "TurfTools började som ett hobbyprojekt för att lösa vanliga utmaningar som Turfgame-spelare står inför. Som ivriga turfare ville vi skapa verktyg som skulle förbättra spelupplevelsen.",
+		"description1": "TurfGPS började som ett hobbyprojekt för att lösa vanliga utmaningar som Turfgame-spelare står inför. Som ivriga turfare ville vi skapa verktyg som skulle förbättra spelupplevelsen.",
 		"description2": "Vår mission är att tillhandahålla helt kostnadsfria verktyg av hög kvalitet som hjälper Turf-gemenskapen att planera bättre rutter, upptäcka nya zoner och njuta ännu mer av spelet.",
 		"tryButton": "Prova våra verktyg",
 		"githubButton": "Visa på GitHub"
@@ -66,11 +66,11 @@
 		"description": "Har du frågor? Vi har svar.",
 		"questions": [
 		  {
-			"question": "Är TurfTools kopplat till det officiella Turfgame?",
-			"answer": "Nej, TurfTools är ett oberoende, fanskapt projekt för att förbättra Turfgame-upplevelsen. Vi är inte officiellt kopplade till eller godkända av Turfgame."
+			"question": "Är TurfGPS kopplat till det officiella Turfgame?",
+			"answer": "Nej, TurfGPS är ett oberoende, fanskapt projekt för att förbättra Turfgame-upplevelsen. Vi är inte officiellt kopplade till eller godkända av Turfgame."
 		  },
 		  {
-			"question": "Behöver jag skapa ett konto för att använda TurfTools?",
+			"question": "Behöver jag skapa ett konto för att använda TurfGPS?",
 			"answer": "Nej, alla våra verktyg är tillgängliga utan att kräva ett konto eller inloggning. Besök bara webbplatsen och börja planera dina rutter!"
 		  },
 		  {
@@ -79,7 +79,7 @@
 		  },
 		  {
 			"question": "Kan jag bidra till projektet?",
-			"answer": "TurfTools är ett open source-projekt, och vi välkomnar bidrag från gemenskapen. Kolla in vårt GitHub-repository för att komma igång."
+			"answer": "TurfGPS är ett open source-projekt, välkommen att bidra. Kolla in vårt GitHub-repository för att komma igång med bidrag, rapportera buggar eller föreslå nya funktioner."
 		  },
 		  {
 			"question": "Hur rapporterar jag buggar eller föreslår funktioner?",
@@ -104,7 +104,7 @@
 		"faq": "FAQ",
 		"github": "GitHub",
 		"officialTurfgame": "Officiella Turfgame",
-		"copyright": "© {year} TurfTools. Detta är ett fanprojekt som inte är kopplat till det officiella Turfgame.",
+		"copyright": "© {year} TurfGPS. Detta är ett fanprojekt som inte är kopplat till det officiella Turfgame.",
 		"privacyPolicy": "Integritetspolicy",
 		"termsOfUse": "Användarvillkor"
 	  }

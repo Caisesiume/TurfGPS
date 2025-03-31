@@ -27,7 +27,7 @@
 		"hero": {
 			"title": "Plane deine perfekte Turf-Route",
 			"description": "Optimiere deine Turf-Erfahrung mit unserem kostenlosen Routenplanungstool. Finde die effizientesten Wege zwischen Zonen und maximiere deine Punkte.",
-			"tryButton": "Routenplaner ausprobieren",
+			"tryButton": "Zum Routenplaner",
 			"learnButton": "Mehr erfahren",
 			"freeText": "100% kostenlos. Kein Konto erforderlich."
 		},
@@ -55,7 +55,7 @@
 		"about": {
 			"badge": "Über uns",
 			"title": "Von Turfern für Turfer",
-			"description1": "TurfTools begann als Hobbyprojekt, um häufige Herausforderungen von Turfgame-Spielern zu lösen. Als begeisterte Turfer wollten wir Tools erstellen, die das Spielerlebnis verbessern.",
+			"description1": "TurfGPS begann als Hobbyprojekt, um häufige Herausforderungen von Turfgame-Spielern zu lösen. Als begeisterte Turfer wollten wir Tools erstellen, die das Spielerlebnis verbessern.",
 			"description2": "Unsere Mission ist es, völlig kostenlose, hochwertige Tools bereitzustellen, die der Turf-Community helfen, bessere Routen zu planen, neue Zonen zu entdecken und das Spiel noch mehr zu genießen.",
 			"tryButton": "Unsere Tools ausprobieren",
 			"githubButton": "Auf GitHub ansehen"
@@ -66,11 +66,11 @@
 			"description": "Hast du Fragen? Wir haben Antworten.",
 			"questions": [
 				{
-					"question": "Ist TurfTools mit dem offiziellen Turfgame verbunden?",
-					"answer": "Nein, TurfTools ist ein unabhängiges, von Fans erstelltes Projekt zur Verbesserung der Turfgame-Erfahrung. Wir sind nicht offiziell mit Turfgame verbunden oder von Turfgame unterstützt."
+					"question": "Ist TurfGPS mit dem offiziellen Turfgame verbunden?",
+					"answer": "Nein, TurfGPS ist ein unabhängiges, von Fans erstelltes Projekt zur Verbesserung der Turfgame-Erfahrung. Wir sind nicht offiziell mit Turfgame verbunden oder von Turfgame unterstützt."
 				},
 				{
-					"question": "Muss ich ein Konto erstellen, um TurfTools zu nutzen?",
+					"question": "Muss ich ein Konto erstellen, um TurfGPS zu nutzen?",
 					"answer": "Nein, alle unsere Tools sind ohne Konto oder Login verfügbar. Besuche einfach die Website und beginne mit der Routenplanung!"
 				},
 				{
@@ -79,7 +79,7 @@
 				},
 				{
 					"question": "Kann ich zum Projekt beitragen?",
-					"answer": "TurfTools ist ein Open-Source-Projekt, und wir begrüßen Beiträge aus der Community. Schau dir unser GitHub-Repository an, um loszulegen."
+					"answer": "TurfGPS ist ein Open-Source-Projekt. Fühle dich frei, beizutragen. Schaue dir unser GitHub-Repository an, um mit Beiträgen zu beginnen, Fehler zu melden oder neue Funktionen vorzuschlagen."
 				},
 				{
 					"question": "Wie melde ich Fehler oder schlage Funktionen vor?",
@@ -104,7 +104,7 @@
 			"faq": "FAQ",
 			"github": "GitHub",
 			"officialTurfgame": "Offizielles Turfgame",
-			"copyright": "© {year} TurfTools. Dies ist ein Fan-Projekt, das nicht mit dem offiziellen Turfgame verbunden ist.",
+			"copyright": "© {year} TurfGPS. Dies ist ein Fan-Projekt, das nicht mit dem offiziellen Turfgame verbunden ist.",
 			"privacyPolicy": "Datenschutzrichtlinie",
 			"termsOfUse": "Nutzungsbedingungen"
 		}
