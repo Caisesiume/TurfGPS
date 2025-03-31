@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Collecting workspace information```markdown
+# TurfGPS
+
+TurfGPS is a web application designed to provide an interactive map interface for visualizing and managing routes between turf zones.
+
+## Features
+
+- **✅ Interactive Map**: Powered by Leaflet, the map supports zooming, panning, and dynamic updates.
+- **✅ Zone Clustering**: Zones are clustered dynamically based on the current zoom level for better visualization.
+- **✅ Responsive Design**: The application is fully responsive and works seamlessly across devices.
+- **✅ Internationalization (i18n)**: Support for multiple languages.
+- **✅ Route Planning Algorithm**: The application includes algorithm to optimize the path between zones.
+
+## Tech Stack
+
+- **Frontend**: React, Next.js, TypeScript
+- **Mapping**: Leaflet with React-Leaflet
+- **Styling**: Tailwind CSS
+- **State Management**: Redux Toolkit as centralized state management
+- **Utilities**: Lodash, custom helper functions in `lib/`
+- **Testing**: Jest for unit testing
+- **Build Tools**: PostCSS, Tailwind CSS
+
+### Key Directories
+
+- **`app/`**: Contains global assets like `favicon.ico`, global styles, and locale-specific directories.
+- **`components/`**: Reusable React components, including the `LeafletMapComponent` for map rendering.
+- **`i18n/`**: Internationalization files for multi-language support.
+- **`lib/`**: Utility functions and helpers, such as `computeRadius` and `getMoveDistanceThreshold`.
+- **`services/`**: Service layer for API calls and business logic.
+- **`store/`**: State management logic.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js (v20 or higher)
+- npm
+
+## Development
+
+### Linting and Formatting
+
+- Run ESLint:
+  ```bash
+  npm run lint
+  ```
+
+- Format code with Prettier:
+  ```bash
+  npm run format
+  ```
+
+### Testing
+
+Run unit tests with Jest:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### LeafletMapComponent
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The `LeafletMapComponent` is the core map interface, located in [`components/LeafletMapComponent.tsx`](components/LeafletMapComponent.tsx). It integrates with Leaflet and React-Leaflet to display zones dynamically based on the map's bounds and zoom level. Key features include:
 
-## Learn More
+- Fetching zones from the API based on map bounds.
+- Dynamic clustering of zones.
+- Event handling for `moveend` and `zoomend` to update the map.
 
-To learn more about Next.js, take a look at the following resources:
+### Utility Functions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Located in [`lib/`](lib/), utility functions like `computeRadius` and `getMoveDistanceThreshold` are used to calculate cluster sizes and movement thresholds dynamically.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+Contributions are welcome! Please contact @Caisesiume in Turf discord if interested.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Leaflet](https://leafletjs.com/) for the mapping library.
+- [React-Leaflet](https://react-leaflet.js.org/) for seamless React integration.
+- [OpenStreetMap](https://www.openstreetmap.org/) for map tiles.
+
+## Contact
+
+For questions or support, please open an issue or contact the maintainers.
+```
