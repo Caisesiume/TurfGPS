@@ -88,8 +88,8 @@ export default function LandingPage() {
 
 			<main className='pt-16'>
 				{/* Hero Section */}
-				<section className='py-12 md:py-24'>
-					<div className='max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-12'>
+				<section className='py-24 md:py-24' style={{ height: 'calc(100vh - 4rem)', justifySelf: 'center', alignContent: 'center' }}>
+					<div className='max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center flex-grow self-center'>
 						<div className='space-y-6'>
 							<h1 className='text-4xl md:text-5xl font-bold text-green-500'>
 								{t('hero.title')}
@@ -183,7 +183,7 @@ export default function LandingPage() {
 							<div className='flex items-center justify-center'>
 								<Image
 									src='/placeholder.svg?height=550&width=550'
-									alt='About TurfTools'
+									alt='About TurfGPS'
 									width={550}
 									height={550}
 									className='rounded-lg object-cover border border-green-800'
@@ -213,7 +213,7 @@ export default function LandingPage() {
 										<ArrowRight className='ml-1 h-4 w-4' />
 									</Link>
 									<Link
-										href='https://github.com/yourusername/turftools'
+										href='https://github.com/Caisesiume/TurfGPS'
 										target='_blank'
 										rel='noopener noreferrer'
 										className='inline-flex h-10 items-center justify-center rounded-md border border-green-700 bg-transparent px-4 py-2 text-sm font-medium text-green-500 shadow transition-colors hover:bg-green-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500'
@@ -297,7 +297,7 @@ export default function LandingPage() {
 							<div className='flex items-center gap-2'>
 								<Image
 									src='/placeholder.svg?height=32&width=32'
-									alt='TurfTools Logo'
+									alt='TurfGPS Logo'
 									width={32}
 									height={32}
 									className='rounded bg-green-700'
@@ -307,7 +307,7 @@ export default function LandingPage() {
 							<p className='text-sm text-gray-400'>{t('footer.description')}</p>
 							<div className='flex gap-4'>
 								<Link
-									href='https://github.com/yourusername/turftools'
+									href='https://github.com/caisesiume/turfgps'
 									className='text-gray-400 hover:text-green-500'
 								>
 									<Github className='h-5 w-5' />
@@ -362,7 +362,7 @@ export default function LandingPage() {
 									</li>
 									<li>
 										<Link
-											href='https://github.com/yourusername/turftools'
+											href='https://github.com/yourusername/TurfGPS'
 											className='text-gray-400 hover:text-green-500'
 										>
 											{t('footer.github')}
