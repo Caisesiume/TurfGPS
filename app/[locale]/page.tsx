@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { ArrowRight, MapPin, Github, Menu, Route } from 'lucide-react';
 import { useState } from 'react';
+import WavyRoute from '@/components/WavyRoute';
 
 
 export default function LandingPage() {
@@ -140,6 +141,8 @@ export default function LandingPage() {
 
 						<div className='mt-16 grid md:grid-cols-2 gap-8'>
 							<div className='space-y-12'>
+
+								{/* Route planning */}
 								<div className='flex gap-4'>
 									<Route className='h-6 w-6 text-green-500 flex-shrink-0' />
 									<div>
@@ -151,6 +154,8 @@ export default function LandingPage() {
 										</p>
 									</div>
 								</div>
+
+								{/* Search and add zones to your routes */}
 								<div className='flex gap-4'>
 									<MapPin className='h-6 w-6 text-green-500 flex-shrink-0' />
 									<div>
@@ -162,6 +167,20 @@ export default function LandingPage() {
 										</p>
 									</div>
 								</div>
+
+								{/* Diverte journey via zones */}
+								<div className='flex gap-4'>
+									<Route className='h-6 w-6 text-green-500 flex-shrink-0' />
+									<div>
+										<h3 className='font-bold text-green-500 mb-2'>
+											{t('features.divertJourney.title')}
+										</h3>
+										<p className='text-gray-300'>
+											{t('features.divertJourney.description')}
+										</p>
+									</div>
+								</div>
+								<WavyRoute />
 							</div>
 							<div className='hidden md:block'>
 								<Image

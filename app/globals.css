@@ -76,3 +76,22 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes wave {
+  0% {
+    d: path("M0 10 Q25 6, 50 8 T100 10"); /* Initial curve */
+  }
+  50% {
+    d: path("M0 10 Q25 1, 50 12 T100 10"); /* Curve dips again */
+  }
+  70% {
+    d: path("M0 10 Q25 1, 50 12 T100 10"); /* Curve returns to initial */
+  }
+  98% {
+    d: path("M0 10 Q25 6, 50 8 T100 10"); /* Back to initial curve */
+  }
+}
+
+.animate-wave {
+  animation: wave 8s linear infinite;
+}
