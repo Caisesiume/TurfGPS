@@ -26,7 +26,7 @@
 		},
 		"hero": {
 			"title": "Plane deine perfekte Turf-Route",
-			"description": "Optimiere deine Turf-Erfahrung mit unserem kostenlosen Routenplanungstool. Finde die effizientesten Wege zwischen Zonen und maximiere deine Punkte.",
+			"description": "Optimiere deine Turf-Erfahrung mit unserem kostenlosen Routenplanungstool. Finde die effizientesten Wege zwischen Zonen und maximiere deine Zeiten.",
 			"tryButton": "Zum Routenplaner",
 			"learnButton": "Zeige wie",
 			"freeText": "100% kostenlos. Kein Konto erforderlich."
@@ -34,7 +34,7 @@
 		"features": {
 			"badge": "Funktionen",
 			"title": "Tools für Turfer",
-			"description": "Unsere Plattform bietet alle Tools, die du brauchst, um deine Turf-Erfahrung zu verbessern.",
+			"description": "Mit diesen Tools hoffen wir, dass du deine Turf-Erfahrung verbessern kannst.",
 			"routePlanning": {
 				"title": "Routenplanung",
 				"description": "Berechne die effizientesten Routen zwischen Zonen, um deine Punkte zu maximieren und die Reisezeit zu minimieren."
@@ -50,6 +50,10 @@
 			"offlineAccess": {
 				"title": "Offline-Zugriff",
 				"description": "Speichere deine Routen und greife auch offline während deiner Turf-Sessions darauf zu."
+			},
+			"divertJourney": {
+				"title": "Lass deine Reise durch die geeignetsten Zonen führen",
+				"description": "Plane deine Route so, dass sie die geeignetsten Zonen umfasst, um die Reisezeit zwischen A und B zu minimieren."
 			}
 		},
 		"about": {

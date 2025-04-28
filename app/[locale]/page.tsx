@@ -196,7 +196,7 @@ export default function LandingPage() {
 				</section>
 
 				{/* About Section */}
-				<section id='about' className='py-24 bg-green-950'>
+				{/* <section id='about' className='py-24 bg-green-950'>
 					<div className='max-w-7xl mx-auto px-4'>
 						<div className='grid gap-12 lg:grid-cols-2'>
 							<div className='flex items-center justify-center'>
@@ -244,7 +244,7 @@ export default function LandingPage() {
 							</div>
 						</div>
 					</div>
-				</section>
+				</section> */}
 
 				{/* FAQ Section */}
 				<section id='faq' className='py-24 bg-green-900/50'>
@@ -280,7 +280,7 @@ export default function LandingPage() {
 
 				{/* CTA Section */}
 				<section id='cta' className='py-24 bg-green-900/50'>
-					<div className='max-w-7xl mx-auto px-4'>
+					<div className='max-w-7xl items-center mx-auto px-4'>
 						<div className='text-center space-y-4'>
 							<h2 className='text-3xl font-bold tracking-tighter text-green-500 md:text-4xl/tight'>
 								{t('cta.title')}
@@ -303,7 +303,7 @@ export default function LandingPage() {
 								{t('cta.exploreButton')}
 							</Link>
 						</div>
-						<p className='mt-4 text-xs text-gray-400'>{t('hero.freeText')}</p>
+						<p className='mt-4 text-xs text-gray-400 text-center'>{t('hero.freeText')}</p>
 					</div>
 				</section>
 			</main>

@@ -1,119 +1,122 @@
 {
 	"title": "Ruttplanerare",
 	"form": {
-	  "checkpoint": "Zon {number}",
-	  "addCheckpoint": "Lägg till zon",
-	  "removeCheckpoint": "Ta bort",
-	  "planRoute": "Planera rutt",
-	  "placeholder": "Ange plats"
+		"checkpoint": "Zon {number}",
+		"addCheckpoint": "Lägg till zon",
+		"removeCheckpoint": "Ta bort",
+		"planRoute": "Planera rutt",
+		"placeholder": "Ange plats"
 	},
 	"map": {
-	  "waitingForLocation": "Väntar på platsdata",
-	  "allowLocation": "Tillåt plats för att snabbare se var du är",
-	  "attribution": "Kartdata © {year} bidragsgivare"
+		"waitingForLocation": "Väntar på platsdata",
+		"allowLocation": "Tillåt plats för att snabbare se var du är",
+		"attribution": "Kartdata © {year} bidragsgivare"
 	},
 	"errors": {
-	  "fetchZones": "Det gick inte att hämta zoner",
-	  "invalidLocation": "Ogiltig plats"
+		"fetchZones": "Det gick inte att hämta zoner",
+		"invalidLocation": "Ogiltig plats"
 	},
 	"landing": {
-	  "navigation": {
-		"features": "Funktioner",
-		"about": "Om oss",
-		"faq": "FAQ",
-		"routePlanner": "Ruttplanerare",
-		"getStarted": "Kom igång"
-	  },
-	  "hero": {
-		"title": "Planera din perfekta Turf-rutt",
-		"description": "Optimera din Turf-upplevelse med ruttplaneringsverktyget. Hitta de mest effektiva vägarna mellan zoner och maximera dina poäng.",
-		"tryButton": "Till Ruttplaneraren",
-		"learnButton": "Visa hur",
-		"freeText": "100% gratis. Inget konto krävs."
-	  },
-	  "features": {
-		"badge": "Funktioner",
-		"title": "Verktyg för oss Turfare",
-		"description": "Vår plattform ger dig alla verktyg du behöver för att förbättra din Turf-upplevelse.",
-		"routePlanning": {
-		  "title": "Ruttplanering",
-		  "description": "Beräkna de mest effektiva rutterna mellan zoner för att maximera dina poäng och minimera restiden."
+		"navigation": {
+			"features": "Funktioner",
+			"about": "Om oss",
+			"faq": "FAQ",
+			"routePlanner": "Ruttplanerare",
+			"getStarted": "Kom igång"
 		},
-		"zoneFinder": {
-		  "title": "Zonsökare",
-		  "description": "Hitta och filtrera zoner enkelt baserat på dina preferenser och din nuvarande plats."
+		"hero": {
+			"title": "Planera din perfekta Turf-rutt",
+			"description": "Optimera din Turf-upplevelse med ruttplaneringsverktyget. Hitta de mest effektiva vägarna mellan zoner och maximera din tid.",
+			"tryButton": "Till Ruttplaneraren",
+			"learnButton": "Visa hur",
+			"freeText": "100% gratis. Inget konto krävs."
 		},
-		"interactiveMaps": {
-		  "title": "Interaktiva kartor",
-		  "description": "Visualisera zoner och rutter på interaktiva kartor med realtidsuppdateringar."
+		"features": {
+			"badge": "Funktioner",
+			"title": "Verktyg för oss Turfare",
+			"description": "Med dessa verktyg hoppas vi att du kan förbättra din Turf-upplevelse.",
+			"routePlanning": {
+				"title": "Ruttplanering",
+				"description": "Beräkna de mest effektiva rutterna mellan zoner för att maximera dina poäng och minimera restiden."
+			},
+			"zoneFinder": {
+				"title": "Zon-sök",
+				"description": "Hitta och filtrera zoner enkelt baserat på dina preferenser och din nuvarande plats."
+			},
+			"interactiveMaps": {
+				"title": "Interaktiva kartor",
+				"description": "Visualisera zoner och rutter på interaktiva kartor med realtidsuppdateringar."
+			},
+			"offlineAccess": {
+				"title": "Offlineåtkomst",
+				"description": "Spara dina rutter och få åtkomst till dem även när du är offline under dina turf-sessioner."
+			},
+			"divertJourney": {
+				"title": "Låt orginalrutten inkludera de lämpligaste zonerna",
+				"description": "Planera din rutt så att den inkluderar de mest lämpliga zonerna för att minimera restiden mellan A och B."
+			}
 		},
-		"offlineAccess": {
-		  "title": "Offlineåtkomst",
-		  "description": "Spara dina rutter och få åtkomst till dem även när du är offline under dina turf-sessioner."
+		"about": {
+			"badge": "Om oss",
+			"title": "Byggt av Turfare, för Turfare",
+			"description1": "TurfGPS började som ett hobbyprojekt för att lösa vanliga utmaningar som Turfgame-spelare står inför. Som ivriga turfare ville vi skapa verktyg som skulle förbättra spelupplevelsen.",
+			"description2": "Vår mission är att tillhandahålla helt kostnadsfria verktyg av hög kvalitet som hjälper Turf-gemenskapen att planera bättre rutter, upptäcka nya zoner och njuta ännu mer av spelet.",
+			"tryButton": "Prova våra verktyg",
+			"githubButton": "Visa på GitHub"
+		},
+		"faq": {
+			"badge": "FAQ",
+			"title": "Vanliga frågor",
+			"description": "Har du frågor? Vi har svar.",
+			"questions": [
+				{
+					"question": "Är TurfGPS kopplat till det officiella Turfgame?",
+					"answer": "Nej, TurfGPS är ett oberoende, hobby-skapat projekt för att förbättra Turfgame-upplevelsen. Vi är inte officiellt kopplade till eller godkända av Turfgame."
+				},
+				{
+					"question": "Behöver jag skapa ett konto för att använda TurfGPS?",
+					"answer": "Nej, alla våra verktyg är tillgängliga utan att kräva ett konto eller inloggning. Besök bara webbplatsen och börja planera dina rutter!"
+				},
+				{
+					"question": "Hur exakt är ruttplaneringen?",
+					"answer": "Vår ruttplaneringsalgoritm beräknar effektiva vägar mellan zoner baserat på avstånd och andra faktorer. Även om vi strävar efter noggrannhet kan den faktiska optimala rutten variera beroende på verkliga förhållanden som trafikdensiteten, terräng och tillgänglighet m.m."
+				},
+				{
+					"question": "Kan jag bidra till projektet?",
+					"answer": "TurfGPS är ett open source-projekt, välkommen att bidra. Kolla in vårt GitHub-repository för att komma igång med bidrag, rapportera buggar eller föreslå nya funktioner."
+				},
+				{
+					"question": "Hur rapporterar jag buggar eller föreslår funktioner?",
+					"answer": "Du kan rapportera buggar eller föreslå funktioner genom att öppna ett ärende på vårt GitHub-repository eller genom att kontakta oss direkt via den angivna kontaktinformationen."
+				}
+			]
+		},
+		"cta": {
+			"title": "Redo att optimera dina Turf-rutter?",
+			"description": "Gå med hundratals turfare som använder våra verktyg för att planera bättre rutter och upptäcka nya zoner.",
+			"tryButton": "Prova ruttplaneraren",
+			"exploreButton": "Utforska funktioner"
+		},
+		"footer": {
+			"description": "Kostnadsfria verktyg för att förbättra din Turfgame-upplevelse.",
+			"tools": "Verktyg",
+			"routePlanner": "Ruttplanerare",
+			"zoneFinder": "Zonsökare",
+			"statistics": "Statistik",
+			"links": "Länkar",
+			"about": "Om oss",
+			"faq": "FAQ",
+			"github": "GitHub",
+			"officialTurfgame": "Officiella Turfgame",
+			"copyright": "© {year} TurfGPS. Detta är ett fanprojekt som inte är kopplat till det officiella Turfgame.",
+			"privacyPolicy": "Integritetspolicy",
+			"termsOfUse": "Användarvillkor"
 		}
-	  },
-	  "about": {
-		"badge": "Om oss",
-		"title": "Byggt av Turfare, för Turfare",
-		"description1": "TurfGPS började som ett hobbyprojekt för att lösa vanliga utmaningar som Turfgame-spelare står inför. Som ivriga turfare ville vi skapa verktyg som skulle förbättra spelupplevelsen.",
-		"description2": "Vår mission är att tillhandahålla helt kostnadsfria verktyg av hög kvalitet som hjälper Turf-gemenskapen att planera bättre rutter, upptäcka nya zoner och njuta ännu mer av spelet.",
-		"tryButton": "Prova våra verktyg",
-		"githubButton": "Visa på GitHub"
-	  },
-	  "faq": {
-		"badge": "FAQ",
-		"title": "Vanliga frågor",
-		"description": "Har du frågor? Vi har svar.",
-		"questions": [
-		  {
-			"question": "Är TurfGPS kopplat till det officiella Turfgame?",
-			"answer": "Nej, TurfGPS är ett oberoende, fanskapt projekt för att förbättra Turfgame-upplevelsen. Vi är inte officiellt kopplade till eller godkända av Turfgame."
-		  },
-		  {
-			"question": "Behöver jag skapa ett konto för att använda TurfGPS?",
-			"answer": "Nej, alla våra verktyg är tillgängliga utan att kräva ett konto eller inloggning. Besök bara webbplatsen och börja planera dina rutter!"
-		  },
-		  {
-			"question": "Hur exakt är ruttplaneringen?",
-			"answer": "Vår ruttplaneringsalgoritm beräknar effektiva vägar mellan zoner baserat på avstånd och andra faktorer. Även om vi strävar efter noggrannhet kan den faktiska optimala rutten variera beroende på verkliga förhållanden som trafik, terräng och tillgänglighet."
-		  },
-		  {
-			"question": "Kan jag bidra till projektet?",
-			"answer": "TurfGPS är ett open source-projekt, välkommen att bidra. Kolla in vårt GitHub-repository för att komma igång med bidrag, rapportera buggar eller föreslå nya funktioner."
-		  },
-		  {
-			"question": "Hur rapporterar jag buggar eller föreslår funktioner?",
-			"answer": "Du kan rapportera buggar eller föreslå funktioner genom att öppna ett ärende på vårt GitHub-repository eller genom att kontakta oss direkt via den angivna kontaktinformationen."
-		  }
-		]
-	  },
-	  "cta": {
-		"title": "Redo att optimera dina Turf-rutter?",
-		"description": "Gå med hundratals turfare som använder våra verktyg för att planera bättre rutter och upptäcka nya zoner.",
-		"tryButton": "Prova ruttplaneraren",
-		"exploreButton": "Utforska funktioner"
-	  },
-	  "footer": {
-		"description": "Kostnadsfria verktyg för att förbättra din Turfgame-upplevelse.",
-		"tools": "Verktyg",
-		"routePlanner": "Ruttplanerare",
-		"zoneFinder": "Zonsökare",
-		"statistics": "Statistik",
-		"links": "Länkar",
-		"about": "Om oss",
-		"faq": "FAQ",
-		"github": "GitHub",
-		"officialTurfgame": "Officiella Turfgame",
-		"copyright": "© {year} TurfGPS. Detta är ett fanprojekt som inte är kopplat till det officiella Turfgame.",
-		"privacyPolicy": "Integritetspolicy",
-		"termsOfUse": "Användarvillkor"
-	  }
 	},
 	"notFound": {
-	  "title": "Sidan kunde inte hittas",
-	  "description": "Tyvärr kunde jag inte hitta sidan du försökte komma åt.",
-	  "goHome": "Till startsidan",
-	  "toMap": "Till kartan"
+		"title": "Sidan kunde inte hittas",
+		"description": "Tyvärr kunde jag inte hitta sidan du försökte komma åt.",
+		"goHome": "Till startsidan",
+		"toMap": "Till kartan"
 	}
-  }
-  
+}
