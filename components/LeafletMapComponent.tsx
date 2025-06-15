@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import debounce from 'lodash/debounce';
 import { computeRadius, getMoveDistanceThreshold } from '@/lib/mapUtils';
+import { useRequestManager } from '@/lib/requestUtils';
+import MapErrorBoundary from './MapErrorBoundary';
 
 type ClusterFeature = {
 	type: 'Feature';
@@ -22,31 +24,65 @@ type ClusterFeature = {
 const LeafletMapComponent: React.FC = () => {
 	const [zones, setZones] = useState<ClusterFeature[]>([]);
 	const [currentZoom, setCurrentZoom] = useState<number>(11);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [error, setError] = useState<string | null>(null);
 
 	// Use refs to store last fetched center and zoom to avoid unnecessary re-renders.
 	const lastFetchedZoomRef = useRef<number>(11);
 	const lastFetchedCenterRef = useRef<L.LatLng | null>(null);
+	const { createRequest } = useRequestManager();
 
-	// Updated fetchZones using async/await for clarity and error handling.
-	const fetchZones = async (bounds: L.LatLngBounds, zoomLevel: number) => {
+	// Helper function to compare zones deeply
+	const compareZones = useCallback((newZones: ClusterFeature[], oldZones: ClusterFeature[]) => {
+		if (newZones.length !== oldZones.length) return false;
+		
+		// Deep comparison for zones - could be optimized based on specific needs
+		return JSON.stringify(newZones) === JSON.stringify(oldZones);
+	}, []);	// Updated fetchZones using async/await for clarity and error handling.
+	const fetchZones = useCallback(async (bounds: L.LatLngBounds, zoomLevel: number) => {
 		const minLat = bounds.getSouth();
 		const maxLat = bounds.getNorth();
 		const minLng = bounds.getWest();
 		const maxLng = bounds.getEast();
+		
+		// Generate unique request ID to prevent race conditions
+		const request = createRequest();
+		
+		// Only update if this is still the latest request
+		if (request.isLatest()) {
+			setIsLoading(true);
+			setError(null);
+		}
+		
 		try {
 			// Pass current zoom to the API so that clustering is performed at that level.
 			const response = await fetch(
 				`/api/zones?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&zoom=${zoomLevel}`,
 			);
+			
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			
 			const data: ClusterFeature[] = await response.json();
-			// Compare lengths (consider a deeper comparison if necessary)
-			if (data.length !== zones.length) {
-				setZones(data);
+			
+			// Only update if this is still the latest request
+			if (request.isLatest()) {
+				// Better comparison using deep comparison
+				if (!compareZones(data, zones)) {
+					setZones(data);
+				}
+				setIsLoading(false);
 			}
 		} catch (error) {
 			console.error('Error fetching zones:', error);
+			// Only update error state if this was the latest request
+			if (request.isLatest()) {
+				setError(error instanceof Error ? error.message : 'Failed to fetch zones');
+				setIsLoading(false);
+			}
 		}
-	};
+	}, [zones, compareZones, createRequest]);
 
 	// Component to handle map events with restricted fetch conditions.
 	const MapEventHandler: React.FC = () => {
@@ -91,29 +127,47 @@ const LeafletMapComponent: React.FC = () => {
 			map.on('zoomend', debouncedHandleMoveEnd);
 
 			// Trigger initial update.
-			debouncedHandleMoveEnd();
-
-			return () => {
+			debouncedHandleMoveEnd();			return () => {
 				debouncedHandleMoveEnd.cancel();
 				map.off('moveend', debouncedHandleMoveEnd);
 				map.off('zoomend', debouncedHandleMoveEnd);
-			};
-		}, [map]);
+			};		}, [map, fetchZones]); // eslint-disable-line react-hooks/exhaustive-deps
 
 		return null;
-	};
-
-	const center = new L.LatLng(60.115, 16.187);
+	};	const center = new L.LatLng(60.115, 16.187);
 	const radius = computeRadius(currentZoom);
 	console.log({ zoom: currentZoom });
 	
 	return (
-		<MapContainer
-			center={center}
-			zoom={11}
-			minZoom={8}
-			style={{ height: '100vh', width: '100%' }}
-		>
+		<MapErrorBoundary>
+			<div className='relative'>
+				{isLoading && (
+					<div className='absolute top-4 left-4 z-[1000] bg-white px-3 py-2 rounded shadow-lg'>
+						<div className='flex items-center space-x-2'>
+							<div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500'></div>
+							<span className='text-sm'>Loading zones...</span>
+						</div>
+					</div>
+				)}
+				{error && (
+					<div className='absolute top-4 left-4 z-[1000] bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded'>
+						<div className='flex items-center space-x-2'>
+							<span className='text-sm'>⚠️ {error}</span>
+							<button 
+								onClick={() => setError(null)}
+								className='ml-2 text-red-500 hover:text-red-700'
+							>
+								×
+							</button>
+						</div>
+					</div>
+				)}
+				<MapContainer
+					center={center}
+					zoom={11}
+					minZoom={8}
+					style={{ height: '100vh', width: '100%' }}
+				>
 			<TileLayer
 				url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 				attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -157,9 +211,10 @@ const LeafletMapComponent: React.FC = () => {
 								<Popup>{zone.properties.zoneId}</Popup>
 							</CircleMarker>
 						);
-					}
-				})}
+					}				})}
 		</MapContainer>
+			</div>
+		</MapErrorBoundary>
 	);
 };
 

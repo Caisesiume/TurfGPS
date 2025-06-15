@@ -36,13 +36,37 @@ async function fetchZonesFromDatabase(
 
 export async function getHandler(req: NextRequest) {
 	const { searchParams } = req.nextUrl;
-	const minLng = parseFloat(searchParams.get('minLng')!);
-	const maxLng = parseFloat(searchParams.get('maxLng')!);
-	const minLat = parseFloat(searchParams.get('minLat')!);
-	const maxLat = parseFloat(searchParams.get('maxLat')!);
+	
+	// Get parameters as strings first
+	const minLngStr = searchParams.get('minLng');
+	const maxLngStr = searchParams.get('maxLng');
+	const minLatStr = searchParams.get('minLat');
+	const maxLatStr = searchParams.get('maxLat');
 
-	if (!minLng || !maxLng || !minLat || !maxLat) {
-		return NextResponse.json({ error: 'Invalid coordinates | gz100' }, { status: 400 });
+	// Check if all required parameters are present
+	if (!minLngStr || !maxLngStr || !minLatStr || !maxLatStr) {
+		return NextResponse.json({ error: 'Missing required coordinates | gz100' }, { status: 400 });
+	}
+
+	// Parse coordinates
+	const minLng = parseFloat(minLngStr);
+	const maxLng = parseFloat(maxLngStr);
+	const minLat = parseFloat(minLatStr);
+	const maxLat = parseFloat(maxLatStr);
+
+	// Validate parsed coordinates
+	if (isNaN(minLng) || isNaN(maxLng) || isNaN(minLat) || isNaN(maxLat)) {
+		return NextResponse.json({ error: 'Invalid coordinate format | gz101' }, { status: 400 });
+	}
+
+	// Validate coordinate bounds
+	if (minLng < -180 || maxLng > 180 || minLat < -90 || maxLat > 90) {
+		return NextResponse.json({ error: 'Coordinates out of bounds | gz102' }, { status: 400 });
+	}
+
+	// Validate coordinate ranges
+	if (minLng >= maxLng || minLat >= maxLat) {
+		return NextResponse.json({ error: 'Invalid coordinate range | gz103' }, { status: 400 });
 	}
 
 	// Build cache key based on the bounding box (optionally include zoom if needed)
@@ -95,10 +119,9 @@ export async function getHandler(req: NextRequest) {
 
 		// Update cache with clusters instead of raw zones
 		cache.set(cacheKey, { zones: clusters, timestamp: Date.now() });
-
 		return NextResponse.json(clusters);
 	} catch (error) {
 		console.error('Error fetching zones:', error);
-		return NextResponse.json({ error: 'Internal server error | gz101' }, { status: 500 });
+		return NextResponse.json({ error: 'Internal server error | gz200' }, { status: 500 });
 	}
 }

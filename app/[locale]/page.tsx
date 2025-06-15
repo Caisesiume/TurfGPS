@@ -4,14 +4,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { ArrowRight, MapPin, Github, Menu, Route } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import WavyRoute from '@/components/WavyRoute';
+import TurfGPSLogo from '@/components/TurfGPSLogo';
+import TurfGPSHeroImage from '@/components/TurfGPSHeroImage';
 
 
 export default function LandingPage() {
 	const t = useTranslations('landing');
 	const locale = useLocale();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
 
 	const links = {
 		map: `/${locale}/map`,
@@ -20,12 +23,52 @@ export default function LandingPage() {
 		features: `/${locale}#features`,
 	};
 
+	// Smooth scroll to sections
+	const scrollToSection = (sectionId: string) => {
+		const section = document.getElementById(sectionId);
+		if (section) {
+			// Account for fixed header height
+			const headerHeight = 64; // 4rem = 64px
+			const elementPosition = section.offsetTop - headerHeight;
+			
+			window.scrollTo({
+				top: elementPosition,
+				behavior: 'smooth',
+			});
+		}
+	};
+
+	useEffect(() => {
+		// Close mobile menu on route change
+		const handleRouteChange = () => {
+			if (isMobileMenuOpen) {
+				setIsMobileMenuOpen(false);
+			}
+		};
+		window.addEventListener('popstate', handleRouteChange);
+		return () => {
+			window.removeEventListener('popstate', handleRouteChange);
+		};
+	}, [isMobileMenuOpen]);
+
+	// Handle hash navigation on page load
+	useEffect(() => {
+		const hash = window.location.hash.substring(1); // Remove the '#'
+		if (hash) {
+			// Small delay to ensure page is fully loaded
+			setTimeout(() => {
+				scrollToSection(hash);
+			}, 100);
+		}
+	}, []);
+
 	return (
 		<div className='min-h-screen bg-green-950'>
 			{/* Header */}
 			<header className='fixed top-0 left-0 right-0 z-40 bg-green-950'>
 				<div className='flex h-16 items-center justify-between px-4'>
-					<Link href='/' className='text-green-500 text-xl font-bold'>
+					<Link href='/' className='flex items-center gap-2 text-green-500 text-xl font-bold'>
+						<TurfGPSLogo size={32} />
 						TURF GPS
 					</Link>
 
@@ -36,13 +79,13 @@ export default function LandingPage() {
 						</Link>
 						<Link href={links.aboutUs} className='text-gray-300 hover:text-green-500' onClick={(e) => {
 							e.preventDefault();
-							document.querySelector(links.aboutUs)?.scrollIntoView({ behavior: 'smooth' });
+							scrollToSection('about');
 						}}>
 							{t('navigation.about')}
 						</Link>
 						<Link href={links.faq} className='text-gray-300 hover:text-green-500' onClick={(e) => {
 							e.preventDefault();
-							document.querySelector(links.faq)?.scrollIntoView({ behavior: 'smooth' });
+							scrollToSection('faq');
 						}}>
 							{t('navigation.faq')}
 						</Link>
@@ -69,10 +112,18 @@ export default function LandingPage() {
 								<Link href={links.features} className='text-gray-300 hover:text-green-500' onClick={() => setIsMobileMenuOpen(false)}>
 									{t('navigation.features')}
 								</Link>
-								<Link href={links.aboutUs} className='text-gray-300 hover:text-green-500' onClick={() => setIsMobileMenuOpen(false)}>
+								<Link href={links.aboutUs} className='text-gray-300 hover:text-green-500' onClick={(e) => {
+									e.preventDefault();
+									scrollToSection('about');
+									setIsMobileMenuOpen(false);
+								}}>
 									{t('navigation.about')}
 								</Link>
-								<Link href={links.faq} className='text-gray-300 hover:text-green-500' onClick={() => setIsMobileMenuOpen(false)}>
+								<Link href={links.faq} className='text-gray-300 hover:text-green-500' onClick={(e) => {
+									e.preventDefault();
+									scrollToSection('faq');
+									setIsMobileMenuOpen(false);
+								}}>
 									{t('navigation.faq')}
 								</Link>
 								<Link href={links.map} className='text-gray-300 hover:text-green-500' onClick={() => setIsMobileMenuOpen(false)}>
@@ -106,6 +157,10 @@ export default function LandingPage() {
 								<Link
 									href={links.features}
 									className='inline-flex items-center justify-center px-6 py-3 border border-green-600 text-green-500 rounded hover:bg-green-900'
+									onClick={(e) => {
+										e.preventDefault();
+										scrollToSection('features');
+									}}
 								>
 									{t('hero.learnButton')}
 								</Link>
@@ -113,12 +168,10 @@ export default function LandingPage() {
 							<p className='text-sm text-gray-400'>{t('hero.freeText')}</p>
 						</div>
 						<div className='hidden lg:block'>
-							<Image
-								src='/placeholder.svg?height=400&width=600'
-								alt='Map Preview'
-								width={600}
-								height={400}
-								className='rounded-lg border border-green-800'
+							<TurfGPSHeroImage 
+								width={600} 
+								height={400} 
+								className='w-full h-auto rounded-lg border border-green-800'
 							/>
 						</div>
 					</div>
@@ -180,7 +233,7 @@ export default function LandingPage() {
 										</p>
 									</div>
 								</div>
-								<WavyRoute />
+								<WavyRoute className='hidden md:block' />
 							</div>
 							<div className='hidden md:block'>
 								<Image
@@ -311,16 +364,11 @@ export default function LandingPage() {
 			{/* Footer */}
 			<footer className='w-full border-t border-green-900 bg-green-950 py-6 md:py-12'>
 				<div className='max-w-7xl mx-auto px-4'>
-					<div className='grid gap-8 lg:grid-cols-3'>
+					<div className='grid gap-8 md:grid-cols-2 lg:grid-cols-4'>
+						{/* Company Info */}
 						<div className='space-y-4'>
 							<div className='flex items-center gap-2'>
-								<Image
-									src='/placeholder.svg?height=32&width=32'
-									alt='TurfGPS Logo'
-									width={32}
-									height={32}
-									className='rounded bg-green-700'
-								/>
+								<TurfGPSLogo size={32} className='rounded bg-green-700' />
 								<span className='text-xl font-bold text-green-500'>TURF GPS</span>
 							</div>
 							<p className='text-sm text-gray-400'>{t('footer.description')}</p>
@@ -334,83 +382,112 @@ export default function LandingPage() {
 								</Link>
 							</div>
 						</div>
-						<div>
+
+						{/* Tools Section */}
+						<div className='space-y-4'>
 							<h4 className='text-sm font-bold text-green-500'>
 								{t('footer.tools')}
 							</h4>
 							<ul className='space-y-2 text-sm'>
-									<li>
-										<Link
-											href='/route-planner'
-											className='text-gray-400 hover:text-green-500'
-										>
-											{t('footer.routePlanner')}
-										</Link>
-									</li>
-									<li>
-										<Link href='#' className='text-gray-400 hover:text-green-500'>
-											{t('footer.zoneFinder')}
-										</Link>
-									</li>
-									<li>
-										<Link href='#' className='text-gray-400 hover:text-green-500'>
-											{t('footer.statistics')}
-										</Link>
-									</li>
+								<li>
+									<Link
+										href={`/${locale}/map`}
+										className='text-gray-400 hover:text-green-500'
+									>
+										{t('footer.routePlanner')}
+									</Link>
+								</li>
+								{/* <li>
+									<Link href='#' className='text-gray-400 hover:text-green-500'>
+										{t('footer.zoneFinder')}
+									</Link>
+								</li>
+								<li>
+									<Link href='#' className='text-gray-400 hover:text-green-500'>
+										{t('footer.statistics')}
+									</Link>
+								</li> */}
 							</ul>
-							<div className='space-y-4'>
-								<h4 className='text-sm font-bold text-green-500'>
-									{t('footer.links')}
-								</h4>
-								<ul className='space-y-2 text-sm'>
-									<li>
-										<Link
-											href='#about'
-											className='text-gray-400 hover:text-green-500'
-										>
-											{t('footer.about')}
-										</Link>
-									</li>
-									<li>
-										<Link
-											href='#faq'
-											className='text-gray-400 hover:text-green-500'
-										>
-											{t('footer.faq')}
-										</Link>
-									</li>
-									<li>
-										<Link
-											href='https://github.com/yourusername/TurfGPS'
-											className='text-gray-400 hover:text-green-500'
-										>
-											{t('footer.github')}
-										</Link>
-									</li>
-									<li>
-										<Link
-											href='https://turfgame.com'
-											className='text-gray-400 hover:text-green-500'
-										>
-											{t('footer.officialTurfgame')}
-										</Link>
-									</li>
-								</ul>
-							</div>
 						</div>
-						<div className='mt-8 border-t border-green-900 pt-8 flex flex-col md:flex-row justify-between items-center'>
-							<p className='text-xs text-gray-400'>
-								{t('footer.copyright', { year: new Date().getFullYear() })}
-							</p>
-							<div className='flex gap-4 mt-4 md:mt-0'>
-								<Link href='#' className='text-xs text-gray-400 hover:text-green-500'>
-									{t('footer.privacyPolicy')}
-								</Link>
-								<Link href='#' className='text-xs text-gray-400 hover:text-green-500'>
-									{t('footer.termsOfUse')}
-								</Link>
-							</div>
+
+						{/* Links Section */}
+						<div className='space-y-4'>
+							<h4 className='text-sm font-bold text-green-500'>
+								{t('footer.links')}
+							</h4>
+							<ul className='space-y-2 text-sm'>
+								<li>
+									<Link
+										href='#about'
+										className='text-gray-400 hover:text-green-500'
+										onClick={(e) => {
+											e.preventDefault();
+											scrollToSection('about');
+										}}
+									>
+										{t('footer.about')}
+									</Link>
+								</li>
+								<li>
+									<Link
+										href='#faq'
+										className='text-gray-400 hover:text-green-500'
+										onClick={(e) => {
+											e.preventDefault();
+											scrollToSection('faq');
+										}}
+									>
+										{t('footer.faq')}
+									</Link>
+								</li>
+								<li>
+									<Link
+										href='https://github.com/caisesiume/turfgps'
+										className='text-gray-400 hover:text-green-500'
+										target='_blank'
+										rel='noopener noreferrer'
+									>
+										{t('footer.github')}
+									</Link>
+								</li>
+								<li>
+									<Link
+										href='https://turfgame.com'
+										className='text-gray-400 hover:text-green-500'
+										target='_blank'
+										rel='noopener noreferrer'
+									>
+										{t('footer.officialTurfgame')}
+									</Link>
+								</li>
+							</ul>
 						</div>
+
+						{/* Resources Section */}
+						<div className='space-y-4'>
+							<h4 className='text-sm font-bold text-green-500'>
+								Resources
+							</h4>
+							<ul className='space-y-2 text-sm'>
+								<li>
+									<Link href='#' className='text-gray-400 hover:text-green-500'>
+										{t('footer.privacyPolicy')}
+									</Link>
+								</li>
+								<li>
+									<Link href='#' className='text-gray-400 hover:text-green-500'>
+										{t('footer.termsOfUse')}
+									</Link>
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					{/* Copyright Section */}
+					<div className='mt-8 pt-8 border-t border-green-900 flex flex-col md:flex-row justify-between items-center'>
+						<p className='text-xs text-gray-400'>
+							{t('footer.copyright', { year: new Date().getFullYear() })}
+						</p>
 					</div>
 				</div>
 			</footer>

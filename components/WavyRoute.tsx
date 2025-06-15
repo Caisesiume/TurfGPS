@@ -7,9 +7,9 @@ interface WavyRouteProps {
     className?: string;
 }
 
-const WavyRoute: React.FC<WavyRouteProps> = ({}) => {
+const WavyRoute: React.FC<WavyRouteProps> = ({ className }) => {
     return (
-        <div className='relative w-full h-48'>
+        <div className={`relative w-full h-48 ${className || ''}`}>
             {/* Straight Line with Circles */}
             <svg
                 className='absolute top-0 left-0 w-full h-full'
