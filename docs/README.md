@@ -8,6 +8,7 @@ This folder is the front door to the TurfGPS documentation set. Each document an
 |----------|------------------------|
 | `SPECIFICATION.md` | What is the system, and how should it behave conceptually? |
 | `Requirements/` | What precisely must the system satisfy? |
+| `CalculationSpecification.md` | How is every number the system produces worked out? |
 | `Architecture.md` | How will the system feasibly satisfy those requirements? |
 | `DESIGN.md` | What design qualities are required to satisfy those requirements? |
 | `DEPLOYMENT.md` | How should this system operate with as little complexity as possible? |
@@ -29,9 +30,15 @@ Every requirement carries an explicit **verification method**. Much of this prod
 
 Traceability IDs matter beyond tidiness: issues on the project board cite the requirements they satisfy, and review agents check against them. See `DELIVERY.md`.
 
+### CalculationSpecification.md
+
+Every formula, constant, and threshold: candidate bounding, access classification, stop and journey time, takeover time, the value model, the difficulty model, and the objective function.
+
+It exists because the optimization logic is central enough that it should not be buried inside the architecture document, and because a model needs exactly one home. Anything stated there is stated **only** there.
+
 ### Architecture.md
 
-Component boundaries, runtime topology, scaling model, ports and adapters, extensibility, persistence model, data flows, security architecture, failure handling, and architectural decisions.
+Component boundaries, runtime topology, scaling model, ports and adapters, extensibility, persistence model, data flows, security architecture, failure handling, and architectural decisions. It also owns the properties of the Turf API the system integrates against.
 
 ### DESIGN.md
 
@@ -43,23 +50,26 @@ Operational detail: how to deploy, target OS, hosting options with price and com
 
 ## Current state
 
-The documentation set is **not yet in this shape**. As of 31 July 2026:
+As of 31 July 2026 the set is in this shape, less two documents that do not yet exist.
 
-- **`Concept.md`** holds the authoritative product definition at roughly 1,670 lines. It is the source of truth for intent — the repository contains almost none of the system as code, so the document leads the implementation, not the other way round.
-- **`Architecture.md`** and **`CalculationSpecification.md`** are outline stubs.
+`Concept.md` held the authoritative product definition at roughly 1,670 lines, having grown past its purpose because formulas, thresholds, integration facts, and interaction flow had nowhere else to live. It was **split** on that date, as a move operation rather than an authoring one, into `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md`. It no longer exists; it survives in git history.
 
-`Concept.md` grew past its purpose because formulas, thresholds, caching policy, and interaction flow had nowhere else to live. Splitting it into the structure above is the next planned step.
+- **`SPECIFICATION.md`** is the source of truth for intent. The repository contains none of the system as code, so the documents lead the implementation, not the other way round.
+- **`CalculationSpecification.md`** is complete for the first release, less a domain glossary it still owes.
+- **`Architecture.md`** carries binding technology decisions and the Turf API facts. It still owes failure handling, observability, security, and schema.
+- **`DESIGN.md`** carries the full interaction flow. It still owes the visual layer.
+- **`Requirements/`** and **`DEPLOYMENT.md`** do not exist yet. `Requirements/` is the bottleneck for the project board described in `DELIVERY.md`.
 
-Two notes for whoever performs that split:
-
-**It is a move operation, not an authoring one.** `Concept.md` explicitly forbids restating its own formulas — several sections say a model is stated *only* there. Content must therefore be relocated rather than copied, or the anti-duplication rules it relies on are broken.
-
-**The calculation specification is already written**, inside `Concept.md`, in finished form with numeric defaults. The stub understates the work remaining by a wide margin in one direction and overstates it in another: there is a lot of content, but it needs moving rather than writing.
+Each document ends with what it still owes and the open questions it owns. Those are the shortest route to what is unfinished.
 
 ## Conventions
 
-**Numeric constants are proposals unless stated otherwise.** `Concept.md` marks them explicitly. A proposed default exists so that specification work begins with a concrete number to argue against rather than a blank to fill; disagreeing with one is useful, leaving it undecided is not.
+**Every model has exactly one home.** A formula, constant, or threshold is stated in `CalculationSpecification.md` and nowhere else; other documents reference it by section name. This is not tidiness — a second statement of a model is a second thing to keep correct, and the two will diverge.
+
+**Cross-document references name the document.** An italic section name qualified with a filename points elsewhere; an unqualified one points within the same document.
+
+**Numeric constants are proposals unless stated otherwise.** A proposed default exists so that specification work begins with a concrete number to argue against rather than a blank to fill; disagreeing with one is useful, leaving it undecided is not.
 
 **Facts about the Turf API were verified against the live API**, not assumed. Several contradict the obvious guess. Where a document states an API behaviour, it was checked. Where something remains inferred, it says so.
 
-**Open questions are catalogued, not silently decided.** `Concept.md` carries an *Open questions* section separating what is proposed, what needs measurement, what needs evidence from real use, and what is deferred. When the split happens, each document should carry the open questions belonging to its own content.
+**Open questions are catalogued, not silently decided.** Each document carries the open questions belonging to its own content, rather than one shared list.

@@ -17,11 +17,13 @@ The repository previously held an unrelated Next.js zone-map prototype. It was r
 | Document | The question it answers |
 |----------|------------------------|
 | [`docs/README.md`](docs/README.md) | How is the documentation organised? |
-| [`docs/Concept.md`](docs/Concept.md) | What is the product, and how must it behave? |
+| [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) | What is the product, and how must it behave? |
+| [`docs/CalculationSpecification.md`](docs/CalculationSpecification.md) | How is every number worked out? |
 | [`docs/Architecture.md`](docs/Architecture.md) | How will it be built? |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | What is using it like? |
 | [`docs/DELIVERY.md`](docs/DELIVERY.md) | How does work get tracked and reviewed? |
 
-`docs/Concept.md` is the source of truth for intent. Read it before writing code — it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
+`docs/SPECIFICATION.md` is the source of truth for intent. Read it before writing code — it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
 
 ## Licence
 

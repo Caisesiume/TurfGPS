@@ -48,7 +48,7 @@ N/A also means not every agent needs to run on every change.
 
 After **8 revision rounds** without reaching 10.00, the item **escalates to the repository owner** rather than cycling further.
 
-Unanimity plus deliberately exacting critics can deadlock, with a fix for one reviewer's objection creating another's. This is not hypothetical: during the review of `Concept.md`, a first pass produced 13 findings, and the round of fixes addressing them introduced **three of the four blockers** found by the second pass. The cap keeps work moving when convergence stalls.
+Unanimity plus deliberately exacting critics can deadlock, with a fix for one reviewer's objection creating another's. This is not hypothetical: during the review of the product concept — since split into `SPECIFICATION.md` and its companions — a first pass produced 13 findings, and the round of fixes addressing them introduced **three of the four blockers** found by the second pass. The cap keeps work moving when convergence stalls.
 
 ## Review identity
 
@@ -72,4 +72,4 @@ Two categories should always reach a human rather than being settled by agent co
 
 **Requirements marked as human-verified.** Where the verification method says judgement is required, agents can confirm that a thing was built but not that it was built *well*. Whether a route recommendation is genuinely good is the product's real quality bar and is not machine-checkable.
 
-**Changes touching safety rules or accessibility classification.** `Concept.md` separates safety requirements the data can enforce from those it cannot, and is explicit that a rule the system cannot verify is not a safeguard. Changes in that area carry consequences beyond code quality and warrant a human decision.
+**Changes touching safety rules or accessibility classification.** `SPECIFICATION.md` separates safety requirements the data can enforce from those it cannot, and is explicit that a rule the system cannot verify is not a safeguard. Changes in that area carry consequences beyond code quality and warrant a human decision.
