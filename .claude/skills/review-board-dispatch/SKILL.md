@@ -54,6 +54,8 @@ Two categories are never settled by agent consensus, per `DELIVERY.md`:
 
 Review comments are posted under a **separate GitHub identity** from the repository owner's — authorship and approval must not share a signature. Authentication uses the personal access token held in the machine environment as **`GH_JUDGE_TOKEN`**.
 
+**This is why judgments go through the `gh` CLI and never through the GitHub MCP**, even though the MCP is connected and would be more convenient. An MCP server carries one identity; routing a ruling through the same connection the implementing agent used collapses the boundary and leaves nothing in the history to show it. The full rule is in the `turfgps-board-ops` skill under *Two channels, two identities* — board and issue work through the MCP, judgments through the CLI, two tokens, two accounts, always.
+
 > **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it to `gh` through the environment. Nothing may cause its value to appear in a command, a comment, a log, or a transcript.
 
 ```bash

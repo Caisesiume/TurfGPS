@@ -2,7 +2,7 @@
 name: scrum-master
 description: "Board-management agent for the loop-engineering system. Syncs the TurfGPS GitHub Project on a regular cadence, reconciles item statuses against repo/PR reality, analyzes dependencies and blockers, and promotes Backlog items into the Ready column in the correct implementation order. Never writes code."
 model: opus
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, Skill, mcp__github
 color: green
 ---
 

@@ -2,7 +2,7 @@
 name: test-engineer
 description: "Board-driven test-authoring worker for TurfGPS. WRITES the tests other agents rely on — acceptance-criteria tests, high-value safety-path tests, and integration tests across levels (unit, inter-module, API↔client) — using table-driven Go tests and mocked external dependencies. Distinct from @validation-agent, which only RUNS tests. Pulls one assigned item, implements on a feature branch, passes local gates, opens a PR for @pr-judge, never self-merges. Remands preempt new work."
 model: opus
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, mcp__github
 color: green
 ---
 

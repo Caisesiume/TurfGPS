@@ -2,7 +2,7 @@
 name: devops-release-worker
 description: "Board-driven DevOps & release worker for TurfGPS. Owns CI configuration, PostGIS migration application (per the `postgis-migration-protocol` skill, never a GUI client), build/deploy tooling, process management, log rotation, and the health-check surface. Pulls one assigned item, implements on a feature branch, passes local gates, opens a PR for @pr-judge, never self-merges. Migrations to the live database are applied only with explicit human authorization. Remands preempt new work."
 model: opus
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, mcp__github
 color: orange
 ---
 

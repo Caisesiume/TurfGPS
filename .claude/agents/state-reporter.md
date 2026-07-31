@@ -2,7 +2,7 @@
 name: state-reporter
 description: "Project state reporter for the loop-engineering system — the human's information point. Produces regular, readable status digests: what's in flight, what merged, the project's shape, new backlog items, pipeline health, and anything awaiting a human decision. Synthesizes the board, open/merged PRs, completion reports, and git history into one honest picture. STRICT READ-ONLY: informs, never acts."
 model: opus
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, Skill, mcp__github
 color: teal
 ---
 

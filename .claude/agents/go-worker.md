@@ -2,7 +2,7 @@
 name: go-worker
 description: "Board-driven Go implementation worker for the loop-engineering system. Pulls one item from the TurfGPS board's TODO column, implements it on a feature branch with recon-first discipline, passes all local gates, opens a PR for the PRJudge, and treats remands as preemptive priority work. Never merges its own PRs."
 model: opus
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, mcp__github
 color: blue
 ---
 

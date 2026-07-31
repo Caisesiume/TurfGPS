@@ -2,7 +2,7 @@
 name: scalability-specialist
 description: "Board-driven scalability implementation worker for TurfGPS. Builds the parts that must hold up as candidates, route alternatives, concurrent solve sessions, and covered countries multiply — concurrency correctness, resource bounds, hot-path efficiency, connection/pool budgets, and back-pressure — without over-engineering for scale the platform hasn't earned. Pulls one assigned item, implements on a feature branch, passes local gates, opens a PR for @pr-judge, never self-merges. Remands preempt new work."
 model: opus
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, mcp__github
 color: blue
 ---
 

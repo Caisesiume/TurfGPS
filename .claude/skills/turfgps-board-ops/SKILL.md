@@ -1,11 +1,32 @@
 ---
 name: turfgps-board-ops
-description: How to operate the TurfGPS Project Board (GitHub Project 3) and repo Caisesiume/TurfGPS from agents — gh CLI path, fresh field-ID resolution, the Status/Priority/Size fields, label and milestone conventions, the traceability law, and the PowerShell quoting pitfall. Use for any board read or mutation.
+description: How to operate the TurfGPS Project Board (GitHub Project 3) and repo Caisesiume/TurfGPS from agents — the two-channel rule (MCP for board and issues, gh CLI for judgments), fresh field-ID resolution, the Status/Priority/Size fields, label and milestone conventions, the traceability law, and the PowerShell quoting pitfall. Use for any board read or mutation.
 ---
 
 # TurfGPS Board Operations
 
+## ⚠️ Two channels, two identities — do not collapse them
+
+This is a deliberate split, not an accident of tooling. **Anyone "simplifying" it breaks a requirement in `docs/DELIVERY.md`.**
+
+| Channel | Used for | Identity |
+|---|---|---|
+| **GitHub MCP** (server `github`) | Board reads and item edits, issues, milestones, labels, PR reads | The repository owner, via `GITHUB_MCP_TOKEN` |
+| **`gh` CLI** | **Judgments only** — PR review verdicts and review comments | The judge, via `GH_JUDGE_TOKEN` |
+
+`docs/DELIVERY.md` requires review comments under a **separate GitHub identity** from the repository owner's, because authorship and approval must not share a signature — self-approval is not review, and a distinct identity makes the boundary visible in the history rather than merely intended.
+
+**An MCP server carries one identity.** If the judge posted through the same MCP connection as the agent that wrote the code, that boundary disappears and nothing in the history would show it. So:
+
+- **Never set `GITHUB_MCP_TOKEN` to the judge's token**, and never the reverse. Two tokens, two accounts, always.
+- **@pr-judge issues its rulings through the CLI**, prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`, even when the MCP is connected and would be more convenient.
+- **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it through the environment.
+
+Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
+
 ## The CLI
+
+Configured project-scoped in `.mcp.json`, so the MCP travels with the repository; the CLI is the fallback and the judgment channel.
 
 `gh` is on PATH, but prefer the explicit path so behaviour does not depend on shell configuration:
 ```bash
@@ -13,7 +34,9 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
 "$GH" auth status    # verify first; abort with a clear report if unauthenticated
 ```
 
-⚠️ **PowerShell 5.1 mangles embedded quotes in `gh api graphql` arguments. Use the Bash tool for all GraphQL and any command with nested quoting.**
+⚠️ **PowerShell 5.1 mangles embedded quotes in `gh api graphql` arguments. Use the Bash tool for all GraphQL and any command with nested quoting.** This is the main reason to prefer the MCP for issue bodies: a story body carries a multi-line narrative, given/when/then criteria, and a `Resolves:` block, and heredoc quoting is the fragile part of filing it — not the content.
+
+**Some operations have no CLI equivalent at all.** `gh project` cannot add an option to a single-select field; that needs raw GraphQL (`updateProjectV2Field`), which replaces the whole option list and regenerates every option ID. Reach for the MCP first.
 
 ## The board
 

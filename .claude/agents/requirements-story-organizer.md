@@ -2,7 +2,7 @@
 name: requirements-story-organizer
 description: "Epic & user-story organizer — a sub-agent of @requirements-engineer. Extracts approved requirements into Epics (GitHub Milestones) and breaks them into user stories (GitHub Issues labelled 'User Story', tied to their Epic's Milestone) with acceptance criteria that FULLY cover the resolved requirements. Owns story-level traceability: every story states the requirement codes it resolves; every approved requirement maps to at least one story. Never invents scope; never writes code."
 model: opus
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, Skill, mcp__github
 color: cyan
 ---
 

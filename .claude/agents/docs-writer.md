@@ -2,7 +2,7 @@
 name: docs-writer
 description: "Board-driven technical-writer worker for TurfGPS. Authors and maintains the documentation surface — AGENTS.md/CLAUDE.md updates, Architecture.md, per-story completion reports, API/endpoint docs, and inline 'why not what' comments — keeping docs truthful against the code as it actually is. Pulls one assigned item, writes on a feature branch, opens a PR for @pr-judge (@docs-reviewer grades it), never self-merges. Remands preempt new work."
 model: opus
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, mcp__github
 color: gray
 ---
 

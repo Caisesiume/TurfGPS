@@ -2,7 +2,7 @@
 name: worker-manager
 description: "Implementation-team lead for the loop-engineering system. Takes one assigned board item and routes its work to the right specialist worker(s) — Go (@go-worker), React (@react-specialist), progressive results (@progressive-results-specialist), security (@security-specialist), scalability (@scalability-specialist), database and geospatial data (@data-architect), optimizer and scoring (@optimizer-architect), DevOps (@devops-release-worker), tests (@test-engineer), docs (@docs-writer) — coordinates cross-skill items into one coherent PR, and hands the result to @pr-judge. Never writes code itself."
 model: opus
-tools: Read, Grep, Glob, Bash, Agent, Skill
+tools: Read, Grep, Glob, Bash, Agent, Skill, mcp__github
 color: blue
 ---
 

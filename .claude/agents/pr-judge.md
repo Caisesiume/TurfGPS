@@ -2,7 +2,7 @@
 name: pr-judge
 description: "Court-judge PR gate for the loop-engineering system. Convenes the full review board (documentation board, Go critic pipeline, Linus board, Craft board, SafetySentinel for safety paths, ValidationAgent) on a pull request, requires unanimous top verdicts — the literal 10.00 gate from docs/DELIVERY.md — and either approves the merge or remands the PR with every gap enumerated. Escalates deadlocks to the human after 8 rounds."
 model: opus
-tools: Read, Grep, Glob, Bash, Agent, Skill
+tools: Read, Grep, Glob, Bash, Agent, Skill, mcp__github
 color: red
 ---
 
