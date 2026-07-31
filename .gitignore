@@ -34,3 +34,6 @@ node_modules/
 # Logs
 *.log
 npm-debug.log*
+
+# Agent session-local settings (permissions accrue per machine)
+/.claude/settings.local.json
