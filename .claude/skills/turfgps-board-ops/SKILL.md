@@ -24,6 +24,30 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 
 Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
 
+## The fallback rule — MCP is a convenience, never a dependency
+
+**When the MCP is unavailable, errors, or cannot perform an action, fall back to the `gh` CLI and complete the task.** Do not stop, do not report a blocker, and do not wait for the connector.
+
+The CLI is authenticated as **`Caisesiume`** and holds exactly the permissions the owner has through the web UI. Anything doable in the UI is doable through the CLI, so a failed MCP call is a transport problem, never an authorization one. Treat "the MCP did not work" as a reason to change tool, not a reason to halt the loop.
+
+The ladder, in order:
+
+1. **GitHub MCP** — preferred for board and issue work.
+2. **`gh` CLI** — full fallback for all of it. Use the Bash tool.
+3. **`gh api graphql`** — for the handful of things the porcelain cannot do at all, such as adding an option to a single-select field. Bash tool only; see the PowerShell warning below.
+
+Note the ladder is not strictly a capability ordering: some operations only step 3 can perform. Reach down as far as the task needs.
+
+Mention in your report which channel you used, so a persistently failing MCP shows up as a pattern rather than staying invisible behind successful fallbacks.
+
+### The one thing the fallback must never do
+
+**The fallback is a change of transport, not a change of identity.**
+
+Falling back for a *judgment* means using the CLI **with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, exactly as @pr-judge already does. A judgment posted through the plain CLI would appear as `Caisesiume` — the author approving their own work, which is the precise failure `docs/DELIVERY.md` exists to prevent, and it would look completely normal in the history.
+
+If the judge token is missing or its call fails, that **is** a stop-and-report. There is no acceptable fallback for a ruling's identity.
+
 ## The CLI
 
 Configured project-scoped in `.mcp.json`, so the MCP travels with the repository; the CLI is the fallback and the judgment channel.

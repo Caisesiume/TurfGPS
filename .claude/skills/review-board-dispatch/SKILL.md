@@ -56,6 +56,8 @@ Review comments are posted under a **separate GitHub identity** from the reposit
 
 **This is why judgments go through the `gh` CLI and never through the GitHub MCP**, even though the MCP is connected and would be more convenient. An MCP server carries one identity; routing a ruling through the same connection the implementing agent used collapses the boundary and leaves nothing in the history to show it. The full rule is in the `turfgps-board-ops` skill under *Two channels, two identities* — board and issue work through the MCP, judgments through the CLI, two tokens, two accounts, always.
 
+That skill also sets a general **fallback rule**: when the MCP fails, agents drop to the CLI and finish the job rather than halting. **That rule does not extend to rulings.** A judgment falls back to the CLI *with the judge token*, never to the plain CLI — the plain CLI is authenticated as the repository owner, so a ruling posted through it is the author approving their own work, and it would look entirely normal in the history. A missing or failing `GH_JUDGE_TOKEN` is a stop-and-report, not something to work around.
+
 > **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it to `gh` through the environment. Nothing may cause its value to appear in a command, a comment, a log, or a transcript.
 
 ```bash
