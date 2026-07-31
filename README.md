@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TurfGPS
 
-## Getting Started
+A route-planning and decision-support system for players of [Turf](https://turfgame.com), the GPS location game.
 
-First, run the development server:
+You are already driving somewhere — Örebro to Jönköping, say. TurfGPS works out which roads and which individual zones make the best Turf journey for the extra time you can spare, and explains why one journey beats another.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+It is not a zone map, and it is not a navigation app. It is an optimizer with an explanation layer.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Status
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Pre-implementation.** The documentation leads the code.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The repository previously held an unrelated Next.js zone-map prototype. It was removed on 31 July 2026, once the product definition made clear it was not a partial implementation of this system but a different application. Nothing is being ported from it; it remains in git history.
 
-## Learn More
+## Start here
 
-To learn more about Next.js, take a look at the following resources:
+| Document | The question it answers |
+|----------|------------------------|
+| [`docs/README.md`](docs/README.md) | How is the documentation organised? |
+| [`docs/Concept.md`](docs/Concept.md) | What is the product, and how must it behave? |
+| [`docs/Architecture.md`](docs/Architecture.md) | How will it be built? |
+| [`docs/DELIVERY.md`](docs/DELIVERY.md) | How does work get tracked and reviewed? |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`docs/Concept.md` is the source of truth for intent. Read it before writing code — it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Licence
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [LICENSE](LICENSE).
