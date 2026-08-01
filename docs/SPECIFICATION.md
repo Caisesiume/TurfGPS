@@ -964,7 +964,7 @@ Access classification is deliberately **not** on this list. It is the hardest wo
 * Knowledge of *which* zones the user has previously taken — the API exposes only a count. This is not merely accepted: *Route review and zone confirmation* exists to let the user supply that judgement themselves.
 * Prediction of how long a zone will remain owned.
 * Monthly score optimization.
-* Open-ended trip generation from an origin and a time budget alone, with no destination named — a round trip whose named destination is its origin is in scope, provided it names at least one intermediate destination.
+* Open-ended trip generation from an origin and a time budget alone, with no destination named — a round trip whose named destination is its origin is in scope, provided it names at least one intermediate destination distinct from the origin.
 * Full urban cycling or walking Turf routes.
 * Real-time multiplayer competition modelling.
 
