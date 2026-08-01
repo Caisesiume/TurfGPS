@@ -50,7 +50,7 @@ This 10-metre figure is a proposal and is exactly the kind of threshold worth ch
 
 ## Additional journey time
 
-The central cost metric is additional journey time. The system must estimate more than the additional driving duration returned by a routing service. It must also account for slowing down, parking, leaving the car, walking, taking the zone, returning to the car, and rejoining traffic.
+The cost metric is additional journey time. The system must estimate more than the additional driving duration returned by a routing service. It must also account for slowing down, parking, leaving the car, walking, taking the zone, returning to the car, and rejoining traffic.
 
 The route provider calculates the baseline driving time and the driving time of any rerouted journey. The Turf optimizer then adds stop-specific service time that an ordinary routing provider does not include.
 
@@ -272,9 +272,13 @@ No bonus is assumed for an unknown player.
 
 ### Zone lock time
 
-Because `blocktime` governs when a zone becomes takeable again, it only affects a journey that would take the same zone twice. The first release plans a directed journey from an origin to a destination and visits each zone once, so zone lock time has no bearing on any cost in the model and does not appear in it.
+Because `blocktime` governs when a zone becomes takeable again, it only affects a journey that would take the same zone twice. The model excludes it, and the exclusion rests on one invariant: that a planned journey **takes each zone at most once**. While that holds, zone lock time has no bearing on any cost in the model and does not appear in it.
 
-Should it become relevant — a round trip, an out-and-back leg, or a route that doubles back — the documented behaviour is that lock time rises with rank, from ten minutes at rank 0 to twenty-five minutes at rank 60, and that a revisit is locked for a static five minutes regardless of rank.
+That invariant is an assumption, not a guaranteed property — nothing in the requirements corpus currently obliges a plan to take each zone at most once. It is named here so that the exclusion has a stated condition to fail: if a plan can ever take one zone twice, this exclusion must be revisited rather than inherited.
+
+The journey's shape does not settle it. A round trip is in scope, per *Genuinely out of reach or out of scope* in `SPECIFICATION.md`, and a journey of any shape may pass the same zone twice — an out-and-back over one road does so however its endpoints are named. What keeps lock time out of the model is the plan taking each zone at most once, not the journey running from an origin to a different destination.
+
+Should the invariant not hold, the documented behaviour is that lock time rises with rank, from ten minutes at rank 0 to twenty-five minutes at rank 60, and that a revisit is locked for a static five minutes regardless of rank.
 
 The units are confirmed: `blocktime` is **in seconds**. A live query for a rank-60 player returned 1500, which is exactly the twenty-five minutes the published maximum describes. The API's own example response showing 30 is stale documentation and should be disregarded.
 
