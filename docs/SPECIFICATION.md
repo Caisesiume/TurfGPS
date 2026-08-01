@@ -760,12 +760,28 @@ The intended options at confirmation are to save the route to the device, or to 
 
 Handing off a complete multi-stop route is **not generally possible**, and the design must account for this rather than assume it away.
 
+The limits below were checked against Google's published documentation on **1 August 2026**. They are set by third parties and change without reference to this product, so they carry the date they were checked rather than being reasoned about, and they are re-checked rather than assumed.
+
 The published limits are restrictive:
 
-* **Google Maps URL scheme** — up to nine waypoints in general, but only **three on mobile browsers**. Since this product is mobile-first, three is the binding figure.
+* **Google Maps URL scheme** — Google names two platform classes rather than a general figure with exceptions: **up to three waypoints on mobile browsers, and up to nine otherwise.** Both figures count **intermediate stops only**. The origin and the destination are separate URL parameters and do not consume the allowance.
 * **Waze deep links** — a **single destination**. Waypoints are not supported at all.
 
+**Three remains the design figure, as the worst case rather than as a fact about phones.** The three-waypoint condition binds *mobile browsers*, not mobile devices. A Google Maps link opened on a phone that has the Maps app installed normally opens the app, which is not a mobile browser, and Google does not document the app's own cap. The product cannot know which of the two a user's tap will reach, and one of the two is undocumented, so the design is built against the smaller published figure. That is a deliberately conservative choice, not a measured one.
+
+The intermediates-only reading is an inference and is recorded as one. No Google sentence states that the cap sits on top of the origin and destination. The conclusion rests on the cap being stated inside the description of the `waypoints` parameter, which Google defines as intermediary places to route through *between* the origin and the destination — the same convention its paid Routes API states outright, as a set of waypoints excluding terminal points. That scoping is strong, but it is not quotable as a guarantee.
+
+A conflicting convention exists upstream: Google's consumer help page for adding stops counts the final destination inside its total of nine, which is **eight** intermediates, and nothing findable documents whether the consumer interface clamps a link built with the URL scheme — so eight is the safe intermediate ceiling should any design ever lean on the upper figure.
+
 A Turf-enhanced journey routinely contains more stops than either will accept. The offload to expert systems therefore cannot be total, and a design premised on exporting the whole route in one action will fail on the primary platform.
+
+#### Waypoints may be dropped without warning
+
+The numeric cap is the smaller problem. Google states that waypoints are not supported on all of its Maps products, and that where they are unsupported **the parameter is ignored** — not rejected.
+
+A hand-off can therefore appear to succeed while delivering the user a plain drive to their destination with every Turf stop removed, discovered by arriving. For a product whose entire value is the stops, this is the more dangerous of the two constraints. It is accepted as a **first-release constraint**: the system cannot detect it, and Google does not document which products it affects.
+
+What follows is an obligation on the hand-off rather than a defect to be engineered away. **The user is told what the dispatch may drop, before they hand off.** This is the stance already settled under *Confidence and uncertainty*, applied to a hand-off instead of an estimate: where something material is not known, the system communicates it rather than presenting a result as more complete than it can vouch for. How that is worded and where it appears is an interface question and is not settled here.
 
 The model that follows from those limits — this product holding the plan and dispatching a portion of it at a time — is specified under *Dispatching stop by stop* in `DESIGN.md`.
 
@@ -966,7 +982,7 @@ The product must work on desktop computers and on mobile phones, both iOS and An
 
 **Mobile is the priority.** Planning may well happen at a desk, but the route is used on a phone — dispatching stops, checking the next zone, referring back to the plan during the journey. A design that works on a large screen and is then compressed for a small one will fail at the moment the product matters most.
 
-This is not only a layout concern. Two requirements in this document are decided by it: the Google Maps waypoint limit is three on mobile browsers rather than nine, per *The waypoint limit problem*; and the zone-by-zone review is a map-and-single-card interaction that suits a phone well and must not be designed as a wide table.
+This is not only a layout concern. Two requirements in this document follow from it: the hand-off is designed against three waypoints — the mobile-browser worst case, rather than the nine that applies otherwise — per *The waypoint limit problem*; and the zone-by-zone review is a map-and-single-card interaction that suits a phone well and must not be designed as a wide table.
 
 The first release targets the mobile web rather than native applications, which keeps a single implementation across both platforms and avoids app-store distribution for a product whose core is a server-side pipeline.
 

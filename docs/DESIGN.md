@@ -200,7 +200,7 @@ Handing off a complete multi-stop route is not generally possible; the published
 
 The confirmed route lives here. When the user is ready to drive, they send the next portion — as many consecutive stops as the target application accepts, three on a mobile browser — to Google Maps. On arrival at the end of that portion they return and dispatch the next.
 
-Dispatching a *selection* rather than a single stop matters. Three waypoints is restrictive but it is not one, and sending a usable chunk of the journey is a materially better experience than returning to the app after every zone. The interface should make the next portion obvious and sending it a single action.
+Dispatching a *selection* rather than a single stop matters. The waypoint allowance counts intermediate stops only, so a dispatch whose destination slot holds a zone rather than the journey's true endpoint carries **four** Turf stops, not three, per *The waypoint limit problem* in `SPECIFICATION.md`. Four is restrictive but it is not one, and sending a usable chunk of the journey is a materially better experience than returning to the app after every zone. The interface should make the next portion obvious and sending it a single action.
 
 The product therefore remains open on the phone during the journey as the holder of the plan. This is a different shape from exporting once and getting out of the way: still not navigation — no guidance, no tracking, no live position — but a companion rather than a one-shot planner, and the interface must be built for that.
 
