@@ -39,7 +39,7 @@ The system should also support journeys with one or more required intermediate d
 > A → B → C
 > A → B → C → D
 
-These destinations represent mandatory waypoints and must be visited in the order entered by the user. The optimizer may choose different roads and Turf stops between the waypoints, but it may not remove, reorder, or replace them.
+These intermediate destinations are the journey's mandatory waypoints. Together with the origin and destination they form the journey's required locations, which must be visited in the order entered by the user. The optimizer may choose different roads and Turf stops between consecutive required locations, but it may not remove, reorder, or replace any of them.
 
 A destination is always required. The system is not intended, at least initially, to answer open-ended requests such as "create the best two-hour Turf trip from my current position." Its purpose is to optimize Turf opportunities within a journey the user already needs or intends to make.
 
@@ -464,7 +464,7 @@ A zone can therefore be simultaneously the worst choice for a quick roadside sto
 
 Takeover rate conflates access difficulty with **population density**. A zone in rural Norrland may be quiet because few people live there, not because it is hard to reach — and rural corridors are exactly where this product operates. A global threshold would systematically penalise every rural zone on the journey, which is precisely the wrong outcome.
 
-Activity must therefore be judged **relative to its neighbourhood, never against a global figure.** The system computes a local activity baseline — the typical takeover rate across the surrounding zones — and scores each zone against that baseline rather than against an absolute number. The ratio, the size of the neighbourhood, and the guards that suppress the adjustment where it would be meaningless are all defined under *The activity baseline* in `CalculationSpecification.md`.
+Activity must therefore be judged **relative to its neighbourhood, never against a global figure** — each zone scored against a local baseline rather than against an absolute number. How that baseline is constructed, the ratio it feeds, the size of the neighbourhood, and the guards that suppress the adjustment where it would be meaningless are all defined under *The activity baseline* in `CalculationSpecification.md`.
 
 A zone at a fifth of its neighbours' rate is interesting wherever it is, because the surrounding zones establish what "normal" looks like for that area's population and traffic. A quiet zone among quiet zones is unremarkable; a quiet zone among busy ones is a signal that something about it is awkward.
 
