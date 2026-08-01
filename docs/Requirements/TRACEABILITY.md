@@ -31,7 +31,9 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 
 One row per story, transcribed from the issue's `Resolves:` line.
 
-| Story | Epic | Resolves | Board status |
-|---|---|---|---|
+**This table carries no board-status column, and none is to be added.** A story's state is owned by the board, which answers it live; a column here would be a second home for it, stale from the moment it is written. The rule this follows — what the corpus may hold about a story, and what it may never hold — is stated in `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
+
+| Story | Epic | Resolves |
+|---|---|---|
 
 **No rows, and that is correct.** No issue exists to transcribe. The first story filed adds the first row here and, in the same pass, the matching story number in the table above. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.

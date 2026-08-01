@@ -198,24 +198,31 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall not plan a journey for a request that names a
-              single location as both its origin and its destination and names
-              no intermediate destination.
+              single location as both its origin and its destination and
+              names no intermediate destination distinct from that location.
 Category:     Journey definition
 Source:       SPECIFICATION.md § Genuinely out of reach or out of scope
 Priority:     MUST
 Verification: test — a request naming one location as both its origin and its
-              destination and naming no intermediate destination produces no
-              journey, and the same request with an intermediate destination
-              added is not refused for that reason
+              destination produces no journey when it names no intermediate
+              destination, and none when every intermediate destination it
+              names is that location; the same request naming an intermediate
+              destination distinct from that location is not refused for
+              having named its origin as its destination
 Acceptance:   given a request naming a single location as both its origin and
-              its destination and naming no intermediate destination, when the
+              its destination and naming no intermediate destination, when
+              the user attempts to start planning, then the system plans no
+              journey
+              given a request naming a single location as both its origin and
+              its destination and naming at least one intermediate
+              destination, none of them distinct from that location, when the
               user attempts to start planning, then the system plans no
               journey
               given a request naming a single location as both its origin and
               its destination and naming at least one intermediate
-              destination, when the user attempts to start planning, then the
-              request is not refused for having named its origin as its
-              destination
+              destination distinct from that location, when the user attempts
+              to start planning, then the request is not refused for having
+              named its origin as its destination
 Status:       to-build
 Depends-on:   FR-002
 Risk:         Admitted, such a request has a zero-length journey to price
@@ -230,13 +237,24 @@ Rationale:    Refusing a request whose named destination is its origin reads
               coming back — a journey with a *there* to drive out to, and so a
               real baseline to price the additional time against — from
               driving around and coming back, which the cited section keeps
-              excluded. The condition is on what the request *names*, not on
-              geometry: no tolerance for a destination lying near its origin
-              has a home in `CalculationSpecification.md`, and introducing one
-              here would create a constant with no home. The second criterion
-              states only that such a request is not refused, never that it is
-              planned: planning a journey with intermediate destinations is
-              FR-002's obligation, and FR-005's Rationale sets the precedent
-              that a positive branch stays on the record that owns it.
+              excluded. That baseline is also why the intermediate must name
+              a location distinct from the origin, on the Owner's ruling of
+              1 August 2026: an intermediate equal to the origin is no *there*
+              to drive out to, so the base route is still zero-length and the
+              whole journey still prices as additional time — a wording
+              requiring only an intermediate destination admits A → A → A
+              unchanged. The cited section states the requirement without that
+              qualifier; aligning its wording is a finding for the Owner,
+              never an edit made from here. The condition is on what the
+              request *names*: an intermediate is distinct when it names a
+              different location, and the test is exact identity rather than
+              proximity — a tolerance for an intermediate lying *near* the
+              origin would be a constant with no home in
+              `CalculationSpecification.md`, and introducing one here would
+              create it. The third criterion states only that such a request
+              is not refused, never that it is planned: planning a journey
+              with intermediate destinations is FR-002's obligation, and
+              FR-005's Rationale sets the precedent that a positive branch
+              stays on the record that owns it.
 Resolved-by:  —
 ```
