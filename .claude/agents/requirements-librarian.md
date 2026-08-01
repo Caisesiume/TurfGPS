@@ -41,7 +41,7 @@ What you enforce on every pass:
 - **No RFC-2119 capitals inside a statement.** In this corpus `MUST` means MoSCoW priority and nothing else; a statement reading "the system MUST …" rather than "shall" is format drift and a finding.
 - **`Resolved-by` is yours alone.** It is a view of the matrix. An author who fills it by hand is a finding, and so is a value that disagrees with the matrix.
 - **`Category` is on the register, verbatim** — otherwise it is a finding, not a filing decision.
-- **`in-progress` is yours alone, and the board is its source.** You copy it onto a record when a resolving story reaches `In progress`; no author and no worker writes it. Where a record and the board disagree, the board is right and the record is stale.
+- **No `Status` value is yours to decide.** You transcribe what you are handed and originate nothing: `draft` is the author's, the sign-off transition is `@requirements-engineer`'s, and the implemented verdicts are `@requirements-reconciler`'s. You once copied a *board* status onto records; that value left the chain on 2 August 2026 because it was the only one with no corpus event behind it, and because a record cannot honestly assert how far the board has got. Build progress is read by following `Resolved-by` to the stories — never by writing it here.
 - **The record is authoritative; the index is derived.** A row in `INDEX.md` that disagrees with its record is fixed *in the index*. Never edit a record to match an index — that is content, and it is not yours.
 
 ## Your iron rules

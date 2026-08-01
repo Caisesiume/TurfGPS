@@ -46,7 +46,7 @@ Resolved-by:  #14, #15
 | `Priority` | MoSCoW: `MUST` · `SHOULD` · `COULD` · `WON'T-now` | RE assigns |
 | `Verification` | One keyword from the vocabulary below, then what it proves | author |
 | `Acceptance` | given/when/then (FR) or metric/threshold/condition (NFR) | author |
-| `Status` | One value from the chain below | RE / reconciler / librarian |
+| `Status` | One value from the chain below | RE / reconciler |
 | `Depends-on` | Requirement codes this one presupposes, or `none`; several separated by `;` | author |
 | `Risk` | What goes wrong if this is built wrong or not at all. **Required on `MUST` and safety-path records**, omit elsewhere | author |
 | `Rationale` | Optional. Required where the statement would otherwise read as arbitrary or over-strict, so a later agent cannot "simplify" it away | author |
@@ -62,15 +62,16 @@ Resolved-by:  #14, #15
 
 **The category register.** `Category` is a controlled vocabulary with exactly one home: the register in `docs/Requirements/README.md`. A name is legal once it appears there, and it is `@requirements-engineer` alone that seeds and extends it — a new category is an RE act, not a side effect of authoring. `@requirements-librarian` files a record under its `Category` verbatim and **flags any record whose `Category` is not on the register**, rather than inventing a near-match. The functional-area and quality-attribute lists in the RE agents' own definitions are **coverage prompts** — they exist to make an author ask "does this section impose anything here?" — and are never a source of category names. Two spellings of one area produce two files for one subsystem, and coverage per subsystem stops being checkable, which is the whole reason the field exists.
 
-**Status chain:** `draft` → `approved` → `to-build` → `in-progress` → `implemented-unverified` → `implemented-verified`, plus `retired`.
+**Status chain:** `draft` → `approved` → `to-build` → `implemented-unverified` → `implemented-verified`, plus `retired`.
 
 - **`draft`** — authored, not yet signed off. Everything `@requirements-fr` and `@requirements-nfr` return is `draft`.
 - **Sign-off is an event, not a resting state.** While `@requirements-reconciler` is dormant, the Owner's sign-off moves a record from `draft` **straight to `to-build`** — there is no classification step for it to wait in `approved` for. `approved` becomes reachable only once the reconciler is live: sign-off writes `approved`, and the reconciler then writes one of its verdicts. Downstream, "**approved requirements**" — the phrase `@requirements-story-organizer` files by — means **`to-build` or later**, never the literal value `approved`.
 - **`implemented-unverified`** and **`implemented-verified`** are `@requirements-reconciler`'s verdicts; its third, **`to-build`**, is the entry state.
-- **`in-progress`** — set by **`@requirements-librarian` alone**, copied from the board's `Status` field (`turfgps-board-ops` § Fields) when a resolving story reaches `In progress`. No author and no worker writes it on a record: the board is the source, the record is the copy, and a disagreement is resolved in the board's favour.
 - **`retired`** — see *Corpus layout*.
 
 **A status states how far a requirement has got; it never instructs.** `to-build` does not mean build it now — `Priority` and the board decide that. The value bounds what may be claimed about the requirement, not what anyone should do next.
+
+**The chain says nothing about how far the *build* has got, deliberately.** That question belongs to the board, and a record reaches it through `Resolved-by`: the story numbers are a live link, answered correctly whenever it is followed, where a status copied onto the record is an assertion the corpus has no way to keep true. A chain value whose only event lives on the board does not belong in this chain — see *What the corpus may hold about a story or an epic*.
 
 ## Obligation lives in the verb; priority lives in the field
 
@@ -134,6 +135,8 @@ Each has a home elsewhere; only the consequence for a requirement record is stat
 
 ## Acceptance-criteria form
 
+**Where the record's kind and its verification method point at different forms, the method wins.** An FR verified by `inspection` or by `human-judgement` takes that method's form below, not given/when/then. The reason is the same in both cases: the wrapper describes an execution that does not happen, and a criterion narrating a run nobody performs is the one kind of criterion that can never fail. `FR-016` is the worked example — a functional requirement whose criterion is a judgement, in the judgement form.
+
 **Functional — given/when/then.** One criterion per branch the statement names, including the unhappy branch. Needing more than about three is a signal the requirement is not singular.
 
 **Non-functional — metric / threshold / condition.** All three, or it is not measurable: *p95 replacement latency ≤ the threshold under `CalculationSpecification.md § Review-interaction thresholds`, from retained solve state.* Where the threshold is a proposed constant, the criterion cites it rather than quoting it — override 2 applies to acceptance criteria exactly as it does to statements.
@@ -173,6 +176,6 @@ Owned by `@requirements-librarian`. The corpus root is **`docs/Requirements/`** 
 
 **What the corpus may hold about a story or an epic.** Requirements are documented in this repository, under `docs/Requirements/`. **Stories exist only as GitHub Issues, and epics only as GitHub Milestones** — neither is ever *documented* here. The corpus stores their **identifiers as links**, never their content and never their state: a story's **number** (`#14`) and its epic's **Milestone name** are the whole of what may appear, anywhere in the folder. A story's **title, body, acceptance criteria, assignee, labels or status** may not — not in `TRACEABILITY.md`, not in a record's `Resolved-by`, not in `INDEX.md`, and not in a column added later because it was convenient at the time.
 
-The reason is one home per fact. A story's content and its state are owned by the board and the issue, which answer them live and answer them correctly; a copy here is stale from the moment it is written and leaves a reader holding two answers with no way to tell which is current. This is why *Story → requirement* carries **no board-status column**: the board answers status, the issue answers content, and this file answers one question only — which requirements a story resolves. The one exception is deliberate, bounded, and named in the status chain above: `in-progress` on a record, written by `@requirements-librarian` alone, copied from the board, with the board declared the source and the winner of any disagreement. It is an exception because it is named; anything resembling it that is *not* named here is a violation of this rule, not a second precedent.
+The reason is one home per fact. A story's content and its state are owned by the board and the issue, which answer them live and answer them correctly; a copy here is stale from the moment it is written and leaves a reader holding two answers with no way to tell which is current. This is why *Story → requirement* carries **no board-status column**: the board answers status, the issue answers content, and this file answers one question only — which requirements a story resolves. **The rule has no exception.** Anything proposing one — a status copied from the board, a label mirrored here, a column added because it was convenient at the time — is a violation of it, however carefully the copy is scoped.
 
 **`TRACEABILITY.md`** holds one table per direction: *Requirement → story* (requirement · epic Milestone · stories), one row per non-retired requirement; and *Story → requirement* (story # · epic · resolves), transcribed from each issue's `Resolves:` line, which stays the source of truth and is never edited to fit. The first table is the single home for the requirement→story link — the record's `Resolved-by` and the index column are views of it, regenerated in the same pass. **A disagreement between the two directions is a finding for the RE, never a silent reconciliation.**
