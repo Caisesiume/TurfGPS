@@ -243,9 +243,10 @@ Rationale:    Refusing a request whose named destination is its origin reads
               to drive out to, so the base route is still zero-length and the
               whole journey still prices as additional time — a wording
               requiring only an intermediate destination admits A → A → A
-              unchanged. The cited section states the requirement without that
-              qualifier; aligning its wording is a finding for the Owner,
-              never an edit made from here. The condition is on what the
+              unchanged. The cited section now carries that qualifier itself,
+              amended upstream on 2 August 2026: the drift closed by the
+              source moving to the record's position, never by this record
+              being edited to match its source. The condition is on what the
               request *names*: an intermediate is distinct when it names a
               different location, and the test is exact identity rather than
               proximity — a tolerance for an intermediate lying *near* the

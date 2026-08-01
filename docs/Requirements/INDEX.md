@@ -16,8 +16,11 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009` (2) |
 | [Value model](#value-model) | `value-model.md` | `FR-007` (1) |
 | [Objective selection and ranking](#objective-selection-and-ranking) | `objective-selection-and-ranking.md` | `FR-010`, `FR-011` (2) |
+| [Recommendation set composition](#recommendation-set-composition) | `recommendation-set-composition.md` | `FR-013` – `FR-018` (6) |
 
-**12 requirements, in 4 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+**18 requirements, in 5 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+
+**Twelve rows read `to-build` and six read `draft`.** The six are `FR-013` … `FR-018`, batch 2, filed 2 August 2026 and not yet signed off by the Owner; their `Resolved-by` reads `—` because no story has been cut for them yet, not because a link is missing. See `README.md` § Corpus state.
 
 ## Journey definition
 
@@ -58,5 +61,20 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 |---|---|---|---|---|---|---|
 | `FR-010` | Do not prefer a journey alternative for its zone count | Objective selection and ranking | MUST | to-build | test | #10 |
 | `FR-011` | Balance value against cost from the individual user's preferences | Objective selection and ranking | MUST | to-build | test | #11 |
+
+## Recommendation set composition
+
+`recommendation-set-composition.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-013` | Offer more than one journey alternative | Recommendation set composition | MUST | draft | test | — |
+| `FR-014` | Do not offer two indistinguishable journey alternatives | Recommendation set composition | MUST | draft | test | — |
+| `FR-015` | Do not offer an alternative beaten outright by another | Recommendation set composition | SHOULD | draft | test | — |
+| `FR-016` | Offer alternatives that differ in ways a user would act on | Recommendation set composition | MUST | draft | human-judgement | — |
+| `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | draft | test | — |
+| `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | draft | test | — |
+
+`human-judgement` on `FR-016` is the first appearance of that keyword in this index, and it is not a placeholder for a method not yet chosen: the record names the judge and the standard applied, and the story that resolves it will carry the `human-verified` label. What the keyword means, and why a fabricated metric would be worse, is in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
 
 `—` in `Resolved-by` means no story has been allocated yet. It never means the link is unknown: the single home for requirement → story is the first table in `TRACEABILITY.md`, and this column is a view of it, regenerated in the same pass. A retired record's row is the one exception, and what this column then reads is fixed by the freeze rule in `README.md` § How this folder works.
