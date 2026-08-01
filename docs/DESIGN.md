@@ -198,7 +198,7 @@ This is a legitimate outcome rather than an error. The reality of zone placement
 
 Handing off a complete multi-stop route is not generally possible; the published waypoint limits are set out under *The waypoint limit problem* in `SPECIFICATION.md`. The workable model follows from those limits: **this product holds the plan, and dispatches a selection of it at a time.**
 
-The confirmed route lives here. When the user is ready to drive, they send the next portion — as many consecutive stops as the target application accepts, three on a mobile browser — to Google Maps. On arrival at the end of that portion they return and dispatch the next.
+The confirmed route lives here. When the user is ready to drive, they send the next portion — as many consecutive stops as the target application accepts, a three-waypoint allowance on a mobile browser — to Google Maps. On arrival at the end of that portion they return and dispatch the next.
 
 Dispatching a *selection* rather than a single stop matters. The waypoint allowance counts intermediate stops only, so a dispatch whose destination slot holds a zone rather than the journey's true endpoint carries **four** Turf stops, not three, per *The waypoint limit problem* in `SPECIFICATION.md`. Four is restrictive but it is not one, and sending a usable chunk of the journey is a materially better experience than returning to the app after every zone. The interface should make the next portion obvious and sending it a single action.
 
