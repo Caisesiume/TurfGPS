@@ -59,12 +59,12 @@ Individual zones inside towns may still be considered when they are easy to reac
 
 The system should treat each journey as an optimization problem with four primary components:
 
-1. The required origin, destination, and intermediate waypoints.
+1. The user-specified origin, destination, and intermediate waypoints.
 2. The viable general road routes between those points.
 3. The Turf zones that may reasonably be captured along each route.
 4. The user's personal preferences and travel constraints.
 
-The objective is to find journey alternatives that maximize Turf value while minimizing additional travel time and inconvenience.
+The objective is to find journey alternatives that maximize Turf value while minimizing additional travel time.
 
 ```mermaid
 flowchart TD
@@ -84,7 +84,7 @@ Conceptually, the system is trying to maximize:
 
 > **Turf value gained relative to additional journey cost**
 
-The value of a journey is determined by the zones it contains and, initially, by the attributes assigned to those zones. The cost is primarily measured as additional time compared with the corresponding journey without Turf stops.
+The value of a journey is determined by the zones it captures and, initially, by the attributes assigned to those zones. The cost is measured as additional time compared with the corresponding journey without Turf stops.
 
 Expressed as a principle: a journey's worth is the value of the zones it captures, set against the additional driving time and the time spent stopping to reach them.
 
@@ -111,7 +111,7 @@ Each general route becomes a baseline against which Turf-enhanced variants can b
 
 The system must distinguish between two types of route deviation:
 
-**General route selection** determines which main roads are used to travel between the required waypoints.
+**General route selection** determines which main roads are used to travel between the journey's required locations.
 
 **Zone-level detours** are smaller deviations from a selected general route for the purpose of capturing one or more individual zones.
 
@@ -646,7 +646,7 @@ The optimization process should account for:
 * The maximum 15% stretch allowance.
 * Shared detours between multiple zones.
 * The order in which zones are visited.
-* All mandatory journey waypoints.
+* All required journey locations, including origin and destination.
 
 The objective should not be reduced to a single unexplained score shown to the user. An internal numerical score is useful for comparing candidate solutions, but the user-facing recommendation should translate that score into understandable trade-offs.
 
@@ -948,7 +948,7 @@ Access classification is deliberately **not** on this list. It is the hardest wo
 * Knowledge of *which* zones the user has previously taken — the API exposes only a count. This is not merely accepted: *Route review and zone confirmation* exists to let the user supply that judgement themselves.
 * Prediction of how long a zone will remain owned.
 * Monthly score optimization.
-* Open-ended round-trip generation without a destination.
+* Open-ended trip generation from an origin and a time budget alone, with no destination named — a round trip whose named destination is its origin is in scope, provided it names at least one intermediate destination.
 * Full urban cycling or walking Turf routes.
 * Real-time multiplayer competition modelling.
 
