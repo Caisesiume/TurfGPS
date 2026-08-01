@@ -25,13 +25,13 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-001` | Plan a journey from an origin to a destination | Journey definition | MUST | to-build | test | — |
-| `FR-002` | Plan a journey with intermediate destinations | Journey definition | MUST | to-build | test | — |
-| `FR-003` | Visit mandatory waypoints in the order entered | Journey definition | MUST | to-build | test | — |
-| `FR-004` | Preserve the entered mandatory-waypoint set | Journey definition | MUST | to-build | test | — |
-| `FR-005` | Require a destination | Journey definition | MUST | to-build | test | — |
-| `FR-006` | Plan journey travel as travel by car | Journey definition | MUST | to-build | test | — |
-| `FR-012` | Require an intermediate destination on a return to the origin | Journey definition | MUST | to-build | test | — |
+| `FR-001` | Plan a journey from an origin to a destination | Journey definition | MUST | to-build | test | #1, #2 |
+| `FR-002` | Plan a journey with intermediate destinations | Journey definition | MUST | to-build | test | #2 |
+| `FR-003` | Visit mandatory waypoints in the order entered | Journey definition | MUST | to-build | test | #2 |
+| `FR-004` | Preserve the entered mandatory-waypoint set | Journey definition | MUST | to-build | test | #3 |
+| `FR-005` | Require a destination | Journey definition | MUST | to-build | test | #4 |
+| `FR-006` | Plan journey travel as travel by car | Journey definition | MUST | to-build | test | #6 |
+| `FR-012` | Require an intermediate destination on a return to the origin | Journey definition | MUST | to-build | test | #5 |
 
 ## Cost and time composition
 
@@ -39,8 +39,8 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-008` | Measure journey cost as time added to the journey without Turf stops | Cost and time composition | MUST | to-build | test | — |
-| `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | to-build | test | — |
+| `FR-008` | Measure journey cost as time added to the journey without Turf stops | Cost and time composition | MUST | to-build | test | #7 |
+| `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | to-build | test | #8 |
 
 ## Value model
 
@@ -48,7 +48,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-007` | Derive a journey's Turf value from the zones it captures | Value model | MUST | to-build | test | — |
+| `FR-007` | Derive a journey's Turf value from the zones it captures | Value model | MUST | to-build | test | #9 |
 
 ## Objective selection and ranking
 
@@ -56,7 +56,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-010` | Do not prefer a journey alternative for its zone count | Objective selection and ranking | MUST | to-build | test | — |
-| `FR-011` | Balance value against cost from the individual user's preferences | Objective selection and ranking | MUST | to-build | test | — |
+| `FR-010` | Do not prefer a journey alternative for its zone count | Objective selection and ranking | MUST | to-build | test | #10 |
+| `FR-011` | Balance value against cost from the individual user's preferences | Objective selection and ranking | MUST | to-build | test | #11 |
 
 `—` in `Resolved-by` means no story has been allocated yet. It never means the link is unknown: the single home for requirement → story is the first table in `TRACEABILITY.md`, and this column is a view of it, regenerated in the same pass. A retired record's row is the one exception, and what this column then reads is fixed by the freeze rule in `README.md` § How this folder works.

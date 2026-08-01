@@ -54,7 +54,7 @@ Rationale:    The statement forbids excluding an alternative *for its count*,
               varied alternatives — one of them a stretch offered with worse
               value against cost — a violation of this record rather than the
               feature they are.
-Resolved-by:  —
+Resolved-by:  #10
 ```
 
 ## FR-011 — Balance value against cost from the individual user's preferences
@@ -94,5 +94,5 @@ Rationale:    The source's "must" is the strongest obligation in the section.
               assert non-identity rather than which alternative wins: that
               mapping is a proposal, not a settled value, and a criterion
               naming the winner would harden it into an obligation.
-Resolved-by:  —
+Resolved-by:  #11
 ```

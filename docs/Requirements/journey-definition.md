@@ -33,7 +33,7 @@ Rationale:    Kept separate from FR-002 on singularity, not on verb strength:
               the verbs no longer carry the distinction; merging the records
               would join two separately testable outcomes in one statement,
               which the singular check rejects.
-Resolved-by:  —
+Resolved-by:  #1, #2
 ```
 
 ## FR-002 — Plan a journey with intermediate destinations
@@ -74,7 +74,7 @@ Rationale:    The source writes "should also support", but SPECIFICATION.md
               waypoints as optional *input* — optional to supply, never
               optional to support, which is the distinction the earlier
               `should` blurred.
-Resolved-by:  —
+Resolved-by:  #2
 ```
 
 ## FR-003 — Visit mandatory waypoints in the order entered
@@ -98,7 +98,7 @@ Depends-on:   FR-002
 Risk:         Reordering silently substitutes a different journey for the one
               the user needs to make, and the substitution is invisible until
               they are driving it.
-Resolved-by:  —
+Resolved-by:  #2
 ```
 
 ## FR-004 — Preserve the entered mandatory-waypoint set
@@ -131,7 +131,7 @@ Risk:         A plan that quietly drops or relocates a required destination is
               premise is optimizing inside a trip they already need to take.
 Rationale:    Set identity, not inclusion — "identical" is what makes swapping
               in a nearby location a failure, which is the source's "replace".
-Resolved-by:  —
+Resolved-by:  #3
 ```
 
 ## FR-005 — Require a destination
@@ -158,7 +158,7 @@ Rationale:    The source qualifies the exclusion as "at least initially", and
               repeats it as a deliberate product boundary. The corresponding
               positive branch — a request that does name a destination is
               planned — is FR-001's, and is not restated here.
-Resolved-by:  —
+Resolved-by:  #4
 ```
 
 ## FR-006 — Plan journey travel as travel by car
@@ -191,7 +191,7 @@ Rationale:    SPECIFICATION.md § The planning player owns the premise — the
               record from contradicting the park-and-walk model.
               Architecture.md § D3 confirms feasibility: one routing engine
               serves both car and pedestrian costing.
-Resolved-by:  —
+Resolved-by:  #6
 ```
 
 ## FR-012 — Require an intermediate destination on a return to the origin
@@ -256,5 +256,5 @@ Rationale:    Refusing a request whose named destination is its origin reads
               with intermediate destinations is FR-002's obligation, and
               FR-005's Rationale sets the precedent that a positive branch
               stays on the record that owns it.
-Resolved-by:  —
+Resolved-by:  #5
 ```

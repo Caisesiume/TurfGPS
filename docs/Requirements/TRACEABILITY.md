@@ -4,7 +4,7 @@ Requirement ↔ epic ↔ story, in both directions. The first table below is the
 
 A disagreement between the two directions is a finding for `@requirements-engineer`, never a silent reconciliation.
 
-**Both tables are empty of story links on purpose — 1 August 2026.** No epic and no story exists. The Owner signed the corpus off on 1 August 2026, so story creation is now **authorized and not yet run**: it awaits `@engineering-lead`'s verification that the sign-off conditions have been applied, after which `@requirements-story-organizer` cuts the first Epics. The shape below is the finished shape; only rows are missing. A `—` is an allocation that has not happened yet, not a link that was lost.
+**First story allocation — 2 August 2026.** Story creation has run. `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues on 2 August 2026, following the Owner's sign-off of 1 August 2026, and every one of the twelve requirements now carries a story. Both directions below were filled in the same pass and agree. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
 
 ## Requirement → story
 
@@ -12,20 +12,20 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 
 | Requirement | Epic (Milestone) | Stories |
 |---|---|---|
-| `FR-001` — Plan a journey from an origin to a destination | — | — |
-| `FR-002` — Plan a journey with intermediate destinations | — | — |
-| `FR-003` — Visit mandatory waypoints in the order entered | — | — |
-| `FR-004` — Preserve the entered mandatory-waypoint set | — | — |
-| `FR-005` — Require a destination | — | — |
-| `FR-006` — Plan journey travel as travel by car | — | — |
-| `FR-007` — Derive a journey's Turf value from the zones it captures | — | — |
-| `FR-008` — Measure journey cost as time added to the journey without Turf stops | — | — |
-| `FR-009` — Charge stop time to the journey even where no detour is driven | — | — |
-| `FR-010` — Do not prefer a journey alternative for its zone count | — | — |
-| `FR-011` — Balance value against cost from the individual user's preferences | — | — |
-| `FR-012` — Require an intermediate destination on a return to the origin | — | — |
+| `FR-001` — Plan a journey from an origin to a destination | Journey request and structure | #1, #2 |
+| `FR-002` — Plan a journey with intermediate destinations | Journey request and structure | #2 |
+| `FR-003` — Visit mandatory waypoints in the order entered | Journey request and structure | #2 |
+| `FR-004` — Preserve the entered mandatory-waypoint set | Journey request and structure | #3 |
+| `FR-005` — Require a destination | Journey request and structure | #4 |
+| `FR-006` — Plan journey travel as travel by car | Drivable legs and journey cost | #6 |
+| `FR-007` — Derive a journey's Turf value from the zones it captures | Turf value and per-user ranking | #9 |
+| `FR-008` — Measure journey cost as time added to the journey without Turf stops | Drivable legs and journey cost | #7 |
+| `FR-009` — Charge stop time to the journey even where no detour is driven | Drivable legs and journey cost | #8 |
+| `FR-010` — Do not prefer a journey alternative for its zone count | Turf value and per-user ranking | #10 |
+| `FR-011` — Balance value against cost from the individual user's preferences | Turf value and per-user ranking | #11 |
+| `FR-012` — Require an intermediate destination on a return to the origin | Journey request and structure | #5 |
 
-12 of 12 requirements listed. 0 carry an epic. 0 carry a story. Once an epic is in flight, a requirement in it still reading `—` under *Stories* is an orphan and a finding.
+12 of 12 requirements listed. All 12 carry an epic, and all 12 carry at least one story. Once an epic is in flight, a requirement in it still reading `—` under *Stories* is an orphan and a finding.
 
 ## Story → requirement
 
@@ -35,5 +35,16 @@ One row per story, transcribed from the issue's `Resolves:` line.
 
 | Story | Epic | Resolves |
 |---|---|---|
+| #1 | Journey request and structure | `FR-001` |
+| #2 | Journey request and structure | `FR-001`, `FR-002`, `FR-003` |
+| #3 | Journey request and structure | `FR-004` |
+| #4 | Journey request and structure | `FR-005` |
+| #5 | Journey request and structure | `FR-012` |
+| #6 | Drivable legs and journey cost | `FR-006` |
+| #7 | Drivable legs and journey cost | `FR-008` |
+| #8 | Drivable legs and journey cost | `FR-009` |
+| #9 | Turf value and per-user ranking | `FR-007` |
+| #10 | Turf value and per-user ranking | `FR-010` |
+| #11 | Turf value and per-user ranking | `FR-011` |
 
-**No rows, and that is correct.** No issue exists to transcribe. The first story filed adds the first row here and, in the same pass, the matching story number in the table above. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.
+11 of 11 stories listed, transcribed as filed. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.

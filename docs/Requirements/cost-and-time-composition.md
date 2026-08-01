@@ -38,7 +38,7 @@ Rationale:    The section states what cost is measured against; the arithmetic
               fixes which journey is "corresponding" — it is stated per route
               alternative, against the general route the alternative is built
               on, per *General route alternatives* in `SPECIFICATION.md`.
-Resolved-by:  —
+Resolved-by:  #7
 ```
 
 ## FR-009 — Charge stop time to the journey even where no detour is driven
@@ -79,5 +79,5 @@ Rationale:    Not redundant with FR-008: a routing provider returns driving
               system must estimate beyond the routing service. What a stop
               costs, which differs by access class, is owned elsewhere and is
               cited rather than restated here.
-Resolved-by:  —
+Resolved-by:  #8
 ```

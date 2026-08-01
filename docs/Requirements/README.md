@@ -4,7 +4,7 @@ The front door to the requirements corpus. Every functional and non-functional r
 
 Why a folder rather than a file: `docs/README.md` § Requirements/.
 
-**Corpus state — 1 August 2026.** 12 requirements, 4 categories in use, all `to-build`. The Owner signed the corpus off on 1 August 2026. That sign-off moved every record from `draft` **straight to `to-build`**, because `@requirements-reconciler` is dormant and there is no classification step for a record to wait in `approved` for — no record in this corpus has ever held `approved`. No story or epic exists yet: story creation is authorized and awaiting `@engineering-lead`'s verification that the sign-off conditions have been applied, so every `Resolved-by` in this corpus is still empty by design and not by omission.
+**Corpus state — 2 August 2026.** 12 requirements, 4 categories in use, all `to-build`. The Owner signed the corpus off on 1 August 2026. That sign-off moved every record from `draft` **straight to `to-build`**, because `@requirements-reconciler` is dormant and there is no classification step for a record to wait in `approved` for — no record in this corpus has ever held `approved`. Story creation has since run: `@requirements-story-organizer` filed three epics and eleven stories on 2 August 2026, and all twelve requirements are now resolved by a story. The links live in `TRACEABILITY.md`; each record's `Resolved-by` and the column in `INDEX.md` are views of them.
 
 ## The files in this folder
 
