@@ -75,7 +75,7 @@ The constant is **90 km/h**: the highest recorded speed limit a road may carry a
 
 **The value is a proposal; the exclusion is not.** Nothing in this documentation set establishes 90 km/h. It carries no origin, no measurement, and no cited source, and it is absent from *Estimate accuracy and calibration* in `SPECIFICATION.md`, which enumerates which constants are settled, which need measurement, and which are irreducible. Under *Conventions* in `docs/README.md`, where numeric constants are proposals unless stated otherwise, it is therefore a **proposed default by default** — held to that status because nothing supports a stronger one, not because anyone argued for the number. It must not be presented to a user, a requirement, or a reviewer as a legal threshold or as a figure taken from any road-traffic source; no such attribution exists to make. Whatever value the constant holds, **the exclusion built on it is absolute**: a zone whose only stopping position is on a road above the limit is excluded regardless of its Turf value, and time is never grounds for relaxing it.
 
-**Why downward is the strict direction.** Lowering the constant excludes more roads, which is the direction that costs coverage rather than safety, and it degrades gracefully in the cost model: the fastest roadside row in *Proposed placeholder timings* is 70 km/h, so every stopping context the table actually prices survives a tightening well below 90. Raising it does not. Roads between the table's 70 km/h row and the exclusion already have no timing row of their own, and raising the constant widens that unpriced band — admitting faster roads as stopping places while the model has nothing calibrated, or even guessed, for stopping on them.
+**Why downward is the strict direction.** Lowering the constant excludes more roads, which is the direction that costs coverage rather than safety, and it degrades gracefully in the cost model: the roadside rows in *Proposed placeholder timings* run from 30 km/h to this limit, so every stopping context a tightening leaves admissible still has a row. Raising it does not. Those rows stop where the exclusion stops, so raising the constant admits roads faster than the table prices — putting stopping places into the model with nothing calibrated, or even guessed, for stopping on them.
 
 ---
 
@@ -255,13 +255,17 @@ These values are **uncalibrated estimates**. They exist so the system can run an
 | Parking area or rest area | 45 s | 30 s |
 | Urban roadside, 30–50 km/h | 25 s | 20 s |
 | Regional roadside, 70 km/h | 40 s | 35 s |
+| Regional roadside, 80 km/h | 50 s | 45 s |
+| Regional roadside, 90 km/h | 55 s | 50 s |
 | Exit and re-entry via intersection | 60 s | 60 s |
 
 A further **15-second buffer** applies per stop, covering the small unpredictable delays described below.
 
 Roads above *The maximum speed limit for a stopping road* do not appear in this table because stopping on them is excluded outright under *Enforceable exclusions* in `SPECIFICATION.md`. Where such a zone is reachable from an adjacent rest area or service road, the relevant row is the one describing that stopping place, not the road the zone sits beside.
 
-The fastest roadside row here is 70 km/h, so roads between that row and the exclusion limit are permitted as stopping places but have no timing of their own. That band is a known gap in this table, recorded under *The maximum speed limit for a stopping road*.
+The roadside rows run to the same limit the exclusion does, so every road permitted as a stopping place resolves to a row. Where a recorded limit falls between two roadside rows, it takes the **faster** row rather than the nearer one. The top of this table tracks that constant rather than standing on its own: tightening the constant strands the rows above the new limit, and they should be removed with it so that this table never prices a road the system will not stop on.
+
+**The 80 and 90 km/h rows are the weakest numbers in this table, and are biased high on purpose.** They were not estimated independently; they were extrapolated from the two slower roadside rows, which are themselves guesses, so they inherit that error and add their own. The trend those rows describe is +15 s in both columns between the top of the urban band (50 km/h) and the 70 km/h row — 7.5 s per 10 km/h — continued to 80 and 90 and rounded **up** to the 5-second granularity the rest of the table uses. Upward is the deliberate direction: understating a manoeuvre understates the cost of the stop it belongs to, which makes the stop look cheaper than it is and lets a plan built on it run closer to the absolute ceiling than its true cost allows. A reader who needs these to be wrong in a known direction should read them as too generous, never as too tight. What replaces them is measurement — the same stopwatch runs the other rows are waiting on, driven on roads posted at these limits rather than interpolated from slower ones.
 
 The timing model also includes small configurable buffers because real-world actions are not perfectly deterministic. Parking availability, traffic, road crossings, GPS delay, and the exact zone geometry can all affect the actual duration.
 
@@ -511,7 +515,7 @@ Two constants are named by this documentation set, are required for the system t
 * **The base value of an ordinary zone**, proposed as 1.0.
 * **The 10-metre direct-access tolerance**, which decides which candidates skip walk-safety validation entirely, per *Direct-access tolerance*, and is worth validating early against real captures.
 * **The 90 km/h maximum speed limit for a stopping road**, per *The maximum speed limit for a stopping road*. A proposal by default rather than by argument: no source, measurement, or reasoning for the figure exists anywhere in this documentation set. The exclusion it feeds is absolute regardless; it is the number that is unevidenced, not the rule.
-* **Manoeuvre timings.** The placeholders under *Proposed placeholder timings* let the system run, but they are guesses, and they are the largest single source of error in the time model. This is the one thing in the system that requires someone to drive the manoeuvres with a stopwatch.
+* **Manoeuvre timings.** The placeholders under *Proposed placeholder timings* let the system run, but they are guesses, and they are the largest single source of error in the time model. This is the one thing in the system that requires someone to drive the manoeuvres with a stopwatch — **every row of that table, including the 80 and 90 km/h rows that exist to match the range the exclusion admits.** Those two are the weakest entries in the document: extrapolated from the slower roadside rows rather than observed even once, and rounded upward on purpose, so they are guesses drawn from guesses. They are owed the same measurement as the rest, on roads posted at those limits, and closing this question means retiring all of them and not merely the ones somebody happened to drive.
 
 ### Standing obligations
 
