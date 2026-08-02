@@ -533,21 +533,21 @@ The user specifies how much additional time may be spent on Turf activities duri
 
 The realistic range is **wide** — from ten minutes for someone squeezing zones into a trip they need to make, to several hours for a dedicated player whose day is built around the journey. Both are ordinary users of this product. The interface must accept the whole range without treating either end as unusual, and the optimizer must behave sensibly across all of it: a ten-minute budget should still produce a useful answer, and a three-hour budget must not degenerate into an urban collection route, which remains out of scope.
 
-The limit is a **soft target with a hard ceiling**. The stated limit is the target: the optimizer prioritizes alternatives that respect it and must always produce at least one that does. 115% of the stated limit is the ceiling, and it is absolute — no recommendation may exceed it for any reason, however valuable the zone. Between target and ceiling the optimizer may offer a small number of clearly-labelled stretch alternatives.
+The limit is a **soft target with a hard ceiling**. The stated limit is the target: the optimizer prioritizes alternatives that respect it and must always produce at least one that does. Above the target sits an absolute ceiling — a bounded allowance over the stated limit, defined as a constant under *The absolute additional-time ceiling* in `CalculationSpecification.md`. It is absolute: no recommendation may exceed it for any reason, however valuable the zone. Between target and ceiling the optimizer may offer a small number of clearly-labelled stretch alternatives.
 
-This is the single definition of the allowance. Later sections refer to it but do not restate it.
+This is the single definition of the **allowance model** — the target, the ceiling, and the stretch band between them. The multiplier that sets the ceiling's size is a constant and lives in `CalculationSpecification.md`. Later sections refer to this section for the behaviour and to that constant for the figure; neither is restated elsewhere.
 
 The rules should be:
 
 * At least one recommended Turf alternative must remain within the user's stated additional-time limit.
 * The system may suggest alternatives above that limit only when the additional Turf value provides a clear justification.
-* No recommendation may exceed 115% of the user's stated additional-time limit.
+* No recommendation may exceed the absolute ceiling over the user's stated additional-time limit.
 * Alternatives above the limit must be clearly identified as stretch alternatives.
 * The explanation must state which highly valued zone or attribute caused the optimizer to exceed the preferred limit.
 
 For example, if the user allows 20 minutes of additional travel, the system must include at least one recommendation that adds no more than 20 minutes. It may also include a stretch recommendation adding up to 23 minutes, but only when a highly valued zone makes the additional three minutes worthwhile.
 
-The 15% allowance applies to the user's permitted additional time, not to the complete duration of the journey.
+The allowance applies to the user's permitted **additional time**, not to the complete duration of the journey. In the example above the journey's own length is irrelevant: whether the drive takes one hour or six, a twenty-minute budget produces the same 23-minute ceiling. Measured against journey duration instead, that six-hour drive would admit 54 minutes of detour — well over twice what the user agreed to, and every ceiling check would still report compliance.
 
 The optimizer should never quietly exceed the limit. The distinction between compliant and stretch alternatives must be visible in the user interface.
 
@@ -643,7 +643,7 @@ The optimization process should account for:
 * Road accessibility.
 * Road speed and stopping suitability.
 * The user's preferred additional-time limit.
-* The maximum 15% stretch allowance.
+* The absolute additional-time ceiling, and the stretch band beneath it, per *User time constraints*.
 * Shared detours between multiple zones.
 * The order in which zones are visited.
 * All required journey locations, including origin and destination.
@@ -714,7 +714,7 @@ A route optimized around one or more highly ranked attributes, potentially using
 
 ### Stretch route
 
-An exceptional recommendation that exceeds the preferred additional-time limit but remains within the 15% allowance. It must contain a clear value-based justification.
+An exceptional recommendation that exceeds the preferred additional-time limit but remains within the absolute ceiling, per *User time constraints*. It must contain a clear value-based justification.
 
 Not every search must return all four categories. The system should avoid presenting alternatives that are effectively duplicates or that do not provide a meaningful trade-off.
 
@@ -897,7 +897,7 @@ The initial scope includes:
 * Global and potentially per-attribute walking limits.
 * Rank-based or default takeover time.
 * Direct road-access and park-and-walk access models.
-* An additional-time target, with a hard ceiling at 115% of it.
+* An additional-time target, with an absolute hard ceiling above it, per *User time constraints*.
 * Stretch recommendations between the target and that ceiling.
 * Explainable route comparisons.
 
@@ -932,11 +932,11 @@ One consequence must be made visible when this happens. Accepting an uncertain z
 
 #### Reconciling this with the absolute ceiling
 
-The 115% ceiling is absolute and is re-checked after every change during review, per *Consequences for the optimizer*. An accepted zone carrying no time estimate would leave that check with nothing to evaluate.
+The ceiling on additional time is absolute and is re-checked after every change during review, per *Consequences for the optimizer*. An accepted zone carrying no time estimate would leave that check with nothing to evaluate.
 
 The resolution is a **conservative upper bound** on the uncertain stop's cost, defined under *A conservative upper bound for an uncertain stop* in `CalculationSpecification.md`. It serves the ceiling check and the upper end of the widened range shown to the user, and nothing else: it never enters scoring, never affects ranking, and never makes an uncertain zone comparable to a priced one.
 
-Where that bound would breach 115%, **the acceptance is refused**, with a plain statement of why. The ceiling is not negotiable, and a stop that might breach it must be treated as one that does.
+Where that bound would breach the ceiling — the bounded allowance over the additional time the user stated, never a share of the journey's own duration — **the acceptance is refused**, with a plain statement of why. The ceiling is not negotiable, and a stop that might breach it must be treated as one that does. The target and ceiling are defined under *User time constraints*, and the multiplier under *The absolute additional-time ceiling* in `CalculationSpecification.md`; neither needs to be consulted to apply this rule.
 
 Reserve candidates are still never scored and never influence the ranking of alternatives. They are offered only in response to a rejection, and only as something for the user to judge.
 

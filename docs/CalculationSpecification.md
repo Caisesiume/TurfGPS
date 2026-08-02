@@ -16,6 +16,15 @@ Where a section of another document is referenced, the document is named. An unq
 
 **Every constant is configurable and carries a documented origin**, never embedded as an unexplained literal, per *Estimate accuracy and calibration* in `SPECIFICATION.md`. For an uncalibrated constant that origin is the assumption made and why; for a settled one it is the source and the date it was checked.
 
+**Modelling constants and enforcement constants are not configurable in the same way.** The rule above was written for constants where being wrong degrades the quality of an answer. It does not fit constants where being wrong puts a driver somewhere they did not agree to be, and applying it unchanged to one of those turns a safety limit into a deployment knob.
+
+* A **modelling constant** — the direct-access tolerance, the candidate cap, the corridor width, the placeholder timings — fails in the direction of a worse recommendation. It remains configurable in both directions under the rule above.
+* An **enforcement constant** fails in the direction of an outcome the user did not agree to. It is **configurable downward only**: a deployment may tighten it and may never loosen it, and its documented value is the maximum permitted rather than a midpoint to tune around. It must be **named as an enforcement constant at its own definition site**, so the property travels with the constant instead of depending on a reader recalling this section.
+
+The test is not how important a constant looks but **which way its failure runs**: if raising it can produce an outcome the user did not agree to, it is an enforcement constant. Anything feeding the enforceable exclusions or the absolute ceiling in `SPECIFICATION.md` is presumed enforcement unless argued otherwise.
+
+The reason for stating this as a general distinction rather than a carve-out is that an enforcement constant filed here silently inherits "every constant is configurable". Every ceiling check would still pass against a loosened value, and every test asserting compliance would still return green, while the user was routed past what they agreed to.
+
 ---
 
 ## Bounding the candidate set
@@ -72,6 +81,24 @@ rerouted driving time
 This distinction prevents the system from double-counting the time spent driving to a zone. The routing provider accounts for the changed road route, while the Turf stop model accounts for actions performed after or during the stop.
 
 Detour cost is obtained by routing and never inferred from geometry, per *Detour cost must always be routed, never inferred* in `SPECIFICATION.md`. A consequence for every formula below is that a stop's cost is meaningful only for one journey travelled in one direction, and must not be cached or reused across journeys as though it were a property of the zone.
+
+---
+
+## The absolute additional-time ceiling
+
+**This is an enforcement constant, and it is configurable downward only.**
+
+The ceiling is **115% of the user's stated additional-time limit** — an allowance of 15% above the figure the user gave. A deployment may lower this multiplier; it may never raise it. 115% is the maximum permitted value, not a default to be tuned in both directions, and a configuration that sets it higher is invalid rather than merely unusual.
+
+The model this constant serves — soft target, hard ceiling, and the clearly-labelled stretch band between them — is stated under *User time constraints* in `SPECIFICATION.md` and is not restated here.
+
+**The base is the additional time, never the journey duration.** The multiplier applies to the additional time the user permitted, not to the total duration of the journey. This is the misreading the constant exists to foreclose, because it fails in the direction that puts a driver somewhere they did not agree to be: on a six-hour drive with a twenty-minute budget, the ceiling is **23 minutes of additional time**. Read against journey duration it would be 54 minutes — 2.3 times what the driver agreed to, while every ceiling check still reported compliance.
+
+**The ceiling is journey-level, never per-leg.** Where a journey has several legs, the quantity the ceiling tests is the sum of additional time across all of them, per *Journeys with several legs* in `SPECIFICATION.md`. Applied per leg instead, four legs at 115% each would compound far past the promise made to the user.
+
+**Two properties, both binding.** The 15% figure is a **proposed default**: nothing measured establishes it, and it may not be quoted to a user as though something did. Revising it is a change to this specification, ratified here — it is not a deployment setting. The ceiling's **enforcement is not a proposal**: whatever value the constant holds, no recommendation may exceed it, for any reason, however valuable the zone. A statement carrying only the first property leaves the constraint tunable; one carrying only the second falsely claims a measured figure. Both are stated because either alone is wrong.
+
+This ceiling is **unrelated to the 15 km corridor cap** under *Bounding the candidate set*, which shares no more than a numeral with it. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
 
 ---
 
@@ -414,13 +441,13 @@ The figures below are constants that happen to surface in an interface. They are
 
 ### A conservative upper bound for an uncertain stop
 
-An uncertain zone accepted during review carries no time estimate, which would leave the absolute ceiling check with nothing to evaluate, per *Reconciling this with the absolute ceiling* in `SPECIFICATION.md`.
+An uncertain zone accepted during review carries no time estimate, which would leave the check against *The absolute additional-time ceiling* with nothing to evaluate, per *Reconciling this with the absolute ceiling* in `SPECIFICATION.md`.
 
 The resolution is a **conservative upper bound** on the uncertain stop's cost — the worst plausible case given what little is known about its access. It is used for two purposes only: the ceiling check, and the upper end of the widened range shown to the user.
 
 It is used for nothing else. It never enters scoring, never affects ranking, and never makes an uncertain zone comparable to a priced one. The rule that uncertain zones stay out of the cost model is unchanged; this bound exists solely so that an absolute constraint has a number to test.
 
-A useful property falls out of this: what the user sees as the widened upper total and what the ceiling tests are the same number, so the constraint and the display can never disagree.
+A useful property falls out of this, and it holds independently of where the ceiling's own multiplier is defined: what the user sees as the widened upper total and what the ceiling tests are **the same number**, so the constraint and the display can never disagree.
 
 ### Review-interaction thresholds
 
