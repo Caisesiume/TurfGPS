@@ -26,7 +26,7 @@ Acceptance:   given a journey for which more than one alternative differing
               reduce to a single alternative, when recommendations are
               offered, then no removed alternative is returned to the set to
               reach two
-Status:       draft
+Status:       to-build
 Depends-on:   FR-001
 Risk:         A single answer is the product the user already has. The choice
               between a faster route and a richer one is the decision this
@@ -75,7 +75,7 @@ Acceptance:   given two produced journey alternatives that use the same
               general route and whose captured zone sets compare equal, when
               recommendations are offered, then at most one of the two is
               offered
-Status:       draft
+Status:       to-build
 Depends-on:   FR-013
 Risk:         Two alternatives a user cannot tell apart spend the offered
               set's scarcest resource — the user's attention — on a choice
@@ -119,7 +119,7 @@ Acceptance:   given two produced journey alternatives, one carrying no more
               which carries the greater Turf value, when recommendations are
               offered, then the more costly alternative is not withheld for
               being the more costly
-Status:       draft
+Status:       to-build
 Depends-on:   FR-007; FR-008; FR-013
 Rationale:    The source's words are *do not provide a meaningful trade-off*.
               An alternative beaten on both measures asks the user to give up
@@ -158,7 +158,7 @@ Acceptance:   the Owner reviews the offered alternative set for each of a
               between them would have a reason to prefer each one; a set
               whose alternatives the Owner cannot separate on grounds a user
               would act on fails
-Status:       draft
+Status:       to-build
 Depends-on:   FR-013
 Risk:         A set whose alternatives all say the same thing returns the user
               to the manual comparison this product exists to replace, and it
@@ -211,7 +211,7 @@ Acceptance:   given a journey for which alternatives of only some of the kinds
               and the same kind named in SPECIFICATION.md § Recommended
               journey alternatives, when recommendations are offered, then the
               offered set is not emptied for the other kinds being absent
-Status:       draft
+Status:       to-build
 Depends-on:   FR-013
 Risk:         Read as a required set, the four named kinds turn an ordinary
               result into a failed search: a corridor with no attributed zone,
@@ -262,7 +262,7 @@ Acceptance:   given a journey for which no zone carrying an attribute is
               reachable only by exceeding that limit, when recommendations are
               offered, then the produced within-limit alternative is not
               excluded in favour of the alternative that exceeds it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-007; FR-008; FR-013
 Risk:         The zone-poor corridor is the ordinary case away from cities. A
               system reading no attributed zone as no result gives the user an

@@ -20,7 +20,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 **18 requirements, in 5 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**Twelve rows read `to-build` and six read `draft`.** The six are `FR-013` … `FR-018`, batch 2, filed 2 August 2026 and not yet signed off by the Owner; their `Resolved-by` reads `—` because no story has been cut for them yet, not because a link is missing. See `README.md` § Corpus state.
+**All eighteen rows read `to-build`.** `FR-013` … `FR-018` — batch 2, filed 2 August 2026 — were signed off by the Owner on 2 August 2026, and that sign-off moved all six from `draft` straight to `to-build`; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. Their `Resolved-by` reads `—` because story creation follows sign-off rather than sharing its pass, not because a link is missing. See `README.md` § Corpus state.
 
 ## Journey definition
 
@@ -68,12 +68,12 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-013` | Offer more than one journey alternative | Recommendation set composition | MUST | draft | test | — |
-| `FR-014` | Do not offer two indistinguishable journey alternatives | Recommendation set composition | MUST | draft | test | — |
-| `FR-015` | Do not offer an alternative beaten outright by another | Recommendation set composition | SHOULD | draft | test | — |
-| `FR-016` | Offer alternatives that differ in ways a user would act on | Recommendation set composition | MUST | draft | human-judgement | — |
-| `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | draft | test | — |
-| `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | draft | test | — |
+| `FR-013` | Offer more than one journey alternative | Recommendation set composition | MUST | to-build | test | — |
+| `FR-014` | Do not offer two indistinguishable journey alternatives | Recommendation set composition | MUST | to-build | test | — |
+| `FR-015` | Do not offer an alternative beaten outright by another | Recommendation set composition | SHOULD | to-build | test | — |
+| `FR-016` | Offer alternatives that differ in ways a user would act on | Recommendation set composition | MUST | to-build | human-judgement | — |
+| `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | to-build | test | — |
+| `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | to-build | test | — |
 
 `human-judgement` on `FR-016` is the first appearance of that keyword in this index, and it is not a placeholder for a method not yet chosen: the record names the judge and the standard applied, and the story that resolves it will carry the `human-verified` label. What the keyword means, and why a fabricated metric would be worse, is in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
 
