@@ -4,7 +4,7 @@ Requirement ↔ epic ↔ story, in both directions. The first table below is the
 
 A disagreement between the two directions is a finding for `@requirements-engineer`, never a silent reconciliation.
 
-**First story allocation — 2 August 2026.** Story creation has run for batch 1. `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues on 2 August 2026, following the Owner's sign-off of 1 August 2026, and every one of `FR-001` … `FR-012` carries a story. Both directions below were filled in the same pass and agree. **Batch 2 — `FR-013` … `FR-018`, filed and signed off 2 August 2026 — is not in that allocation**: story creation follows sign-off as a pass of its own rather than sharing it, and until that pass runs the six appear in the first table with no epic and no story, so that the table keeps its row per requirement. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
+**Story allocation — 2 August 2026, in two passes.** Story creation has run for the whole corpus. `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues for batch 1, following the Owner's sign-off of 1 August 2026, and then a fourth epic and six further stories for batch 2 — `FR-013` … `FR-018` — following its sign-off of 2 August 2026. Story creation follows sign-off as a pass of its own rather than sharing it, which is why the two allocations are separate events on the same day. Every one of `FR-001` … `FR-018` now carries an epic and a story; both directions below were filled in the same librarian pass as each allocation, and they agree. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
 
 ## Requirement → story
 
@@ -24,14 +24,14 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-010` — Do not prefer a journey alternative for its zone count | Turf value and per-user ranking | #10 |
 | `FR-011` — Balance value against cost from the individual user's preferences | Turf value and per-user ranking | #11 |
 | `FR-012` — Require an intermediate destination on a return to the origin | Journey request and structure | #5 |
-| `FR-013` — Offer more than one journey alternative | — | — |
-| `FR-014` — Do not offer two indistinguishable journey alternatives | — | — |
-| `FR-015` — Do not offer an alternative beaten outright by another | — | — |
-| `FR-016` — Offer alternatives that differ in ways a user would act on | — | — |
-| `FR-017` — Do not withhold alternatives for a missing kind of alternative | — | — |
-| `FR-018` — Do not withhold a compliant alternative for its lower Turf value | — | — |
+| `FR-013` — Offer more than one journey alternative | A real choice of journey alternatives | #12 |
+| `FR-014` — Do not offer two indistinguishable journey alternatives | A real choice of journey alternatives | #13 |
+| `FR-015` — Do not offer an alternative beaten outright by another | A real choice of journey alternatives | #14 |
+| `FR-016` — Offer alternatives that differ in ways a user would act on | A real choice of journey alternatives | #17 |
+| `FR-017` — Do not withhold alternatives for a missing kind of alternative | A real choice of journey alternatives | #15 |
+| `FR-018` — Do not withhold a compliant alternative for its lower Turf value | A real choice of journey alternatives | #16 |
 
-18 of 18 requirements listed. `FR-001` … `FR-012` each carry an epic and at least one story. `FR-013` … `FR-018` carry neither, and that is the expected state rather than a gap: they are batch 2, signed off 2 August 2026, and `@requirements-story-organizer` runs as a pass of its own after sign-off — as it did for batch 1. **The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. No batch-2 code appears in *Story → requirement*, and one appearing there before stories are cut would be a finding.
+18 of 18 requirements listed, and all eighteen carry an epic and at least one story: no row reads `—` under either column today. **The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. No requirement is in either state, and the rule stands for the next batch filed rather than for anything in the table above. Every requirement code here also appears in *Story → requirement* below, and a code in one direction with no counterpart in the other is a finding.
 
 ## Story → requirement
 
@@ -52,5 +52,11 @@ One row per story, transcribed from the issue's `Resolves:` line.
 | #9 | Turf value and per-user ranking | `FR-007` |
 | #10 | Turf value and per-user ranking | `FR-010` |
 | #11 | Turf value and per-user ranking | `FR-011` |
+| #12 | A real choice of journey alternatives | `FR-013` |
+| #13 | A real choice of journey alternatives | `FR-014` |
+| #14 | A real choice of journey alternatives | `FR-015` |
+| #15 | A real choice of journey alternatives | `FR-017` |
+| #16 | A real choice of journey alternatives | `FR-018` |
+| #17 | A real choice of journey alternatives | `FR-016` |
 
-11 of 11 stories listed, transcribed as filed. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.
+17 of 17 stories listed, transcribed as filed. The batch-2 rows are not in requirement order, and that is how they were filed rather than a transcription slip: `#17` resolves `FR-016` and `#15` resolves `FR-017`. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.

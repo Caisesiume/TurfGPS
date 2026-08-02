@@ -56,7 +56,7 @@ Rationale:    The source's word is *several*; the statement says *more than
               metric, and the user is the one who pays for it. This is the
               justified deviation the statement's *should* carries, and it
               is the only one.
-Resolved-by:  —
+Resolved-by:  #12
 ```
 
 ## FR-014 — Do not offer two indistinguishable journey alternatives
@@ -93,7 +93,7 @@ Rationale:    This is the identity floor of the source's *effectively
               SPECIFICATION.md § General route alternatives separates general
               route selection from zone-level detours, so two alternatives
               agreeing on both are one alternative found twice.
-Resolved-by:  —
+Resolved-by:  #13
 ```
 
 ## FR-015 — Do not offer an alternative beaten outright by another
@@ -135,7 +135,7 @@ Rationale:    The source's words are *do not provide a meaningful trade-off*.
               varied set survives this record intact. The second criterion is
               what states that, and it is there so the record cannot be built
               as the ordering FR-010 refused.
-Resolved-by:  —
+Resolved-by:  #14
 ```
 
 ## FR-016 — Offer alternatives that differ in ways a user would act on
@@ -185,7 +185,7 @@ Rationale:    FR-014 and FR-015 are the machine-checkable floor of this
               than a quality attribute because it constrains which produced
               alternatives reach the user, an observable output, not how well
               any one of them performs.
-Resolved-by:  —
+Resolved-by:  #17
 ```
 
 ## FR-017 — Do not withhold alternatives for a missing kind of alternative
@@ -234,7 +234,7 @@ Rationale:    The cited section offers the four kinds permissively — a typical
               SPECIFICATION.md § User time constraints, and the fourth in
               terms of highly ranked attributes, whose home is
               SPECIFICATION.md § Attribute preference.
-Resolved-by:  —
+Resolved-by:  #15
 ```
 
 ## FR-018 — Do not withhold a compliant alternative for its lower Turf value
@@ -294,5 +294,5 @@ Rationale:    The source's *best compliant route available* is the ordinary
               outright. The verb follows the source's own *should present*;
               reading `shall` off the *must* in the sentence before it would
               restate the existence obligation this record defers.
-Resolved-by:  —
+Resolved-by:  #16
 ```
