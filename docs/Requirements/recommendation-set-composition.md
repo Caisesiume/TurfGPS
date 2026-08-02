@@ -12,13 +12,20 @@ Statement:    The system should offer more than one journey alternative for a
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
-Verification: test — a journey for which several alternatives differing in the
-              general roads used or in the zones captured have been produced
-              yields more than one alternative offered to the user
+Verification: test — a journey for which more than one produced alternative
+              survives FR-015 and FR-016 yields more than one alternative
+              offered to the user; a journey whose produced alternatives
+              those records reduce to one has nothing added to the offered
+              set to reach two
 Acceptance:   given a journey for which more than one alternative differing
               in its general route or in its captured zone set has been
-              produced, when recommendations are offered, then more than one
-              alternative is offered
+              produced, and more than one of them survives the removals
+              FR-015 and FR-016 require, when recommendations are offered,
+              then more than one alternative is offered
+              given a journey whose produced alternatives those removals
+              reduce to a single alternative, when recommendations are
+              offered, then no removed alternative is returned to the set to
+              reach two
 Status:       draft
 Depends-on:   FR-001
 Risk:         A single answer is the product the user already has. The choice
@@ -37,9 +44,18 @@ Rationale:    The source's word is *several*; the statement says *more than
               claim this record does not make: it belongs to
               SPECIFICATION.md § User time constraints, which declares itself
               the single definition of the allowance, and is not restated
-              here. This record also bounds curation from below: FR-014,
-              FR-015 and FR-016 each remove alternatives from the offered set,
-              and a set reduced to one satisfies all three.
+              here. This record does not bound curation from below and must
+              not be read as doing so. FR-014 cannot reduce the set below the
+              floor: what it removes are alternatives agreeing on both
+              properties the first criterion above requires them to differ
+              in, so where it fires the floor was never engaged. FR-015 and
+              FR-016 can, and where either cannot hold together with this
+              record, that record governs and the set is offered short
+              rather than filled out. Padding a set to reach a count is
+              fabricated variety — the same dishonesty as a fabricated
+              metric, and the user is the one who pays for it. This is the
+              justified deviation the statement's *should* carries, and it
+              is the only one.
 Resolved-by:  —
 ```
 
@@ -257,24 +273,24 @@ Risk:         The zone-poor corridor is the ordinary case away from cities. A
 Rationale:    The source's *best compliant route available* is the ordinary
               ranking applied unchanged, not a second ordering rule: what
               makes one alternative better than another is owned by
-              SPECIFICATION.md § Optimization objectives and by the objective
-              function in `CalculationSpecification.md`, so this record names
-              neither and cites the limit rather than restating it.
-              SPECIFICATION.md § User time constraints declares itself the
-              single definition of the allowance, so the limit is named and
-              never quantified — and that at least one alternative within it
-              always exists is that section's obligation, deferred to the
-              batch scoped to it rather than restated here. What this section
-              uniquely creates is the branch stated above: an alternative
-              already produced within the limit is not dropped for being the
-              poorer in Turf terms, which is the one ground the source's
-              *fewer or only ordinary zones* describes twice. The prohibition
-              is on that ground alone, so it neither forbids ranking the
-              within-limit alternative below a stretch nor collides with
-              FR-015 — an alternative exceeding the limit costs more, so it
-              never beats a within-limit one outright. The verb follows the
-              source's own *should present*; reading `shall` off the *must*
-              in the sentence before it would restate the existence
-              obligation this record defers.
+              *Optimization objectives* in `SPECIFICATION.md` and by
+              *The objective function* in `CalculationSpecification.md`, so
+              this record names neither and cites the limit rather than
+              restating it. SPECIFICATION.md § User time constraints
+              declares itself the single definition of the allowance, so the
+              limit is named and never quantified — and that at least one
+              alternative within it always exists is that section's
+              obligation, deferred to the batch scoped to it rather than
+              restated here. What this section uniquely creates is the
+              branch stated above: an alternative already produced within the
+              limit is not dropped for being the poorer in Turf terms, which
+              is the one ground the source's *fewer or only ordinary zones*
+              describes twice. The prohibition is on that ground alone, so it
+              neither forbids ranking the within-limit alternative below a
+              stretch nor collides with FR-015 — an alternative exceeding the
+              limit costs more, so it never beats a within-limit one
+              outright. The verb follows the source's own *should present*;
+              reading `shall` off the *must* in the sentence before it would
+              restate the existence obligation this record defers.
 Resolved-by:  —
 ```
