@@ -108,7 +108,7 @@ Detour cost is obtained by routing and never inferred from geometry, per *Detour
 
 ## The absolute additional-time ceiling
 
-**This is an enforcement constant, and it is configurable downward only.**
+**This is an enforcement constant, and its strict direction is downward.**
 
 The ceiling is **115% of the user's stated additional-time limit** — an allowance of 15% above the figure the user gave. A deployment may lower this multiplier; it may never raise it. 115% is the maximum permitted value, not a default to be tuned in both directions, and a configuration that sets it higher is invalid rather than merely unusual.
 
