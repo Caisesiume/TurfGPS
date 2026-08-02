@@ -89,11 +89,11 @@ Risk:         A single global trade-off makes the tool useless to precisely
 Rationale:    The source's "must" is the strongest obligation in the section.
               What the user may state, and how a ranking becomes a weight, are
               owned by *Attribute preference* in `SPECIFICATION.md` and
-              *Proposed rank-to-weight curve* in
-              `CalculationSpecification.md`; this record obliges the optimizer
-              to consume those preferences, not to collect them. The criteria
-              assert non-identity rather than which alternative wins: that
-              mapping is a proposal, not a settled value, and a criterion
-              naming the winner would harden it into an obligation.
+              *Proposed rank-to-weight curve* in `CalculationSpecification.md`;
+              this record obliges the optimizer to consume those preferences,
+              not to collect them. The criteria assert non-identity rather
+              than which alternative wins: that mapping is a proposal, not a
+              settled value, and a criterion naming the winner would harden it
+              into an obligation.
 Resolved-by:  #11
 ```

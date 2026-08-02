@@ -186,11 +186,11 @@ Risk:         A leg routed on a path a car cannot use yields a journey the
 Rationale:    SPECIFICATION.md § The planning player owns the premise — the
               primary mode is a car, and the product does not generate cycling
               routes. The consequence it draws for urban zones is owned by
-              SPECIFICATION.md § Individual zones rather than local collection
-              routes and is not recorded here. The stated exception keeps this
-              record from contradicting the park-and-walk model.
-              Architecture.md § D3 confirms feasibility: one routing engine
-              serves both car and pedestrian costing.
+              SPECIFICATION.md § Individual zones rather than local collection routes
+              and is not recorded here. The stated exception keeps this record
+              from contradicting the park-and-walk model. Architecture.md § D3
+              confirms feasibility: one routing engine serves both car and
+              pedestrian costing.
 Resolved-by:  #6
 ```
 

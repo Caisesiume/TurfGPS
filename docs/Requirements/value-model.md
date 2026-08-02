@@ -32,16 +32,15 @@ Risk:         Once a property of the route leaks into value, the comparison of
               which is the product's stated purpose.
 Rationale:    The source determines value by the zones a journey holds and
               cost by the time it adds, so the route belongs to cost alone;
-              *Proposed form: value per minute* in
-              `CalculationSpecification.md` corroborates the same separation
-              from the other side, keeping difficulty on the cost side so it
-              never reduces value. The statement does not say "solely from the
-              zones", because the weight a captured zone carries comes from
-              the user's stated preferences as well, per FR-011. This record
-              took "captures" while the source still read "the zones it
-              contains" in one sentence and "the zones it captures" in the
-              next, since a journey passing a zone it does not stop at gains
-              nothing;
+              *Proposed form: value per minute* in `CalculationSpecification.md`
+              corroborates the same separation from the other side, keeping
+              difficulty on the cost side so it never reduces value. The
+              statement does not say "solely from the zones", because the
+              weight a captured zone carries comes from the user's stated
+              preferences as well, per FR-011. This record took "captures"
+              while the source still read "the zones it contains" in one
+              sentence and "the zones it captures" in the next, since a
+              journey passing a zone it does not stop at gains nothing;
               SPECIFICATION.md § The journey as an optimization problem now
               reads "captures" in both, corrected to that reading on 1 August
               2026 with the Owner's approval.
