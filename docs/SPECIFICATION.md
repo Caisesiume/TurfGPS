@@ -137,7 +137,7 @@ A directly road-accessible zone is one the player can capture **without leaving 
 
 This covers two situations. Some zones sit directly **on** a drivable road. Others sit **beside** one, close enough that a stopped car is already within the zone.
 
-The second case needs a stated tolerance, since the system models no capture area at all. That tolerance, and the reasoning that fixes it, are under *Direct-access tolerance* in `CalculationSpecification.md`. Beyond that distance the zone becomes a park-and-walk stop with a short priced walk, rather than being lost: the classification decides which cost model applies, not whether the zone survives.
+The second case needs a stated tolerance, since the system models no capture area at all. That tolerance, and the reasoning that fixes it, are under *Direct-access tolerance* in `CalculationSpecification.md`. What it decides is which validation a candidate must pass, not merely which cost model prices it: inside the tolerance a zone is checked for level compatibility and barriers alone, while beyond it the zone enters the park-and-walk path, where it must produce a walkable route and an elevation profile and may be priced with a short walk, downgraded to uncertain, or excluded on that evidence. A zone is therefore not lost by falling outside the tolerance — it is examined more strictly.
 
 For these zones, the system does not need to add walking time or the time required to leave and lock the car. The estimated cost should instead include the time required to slow down, stop safely, complete the Turf takeover, and return to normal driving.
 
@@ -856,7 +856,7 @@ These requirements are divided by what the available data can actually establish
 
 These follow from road and map attributes and must be applied as hard rules. A zone failing any of them is excluded regardless of its Turf value.
 
-* No stop may be proposed on a motorway, motorway link, or any road whose recorded speed limit exceeds 90 km/h. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
+* No stop may be proposed on a motorway, motorway link, or any road whose recorded speed limit exceeds the maximum for a stopping road, defined as a constant under *The maximum speed limit for a stopping road* in `CalculationSpecification.md`. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
 * No stop may be proposed on a road not marked as drivable by the map data.
 * No zone may be classified as directly road-accessible where the road and the zone are at incompatible levels, or where bridge, tunnel, or layer data indicates they do not meet. This is covered under *Direct road-access validation*.
 * No zone may be classified as accessible across an access path that is absent, disconnected, or implausibly steep, per *Elevation and feasibility rules*.
