@@ -41,8 +41,9 @@ Rationale:    The source determines value by the zones a journey holds and
               took "captures" while the source still read "the zones it
               contains" in one sentence and "the zones it captures" in the
               next, since a journey passing a zone it does not stop at gains
-              nothing; SPECIFICATION.md § The journey as an optimization
-              problem now reads "captures" in both, corrected to that reading
-              on 1 August 2026 with the Owner's approval.
+              nothing;
+              SPECIFICATION.md § The journey as an optimization problem now
+              reads "captures" in both, corrected to that reading on 1 August
+              2026 with the Owner's approval.
 Resolved-by:  #9
 ```

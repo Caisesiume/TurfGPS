@@ -147,17 +147,17 @@ Statement:    The system should offer a set of journey alternatives in which
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
-Verification: human-judgement — the Owner, against SPECIFICATION.md
-              § Recommended journey alternatives, over the alternative sets
-              returned for real journeys: whether the set is several
-              meaningfully different alternatives rather than variations of
-              one
+Verification: human-judgement — the Owner, against
+              SPECIFICATION.md § Recommended journey alternatives, over the
+              alternative sets returned for real journeys: whether the set is
+              several meaningfully different alternatives rather than
+              variations of one
 Acceptance:   the Owner reviews the offered alternative set for each of a
-              sample of real journeys and judges, against SPECIFICATION.md
-              § Recommended journey alternatives, whether a user choosing
-              between them would have a reason to prefer each one; a set
-              whose alternatives the Owner cannot separate on grounds a user
-              would act on fails
+              sample of real journeys and judges, against
+              SPECIFICATION.md § Recommended journey alternatives, whether a
+              user choosing between them would have a reason to prefer each
+              one; a set whose alternatives the Owner cannot separate on
+              grounds a user would act on fails
 Status:       to-build
 Depends-on:   FR-013
 Risk:         A set whose alternatives all say the same thing returns the user
@@ -193,8 +193,8 @@ Resolved-by:  —
 ```
 Statement:    The system shall not withhold a journey alternative it has
               produced for the reason that the alternatives produced do not
-              include every kind of alternative named under *Recommended
-              journey alternatives* in `SPECIFICATION.md`.
+              include every kind of alternative named under
+              *Recommended journey alternatives* in `SPECIFICATION.md`.
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
@@ -208,9 +208,10 @@ Acceptance:   given a journey for which alternatives of only some of the kinds
               produced alternative is withheld for the absence of a kind that
               was not produced
               given a journey for which every produced alternative is of one
-              and the same kind named in SPECIFICATION.md § Recommended
-              journey alternatives, when recommendations are offered, then the
-              offered set is not emptied for the other kinds being absent
+              and the same kind named in
+              SPECIFICATION.md § Recommended journey alternatives, when
+              recommendations are offered, then the offered set is not emptied
+              for the other kinds being absent
 Status:       to-build
 Depends-on:   FR-013
 Risk:         Read as a required set, the four named kinds turn an ordinary
@@ -229,10 +230,10 @@ Rationale:    The cited section offers the four kinds permissively — a typical
               this record does not touch. What each kind is remains unauthored
               here, also deliberately. Three of the four are defined in terms
               the cited section does not own — a budget used comfortably, more
-              of, or most of — whose home is SPECIFICATION.md § User time
-              constraints, and the fourth in terms of highly ranked
-              attributes, whose home is SPECIFICATION.md § Attribute
-              preference.
+              of, or most of — whose home is
+              SPECIFICATION.md § User time constraints, and the fourth in
+              terms of highly ranked attributes, whose home is
+              SPECIFICATION.md § Attribute preference.
 Resolved-by:  —
 ```
 
@@ -240,10 +241,11 @@ Resolved-by:  —
 
 ```
 Statement:    Where no zone carrying an attribute is reachable within the
-              user's stated additional-time limit, per *User time
-              constraints* in `SPECIFICATION.md`, the system should not
-              withhold a journey alternative that lies within that limit for
-              carrying less Turf value than an alternative that exceeds it.
+              user's stated additional-time limit, per
+              *User time constraints* in `SPECIFICATION.md`, the system should
+              not withhold a journey alternative that lies within that limit
+              for carrying less Turf value than an alternative that exceeds
+              it.
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST

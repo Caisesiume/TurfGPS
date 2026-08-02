@@ -10,8 +10,8 @@ Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Stor
 Statement:    The system shall measure a journey alternative's cost as the
               additional time that alternative takes compared with the
               corresponding journey without Turf stops, computed as defined
-              under *Additional journey time* in
-              `CalculationSpecification.md`.
+              under
+              *Additional journey time* in `CalculationSpecification.md`.
 Category:     Cost and time composition
 Source:       SPECIFICATION.md § The journey as an optimization problem
 Priority:     MUST
@@ -44,8 +44,8 @@ Resolved-by:  #7
 ## FR-009 — Charge stop time to the journey even where no detour is driven
 
 ```
-Statement:    The system shall include a stop's time, as defined under *Stop
-              time* in `CalculationSpecification.md`, in a journey
+Statement:    The system shall include a stop's time, as defined under
+              *Stop time* in `CalculationSpecification.md`, in a journey
               alternative's additional time even where capturing that zone
               changes no driving time.
 Category:     Cost and time composition
@@ -74,10 +74,11 @@ Risk:         A zone priced at its detour alone is free whenever it sits on
 Rationale:    Not redundant with FR-008: a routing provider returns driving
               duration only, so an implementation computing FR-008's
               difference from routing output alone satisfies its arithmetic
-              while omitting the whole stop. `CalculationSpecification.md §
-              Additional journey time` names that precise omission as what the
-              system must estimate beyond the routing service. What a stop
-              costs, which differs by access class, is owned elsewhere and is
-              cited rather than restated here.
+              while omitting the whole stop.
+              `CalculationSpecification.md § Additional journey time` names
+              that precise omission as what the system must estimate beyond
+              the routing service. What a stop costs, which differs by access
+              class, is owned elsewhere and is cited rather than restated
+              here.
 Resolved-by:  #8
 ```

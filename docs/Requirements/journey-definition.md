@@ -63,11 +63,11 @@ Risk:         Built wrong or omitted, a capability the first release committed
               chaining separate single-leg plans, each granted the full
               additional-time allowance, defeating the journey-level ceiling
               outside any place the system can enforce it.
-Rationale:    The source writes "should also support", but SPECIFICATION.md
-              § Initial product boundaries commits optional ordered
-              intermediate destinations to the first release, and FR-003 and
-              FR-004 place strictly-obliged duties on the waypoints this
-              record admits. An expectation-obliged precondition carrying
+Rationale:    The source writes "should also support", but
+              SPECIFICATION.md § Initial product boundaries commits optional
+              ordered intermediate destinations to the first release, and
+              FR-003 and FR-004 place strictly-obliged duties on the waypoints
+              this record admits. An expectation-obliged precondition carrying
               strictly-obliged consequences is a strength inversion, so the
               verb is `shall` on the Owner's ratification of 1 August 2026.
               DESIGN.md § Required and optional inputs lists intermediate
