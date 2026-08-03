@@ -82,3 +82,47 @@ Rationale:    Not redundant with FR-008: a routing provider returns driving
               here.
 Resolved-by:  #8
 ```
+
+## FR-027 — Exclude blocktime from stop time
+
+```
+Statement:    The system shall not use the `blocktime` value returned for a
+              player as a component of stop time, as composed under
+              *Stop time* in `CalculationSpecification.md`.
+Category:     Cost and time composition
+Source:       Architecture.md § Player data
+Priority:     MUST
+Verification: test — two players whose `blocktime` values differ and whose
+              rank and takeover-bonus state are equal receive the same stop
+              time for the same zone
+Acceptance:   given two players whose rank and takeover-bonus state are equal
+              and whose `blocktime` values differ, when stop time is computed
+              for the same zone, then the two results are equal
+              given a journey that captures each of its zones once, when stop
+              time is composed for each stop, then no stop's time carries a
+              period during which the zone is locked against being taken again
+Status:       draft
+Depends-on:   FR-009
+Risk:         `blocktime` is the only duration the player endpoint returns, it
+              is in seconds, it varies by rank, and takeover duration — the
+              thing an implementer is looking for — is not exposed by the API
+              at all. Every surface property of the field invites the
+              substitution and nothing about it flags the mistake.
+              Substituted, it replaces a per-stop duration with one whose
+              documented range, per
+              *Zone lock time* in `CalculationSpecification.md`, is far above
+              any takeover time, so every stop cost, every ceiling check and
+              every ranking moves in the same direction at once, with no
+              symptom beyond the tool advising against stops it should be
+              recommending.
+Rationale:    The second criterion exists because the first can be satisfied
+              by an implementation that reintroduces the same quantity without
+              naming the field. `Source` is the integration section that
+              verified what the field means; `Category` is the subsystem the
+              prohibition binds, which is how stop time is composed. That the
+              field is out of scope for the first release altogether, and the
+              invariant that exclusion rests on, are stated under
+              *Zone lock time* in `CalculationSpecification.md` and are not
+              authored here.
+Resolved-by:  —
+```

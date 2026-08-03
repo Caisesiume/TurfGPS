@@ -13,14 +13,21 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | Category | File | Records |
 |---|---|---|
 | [Journey definition](#journey-definition) | `journey-definition.md` | `FR-001` – `FR-006`, `FR-012` (7) |
-| [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009` (2) |
+| [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031` (10) |
+| [Zone data fidelity](#zone-data-fidelity) | `zone-data-fidelity.md` | `FR-020`, `FR-021`, `FR-032` (3) |
+| [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009`, `FR-027` (3) |
 | [Value model](#value-model) | `value-model.md` | `FR-007` (1) |
 | [Objective selection and ranking](#objective-selection-and-ranking) | `objective-selection-and-ranking.md` | `FR-010`, `FR-011` (2) |
 | [Recommendation set composition](#recommendation-set-composition) | `recommendation-set-composition.md` | `FR-013` – `FR-018` (6) |
+| [Data currency and confidence](#data-currency-and-confidence) | `data-currency-and-confidence.md` | `NFR-002` (1) |
+| [Outbound rate compliance](#outbound-rate-compliance) | `outbound-rate-compliance.md` | `NFR-001` (1) |
+| [Runtime and deployment shape](#runtime-and-deployment-shape) | `runtime-and-deployment-shape.md` | `NFR-003` – `NFR-005` (3) |
 
-**18 requirements, in 5 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+**37 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**All eighteen rows read `to-build`.** `FR-013` … `FR-018` — batch 2, filed 2 August 2026 — were signed off by the Owner on 2 August 2026, and that sign-off moved all six from `draft` straight to `to-build`; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. Their `Resolved-by` now names a story each: story creation ran for batch 2 on 2 August 2026, as a pass of its own following sign-off, and no row in this index reads `—` in that column today. See `README.md` § Corpus state.
+**18 rows read `to-build` and 19 read `draft`.** The nineteen drafts are batch 3 — `FR-019` … `FR-032` and `NFR-001` … `NFR-005` — filed 3 August 2026 and **awaiting the Owner's sign-off**. `draft` here means *filed and awaiting sign-off*, not *unfinished*: the records are in place, indexed and traced. On sign-off they move straight to `to-build`, as batches 1 and 2 each did on the day they were filed; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
+
+**Every batch-3 row reads `—` in `Resolved-by`**, because story creation follows sign-off as a pass of its own and has not run for them. The eighteen `to-build` rows each name a story, allocated in two passes on 2 August 2026.
 
 ## Journey definition
 
@@ -36,6 +43,35 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-006` | Plan journey travel as travel by car | Journey definition | MUST | to-build | test | #6 |
 | `FR-012` | Require an intermediate destination on a return to the origin | Journey definition | MUST | to-build | test | #5 |
 
+## Turf data integration
+
+`turf-data-integration.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-019` | Address every Turf API request to the current API version | Turf data integration | MUST | draft | inspection | — |
+| `FR-022` | Refresh the local zone copy from a scheduled background job | Turf data integration | MUST | draft | test | — |
+| `FR-023` | Resolve a route corridor's zones against the local copy | Turf data integration | MUST | draft | test | — |
+| `FR-024` | Plan against a mid-refresh or stale local copy | Turf data integration | MUST | draft | test | — |
+| `FR-025` | Build bounding-box requests against the permitted area product | Turf data integration | COULD | draft | test | — |
+| `FR-026` | Answer no ownership question from the local zone copy | Turf data integration | MUST | draft | inspection | — |
+| `FR-028` | Decide the user's own holdings by membership in the held-zone list | Turf data integration | MUST | draft | test | — |
+| `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | draft | test | — |
+| `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | draft | test | — |
+| `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | draft | test | — |
+
+`NFR-001` and `NFR-002` were filed under this category on 3 August 2026 and moved out the same day, to `Outbound rate compliance` and `Data currency and confidence`, on the Owner's ruling that a `Category` never spans both kinds — see `README.md` § Category register. Their rows are under those two headings below, and nothing about either record changed in the move but its `Category` field.
+
+## Zone data fidelity
+
+`zone-data-fidelity.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-020` | Derive no per-zone extent from the nominal zone size | Zone data fidelity | MUST | draft | inspection | — |
+| `FR-021` | Measure the distance between two zones for that pair | Zone data fidelity | MUST | draft | test | — |
+| `FR-032` | Assume no minimum distance between two zones | Zone data fidelity | MUST | draft | test | — |
+
 ## Cost and time composition
 
 `cost-and-time-composition.md`
@@ -44,6 +80,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 |---|---|---|---|---|---|---|
 | `FR-008` | Measure journey cost as time added to the journey without Turf stops | Cost and time composition | MUST | to-build | test | #7 |
 | `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | to-build | test | #8 |
+| `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | draft | test | — |
+
+`FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
 ## Value model
 
@@ -75,6 +114,38 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | to-build | test | #15 |
 | `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | to-build | test | #16 |
 
-`human-judgement` on `FR-016` is the first appearance of that keyword in this index, and it is not a placeholder for a method not yet chosen: the record names the judge and the standard applied, and the story that resolves it carries the `human-verified` label. What the keyword means, and why a fabricated metric would be worse, is in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
+## Data currency and confidence
+
+`data-currency-and-confidence.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `NFR-002` | Lower confidence as the Turf data behind a recommendation ages | Data currency and confidence | SHOULD | draft | test | — |
+
+## Outbound rate compliance
+
+`outbound-rate-compliance.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `NFR-001` | Hold outbound Turf calls within the API's published limits | Outbound rate compliance | MUST | draft | test | — |
+
+## Runtime and deployment shape
+
+`runtime-and-deployment-shape.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | draft | test | — |
+| `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | draft | inspection | — |
+| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | draft | test | — |
+
+## Reading the Verification column
+
+**The split across the corpus is 32 `test` · 4 `inspection` · 1 `human-judgement`.**
+
+`inspection` appears in this index for the first time with batch 3 — `FR-019`, `FR-020`, `FR-026` and `NFR-004` — and it is a chosen method rather than a test not yet written. Each of the four names the artefact examined, the property that must hold and where a reader confirms it, in the form `.claude/skills/requirements-authoring/SKILL.md` § Acceptance-criteria form requires; none is wrapped in given/when/then, because nothing is executed and a criterion narrating a run nobody performs can never fail. `NFR-004` is the first record in the corpus whose kind and whose method point at different criterion forms, and it takes the method's — which is the rule that section states, not an exception made for it.
+
+`human-judgement` on `FR-016` is likewise not a placeholder for a method not yet chosen: the record names the judge and the standard applied, and the story that resolves it carries the `human-verified` label. What the keyword means, and why a fabricated metric would be worse, is in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
 
 `—` in `Resolved-by` means no story has been allocated yet. It never means the link is unknown: the single home for requirement → story is the first table in `TRACEABILITY.md`, and this column is a view of it, regenerated in the same pass. A retired record's row is the one exception, and what this column then reads is fixed by the freeze rule in `README.md` § How this folder works.

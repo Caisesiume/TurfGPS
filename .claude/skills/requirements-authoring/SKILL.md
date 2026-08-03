@@ -9,10 +9,10 @@ The single definition of what a TurfGPS requirement looks like. `@requirements-e
 
 ## The canonical record
 
-Below is a record **exactly as it lands in a category file**: the `##` heading, then the field block inside a fence. Both are mandatory. The fence is what preserves the column alignment, and what keeps a `grep FR-021` hit and a diff readable; without it the block reflows and the corpus stops being skimmable.
+Below is a record **exactly as it lands in a category file**: the `##` heading, then the field block inside a fence. Both are mandatory. The fence is what preserves the column alignment, and what keeps a `grep FR-000` hit and a diff readable; without it the block reflows and the corpus stops being skimmable.
 
 ````markdown
-## FR-021 — Cap candidates promoted to full evaluation
+## FR-000 — Cap candidates promoted to full evaluation
 
 ```
 Statement:    The system shall promote no more candidate zones to full
@@ -37,6 +37,8 @@ Resolved-by:  #14, #15
 ```
 ````
 
+**The example's ID is reserved, not chosen.** Allocation runs upward from `FR-001`, so `FR-000` and `NFR-000` can never be issued to a real record, and an illustration carrying one can never answer to a live requirement's identity. That collision costs more than it sounds: this record is fictional, so a `grep` for its code returning it *alongside* a real one hands a reader two answers, one of which was never a requirement — and a `Rationale` citing that code by number then resolves to either. **Illustrate with the reserved code and never with a live one**; the live records this file cites by name — `FR-008`, `FR-009`, `FR-014`, `FR-015`, `FR-016` — are genuine cross-references and mean the records they name. The reservation's home is the allocation ledger in `docs/Requirements/README.md`; this file only spends it. Do not renumber the example to look more realistic.
+
 | Field | Rule | Filled by |
 |---|---|---|
 | `FR-###` / `NFR-###` + title | Zero-padded to three digits; title is a short imperative phrase | author |
@@ -54,7 +56,7 @@ Resolved-by:  #14, #15
 
 **`Risk` and `Rationale` are as long as their argument, and no longer.** Both once read *one line* here while the corpus's own contested records ran to a dozen, which left every author choosing between the table and the practice. The practice is right: these two fields exist to stop a later agent undoing a decision it does not understand, and an argument compressed to one line stops nothing. Brevity is the default, not the ceiling — a `Rationale` earns each line by naming something a reader would otherwise get wrong. A record whose `Rationale` is long because the *statement* is doing too much is not a long-rationale problem; it is a singularity failure, and the fix is two records.
 
-**The field block's layout.** Values begin at **column 15** — the width of the longest field name, `Verification:`, plus one space — and continuation lines are indented **14 spaces** to sit under them. Lines wrap at **78 columns**, and **fill is greedy** — a line takes every word that fits under the ceiling. This is not taste: the alignment is what makes a `grep FR-021` hit readable on its own and what keeps a one-field diff to the lines that field occupies, and a stated fill is what makes two agents wrapping the same field produce the same bytes. A ceiling without a fill leaves a minimal fix and a full re-flow both legal on the same field, and the difference surfaces later as churn that reads like a content edit. **Greedy fill binds on new writes; existing fields are normalized opportunistically, when the field is next edited for another reason** — never as a dedicated re-wrap pass across the corpus. Several fields carry a word's slack from earlier batches and are not defects. **Three kinds of short line are not slack and are never filled:** an `Acceptance` criterion begins a new line, each entry of a `;`-separated field begins a new line — both below — and a line ending short before a citation is the atomicity rule working, not room going spare. A re-wrap is formatting and belongs to `@requirements-librarian`; it is never bundled into a content edit, because in a diff the two are indistinguishable.
+**The field block's layout.** Values begin at **column 15** — the width of the longest field name, `Verification:`, plus one space — and continuation lines are indented **14 spaces** to sit under them. Lines wrap at **78 columns**, and **fill is greedy** — a line takes every word that fits under the ceiling. This is not taste: the alignment is what makes a `grep FR-000` hit readable on its own and what keeps a one-field diff to the lines that field occupies, and a stated fill is what makes two agents wrapping the same field produce the same bytes. A ceiling without a fill leaves a minimal fix and a full re-flow both legal on the same field, and the difference surfaces later as churn that reads like a content edit. **Greedy fill binds on new writes; existing fields are normalized opportunistically, when the field is next edited for another reason** — never as a dedicated re-wrap pass across the corpus. Several fields carry a word's slack from earlier batches and are not defects. **Three kinds of short line are not slack and are never filled:** an `Acceptance` criterion begins a new line, each entry of a `;`-separated field begins a new line — both below — and a line ending short before a citation is the atomicity rule working, not room going spare. A re-wrap is formatting and belongs to `@requirements-librarian`; it is never bundled into a content edit, because in a diff the two are indistinguishable.
 
 **Multi-value fields, and their separators.** `Source` and `Depends-on` separate entries with **`;`**. `Resolved-by` separates story numbers with **`, `** — `#14, #15`. The split is not arbitrary and is not a licence to choose: a `Source` entry carries a section name that may itself contain a comma, so a comma cannot delimit them, and `Depends-on` follows `Source` because the two reference fields sit together and reading alike is worth more than either choice on its own. A story number cannot be ambiguous, and `#14, #15` is also how `INDEX.md` renders it, so changing it would rewrite every index row for nothing. Where a field's value spans lines, the separator ends the line and the next entry starts a new one at the continuation indent, so a `grep` for one code returns one line.
 
@@ -175,9 +177,9 @@ Owned by `@requirements-librarian`. The corpus root is **`docs/Requirements/`** 
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-021` | Cap candidates promoted to full evaluation | Candidate identification | MUST | to-build | test | #14, #15 |
+| `FR-000` | Cap candidates promoted to full evaluation | Candidate identification | MUST | to-build | test | #14, #15 |
 
-`Verification` is the keyword alone; the evidence sentence stays on the record. `Category` is redundant under a category heading and kept anyway, so a `grep FR-021` hit answers the whole question without its surrounding lines.
+`Verification` is the keyword alone; the evidence sentence stays on the record. `Category` is redundant under a category heading and kept anyway, so a `grep FR-000` hit answers the whole question without its surrounding lines.
 
 **`Resolved-by` reads `—` where no story is allocated**, on the record and in the index alike, and it means *not yet allocated* — never *unknown*. One spelling in both places, because the moment the record and its view word the same emptiness differently, a reader has to decide whether the difference is meaningful.
 
