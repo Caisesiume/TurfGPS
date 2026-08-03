@@ -73,7 +73,7 @@ This 10-metre figure is a proposal and is exactly the kind of threshold worth ch
 
 The constant is **90 km/h**: the highest speed limit a road may be **established** to carry and still be considered as a place to stop. The rule that consumes it is stated under *Enforceable exclusions* in `SPECIFICATION.md` and is not restated here. Only the figure lives here.
 
-**The value is a proposal; the exclusion is not.** Nothing in this documentation set establishes 90 km/h. It carries no origin, no measurement, and no cited source, and it is absent from *Estimate accuracy and calibration* in `SPECIFICATION.md`, which enumerates which constants are settled, which need measurement, and which are irreducible. Under *Conventions* in `docs/README.md`, where numeric constants are proposals unless stated otherwise, it is therefore a **proposed default by default** — held to that status because nothing supports a stronger one, not because anyone argued for the number. It must not be presented to a user, a requirement, or a reviewer as a legal threshold or as a figure taken from any road-traffic source; no such attribution exists to make. Whatever value the constant holds, **the exclusion built on it is absolute**: a zone whose only stopping position is on a road above the limit is excluded regardless of its Turf value, and time is never grounds for relaxing it.
+**The value is a proposal; the exclusion is not.** Nothing in this documentation set establishes 90 km/h. It carries no origin, no measurement, and no cited source, and it is not enumerated in *Estimate accuracy and calibration* in `SPECIFICATION.md`, which enumerates which constants are settled, which need measurement, and which are irreducible. Under *Conventions* in `docs/README.md`, where numeric constants are proposals unless stated otherwise, it is therefore a **proposed default by default** — held to that status because nothing supports a stronger one, not because anyone argued for the number. It must not be presented to a user, a requirement, or a reviewer as a legal threshold or as a figure taken from any road-traffic source; no such attribution exists to make. Whatever value the constant holds, **the exclusion built on it is absolute**: a zone whose only stopping position is on a road above the limit is excluded regardless of its Turf value, and time is never grounds for relaxing it.
 
 **Why downward is the strict direction.** Lowering the constant excludes more roads, which is the direction that costs coverage rather than safety, and it degrades gracefully in the cost model: the roadside rows in *Proposed placeholder timings* run from 30 km/h to this limit, so every stopping context a tightening leaves admissible still has a row. Raising it does not. Those rows stop where the exclusion stops, so raising the constant admits roads faster than the table prices — putting stopping places into the model with nothing calibrated, or even guessed, for stopping on them.
 
@@ -383,12 +383,18 @@ Difficulty is derived from how often a zone is actually taken, relative to its n
 
 ### Takeover rate
 
-Every zone reports `totalTakeovers` and `dateCreated`. Together these give a **takeover rate**:
+Every zone reports `totalTakeovers` and `dateCreated` — both on 100% of records, per *Retrieving zones* in `Architecture.md`. Together these give a **takeover rate**:
 
 ```text
 takes per month =
     totalTakeovers ÷ months since dateCreated
 ```
+
+**The divisor can be zero, and a guard is required.** This is not a rounding concern: `dateCreated` carries day granularity, so a zone created today yields a divisor of exactly zero. Measured against the complete corpus of **3 August 2026**, **12 zones** had been created that day and **890** were under thirty days old. *Zone activity as a difficulty and hold-time signal* in `SPECIFICATION.md` already calls the measure weak for young zones and asks that they be treated as unknown rather than as low-activity; the corpus shows the arithmetic itself fails before the interpretation does, so the guard is required for correctness and not only for meaningfulness.
+
+**The guard's value is not set here.** A minimum age below which the rate is not computed — and the zone is routed to the unknown treatment `SPECIFICATION.md` already specifies — is required, but no figure in this documentation set establishes one, and none is invented here. It must be chosen deliberately and recorded in this document when it is.
+
+**A zero numerator is a different case and must not be conflated with it.** **4,555 zones** carry `totalTakeovers` of zero. Where the zone is old enough to clear the age guard, that is a well-defined rate of zero and a genuine signal — a zone nobody takes — not a missing value. Only the divisor is undefined; the numerator is merely small.
 
 ### The activity baseline
 
@@ -404,6 +410,10 @@ relative activity =
 The neighbourhood is proposed as the **nearest 100 zones bounded to a 25 km radius**, whichever limit binds first.
 
 One caution in construction: a fixed count of nearest zones spans a very large area in sparse terrain, and may reach into a distant town whose activity has no bearing on the local one. The neighbourhood must be bounded by distance as well as by count, so the baseline stays genuinely local.
+
+**This division has its own zero, and it is the baseline rather than the divisor above.** Where every zone in the neighbourhood has never been taken, the baseline is zero and the ratio is undefined. The 25 km bound makes this reachable rather than theoretical: where the radius binds before the count does, the neighbourhood may hold a handful of zones instead of a hundred. In the corpus of **3 August 2026**, **45 regions consist entirely of zones with zero takeovers** — all small, the largest being Pakistan at 7 zones — and six regions of 100 zones or more are **between 50% and 81% zero** (Gyeongsangnam 125/155, Chungcheongnam 88/122, Gangwon 75/118). A guard is required here too, and as above no value for it is established.
+
+These region-level concentrations are measured. **That a specific 25 km neighbourhood resolves to an all-zero set is inferred from them, not computed** — the spatial neighbourhood query does not exist yet to test it against. The inference is strong enough to require the guard and not strong enough to quantify how often it fires.
 
 ### Proposed adjustment
 

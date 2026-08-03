@@ -135,7 +135,7 @@ Three properties of this shape are requirements rather than preferences:
 
 **The service is stateful and long-lived.** Solve sessions live in it. This is not a scale-out-behind-a-load-balancer design without deliberate session affinity, and `DEPLOYMENT.md` must account for that.
 
-**The zone sync is never on a request path.** *Retrieving zones* below records `GET /v5/zones/all` as slow — a partial download reached ~82,000 zones and 23 MB before timing out at five minutes — and rate-limited to one request per 30 minutes. It is a scheduled worker writing to PostGIS, and the pipeline must tolerate the sync being mid-refresh or up to an hour stale.
+**The zone sync is never on a request path.** *Retrieving zones* below records `GET /v5/zones/all` as **rate-limited to one request per 30 minutes** — which is the binding constraint, and holds regardless of how quickly the response transfers. It is a scheduled worker writing to PostGIS, and the pipeline must tolerate the sync being mid-refresh or up to an hour stale.
 
 **Nothing in a stored plan depends on the Turf API.** This is what makes *Never gate stored plans on the wizard* in `DESIGN.md` implementable: an outage degrades the volatile overlay and nothing else.
 
@@ -150,6 +150,8 @@ Two facts about zone data are product facts rather than integration ones and are
 ### API version
 
 Version 5 is the current API and the version this system targets. Version 4 is deprecated and must not be used for new work.
+
+**`GET /v5` is self-documenting, but only in HTML.** Requested with `Accept: application/json` it returns **406 Not Acceptable**; its index of endpoints is a web page, not a machine-readable descriptor. A client that sets a JSON `Accept` header globally across the base URL will fail on this path alone while every data endpoint under it succeeds — worth knowing before that 406 is read as an outage or an auth fault. Observed 3 August 2026.
 
 ### Zone geometry
 
@@ -173,11 +175,37 @@ Two endpoints return zones.
 
 `GET /v5/zones/all` returns every zone in the game, refreshed at least hourly, limited to **one request per 30 minutes**. This is the primary source for candidate discovery. The system maintains its own periodically-synced copy with a spatial index, and resolves route corridors against that local copy.
 
-Two properties of this endpoint shape the architecture:
+The following properties of this endpoint shape the architecture. Except where noted, each was counted across the **complete** response of 3 August 2026 — every one of its 154,845 records, not a sample, and deliberately not taken from the bounding-box endpoint, which returns a strict superset and would not answer the question.
 
-**It omits ownership entirely.** Sampling found `currentOwner` and `dateLastTaken` absent from every record. It carries the stable data — coordinates, name, region, `type`, `takeoverPoints`, `pointsPerHour`, `totalTakeovers` — and nothing round-scoped. The local copy therefore answers *which zones exist and what they are*, but never *who holds them*. Ownership does not come from the sync. For the user's *own* holdings — all the first release needs — it comes from the `zones` array returned by `POST /v5/users`, per *The user's held zones are already known*. `POST /v5/zones` returns per-zone ownership should it ever be needed, but the first release does not require it.
+**It omits ownership entirely.** `currentOwner` and `dateLastTaken` are absent from every record — confirmed across all 154,845, not sampled. It carries the stable data and nothing round-scoped. The local copy therefore answers *which zones exist and what they are*, but never *who holds them*. Ownership does not come from the sync. For the user's *own* holdings — all the first release needs — it comes from the `zones` array returned by `POST /v5/users`, per *The user's held zones are already known*. `POST /v5/zones` returns per-zone ownership should it ever be needed, but the first release does not require it.
 
-**It is large and slow.** A partial download reached roughly 82,000 zones and 23 MB before timing out at five minutes, at about 278 bytes per zone. The full set is substantially larger. This must be a background job on a schedule, never anything that happens on a request path, and the pipeline must tolerate the sync being mid-refresh or stale by up to an hour.
+**Which fields it carries, and which are optional.** These ten are the whole of it; no other key appears on any record.
+
+| Field | Present | Note |
+|---|---|---|
+| `id` | 100.00% | the zone's primary key |
+| `name` | 100.00% | |
+| `latitude`, `longitude` | 100.00% | two scalars, not a coordinate pair |
+| `dateCreated` | 100.00% | required by *Takeover rate* in `CalculationSpecification.md` |
+| `totalTakeovers`, `takeoverPoints`, `pointsPerHour` | 100.00% | |
+| `region` | 100.00% | an object; its own subkeys are not uniform, below |
+| `type` | **15.91%** | 24,643 zones; absent from the other **84.09%** |
+
+That this list contains no radius, boundary, or extent field is the measured basis for *Zone geometry* above.
+
+**`type` is optional, and this is the field a schema gets wrong.** It is present on fewer than one zone in six. A column declared `NOT NULL` fails on 130,202 of 154,845 records. Nothing may treat an absent `type` as an anomaly or a sync defect; absence is the ordinary case.
+
+**`region` is an object whose subkeys are also not uniform.** `region.name` and `region.id` are on 100.00% of records, but `region.country` is on **97.00%** and `region.area` on **96.66%**. Where `country` is missing — 4,638 zones — the country's name is carried in `region.name` instead, and `area` is usually missing too: Ireland (478 zones), Spain (372), Australia (300), Italy (248) and France (232) head a list that has neither subkey. **A group-by on `region.country` silently drops those 4,638 zones rather than failing**, which is the failure mode to design against: the aggregate looks complete and is not.
+
+**`dateCreated` is near-immutable, but it is not immutable.** Of the **138,830** zone ids present in both the January 2025 and August 2026 dumps, **exactly one** changed its `dateCreated` across nineteen months: id `660960`, which moved from `2024-04-28` to `2025-10-30` while its coordinates shifted slightly and its `totalTakeovers` continued upward from 7 to 10 — a zone evidently re-sited and re-dated under the same id rather than replaced with a new one.
+
+One record in 138,830 is not a reason to re-fetch, but it is a reason not to model the field as write-once-forever. A row inserted once and never updated keeps a `dateCreated` the API has since revised, and any rate derived from it is then computed against the wrong denominator — for id `660960`, ten takeovers over nine months rather than over twenty-seven, inflating its derived rate roughly threefold. **The sync must therefore update `dateCreated` on existing ids, not only insert it with new ones**, and an upsert keyed on `id` that refreshes the mutable columns is sufficient. No detection mechanism is required; the ordinary refresh carries it, provided the write path is not written to skip fields it assumes are constant.
+
+**It is large, and the rate limit — not the download — is what keeps it off the request path.** On **3 August 2026** the complete response returned **154,845 zones in 43,260,217 bytes (43.26 MB) in under 20 seconds**, well-formed and complete, uncompressed and without gzip even being requested — which the API itself recommends and which would reduce it further. That is **279.4 bytes per zone**, near-exact against the ~278 recorded earlier.
+
+An earlier note in this section described a partial download reaching ~82,000 zones and 23 MB before timing out at five minutes. **That observation no longer reproduces and has been replaced by the measurement above.** Extrapolated to the full corpus it implied about **9.5 minutes** for a transfer that now completes in **under 20 seconds** — so anyone sizing the sync against it would budget for something close to thirty times the time actually required, and would design around a timeout problem that no longer exists.
+
+**The architectural conclusion is unchanged, because it never rested on the download being slow.** The sync must be a background job on a schedule, never anything that happens on a request path, and the pipeline must tolerate the sync being mid-refresh or stale by up to an hour — and that follows from the **one request per 30 minutes** limit alone. A response that arrives in 20 seconds is still a response the system may only ask for twice an hour, so freshness is bounded by the limit no matter how fast the transfer is.
 
 `POST /v5/zones` returns zones by name, by id, or within a bounding box, and accepts several areas in one request body. This is the fallback and the means of refreshing volatile per-zone fields. Its area constraint is a **product, not a per-axis limit**: a request is rejected when
 
@@ -341,6 +369,6 @@ Sections this document owes independently of the content moved into it: **failur
 
 * **Self-hosting versus metered APIs at global scope.** The largest cost risk in the project, stated under *The cost consequence*. D5 defers it; the adapter pattern makes it replaceable. It is not answered.
 * **The DEM sampling mechanism** — `godal` with cgo, or PostGIS raster. Settle by measurement, per D6.
-* **Solve-session lifetime and residency.** Tied to the open question in `SPECIFICATION.md` about *the lifetime of an unconfirmed route*: whether sessions are in-memory only, and therefore lost on restart, or persisted. The product question and the architectural one must be answered together.
+* **Solve-session lifetime and residency.** Tied to the lifetime-of-an-unconfirmed-route entry under *Open questions owned by this document* in `SPECIFICATION.md`: whether sessions are in-memory only, and therefore lost on restart, or persisted. The product question and the architectural one must be answered together.
 * **Concrete per-journey call and latency figures**, per *The call budget*.
 * **Cross-device transfer** — anonymous server-side storage keyed by a short code, per *Persistence and cross-device transfer*. Proposed, and open to revision.
