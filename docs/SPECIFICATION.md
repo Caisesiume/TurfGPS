@@ -490,9 +490,9 @@ The user's `medals` array is available from `POST /v5/users`. Comparing it again
 
 The feature is not in the first release, because it requires a maintained table of medal definitions and carries the same manual synchronization burden as the takeover-time table described under *Rank-to-takeover-time table* in `CalculationSpecification.md`.
 
-**The data should nonetheless be captured from the outset**, stored inside the plan object alongside everything else. The `medals` array arrives free in a call the system already makes for rank, and storing it costs nothing.
+**The `medals` array is not stored.** It arrives free in a call the system already makes for rank, so the deferred feature can read it live in the session that needs it — but it is not written into the plan object. A medals array is neither a coordinate nor a zone identifier: it is a per-player achievement list, and within a player base of tens of thousands a specific medal combination alongside a route starting near someone's home is plausibly re-identifying. On an account-free product whose stored plans describe where a real person intends to drive, that is the wrong thing to hold for the full retained lifetime of a plan. The minimisation obligation this follows, and that lifetime, are stated under *Persistence and cross-device transfer* in `Architecture.md`.
 
-What this buys is schema readiness, and only that. Because there are no accounts, medal data expires with the plan that holds it and cannot be linked across plans or over time — see *No accounts*. Capturing it now means the later feature is an addition rather than a migration; it does not mean early users will have accumulated history when it arrives.
+Nothing about the deferred feature depends on retaining it. Medal-derived ranking is a suggestion computed at the moment the user is asked to rank attributes, from an array fetched moments earlier; it needs the data live, not stored. Nor is there history to accumulate — there are no accounts, so medal data could not be linked across plans or over time in any case, per *No accounts*. What the feature actually waits on is the maintained table of medal definitions, not a schema that has been quietly collecting medals since the first release.
 
 ### Attribute preference
 
@@ -856,12 +856,33 @@ These requirements are divided by what the available data can actually establish
 
 These follow from road and map attributes and must be applied as hard rules. A zone failing any of them is excluded regardless of its Turf value.
 
-* No stop may be proposed on a motorway, motorway link, or any road whose recorded speed limit exceeds the maximum for a stopping road, defined as a constant under *The maximum speed limit for a stopping road* in `CalculationSpecification.md`. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
+* No stop may be proposed on a motorway, motorway link, or any road whose speed limit is not established to be at or below the maximum for a stopping road, defined as a constant under *The maximum speed limit for a stopping road* in `CalculationSpecification.md`. A limit that is absent, unparseable, or unit-ambiguous does not establish this and excludes the road, per *An unknown speed limit fails the check*. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
 * No stop may be proposed on a road not marked as drivable by the map data.
 * No zone may be classified as directly road-accessible where the road and the zone are at incompatible levels, or where bridge, tunnel, or layer data indicates they do not meet. This is covered under *Direct road-access validation*.
 * No zone may be classified as accessible across an access path that is absent, disconnected, or implausibly steep, per *Elevation and feasibility rules*.
 * No recommendation may assume the zone is captured while the vehicle is moving. Every stop is a stop.
 * No route may be constructed through areas the map data marks as private or access-restricted.
+
+#### An unknown speed limit fails the check
+
+The speed-limit exclusion is a test the road must **pass**, not a trap it must spring. A road is admissible as a stopping place only where its limit is known and at or below the maximum. Where the limit is absent from the map data, cannot be parsed, or carries units that leave it ambiguous, the road is excluded. **Unknown is treated as too fast.**
+
+Phrased the other way round — excluding only roads whose *recorded* limit exceeds the maximum — an unrecorded limit would fail to trigger the exclusion and the road would be admitted. That is the wrong direction, and two concrete tagging cases show why it is not a pedantic distinction:
+
+* **`maxspeed=none`** is the tagging for a derestricted road — in practice German autobahn, and Germany is a primary market with 13,961 zones in the 2025-01-04 zone dump. Coerced to an integer it becomes null, and a null read as "nothing recorded above the maximum" admits a stop on an unrestricted motorway. That is the single worst outcome this exclusion exists to prevent.
+* **`maxspeed=60 mph` read as the integer 60** compares 60 against a maximum expressed in km/h and passes, when the road is in fact 96.6 km/h and must fail. A unit-bearing or unit-ambiguous value must fail the check outright. It must never be silently coerced to a number and compared as though it were already km/h.
+
+This is the same asymmetry the product accepts everywhere else: err toward missing a zone rather than promising a stop the system cannot vouch for. A zone lost to an unreadable speed tag is a coverage cost, and coverage is the thing *Accessibility scope for the first release* is willing to spend.
+
+#### The United Kingdom is a park-and-walk market
+
+This is a stated product boundary, taken with the zone corpus measured. It is not a defect, an oversight, or a gap awaiting a fix.
+
+The UK national speed limit is 60 mph — **96.6 km/h** — on a rural single carriageway, and 70 mph, or 112.6 km/h, on a dual carriageway. Both are above the maximum for a stopping road. Essentially the entire UK rural network at national speed limit is therefore unavailable as a stopping place, and Great Britain is the second-largest national share of the zone corpus after Sweden.
+
+The consequence is deliberate, and it is simply how the product works there: **in the United Kingdom, zones are reached by parking properly and walking.** Roadside stopping is largely unavailable, on safety grounds. A UK user seeing few directly road-accessible zones is seeing the exclusion working correctly against a road network whose default limits sit above it, not a failure of classification.
+
+The exclusion is not relaxed for the UK and carries no national exception. The measured share of the corpus affected, and what it means for any proposal to move the constant, are recorded at the constant's definition site — *The maximum speed limit for a stopping road* in `CalculationSpecification.md`.
 
 ### Requirements the data cannot verify
 
@@ -1048,7 +1069,7 @@ Questions about a formula or constant belong to `CalculationSpecification.md`, q
 
 ### Deferred features
 
-* **Medal-derived attribute ranking.** Not in the first release, though the underlying data is captured from the outset — see *Why attributes matter: unique zones and medals*.
+* **Medal-derived attribute ranking.** Not in the first release. The underlying `medals` array is available from a call the system already makes, but it is deliberately not stored — see *Why attributes matter: unique zones and medals*.
 * **Point-based zone value**, ownership as a scoring input, and region completion, per *Deferred by choice*.
 
 ### Ongoing external dependencies
