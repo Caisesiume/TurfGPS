@@ -7,7 +7,7 @@ This folder is the front door to the TurfGPS documentation set. Each document an
 | Document | The question it answers |
 |----------|------------------------|
 | `SPECIFICATION.md` | What is the system, and how should it behave conceptually? |
-| `Requirements/` | What precisely must the system satisfy? |
+| `docs/Requirements/` | What precisely must the system satisfy? |
 | `CalculationSpecification.md` | How is every number the system produces worked out? |
 | `Architecture.md` | How will the system feasibly satisfy those requirements? |
 | `DESIGN.md` | What design qualities are required to satisfy those requirements? |
@@ -21,6 +21,8 @@ Vision, potential commercial model, major user capabilities, terminology, behavi
 This is the document someone reads to understand *what this product is*. It should be readable front to back in one sitting.
 
 ### Requirements/
+
+The corpus lives at **`docs/Requirements/`**, inside this folder alongside the other documents. Every bare mention of `Requirements/` across the repository means that path.
 
 Formal functional and non-functional requirements, constraints, acceptance criteria, verification methods, priority, source, risk, dependencies, and traceability IDs.
 
@@ -50,15 +52,15 @@ Operational detail: how to deploy, target OS, hosting options with price and com
 
 ## Current state
 
-As of 31 July 2026 the set is in this shape, less two documents that do not yet exist.
+As of 1 August 2026 the set is in this shape, less one document that does not yet exist.
 
-`Concept.md` held the authoritative product definition at roughly 1,670 lines, having grown past its purpose because formulas, thresholds, integration facts, and interaction flow had nowhere else to live. It was **split** on that date, as a move operation rather than an authoring one, into `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md`. It no longer exists; it survives in git history.
+`Concept.md` held the authoritative product definition at roughly 1,670 lines, having grown past its purpose because formulas, thresholds, integration facts, and interaction flow had nowhere else to live. It was **split** on 31 July 2026, as a move operation rather than an authoring one, into `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md`. It no longer exists; it survives in git history.
 
 - **`SPECIFICATION.md`** is the source of truth for intent. The repository contains none of the system as code, so the documents lead the implementation, not the other way round.
 - **`CalculationSpecification.md`** is complete for the first release, less a domain glossary it still owes.
 - **`Architecture.md`** carries binding technology decisions and the Turf API facts. It still owes failure handling, observability, security, and schema.
 - **`DESIGN.md`** carries the full interaction flow. It still owes the visual layer.
-- **`Requirements/`** and **`DEPLOYMENT.md`** do not exist yet. `Requirements/` is the bottleneck for the project board described in `DELIVERY.md`.
+- **`Requirements/`** exists and is being authored — its first requirements are filed across four categories, with the live count in its own `INDEX.md`. It remains the bottleneck for the project board described in `DELIVERY.md`, now because it is far short of the expected volume rather than because it is absent. **`DEPLOYMENT.md`** does not exist yet.
 
 Each document ends with what it still owes and the open questions it owns. Those are the shortest route to what is unfinished.
 

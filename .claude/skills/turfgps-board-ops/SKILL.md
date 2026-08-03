@@ -12,7 +12,7 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 | Channel | Used for | Identity |
 |---|---|---|
 | **GitHub MCP** (server `github`) | Board reads and item edits, issues, milestones, labels, PR reads | The repository owner, via `GITHUB_MCP_TOKEN` |
-| **`gh` CLI** | **Judgments only** — PR review verdicts and review comments | The judge, via `GH_JUDGE_TOKEN` |
+| **`gh` CLI** | **Judgments only** — PR review verdicts and review comments | The judge — login **`TheReviewNinja`** — via `GH_JUDGE_TOKEN` |
 
 `docs/DELIVERY.md` requires review comments under a **separate GitHub identity** from the repository owner's, because authorship and approval must not share a signature — self-approval is not review, and a distinct identity makes the boundary visible in the history rather than merely intended.
 
@@ -47,6 +47,14 @@ Mention in your report which channel you used, so a persistently failing MCP sho
 Falling back for a *judgment* means using the CLI **with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, exactly as @pr-judge already does. A judgment posted through the plain CLI would appear as `Caisesiume` — the author approving their own work, which is the precise failure `docs/DELIVERY.md` exists to prevent, and it would look completely normal in the history.
 
 If the judge token is missing or its call fails, that **is** a stop-and-report. There is no acceptable fallback for a ruling's identity.
+
+**The identity is checkable — so check it.** The token is the input; the login is the evidence. Confirm a ruling landed under the judge by reading the review author back off the PR:
+
+```bash
+"$GH" pr view <N> --json reviews --jq '.reviews[].author.login'
+```
+
+Expect **`TheReviewNinja`**. A verdict showing `Caisesiume` is the exact failure this rule exists to catch — **stop and report it**; do not delete it, re-post over it, or treat it as a formality. The same check against `--json comments` covers the judgment comment, which `pr comment` also posts under whichever token was in the environment.
 
 ## The CLI
 

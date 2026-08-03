@@ -16,6 +16,17 @@ Where a section of another document is referenced, the document is named. An unq
 
 **Every constant is configurable and carries a documented origin**, never embedded as an unexplained literal, per *Estimate accuracy and calibration* in `SPECIFICATION.md`. For an uncalibrated constant that origin is the assumption made and why; for a settled one it is the source and the date it was checked.
 
+**Modelling constants and enforcement constants are not configurable in the same way.** The rule above was written for constants where being wrong degrades the quality of an answer. It does not fit constants where being wrong puts a driver somewhere they did not agree to be, and applying it unchanged to one of those turns a safety limit into a deployment knob.
+
+* A **modelling constant** — the candidate cap, the corridor width, the placeholder timings, the rank-to-weight anchors — fails in the direction of a worse recommendation. It remains configurable in both directions under the rule above.
+* An **enforcement constant** — the absolute additional-time ceiling, the direct-access tolerance, the maximum speed limit for a stopping road — fails in the direction of an outcome the user did not agree to. It is **configurable in the strict direction only**: a deployment may tighten it and may never loosen it, and its documented value is the limit of what is permitted rather than a midpoint to tune around. It must be **named as an enforcement constant at its own definition site, together with which direction is the strict one**, so both properties travel with the constant instead of depending on a reader recalling this section.
+
+**The strict direction is not always downward.** Stating this rule arithmetically rather than as strictness inverts it on at least one constant. For the ceiling, strict is lower. For *A conservative upper bound for an uncertain stop*, strict is **higher**: a larger bound refuses more acceptances, so a rule reading "downward only", applied verbatim by a later author, would turn the ceiling's only sensor for an uncertain stop into a rubber stamp. Each definition site names its own strict direction, and no reader may infer one from this section.
+
+The test is not how important a constant looks but **which way its failure runs**: if moving a constant in some direction can produce an outcome the user did not agree to, it is an enforcement constant. That direction is the loose one; the opposite is the strict direction it may be configured in. Anything feeding the enforceable exclusions or the absolute ceiling in `SPECIFICATION.md` is presumed enforcement unless argued otherwise.
+
+The reason for stating this as a general distinction rather than a carve-out is that an enforcement constant filed here silently inherits "every constant is configurable". Every ceiling check would still pass against a loosened value, and every test asserting compliance would still return green, while the user was routed past what they agreed to.
+
 ---
 
 ## Bounding the candidate set
@@ -36,21 +47,41 @@ Where the cap binds, it must not do so silently. If a corridor contains more qua
 
 ## Direct-access tolerance
 
+**This is an enforcement constant, and its strict direction is downward.**
+
 *Directly road-accessible zones* in `SPECIFICATION.md` covers two situations: a zone sitting directly **on** a drivable road, and a zone sitting **beside** one, close enough that a stopped car is already within it.
 
 The second case needs a stated tolerance, because *The coordinate is the target* deliberately refuses to model the capture area. That rule governs how far a player must **travel**, and it is right to be conservative there. Direct access asks a different question — whether a stopped vehicle is already inside the zone — and answering it requires admitting that the zone has some extent.
 
-The proposed rule is that a zone qualifies as directly road-accessible when its coordinate lies within **10 metres** of a valid stopping position on a drivable way. Against a nominal 25-metre zone, whose half-extent is about 12.5 metres, a car stopped within 10 metres of the coordinate is very likely inside it.
+The proposed rule is that a zone qualifies as directly road-accessible when its coordinate lies within **10 metres** of a valid stopping position on a drivable way. The value is defined here. The flowchart under *Stop time* and every rule that consumes the tolerance name the constant rather than repeating the figure, because a diagram or an implementation holding its own copy will silently disagree with a deployment that has tightened it.
 
-Beyond that distance the zone becomes a park-and-walk stop with a short priced walk, rather than being lost. The classification decides which cost model applies, not whether the zone survives.
+**What this constant separates is two validation regimes, not two cost models.** The flowchart under *Stop time* is the precise statement. A candidate inside the tolerance is checked for level compatibility and intervening barriers, and nothing else; it never enters the branch that requires a connected walkable path, an obtainable elevation profile, and a gradient that is not implausibly steep. A candidate outside the tolerance must pass that branch or be excluded or downgraded to uncertain. Raising this constant therefore does not mis-price a zone — it **enlarges the set of zones that bypass the walk-safety gates entirely**, and the zone is then handed to a driver who is told to take it from the car. Where that judgement is wrong, the driver stops, finds they are not inside the zone, gets out, and becomes a pedestrian on ground no part of the system ever validated, because the branch that would have validated it was never entered.
 
-This 10-metre figure is a proposal and is exactly the kind of threshold worth checking against real captures early, since it sits directly on the boundary between the two cost models.
+**Why downward is the strict direction.** Set below its true value, a zone that could have been taken from the car becomes a park-and-walk stop, and a park-and-walk stop is strictly more validated: it must produce a connected path and an elevation profile, or fall to the uncertain bucket, or be excluded. The worst outcome of a tolerance set too low is therefore lost coverage on zones that were in fact reachable from the seat — which is the loss the measure of success under *Accessibility scope for the first release* in `SPECIFICATION.md` accepts, since it asks not that every zone be classified but that none be classified confidently and wrongly. The worst outcome of one set too high is a pedestrian beside a road.
+
+**The derivation is an argument, not arithmetic.** Ten metres was reasoned against a nominal 25-metre zone, whose half-extent would be about 12.5 metres — but *Zone geometry* in `Architecture.md` records that figure as a guideline rather than a guarantee, that real sizes vary considerably because each zone is fitted to its place, and that the API exposes nothing about the shape or size of any individual zone. No per-zone extent is knowable, so nothing here is a calculation from a measured quantity, and the arithmetic must not be read as one. It is a conservative choice argued from a nominal figure the corpus itself declines to rely on.
+
+Beyond the tolerance the zone is not lost: it enters the park-and-walk branch, where it may be priced with a short walk, downgraded to uncertain, or excluded on the evidence found there.
+
+This 10-metre figure is a proposal and is exactly the kind of threshold worth checking against real captures early, since it decides which candidates are exempted from walk-safety validation.
+
+---
+
+## The maximum speed limit for a stopping road
+
+**This is an enforcement constant, and its strict direction is downward.**
+
+The constant is **90 km/h**: the highest recorded speed limit a road may carry and still be considered as a place to stop. The rule that consumes it — that no stop may be proposed on a motorway, a motorway link, or any road above this limit, while an adjacent rest area, service road, parking area, or exit may still make the zone accessible — is stated under *Enforceable exclusions* in `SPECIFICATION.md` and is not restated here. Only the figure lives here.
+
+**The value is a proposal; the exclusion is not.** Nothing in this documentation set establishes 90 km/h. It carries no origin, no measurement, and no cited source, and it is absent from *Estimate accuracy and calibration* in `SPECIFICATION.md`, which enumerates which constants are settled, which need measurement, and which are irreducible. Under *Conventions* in `docs/README.md`, where numeric constants are proposals unless stated otherwise, it is therefore a **proposed default by default** — held to that status because nothing supports a stronger one, not because anyone argued for the number. It must not be presented to a user, a requirement, or a reviewer as a legal threshold or as a figure taken from any road-traffic source; no such attribution exists to make. Whatever value the constant holds, **the exclusion built on it is absolute**: a zone whose only stopping position is on a road above the limit is excluded regardless of its Turf value, and time is never grounds for relaxing it.
+
+**Why downward is the strict direction.** Lowering the constant excludes more roads, which is the direction that costs coverage rather than safety, and it degrades gracefully in the cost model: the roadside rows in *Proposed placeholder timings* run from 30 km/h to this limit, so every stopping context a tightening leaves admissible still has a row. Raising it does not. Those rows stop where the exclusion stops, so raising the constant admits roads faster than the table prices — putting stopping places into the model with nothing calibrated, or even guessed, for stopping on them.
 
 ---
 
 ## Additional journey time
 
-The central cost metric is additional journey time. The system must estimate more than the additional driving duration returned by a routing service. It must also account for slowing down, parking, leaving the car, walking, taking the zone, returning to the car, and rejoining traffic.
+The cost metric is additional journey time. The system must estimate more than the additional driving duration returned by a routing service. It must also account for slowing down, parking, leaving the car, walking, taking the zone, returning to the car, and rejoining traffic.
 
 The route provider calculates the baseline driving time and the driving time of any rerouted journey. The Turf optimizer then adds stop-specific service time that an ordinary routing provider does not include.
 
@@ -75,13 +106,31 @@ Detour cost is obtained by routing and never inferred from geometry, per *Detour
 
 ---
 
+## The absolute additional-time ceiling
+
+**This is an enforcement constant, and its strict direction is downward.**
+
+The ceiling is **115% of the user's stated additional-time limit** — an allowance of 15% above the figure the user gave. A deployment may lower this multiplier; it may never raise it. 115% is the maximum permitted value, not a default to be tuned in both directions, and a configuration that sets it higher is invalid rather than merely unusual.
+
+The model this constant serves — soft target, hard ceiling, and the clearly-labelled stretch band between them — is stated under *User time constraints* in `SPECIFICATION.md` and is not restated here.
+
+**The base is the additional time, never the journey duration.** The multiplier applies to the additional time the user permitted, not to the total duration of the journey. This is the misreading the constant exists to foreclose, because it fails in the direction that puts a driver somewhere they did not agree to be: on a six-hour drive with a twenty-minute budget, the ceiling is **23 minutes of additional time**. Read against journey duration it would be 54 minutes — 2.3 times what the driver agreed to, while every ceiling check still reported compliance.
+
+**The ceiling is journey-level, never per-leg.** Where a journey has several legs, the quantity the ceiling tests is the sum of additional time across all of them, per *Journeys with several legs* in `SPECIFICATION.md`. Applied per leg instead, four legs at 115% each would compound far past the promise made to the user.
+
+**Two properties, both binding.** The 15% figure is a **proposed default**: nothing measured establishes it, and it may not be quoted to a user as though something did. Revising it is a change to this specification, ratified here — it is not a deployment setting. The ceiling's **enforcement is not a proposal**: whatever value the constant holds, no recommendation may exceed it, for any reason, however valuable the zone. A statement carrying only the first property leaves the constraint tunable; one carrying only the second falsely claims a measured figure. Both are stated because either alone is wrong.
+
+This ceiling is **unrelated to the 15 km corridor cap** under *Bounding the candidate set*, which shares no more than a numeral with it. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
+
+---
+
 ## Stop time
 
 Which model prices a stop follows from its access classification:
 
 ```mermaid
 flowchart TD
-    A[Candidate zone] --> B{Coordinate within 10 m of a valid<br/>stopping position on a drivable way?}
+    A[Candidate zone] --> B{Coordinate within the direct-access<br/>tolerance of a valid stopping<br/>position on a drivable way?}
     B -- yes --> C{Levels compatible and<br/>no intervening barrier?}
     C -- yes --> D["Direct road-access calculation<br/>no walking, no car exit"]
     C -- no --> E
@@ -91,6 +140,8 @@ flowchart TD
     G -- yes --> H[Excluded]
     G -- no --> I["Flat-distance fallback<br/>low confidence, uncertain bucket"]
 ```
+
+The tolerance tested at the first decision is defined under *Direct-access tolerance*. This diagram references it and deliberately does not repeat its value, so a deployment that tightens the constant tightens the diagram with it.
 
 Takeover time is a separate component of every one of these models and is defined under *Takeover time* below. It applies to park-and-walk zones and directly road-accessible zones alike.
 
@@ -204,11 +255,17 @@ These values are **uncalibrated estimates**. They exist so the system can run an
 | Parking area or rest area | 45 s | 30 s |
 | Urban roadside, 30–50 km/h | 25 s | 20 s |
 | Regional roadside, 70 km/h | 40 s | 35 s |
+| Regional roadside, 80 km/h | 50 s | 45 s |
+| Regional roadside, 90 km/h | 55 s | 50 s |
 | Exit and re-entry via intersection | 60 s | 60 s |
 
 A further **15-second buffer** applies per stop, covering the small unpredictable delays described below.
 
-Roads above 90 km/h do not appear in this table because stopping on them is excluded outright under *Enforceable exclusions* in `SPECIFICATION.md`. Where such a zone is reachable from an adjacent rest area or service road, the relevant row is the one describing that stopping place, not the road the zone sits beside.
+Roads above *The maximum speed limit for a stopping road* do not appear in this table because stopping on them is excluded outright under *Enforceable exclusions* in `SPECIFICATION.md`. Where such a zone is reachable from an adjacent rest area or service road, the relevant row is the one describing that stopping place, not the road the zone sits beside.
+
+The roadside rows run to the same limit the exclusion does, so every road permitted as a stopping place resolves to a row. Where a recorded limit falls between two roadside rows, it takes the **faster** row rather than the nearer one. The top of this table tracks that constant rather than standing on its own: tightening the constant strands the rows above the new limit, and they should be removed with it so that this table never prices a road the system will not stop on.
+
+**The 80 and 90 km/h rows are the weakest numbers in this table, and are biased high on purpose.** They were not estimated independently; they were extrapolated from the two slower roadside rows, which are themselves guesses, so they inherit that error and add their own. The trend those rows describe is +15 s in both columns between the top of the urban band (50 km/h) and the 70 km/h row — 7.5 s per 10 km/h — continued to 80 and 90 and rounded **up** to the 5-second granularity the rest of the table uses. Upward is the deliberate direction: understating a manoeuvre understates the cost of the stop it belongs to, which makes the stop look cheaper than it is and lets a plan built on it run closer to the absolute ceiling than its true cost allows. A reader who needs these to be wrong in a known direction should read them as too generous, never as too tight. What replaces them is measurement — the same stopwatch runs the other rows are waiting on, driven on roads posted at these limits rather than interpolated from slower ones.
 
 The timing model also includes small configurable buffers because real-world actions are not perfectly deterministic. Parking availability, traffic, road crossings, GPS delay, and the exact zone geometry can all affect the actual duration.
 
@@ -272,9 +329,13 @@ No bonus is assumed for an unknown player.
 
 ### Zone lock time
 
-Because `blocktime` governs when a zone becomes takeable again, it only affects a journey that would take the same zone twice. The first release plans a directed journey from an origin to a destination and visits each zone once, so zone lock time has no bearing on any cost in the model and does not appear in it.
+Because `blocktime` governs when a zone becomes takeable again, it only affects a journey that would take the same zone twice. The model excludes it, and the exclusion rests on one invariant: that a planned journey **takes each zone at most once**. While that holds, zone lock time has no bearing on any cost in the model and does not appear in it.
 
-Should it become relevant — a round trip, an out-and-back leg, or a route that doubles back — the documented behaviour is that lock time rises with rank, from ten minutes at rank 0 to twenty-five minutes at rank 60, and that a revisit is locked for a static five minutes regardless of rank.
+That invariant is an assumption, not a guaranteed property — nothing in the requirements corpus currently obliges a plan to take each zone at most once. It is named here so that the exclusion has a stated condition to fail: if a plan can ever take one zone twice, this exclusion must be revisited rather than inherited.
+
+The journey's shape does not settle it. A round trip is in scope, per *Genuinely out of reach or out of scope* in `SPECIFICATION.md`, and a journey of any shape may pass the same zone twice — an out-and-back over one road does so however its endpoints are named. What keeps lock time out of the model is the plan taking each zone at most once, not the journey running from an origin to a different destination.
+
+Should the invariant not hold, the documented behaviour is that lock time rises with rank, from ten minutes at rank 0 to twenty-five minutes at rank 60, and that a revisit is locked for a static five minutes regardless of rank.
 
 The units are confirmed: `blocktime` is **in seconds**. A live query for a rank-60 player returned 1500, which is exactly the twenty-five minutes the published maximum describes. The API's own example response showing 30 is stale documentation and should be disregarded.
 
@@ -410,13 +471,17 @@ The figures below are constants that happen to surface in an interface. They are
 
 ### A conservative upper bound for an uncertain stop
 
-An uncertain zone accepted during review carries no time estimate, which would leave the absolute ceiling check with nothing to evaluate, per *Reconciling this with the absolute ceiling* in `SPECIFICATION.md`.
+**This is an enforcement constant, and its strict direction is upward.** It is the one constant in this document where the strict direction is not downward, and a rule applied from memory as "downward only" inverts here. A larger bound refuses more acceptances; a smaller one admits more. **No value is specified below** — the bound is stated qualitatively and is recorded as a named gap under *Open questions owned by this document*.
+
+An uncertain zone accepted during review carries no time estimate, which would leave the check against *The absolute additional-time ceiling* with nothing to evaluate, per *Reconciling this with the absolute ceiling* in `SPECIFICATION.md`.
 
 The resolution is a **conservative upper bound** on the uncertain stop's cost — the worst plausible case given what little is known about its access. It is used for two purposes only: the ceiling check, and the upper end of the widened range shown to the user.
 
 It is used for nothing else. It never enters scoring, never affects ranking, and never makes an uncertain zone comparable to a priced one. The rule that uncertain zones stay out of the cost model is unchanged; this bound exists solely so that an absolute constraint has a number to test.
 
-A useful property falls out of this: what the user sees as the widened upper total and what the ceiling tests are the same number, so the constraint and the display can never disagree.
+A useful property falls out of this, and it holds independently of where the ceiling's own multiplier is defined: what the user sees as the widened upper total and what the ceiling tests are **the same number**, so the constraint and the display can never disagree.
+
+That property cuts both ways, which is why the constant is an enforcement one. The number that protects the user is also the number that alarms them, so anyone who finds the widened range too wide to show has a direct route to narrowing it — and narrowing it loosens the ceiling by the same stroke, silently, with every ceiling check still passing. Whoever authors the value must treat a display objection as an argument about presentation, never as a reason to move this bound.
 
 ### Review-interaction thresholds
 
@@ -435,10 +500,23 @@ A **domain glossary** formalizing the terms these formulas operate on, so that e
 
 ## Open questions owned by this document
 
+### Enforcement constants that do not yet exist
+
+Two constants are named by this documentation set, are required for the system to behave as specified, and **have no value anywhere**. They are recorded here rather than authored now: each is written when the batch of work that owns it runs. The point of recording them is that the first implementer to need one cannot author it silently, as an unexplained literal, which *Conventions* forbids.
+
+* **The conservative upper bound for an uncertain stop**, per *A conservative upper bound for an uncertain stop*. Specified entirely qualitatively — "the worst plausible case" — with no value and no origin. It is the only sensor the absolute ceiling has for an uncertain stop: computed optimistically, the ceiling check passes, the refusal never fires, and a user accepts a reserve zone that commits them past the limit they stated. Its **strict direction is upward**. Its specific hazard is that it is the same number the user sees as the top of the widened range, so an implementer who finds that range too alarming to display has a direct incentive to shrink it — and shrinking it loosens the ceiling while every check still reports compliance.
+* **The "implausibly steep" gradient threshold**, named as a member of *Enforceable exclusions* in `SPECIFICATION.md` and reached by the last decision of the flowchart under *Stop time*, with no value stated in any document. An exclusion phrased qualitatively cannot be evaluated, so it will otherwise arrive as exactly the unexplained literal *Conventions* forbids. Its **strict direction is downward**. Whoever authors it inherits a coupling no other constant here has: *D6 — Elevation sampled from Copernicus GLO-30* in `Architecture.md` records that a 30-metre global model cannot resolve a retaining wall, which is narrower than one cell, so a threshold calibrated against a 1-metre national model is wrong when the same check runs on the GLO-30 fallback. It may need to be **per elevation provider**, and a single global figure may be the wrong shape for this constant.
+
+### Proposed constants awaiting evidence
+
 * **The rank-to-weight curve** — geometric decay anchored at 500 and 2, per *Proposed rank-to-weight curve*. The anchors and the ratio are all configurable.
 * **The core scoring function** — value divided by cost, with difficulty inflating cost and confidence acting as a gate, per *Proposed form: value per minute*.
 * **The activity adjustment** — a mild capped multiplier over a neighbourhood-relative ratio, per *Proposed adjustment*, including the neighbourhood size, its distance bound, and the three guards.
 * **The base value of an ordinary zone**, proposed as 1.0.
-* **The 10-metre direct-access tolerance**, which sits exactly on the boundary between two cost models and is worth validating early.
-* **Manoeuvre timings.** The placeholders under *Proposed placeholder timings* let the system run, but they are guesses, and they are the largest single source of error in the time model. This is the one thing in the system that requires someone to drive the manoeuvres with a stopwatch.
+* **The 10-metre direct-access tolerance**, which decides which candidates skip walk-safety validation entirely, per *Direct-access tolerance*, and is worth validating early against real captures.
+* **The 90 km/h maximum speed limit for a stopping road**, per *The maximum speed limit for a stopping road*. A proposal by default rather than by argument: no source, measurement, or reasoning for the figure exists anywhere in this documentation set. The exclusion it feeds is absolute regardless; it is the number that is unevidenced, not the rule.
+* **Manoeuvre timings.** The placeholders under *Proposed placeholder timings* let the system run, but they are guesses, and they are the largest single source of error in the time model. This is the one thing in the system that requires someone to drive the manoeuvres with a stopwatch — **every row of that table, including the 80 and 90 km/h rows that exist to match the range the exclusion admits.** Those two are the weakest entries in the document: extrapolated from the slower roadside rows rather than observed even once, and rounded upward on purpose, so they are guesses drawn from guesses. They are owed the same measurement as the rest, on roads posted at those limits, and closing this question means retiring all of them and not merely the ones somebody happened to drive.
+
+### Standing obligations
+
 * The **rank-to-takeover-time table** is a standing obligation rather than a question: it is synchronized manually against the Turf wiki, and is subject to change without notice.

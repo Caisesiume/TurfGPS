@@ -39,7 +39,7 @@ The system should also support journeys with one or more required intermediate d
 > A → B → C
 > A → B → C → D
 
-These destinations represent mandatory waypoints and must be visited in the order entered by the user. The optimizer may choose different roads and Turf stops between the waypoints, but it may not remove, reorder, or replace them.
+These intermediate destinations are the journey's mandatory waypoints. Together with the origin and destination they form the journey's required locations, which must be visited in the order entered by the user. The optimizer may choose different roads and Turf stops between consecutive required locations, but it may not remove, reorder, or replace any of them.
 
 A destination is always required. The system is not intended, at least initially, to answer open-ended requests such as "create the best two-hour Turf trip from my current position." Its purpose is to optimize Turf opportunities within a journey the user already needs or intends to make.
 
@@ -59,12 +59,12 @@ Individual zones inside towns may still be considered when they are easy to reac
 
 The system should treat each journey as an optimization problem with four primary components:
 
-1. The required origin, destination, and intermediate waypoints.
+1. The user-specified origin, destination, and intermediate waypoints.
 2. The viable general road routes between those points.
 3. The Turf zones that may reasonably be captured along each route.
 4. The user's personal preferences and travel constraints.
 
-The objective is to find journey alternatives that maximize Turf value while minimizing additional travel time and inconvenience.
+The objective is to find journey alternatives that maximize Turf value while minimizing additional travel time.
 
 ```mermaid
 flowchart TD
@@ -84,7 +84,7 @@ Conceptually, the system is trying to maximize:
 
 > **Turf value gained relative to additional journey cost**
 
-The value of a journey is determined by the zones it contains and, initially, by the attributes assigned to those zones. The cost is primarily measured as additional time compared with the corresponding journey without Turf stops.
+The value of a journey is determined by the zones it captures and, initially, by the attributes assigned to those zones. The cost is measured as additional time compared with the corresponding journey without Turf stops.
 
 Expressed as a principle: a journey's worth is the value of the zones it captures, set against the additional driving time and the time spent stopping to reach them.
 
@@ -111,7 +111,7 @@ Each general route becomes a baseline against which Turf-enhanced variants can b
 
 The system must distinguish between two types of route deviation:
 
-**General route selection** determines which main roads are used to travel between the required waypoints.
+**General route selection** determines which main roads are used to travel between the journey's required locations.
 
 **Zone-level detours** are smaller deviations from a selected general route for the purpose of capturing one or more individual zones.
 
@@ -137,7 +137,7 @@ A directly road-accessible zone is one the player can capture **without leaving 
 
 This covers two situations. Some zones sit directly **on** a drivable road. Others sit **beside** one, close enough that a stopped car is already within the zone.
 
-The second case needs a stated tolerance, since the system models no capture area at all. That tolerance, and the reasoning that fixes it, are under *Direct-access tolerance* in `CalculationSpecification.md`. Beyond that distance the zone becomes a park-and-walk stop with a short priced walk, rather than being lost: the classification decides which cost model applies, not whether the zone survives.
+The second case needs a stated tolerance, since the system models no capture area at all. That tolerance, and the reasoning that fixes it, are under *Direct-access tolerance* in `CalculationSpecification.md`. What it decides is which validation a candidate must pass, not merely which cost model prices it: inside the tolerance a zone is checked for level compatibility and barriers alone, while beyond it the zone enters the park-and-walk path, where it must produce a walkable route and an elevation profile and may be priced with a short walk, downgraded to uncertain, or excluded on that evidence. A zone is therefore not lost by falling outside the tolerance — it is examined more strictly.
 
 For these zones, the system does not need to add walking time or the time required to leave and lock the car. The estimated cost should instead include the time required to slow down, stop safely, complete the Turf takeover, and return to normal driving.
 
@@ -464,7 +464,7 @@ A zone can therefore be simultaneously the worst choice for a quick roadside sto
 
 Takeover rate conflates access difficulty with **population density**. A zone in rural Norrland may be quiet because few people live there, not because it is hard to reach — and rural corridors are exactly where this product operates. A global threshold would systematically penalise every rural zone on the journey, which is precisely the wrong outcome.
 
-Activity must therefore be judged **relative to its neighbourhood, never against a global figure.** The system computes a local activity baseline — the typical takeover rate across the surrounding zones — and scores each zone against that baseline rather than against an absolute number. The ratio, the size of the neighbourhood, and the guards that suppress the adjustment where it would be meaningless are all defined under *The activity baseline* in `CalculationSpecification.md`.
+Activity must therefore be judged **relative to its neighbourhood, never against a global figure** — each zone scored against a local baseline rather than against an absolute number. How that baseline is constructed, the ratio it feeds, the size of the neighbourhood, and the guards that suppress the adjustment where it would be meaningless are all defined under *The activity baseline* in `CalculationSpecification.md`.
 
 A zone at a fifth of its neighbours' rate is interesting wherever it is, because the surrounding zones establish what "normal" looks like for that area's population and traffic. A quiet zone among quiet zones is unremarkable; a quiet zone among busy ones is a signal that something about it is awkward.
 
@@ -533,21 +533,21 @@ The user specifies how much additional time may be spent on Turf activities duri
 
 The realistic range is **wide** — from ten minutes for someone squeezing zones into a trip they need to make, to several hours for a dedicated player whose day is built around the journey. Both are ordinary users of this product. The interface must accept the whole range without treating either end as unusual, and the optimizer must behave sensibly across all of it: a ten-minute budget should still produce a useful answer, and a three-hour budget must not degenerate into an urban collection route, which remains out of scope.
 
-The limit is a **soft target with a hard ceiling**. The stated limit is the target: the optimizer prioritizes alternatives that respect it and must always produce at least one that does. 115% of the stated limit is the ceiling, and it is absolute — no recommendation may exceed it for any reason, however valuable the zone. Between target and ceiling the optimizer may offer a small number of clearly-labelled stretch alternatives.
+The limit is a **soft target with a hard ceiling**. The stated limit is the target: the optimizer prioritizes alternatives that respect it and must always produce at least one that does. Above the target sits an absolute ceiling — a bounded allowance over the stated limit, defined as a constant under *The absolute additional-time ceiling* in `CalculationSpecification.md`. It is absolute: no recommendation may exceed it for any reason, however valuable the zone. Between target and ceiling the optimizer may offer a small number of clearly-labelled stretch alternatives.
 
-This is the single definition of the allowance. Later sections refer to it but do not restate it.
+This is the single definition of the **allowance model** — the target, the ceiling, and the stretch band between them. The multiplier that sets the ceiling's size is a constant and lives in `CalculationSpecification.md`. Later sections refer to this section for the behaviour and to that constant for the figure; neither is restated elsewhere.
 
 The rules should be:
 
 * At least one recommended Turf alternative must remain within the user's stated additional-time limit.
 * The system may suggest alternatives above that limit only when the additional Turf value provides a clear justification.
-* No recommendation may exceed 115% of the user's stated additional-time limit.
+* No recommendation may exceed the absolute ceiling over the user's stated additional-time limit.
 * Alternatives above the limit must be clearly identified as stretch alternatives.
 * The explanation must state which highly valued zone or attribute caused the optimizer to exceed the preferred limit.
 
 For example, if the user allows 20 minutes of additional travel, the system must include at least one recommendation that adds no more than 20 minutes. It may also include a stretch recommendation adding up to 23 minutes, but only when a highly valued zone makes the additional three minutes worthwhile.
 
-The 15% allowance applies to the user's permitted additional time, not to the complete duration of the journey.
+The allowance applies to the user's permitted **additional time**, not to the complete duration of the journey. In the example above the journey's own length is irrelevant: whether the drive takes one hour or six, a twenty-minute budget produces the same 23-minute ceiling. Measured against journey duration instead, that six-hour drive would admit 54 minutes of detour — well over twice what the user agreed to, and every ceiling check would still report compliance.
 
 The optimizer should never quietly exceed the limit. The distinction between compliant and stretch alternatives must be visible in the user interface.
 
@@ -643,10 +643,10 @@ The optimization process should account for:
 * Road accessibility.
 * Road speed and stopping suitability.
 * The user's preferred additional-time limit.
-* The maximum 15% stretch allowance.
+* The absolute additional-time ceiling, and the stretch band beneath it, per *User time constraints*.
 * Shared detours between multiple zones.
 * The order in which zones are visited.
-* All mandatory journey waypoints.
+* All required journey locations, including origin and destination.
 
 The objective should not be reduced to a single unexplained score shown to the user. An internal numerical score is useful for comparing candidate solutions, but the user-facing recommendation should translate that score into understandable trade-offs.
 
@@ -714,7 +714,7 @@ A route optimized around one or more highly ranked attributes, potentially using
 
 ### Stretch route
 
-An exceptional recommendation that exceeds the preferred additional-time limit but remains within the 15% allowance. It must contain a clear value-based justification.
+An exceptional recommendation that exceeds the preferred additional-time limit but remains within the absolute ceiling, per *User time constraints*. It must contain a clear value-based justification.
 
 Not every search must return all four categories. The system should avoid presenting alternatives that are effectively duplicates or that do not provide a meaningful trade-off.
 
@@ -760,12 +760,28 @@ The intended options at confirmation are to save the route to the device, or to 
 
 Handing off a complete multi-stop route is **not generally possible**, and the design must account for this rather than assume it away.
 
+The limits below were checked against Google's published documentation on **1 August 2026**. They are set by third parties and change without reference to this product, so they carry the date they were checked rather than being reasoned about, and they are re-checked rather than assumed.
+
 The published limits are restrictive:
 
-* **Google Maps URL scheme** — up to nine waypoints in general, but only **three on mobile browsers**. Since this product is mobile-first, three is the binding figure.
+* **Google Maps URL scheme** — Google names two platform classes rather than a general figure with exceptions: **up to three waypoints on mobile browsers, and up to nine otherwise.** Both figures count **intermediate stops only**. The origin and the destination are separate URL parameters and do not consume the allowance.
 * **Waze deep links** — a **single destination**. Waypoints are not supported at all.
 
+**Three remains the design figure, as the worst case rather than as a fact about phones.** The three-waypoint condition binds *mobile browsers*, not mobile devices. A Google Maps link opened on a phone that has the Maps app installed normally opens the app, which is not a mobile browser, and Google does not document the app's own cap. The product cannot know which of the two a user's tap will reach, and one of the two is undocumented, so the design is built against the smaller published figure. That is a deliberately conservative choice, not a measured one.
+
+The intermediates-only reading is an inference and is recorded as one. No Google sentence states that the cap sits on top of the origin and destination. The conclusion rests on the cap being stated inside the description of the `waypoints` parameter, which Google defines as intermediary places to route through *between* the origin and the destination — the same convention its paid Routes API states outright, as a set of waypoints excluding terminal points. That scoping is strong, but it is not quotable as a guarantee.
+
+A conflicting convention exists upstream: Google's consumer help page for adding stops counts the final destination inside its total of nine, which is **eight** intermediates, and nothing findable documents whether the consumer interface clamps a link built with the URL scheme — so eight is the safe intermediate ceiling should any design ever lean on the upper figure.
+
 A Turf-enhanced journey routinely contains more stops than either will accept. The offload to expert systems therefore cannot be total, and a design premised on exporting the whole route in one action will fail on the primary platform.
+
+#### Waypoints may be dropped without warning
+
+The numeric cap is the smaller problem. Google states that waypoints are not supported on all of its Maps products, and that where they are unsupported **the parameter is ignored** — not rejected.
+
+A hand-off can therefore appear to succeed while delivering the user a plain drive to their destination with every Turf stop removed, discovered by arriving. For a product whose entire value is the stops, this is the more dangerous of the two constraints. It is accepted as a **first-release constraint**: the system cannot detect it, and Google does not document which products it affects.
+
+What follows is an obligation on the hand-off rather than a defect to be engineered away. **The user is told what the dispatch may drop, before they hand off.** This is the stance already settled under *Confidence and uncertainty*, applied to a hand-off instead of an estimate: where something material is not known, the system communicates it rather than presenting a result as more complete than it can vouch for. How that is worded and where it appears is an interface question and is not settled here.
 
 The model that follows from those limits — this product holding the plan and dispatching a portion of it at a time — is specified under *Dispatching stop by stop* in `DESIGN.md`.
 
@@ -840,7 +856,7 @@ These requirements are divided by what the available data can actually establish
 
 These follow from road and map attributes and must be applied as hard rules. A zone failing any of them is excluded regardless of its Turf value.
 
-* No stop may be proposed on a motorway, motorway link, or any road whose recorded speed limit exceeds 90 km/h. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
+* No stop may be proposed on a motorway, motorway link, or any road whose recorded speed limit exceeds the maximum for a stopping road, defined as a constant under *The maximum speed limit for a stopping road* in `CalculationSpecification.md`. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
 * No stop may be proposed on a road not marked as drivable by the map data.
 * No zone may be classified as directly road-accessible where the road and the zone are at incompatible levels, or where bridge, tunnel, or layer data indicates they do not meet. This is covered under *Direct road-access validation*.
 * No zone may be classified as accessible across an access path that is absent, disconnected, or implausibly steep, per *Elevation and feasibility rules*.
@@ -881,7 +897,7 @@ The initial scope includes:
 * Global and potentially per-attribute walking limits.
 * Rank-based or default takeover time.
 * Direct road-access and park-and-walk access models.
-* An additional-time target, with a hard ceiling at 115% of it.
+* An additional-time target, with an absolute hard ceiling above it, per *User time constraints*.
 * Stretch recommendations between the target and that ceiling.
 * Explainable route comparisons.
 
@@ -916,11 +932,11 @@ One consequence must be made visible when this happens. Accepting an uncertain z
 
 #### Reconciling this with the absolute ceiling
 
-The 115% ceiling is absolute and is re-checked after every change during review, per *Consequences for the optimizer*. An accepted zone carrying no time estimate would leave that check with nothing to evaluate.
+The ceiling on additional time is absolute and is re-checked after every change during review, per *Consequences for the optimizer*. An accepted zone carrying no time estimate would leave that check with nothing to evaluate.
 
 The resolution is a **conservative upper bound** on the uncertain stop's cost, defined under *A conservative upper bound for an uncertain stop* in `CalculationSpecification.md`. It serves the ceiling check and the upper end of the widened range shown to the user, and nothing else: it never enters scoring, never affects ranking, and never makes an uncertain zone comparable to a priced one.
 
-Where that bound would breach 115%, **the acceptance is refused**, with a plain statement of why. The ceiling is not negotiable, and a stop that might breach it must be treated as one that does.
+Where that bound would breach the ceiling — the bounded allowance over the additional time the user stated, never a share of the journey's own duration — **the acceptance is refused**, with a plain statement of why. The ceiling is not negotiable, and a stop that might breach it must be treated as one that does. The target and ceiling are defined under *User time constraints*, and the multiplier under *The absolute additional-time ceiling* in `CalculationSpecification.md`; neither needs to be consulted to apply this rule.
 
 Reserve candidates are still never scored and never influence the ranking of alternatives. They are offered only in response to a rejection, and only as something for the user to judge.
 
@@ -948,7 +964,7 @@ Access classification is deliberately **not** on this list. It is the hardest wo
 * Knowledge of *which* zones the user has previously taken — the API exposes only a count. This is not merely accepted: *Route review and zone confirmation* exists to let the user supply that judgement themselves.
 * Prediction of how long a zone will remain owned.
 * Monthly score optimization.
-* Open-ended round-trip generation without a destination.
+* Open-ended trip generation from an origin and a time budget alone, with no destination named — a round trip whose named destination is its origin is in scope, provided it names at least one intermediate destination distinct from the origin.
 * Full urban cycling or walking Turf routes.
 * Real-time multiplayer competition modelling.
 
@@ -966,7 +982,7 @@ The product must work on desktop computers and on mobile phones, both iOS and An
 
 **Mobile is the priority.** Planning may well happen at a desk, but the route is used on a phone — dispatching stops, checking the next zone, referring back to the plan during the journey. A design that works on a large screen and is then compressed for a small one will fail at the moment the product matters most.
 
-This is not only a layout concern. Two requirements in this document are decided by it: the Google Maps waypoint limit is three on mobile browsers rather than nine, per *The waypoint limit problem*; and the zone-by-zone review is a map-and-single-card interaction that suits a phone well and must not be designed as a wide table.
+This is not only a layout concern. Two requirements in this document follow from it: the hand-off is designed against three waypoints — the mobile-browser worst case, rather than the nine that applies otherwise — per *The waypoint limit problem*; and the zone-by-zone review is a map-and-single-card interaction that suits a phone well and must not be designed as a wide table.
 
 The first release targets the mobile web rather than native applications, which keeps a single implementation across both platforms and avoids app-store distribution for a product whose core is a server-side pipeline.
 
