@@ -4,13 +4,13 @@ Requirement ↔ epic ↔ story, in both directions. The first table below is the
 
 A disagreement between the two directions is a finding for `@requirements-engineer`, never a silent reconciliation.
 
-**Story allocation — 2 August 2026, in two passes.** `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues for batch 1, following the Owner's sign-off of 1 August 2026, and then a fourth epic and six further stories for batch 2 — `FR-013` … `FR-018` — following its sign-off of 2 August 2026. Story creation follows sign-off as a pass of its own rather than sharing it, which is why the two allocations are separate events on the same day. Every one of `FR-001` … `FR-018` carries an epic and a story; both directions below were filled in the same librarian pass as each allocation, and they agree. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
+**Story allocation — 2 August 2026, in two passes.** `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues for batch 1, following the Owner's sign-off of 1 August 2026, and then a fourth epic and six further stories for batch 2 — `FR-013` … `FR-018` — following its sign-off of 2 August 2026. Story creation follows sign-off as a pass of its own rather than sharing it, which is why the two allocations are separate events on the same day. Every one of `FR-001` … `FR-018` carries an epic and a story; both directions below were filled in the same librarian pass as each allocation, and they agree. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md § Corpus layout`.
 
 **Story allocation — 4 August 2026.** `@requirements-story-organizer` cut five further epics as GitHub Milestones and nineteen stories as GitHub Issues, `#18` … `#36`, for batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — following the Owner's sign-off of the same day. Story creation follows sign-off as a pass of its own, which is why this is a separate event from the filing and the sign-off that preceded it. Both directions below were filled in the same librarian pass and they agree. **Every requirement in the corpus now carries an epic and at least one story**, and `—` appears nowhere under `Resolved-by` — on a record, in `INDEX.md`, or in either table here.
 
 ## Requirement → story
 
-One row per non-retired requirement. Every requirement in the corpus appears here, whether or not a story exists for it — a requirement missing from this table is a filing error. A requirement that retires leaves it, taking the link's single home with it; what its `Resolved-by` then reads is fixed by the freeze rule in `README.md` § How this folder works.
+One row per non-retired requirement. Every requirement in the corpus appears here, whether or not a story exists for it — a requirement missing from this table is a filing error. A requirement that retires leaves it, taking the link's single home with it; what its `Resolved-by` then reads is fixed by the freeze rule in `README.md § How this folder works`.
 
 | Requirement | Epic (Milestone) | Stories |
 |---|---|---|
@@ -62,7 +62,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 
 One row per story, transcribed from the issue's `Resolves:` line.
 
-**This table carries no board-status column, and none is to be added.** A story's state is owned by the board, which answers it live; a column here would be a second home for it, stale from the moment it is written. The rule this follows — what the corpus may hold about a story, and what it may never hold — is stated in `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
+**This table carries no board-status column, and none is to be added.** A story's state is owned by the board, which answers it live; a column here would be a second home for it, stale from the moment it is written. The rule this follows — what the corpus may hold about a story, and what it may never hold — is stated in `.claude/skills/requirements-authoring/SKILL.md § Corpus layout`.
 
 | Story | Epic | Resolves |
 |---|---|---|
