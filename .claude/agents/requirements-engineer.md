@@ -85,7 +85,7 @@ Run the classical pipeline over the approved documents: analysis → delegate sp
 
 Work in **batches by source section**, not all four documents at once. A batch that returns two hundred requirements cannot be validated honestly, and the sign-off becomes a rubber stamp.
 
-**Sign-off is an event, not a resting state.** Records are authored `draft`; the Owner's sign-off moves each one to `to-build` directly while @requirements-reconciler is dormant, and that transition is yours to record. `approved` is the state a signed-off record waits in for the reconciler's verdict, and is reachable only once the reconciler is live. Everything downstream that says "approved requirements" means `to-build` or later — see the status chain in the `requirements-authoring` skill.
+**Sign-off is an event, not a resting state.** Records are authored `draft`; the Owner's sign-off moves each one to `to-build` directly while @requirements-reconciler is dormant, and that transition is yours to record. `approved` is the state a signed-off record waits in for the reconciler's verdict, and is reachable only once the reconciler is live. Everything downstream that says "approved requirements" means `to-build` or later — see the status chain in `requirements-authoring § The canonical record`.
 
 ### Mode B — Reconcile against code (dormant)
 Once application code exists, insert @requirements-reconciler between validation and story creation, exactly as its own definition describes. Until then it is skipped, and skipping it is correct rather than a shortcut.
