@@ -36,7 +36,7 @@ Rationale:    Verification is inspection rather than test because the property
               exercise, and because a single configured version is what makes
               it checkable at all. The version is cited rather than named so
               that this record does not become a second home for it.
-Resolved-by:  —
+Resolved-by:  #18
 ```
 
 ## FR-022 — Refresh the local zone copy from a scheduled background job
@@ -74,7 +74,7 @@ Rationale:    This is one obligation rather than two: a job that runs on a
               prohibition in one breath. The record fixes neither the interval
               nor the mechanism — the interval the endpoint permits is cited,
               and how the job is scheduled is left to the design.
-Resolved-by:  —
+Resolved-by:  #20
 ```
 
 ## FR-023 — Resolve a route corridor's zones against the local copy
@@ -108,7 +108,7 @@ Rationale:    The record fixes where corridor resolution is answered from, not
               refreshing volatile per-zone fields, and the criterion is
               conditioned on a current local copy so that it forbids neither
               use. What the local copy may be asked is bounded by FR-026.
-Resolved-by:  —
+Resolved-by:  #27
 ```
 
 ## FR-024 — Plan against a mid-refresh or stale local copy
@@ -144,7 +144,7 @@ Rationale:    One obligation under two conditions rather than two obligations:
               splitting them would leave each half readable as permission to
               fail the other. What the system may conclude from a copy of that
               age is a confidence question, and it is NFR-002's.
-Resolved-by:  —
+Resolved-by:  #33
 ```
 
 ## FR-025 — Build bounding-box requests against the permitted area product
@@ -184,7 +184,7 @@ Rationale:    The second criterion is the record's point and not a refinement
               product, and not a bound on either span — is stated in the
               record rather than left to the citation. The relation is
               expressed; the value stays in the cited section.
-Resolved-by:  —
+Resolved-by:  #21
 ```
 
 ## FR-026 — Answer no ownership question from the local zone copy
@@ -229,7 +229,7 @@ Rationale:    The obligation binds the store and its consumers rather than any
               all-zones sync writes; a volatile overlay held separately, from
               a response that does carry these fields, is governed by FR-030
               instead.
-Resolved-by:  —
+Resolved-by:  #29
 ```
 
 ## FR-028 — Decide the user's own holdings by membership in the held-zone list
@@ -269,7 +269,7 @@ Rationale:    The section records the equivalence as verified against sampled
               list deliberately does not answer — whether any other player
               holds a zone — is a scope limit of the same section and is not
               authored here.
-Resolved-by:  —
+Resolved-by:  #23
 ```
 
 ## FR-029 — Determine region lordship once, from a single region response
@@ -308,7 +308,7 @@ Rationale:    The section names exactly one use for region data, whether the
               *Bonuses that reduce takeover time* in `CalculationSpecification.md`
               rather than in the cited section, and is deliberately not
               authored here.
-Resolved-by:  —
+Resolved-by:  #24
 ```
 
 ## FR-030 — Carry an absent ownership field as absent
@@ -342,7 +342,7 @@ Rationale:    Distinct from FR-026, which forbids the synced copy from
               that does carry them, from the endpoint that returns them, and
               obliges the absence to survive into whatever consumes it.
               Without that, FR-031 has nothing left to reason over.
-Resolved-by:  —
+Resolved-by:  #22
 ```
 
 ## FR-031 — Do not read an absent ownership field as a zone never taken
@@ -382,7 +382,7 @@ Rationale:    The obligation is defensive and holds whichever way the
               obliges the system to derive the round's start date from the
               data; the section calls that useful in its own right and does
               not require it.
-Resolved-by:  —
+Resolved-by:  #31
 ```
 
 ## FR-033 — Plan no journey for lack of zone data only where no copy is held
@@ -435,7 +435,7 @@ Rationale:    The cited section obliges the pipeline to tolerate a copy stale
               plan produced and a plan marked are separately testable
               outcomes. Nothing here fixes how a refusal is surfaced, which
               has no source yet.
-Resolved-by:  —
+Resolved-by:  #33
 ```
 
 ## FR-034 — Record a result as built from data stale beyond the bound
@@ -494,5 +494,5 @@ Rationale:    Separated from FR-033 on singularity: producing the plan and
               are design and interface questions, and the interface has no
               source in the corpus yet. The obligation is that the result
               carries the fact.
-Resolved-by:  —
+Resolved-by:  #35
 ```

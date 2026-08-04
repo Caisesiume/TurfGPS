@@ -27,7 +27,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 **All 39 rows read `to-build`, and `draft` is empty.** The last twenty-one — batch 3, `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — were signed off by the Owner on 4 August 2026 and moved from `draft` **straight to `to-build`**, as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
 
-**Every batch-3 row still reads `—` in `Resolved-by`**, because story creation follows sign-off as a pass of its own and has not run for them yet: they are `to-build` without a story, which is the expected state between the two passes rather than a gap. The eighteen older rows each name a story, allocated in two passes on 2 August 2026.
+**No row reads `—` in `Resolved-by`**: all 39 name at least one story, allocated in three passes — eighteen on 2 August 2026 and the twenty-one batch-3 rows on 4 August 2026, each allocation following the Owner's sign-off as a pass of its own. Nine epics and thirty-six stories carry them. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
 
 ## Journey definition
 
@@ -49,18 +49,18 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-019` | Address every Turf API request to the current API version | Turf data integration | MUST | to-build | inspection | — |
-| `FR-022` | Refresh the local zone copy from a scheduled background job | Turf data integration | MUST | to-build | test | — |
-| `FR-023` | Resolve a route corridor's zones against the local copy | Turf data integration | MUST | to-build | test | — |
-| `FR-024` | Plan against a mid-refresh or stale local copy | Turf data integration | MUST | to-build | test | — |
-| `FR-025` | Build bounding-box requests against the permitted area product | Turf data integration | COULD | to-build | test | — |
-| `FR-026` | Answer no ownership question from the local zone copy | Turf data integration | MUST | to-build | inspection | — |
-| `FR-028` | Decide the user's own holdings by membership in the held-zone list | Turf data integration | MUST | to-build | test | — |
-| `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | to-build | test | — |
-| `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | to-build | test | — |
-| `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | to-build | test | — |
-| `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | to-build | test | — |
-| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | to-build | test | — |
+| `FR-019` | Address every Turf API request to the current API version | Turf data integration | MUST | to-build | inspection | #18 |
+| `FR-022` | Refresh the local zone copy from a scheduled background job | Turf data integration | MUST | to-build | test | #20 |
+| `FR-023` | Resolve a route corridor's zones against the local copy | Turf data integration | MUST | to-build | test | #27 |
+| `FR-024` | Plan against a mid-refresh or stale local copy | Turf data integration | MUST | to-build | test | #33 |
+| `FR-025` | Build bounding-box requests against the permitted area product | Turf data integration | COULD | to-build | test | #21 |
+| `FR-026` | Answer no ownership question from the local zone copy | Turf data integration | MUST | to-build | inspection | #29 |
+| `FR-028` | Decide the user's own holdings by membership in the held-zone list | Turf data integration | MUST | to-build | test | #23 |
+| `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | to-build | test | #24 |
+| `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | to-build | test | #22 |
+| `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | to-build | test | #31 |
+| `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | to-build | test | #33 |
+| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | to-build | test | #35 |
 
 `NFR-001` and `NFR-002` were filed under this category on 3 August 2026 and moved out the same day, to `Outbound rate compliance` and `Data currency and confidence`, on the Owner's ruling that a `Category` never spans both kinds — see `README.md` § Category register. Their rows are under those two headings below, and nothing about either record changed in the move but its `Category` field.
 
@@ -70,9 +70,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-020` | Derive no per-zone extent from the nominal zone size | Zone data fidelity | MUST | to-build | inspection | — |
-| `FR-021` | Measure the distance between two zones for that pair | Zone data fidelity | MUST | to-build | test | — |
-| `FR-032` | Assume no minimum distance between two zones | Zone data fidelity | MUST | to-build | test | — |
+| `FR-020` | Derive no per-zone extent from the nominal zone size | Zone data fidelity | MUST | to-build | inspection | #29 |
+| `FR-021` | Measure the distance between two zones for that pair | Zone data fidelity | MUST | to-build | test | #34 |
+| `FR-032` | Assume no minimum distance between two zones | Zone data fidelity | MUST | to-build | test | #30 |
 
 ## Cost and time composition
 
@@ -82,7 +82,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 |---|---|---|---|---|---|---|
 | `FR-008` | Measure journey cost as time added to the journey without Turf stops | Cost and time composition | MUST | to-build | test | #7 |
 | `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | to-build | test | #8 |
-| `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | to-build | test | — |
+| `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | to-build | test | #32 |
 
 `FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
@@ -122,7 +122,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-002` | Lower confidence as the Turf data behind a recommendation ages | Data currency and confidence | SHOULD | to-build | test | — |
+| `NFR-002` | Lower confidence as the Turf data behind a recommendation ages | Data currency and confidence | SHOULD | to-build | test | #36 |
 
 ## Outbound rate compliance
 
@@ -130,7 +130,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-001` | Hold outbound Turf calls within the API's published limits | Outbound rate compliance | MUST | to-build | test | — |
+| `NFR-001` | Hold outbound Turf calls within the API's published limits | Outbound rate compliance | MUST | to-build | test | #28 |
 
 ## Runtime and deployment shape
 
@@ -138,9 +138,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | to-build | test | — |
-| `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | to-build | inspection | — |
-| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | to-build | test | — |
+| `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | to-build | test | #19 |
+| `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | to-build | inspection | #25 |
+| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | to-build | test | #26 |
 
 ## Reading the Verification column
 
@@ -148,6 +148,8 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 `inspection` appears in this index for the first time with batch 3 — `FR-019`, `FR-020`, `FR-026` and `NFR-004` — and it is a chosen method rather than a test not yet written. Each of the four names the artefact examined, the property that must hold and where a reader confirms it, in the form `.claude/skills/requirements-authoring/SKILL.md` § Acceptance-criteria form requires; none is wrapped in given/when/then, because nothing is executed and a criterion narrating a run nobody performs can never fail. `NFR-004` is the first record in the corpus whose kind and whose method point at different criterion forms, and it takes the method's — which is the rule that section states, not an exception made for it.
 
-`human-judgement` on `FR-016` is likewise not a placeholder for a method not yet chosen: the record names the judge and the standard applied, and the story that resolves it carries the `human-verified` label. What the keyword means, and why a fabricated metric would be worse, is in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
+`human-judgement` on `FR-016` is likewise not a placeholder for a method not yet chosen: the record names the judge and the standard applied. What the keyword means, how a story resolving such a record is labelled, and why a fabricated metric would be worse, are in `.claude/skills/requirements-authoring/SKILL.md` § Verification methods.
+
+An earlier wording of that sentence ended *and the story that resolves it carries the `human-verified` label*, which was a **story's label mirrored in the corpus** and is forbidden without exception by § Corpus layout. Raised by `@requirements-librarian` on 4 August 2026 and repaired the same day. The reading that saved it — that the skill states the same convention, so this was a cross-reference rather than a second home — is exactly why it survived three passes: it asserted the label of **one live issue**, which the board answers correctly and this page cannot. The repair points at the rule instead of copying the instance, which is what a cross-reference should have done from the start.
 
 `—` in `Resolved-by` means no story has been allocated yet. It never means the link is unknown: the single home for requirement → story is the first table in `TRACEABILITY.md`, and this column is a view of it, regenerated in the same pass. A retired record's row is the one exception, and what this column then reads is fixed by the freeze rule in `README.md` § How this folder works.

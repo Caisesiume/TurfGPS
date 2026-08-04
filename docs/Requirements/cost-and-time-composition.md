@@ -124,5 +124,5 @@ Rationale:    The second criterion exists because the first can be satisfied
               invariant that exclusion rests on, are stated under
               *Zone lock time* in `CalculationSpecification.md` and are not
               authored here.
-Resolved-by:  —
+Resolved-by:  #32
 ```

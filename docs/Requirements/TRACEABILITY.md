@@ -6,7 +6,7 @@ A disagreement between the two directions is a finding for `@requirements-engine
 
 **Story allocation — 2 August 2026, in two passes.** `@requirements-story-organizer` cut three epics as GitHub Milestones and eleven stories as GitHub Issues for batch 1, following the Owner's sign-off of 1 August 2026, and then a fourth epic and six further stories for batch 2 — `FR-013` … `FR-018` — following its sign-off of 2 August 2026. Story creation follows sign-off as a pass of its own rather than sharing it, which is why the two allocations are separate events on the same day. Every one of `FR-001` … `FR-018` carries an epic and a story; both directions below were filled in the same librarian pass as each allocation, and they agree. Neither table holds anything about a story or an epic beyond its identifier — a story's number and its epic's Milestone name — per `.claude/skills/requirements-authoring/SKILL.md` § Corpus layout.
 
-**No story allocation has run for batch 3.** `FR-019` … `FR-032` and `NFR-001` … `NFR-005` were filed on 3 August 2026, and `FR-033` … `FR-034` on 4 August 2026; all twenty-one were signed off by the Owner on 4 August 2026 and are `to-build`, but story creation follows sign-off as a pass of its own and has not run for them. Each takes a row in the first table below with no epic and no story, which is what the one-row-per-non-retired-requirement rule requires and is not an orphan. The second table is unchanged by that filing — no story was cut, so no row could be transcribed.
+**Story allocation — 4 August 2026.** `@requirements-story-organizer` cut five further epics as GitHub Milestones and nineteen stories as GitHub Issues, `#18` … `#36`, for batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — following the Owner's sign-off of the same day. Story creation follows sign-off as a pass of its own, which is why this is a separate event from the filing and the sign-off that preceded it. Both directions below were filled in the same librarian pass and they agree. **Every requirement in the corpus now carries an epic and at least one story**, and `—` appears nowhere under `Resolved-by` — on a record, in `INDEX.md`, or in either table here.
 
 ## Requirement → story
 
@@ -32,31 +32,31 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-016` — Offer alternatives that differ in ways a user would act on | A real choice of journey alternatives | #17 |
 | `FR-017` — Do not withhold alternatives for a missing kind of alternative | A real choice of journey alternatives | #15 |
 | `FR-018` — Do not withhold a compliant alternative for its lower Turf value | A real choice of journey alternatives | #16 |
-| `FR-019` — Address every Turf API request to the current API version | — | — |
-| `FR-020` — Derive no per-zone extent from the nominal zone size | — | — |
-| `FR-021` — Measure the distance between two zones for that pair | — | — |
-| `FR-022` — Refresh the local zone copy from a scheduled background job | — | — |
-| `FR-023` — Resolve a route corridor's zones against the local copy | — | — |
-| `FR-024` — Plan against a mid-refresh or stale local copy | — | — |
-| `FR-025` — Build bounding-box requests against the permitted area product | — | — |
-| `FR-026` — Answer no ownership question from the local zone copy | — | — |
-| `FR-027` — Exclude blocktime from stop time | — | — |
-| `FR-028` — Decide the user's own holdings by membership in the held-zone list | — | — |
-| `FR-029` — Determine region lordship once, from a single region response | — | — |
-| `FR-030` — Carry an absent ownership field as absent | — | — |
-| `FR-031` — Do not read an absent ownership field as a zone never taken | — | — |
-| `FR-032` — Assume no minimum distance between two zones | — | — |
-| `FR-033` — Plan no journey for lack of zone data only where no copy is held | — | — |
-| `FR-034` — Record a result as built from data stale beyond the bound | — | — |
-| `NFR-001` — Hold outbound Turf calls within the API's published limits | — | — |
-| `NFR-002` — Lower confidence as the Turf data behind a recommendation ages | — | — |
-| `NFR-003` — Build the service as one self-contained executable | — | — |
-| `NFR-004` — Run the service as one long-running process | — | — |
-| `NFR-005` — Serve the client as static files | — | — |
+| `FR-019` — Address every Turf API request to the current API version | A Turf client that stays inside the API's rules | #18 |
+| `FR-020` — Derive no per-zone extent from the nominal zone size | Zone facts the API actually provides | #29 |
+| `FR-021` — Measure the distance between two zones for that pair | Zone facts the API actually provides | #34 |
+| `FR-022` — Refresh the local zone copy from a scheduled background job | The synced zone set, and how current it is | #20 |
+| `FR-023` — Resolve a route corridor's zones against the local copy | The synced zone set, and how current it is | #27 |
+| `FR-024` — Plan against a mid-refresh or stale local copy | The synced zone set, and how current it is | #33 |
+| `FR-025` — Build bounding-box requests against the permitted area product | A Turf client that stays inside the API's rules | #21 |
+| `FR-026` — Answer no ownership question from the local zone copy | Zone facts the API actually provides | #29 |
+| `FR-027` — Exclude blocktime from stop time | The player's own Turf state | #32 |
+| `FR-028` — Decide the user's own holdings by membership in the held-zone list | The player's own Turf state | #23 |
+| `FR-029` — Determine region lordship once, from a single region response | The player's own Turf state | #24 |
+| `FR-030` — Carry an absent ownership field as absent | Zone facts the API actually provides | #22 |
+| `FR-031` — Do not read an absent ownership field as a zone never taken | Zone facts the API actually provides | #31 |
+| `FR-032` — Assume no minimum distance between two zones | Zone facts the API actually provides | #30 |
+| `FR-033` — Plan no journey for lack of zone data only where no copy is held | The synced zone set, and how current it is | #33 |
+| `FR-034` — Record a result as built from data stale beyond the bound | The synced zone set, and how current it is | #35 |
+| `NFR-001` — Hold outbound Turf calls within the API's published limits | A Turf client that stays inside the API's rules | #28 |
+| `NFR-002` — Lower confidence as the Turf data behind a recommendation ages | The synced zone set, and how current it is | #36 |
+| `NFR-003` — Build the service as one self-contained executable | The service's runtime and deployment shape | #19 |
+| `NFR-004` — Run the service as one long-running process | The service's runtime and deployment shape | #25 |
+| `NFR-005` — Serve the client as static files | The service's runtime and deployment shape | #26 |
 
-39 of 39 requirements listed. **Eighteen carry an epic and at least one story; twenty-one — batch 3, `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — carry neither, and read `—` under both columns.** They are here because the rule is one row per non-retired requirement, and a signed-off record awaiting story allocation is non-retired: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters.
+39 of 39 requirements listed, and **every one carries an epic and at least one story** — nine epics and thirty-six stories, allocated in three passes. `—` appears under neither column. The rule stays one row per non-retired requirement rather than one row per requirement that has a story: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters.
 
-**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **None of the twenty-one is an orphan** — they have no epic, and story creation follows the Owner's sign-off as a pass of its own. The rule bites on them only once an epic is cut. Every requirement code carrying a story here also appears in *Story → requirement* below; a code with a story in one direction and no counterpart in the other is a finding, and a code reading `—` in this table is expected to be absent from the second.
+**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **No requirement reads `—` under either column today**, so the rule has nothing to bite on in this table; it stays stated because it bites again on the first record filed after its epic is cut. Every requirement code here appears in *Story → requirement* below, and every code there appears here — a code with a story in one direction and no counterpart in the other is a finding.
 
 ## Story → requirement
 
@@ -83,5 +83,24 @@ One row per story, transcribed from the issue's `Resolves:` line.
 | #15 | A real choice of journey alternatives | `FR-017` |
 | #16 | A real choice of journey alternatives | `FR-018` |
 | #17 | A real choice of journey alternatives | `FR-016` |
+| #18 | A Turf client that stays inside the API's rules | `FR-019` |
+| #19 | The service's runtime and deployment shape | `NFR-003` |
+| #20 | The synced zone set, and how current it is | `FR-022` |
+| #21 | A Turf client that stays inside the API's rules | `FR-025` |
+| #22 | Zone facts the API actually provides | `FR-030` |
+| #23 | The player's own Turf state | `FR-028` |
+| #24 | The player's own Turf state | `FR-029` |
+| #25 | The service's runtime and deployment shape | `NFR-004` |
+| #26 | The service's runtime and deployment shape | `NFR-005` |
+| #27 | The synced zone set, and how current it is | `FR-023` |
+| #28 | A Turf client that stays inside the API's rules | `NFR-001` |
+| #29 | Zone facts the API actually provides | `FR-020`, `FR-026` |
+| #30 | Zone facts the API actually provides | `FR-032` |
+| #31 | Zone facts the API actually provides | `FR-031` |
+| #32 | The player's own Turf state | `FR-027` |
+| #33 | The synced zone set, and how current it is | `FR-024`, `FR-033` |
+| #34 | Zone facts the API actually provides | `FR-021` |
+| #35 | The synced zone set, and how current it is | `FR-034` |
+| #36 | The synced zone set, and how current it is | `NFR-002` |
 
-17 of 17 stories listed, transcribed as filed. The batch-2 rows are not in requirement order, and that is how they were filed rather than a transcription slip: `#17` resolves `FR-016` and `#15` resolves `FR-017`. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.
+36 of 36 stories listed, transcribed as filed. Neither the batch-2 nor the batch-3 rows run in requirement order, and that is how they were filed rather than a transcription slip: `#17` resolves `FR-016` and `#15` resolves `FR-017`; `#22` resolves `FR-030` and `#34` resolves `FR-021`. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A row naming two codes is the same case seen from the other side — `#29` and `#33` each resolve two records — and is likewise transcribed as it stands rather than split into a row apiece. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.

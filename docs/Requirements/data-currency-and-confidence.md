@@ -52,5 +52,5 @@ Rationale:    The source states a relation and not its shape, so this record
               reading the recommendation, and whether that section's drivers
               are the right standard for data age at all, are owed to the
               batch scoped to SPECIFICATION.md § Confidence and uncertainty.
-Resolved-by:  —
+Resolved-by:  #36
 ```

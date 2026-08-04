@@ -47,7 +47,7 @@ Rationale:    The obligation is the property the decision buys, not the
               libraries, and that proposal is open — a record demanding a
               statically linked, cgo-free binary would settle it from the
               wrong side.
-Resolved-by:  —
+Resolved-by:  #19
 ```
 
 ## NFR-004 — Run the service as one long-running process
@@ -93,7 +93,7 @@ Rationale:    The requirement here is the exclusion, not the retention. What
               against a shape that has to be undone. The second criterion is
               deliberately unsatisfiable today and names why: the artefact it
               examines arrives with the owed deployment model.
-Resolved-by:  —
+Resolved-by:  #25
 ```
 
 ## NFR-005 — Serve the client as static files
@@ -132,5 +132,5 @@ Rationale:    The obligation is the property, not the toolchain: a record
               independently of the service, which the deployment model still
               owed under `Architecture.md § Still owed by this document` would
               otherwise have to reconstruct.
-Resolved-by:  —
+Resolved-by:  #26
 ```

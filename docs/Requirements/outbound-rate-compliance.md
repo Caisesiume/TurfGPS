@@ -41,5 +41,5 @@ Rationale:    The limit belongs to the API, not to any one caller, so it binds
               limit the moment two of them run at once — which is the ordinary
               case here, since a solve session and the sync worker reach the
               same service.
-Resolved-by:  —
+Resolved-by:  #28
 ```

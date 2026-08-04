@@ -39,7 +39,7 @@ Rationale:    The nominal size sits in the corpus and is exactly the shape a
               *Zone geometry* in `Architecture.md` establishes about what the
               API exposes, and therefore about what may not be relied on per
               zone.
-Resolved-by:  —
+Resolved-by:  #29
 ```
 
 ## FR-021 — Measure the distance between two zones for that pair
@@ -79,7 +79,7 @@ Rationale:    The section's own test — that any logic which breaks when two
               at all. The guideline is not repudiated here; the same section
               keeps it as a rough expectation of candidate density and
               excludes it only from the cost model.
-Resolved-by:  —
+Resolved-by:  #34
 ```
 
 ## FR-032 — Assume no minimum distance between two zones
@@ -133,5 +133,5 @@ Rationale:    This record and FR-021 split one section's obligation by where
               of any size rather than the guideline's alone, which is why the
               statement cites no figure: a separation assumed locally at a
               smaller figure is the same defect wearing a smaller number.
-Resolved-by:  —
+Resolved-by:  #30
 ```
