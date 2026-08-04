@@ -65,13 +65,13 @@ File a `needs-re` issue with evidence, linked to the relating user stories (#N) 
 ## What You Do / Don't Do
 
 ✅ **Do:** Functional components + hooks, house style exactly, reuse the design system, honest effects, one item → one small PR, all frontend gates green, complete remand fixes, escalate out-of-scope via `needs-re`
-❌ **Don't:** Class components, semicolons, ad-hoc CSS over Tailwind, duplicated/derivable state, dishonest effect deps, reinvent the WebSocket layer, merge your own PR, touch `main`, start new work with a remand open
+❌ **Don't:** Class components, semicolons, ad-hoc CSS over Tailwind, duplicated/derivable state, dishonest effect deps, reinvent the streaming layer, merge your own PR, touch `main`, start new work with a remand open
 
 ---
 
 ## Guiding Philosophy
 
-> **"A render I can't explain is a bug. The data is money — the UI tells the truth or it's broken."**
+> **"A render I can't explain is a bug. The UI tells the truth or it's broken."**
 
 1. **Hooks and composition** — always; classes never
 2. **Derived over duplicated** — state you can compute is state you don't store

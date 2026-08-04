@@ -66,8 +66,8 @@ Execute these checks against the codebase under `d:\Website\TurfGPS\the TurfGPS 
 **3. Adapter Isolation**
 - HTTP handlers in `internal/api/` translate transport concerns to domain calls — no business logic
 - Database queries in `internal/database/` translate persistence concerns — no policy decisions
-- Exchange clients in `internal/exchange/` translate vendor APIs — no risk or strategy logic
-- Strategy/risk/execution engines in `internal/engine/` never import `net/http`, `database/sql`, or vendor SDKs directly
+- Provider clients (routing, elevation, the Turf API) translate vendor APIs — no classification or scoring logic
+- The optimizer, scoring, and access-classification engines never import `net/http`, `database/sql`, or vendor SDKs directly
 
 **4. Concurrency Design**
 - Every spawned goroutine has a documented owner who:
@@ -172,12 +172,12 @@ package valhalla
 type Client interface { Route(...) }
 type client struct{} // implements Client
 
-// ✅ GOOD — execution package declares the seam it needs
-package execution
+// ✅ GOOD — the consuming package declares the seam it needs
+package optimizer
 type RoutingProvider interface { Route(...) }
 
 package valhalla
-type Client struct{} // satisfies execution.Exchange implicitly
+type Client struct{} // satisfies optimizer.RoutingProvider implicitly
 func (c *Client) Route(...) {...}
 ```
 
@@ -201,8 +201,8 @@ func (s *Optimizer) Select(...) { client := valhalla.NewClient(...) }
 
 // ✅ GOOD
 package engine
-type MarketData interface { GetTickerPrices(ctx) ... }
-func (s *Strategy) Decide(md MarketData, ...) { md.GetTickerPrices(...) }
+type RoutingProvider interface { Matrix(ctx, ...) ... }
+func (o *Optimizer) Select(rp RoutingProvider, ...) { rp.Matrix(...) }
 ```
 
 **4. Orphan Goroutines**
@@ -229,13 +229,13 @@ type FooService struct{}
 **6. Configuration Reading Mid-Lifecycle**
 ```go
 // ❌ BAD — re-reads env inside business code
-func (s *Service) Trade() {
+func (s *Service) Solve() {
     url := os.Getenv("VALHALLA_URL")
 }
 
 // ✅ GOOD — config injected at construction
-type Service struct { apiKey string }
-func New(cfg Config) *Service { return &Service{apiKey: cfg.APIKey} }
+type Service struct { valhallaURL string }
+func New(cfg Config) *Service { return &Service{valhallaURL: cfg.ValhallaURL} }
 ```
 
 ---

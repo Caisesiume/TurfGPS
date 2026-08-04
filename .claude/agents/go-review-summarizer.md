@@ -183,7 +183,7 @@ PRIORITIZED ACTION LIST:
    Principle: Package names describe what they provide
    Action: Move helper into `internal/explain/format.go` (or similar).
 
-2. [Major] Remove single-implementation interface `OrderProcessor`
+2. [Major] Remove single-implementation interface `StopPricer`
    Source: Architecture
    Principle: "The bigger the interface, the weaker the abstraction"
    Action: Use the concrete type until a second impl forces an interface.

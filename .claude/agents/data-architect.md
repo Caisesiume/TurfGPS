@@ -46,7 +46,7 @@ Four data surfaces are yours:
 
 **Indexes that are actually used.** `CREATE INDEX` succeeding proves nothing. Check `EXPLAIN` output on the real query shapes — corridor containment, nearest-neighbour with a distance bound, plan lookup by code. A corridor query falling back to a sequential scan over the whole zone table is the difference between a usable product and a timeout.
 
-**The sync is never on a request path.** `GET /v5/zones/all` is slow — a partial download reached ~82,000 zones and 23 MB before timing out at five minutes — and is rate-limited to one request per 30 minutes. It is a scheduled worker writing to PostGIS, and **every query you design must tolerate the sync being mid-refresh or up to an hour stale.** A migration that locks the zone table must account for a sync possibly running.
+**The sync is never on a request path.** `GET /v5/zones/all` is rate-limited to **one request per 30 minutes**, and that limit — not the download, which is fast — is what keeps it off the request path, per `Architecture.md § Retrieving zones`. It is a scheduled worker writing to PostGIS, and **every query you design must tolerate the sync being mid-refresh or up to an hour stale.** A migration that locks the zone table must account for a sync possibly running.
 
 **Round-scoped data must not outlive its round.** `currentOwner` and the user's held-zone list become wholesale invalid at a round boundary. Any cache or column holding them needs an explicit answer for what happens at rollover — and the round's start date is derivable from the data rather than needing a calendar.
 

@@ -99,7 +99,7 @@ go test ./...
 ```bash
 cd web
 npm run build        # Must succeed
-# Check browser at http://localhost:3000
+# Vite's dev server serves on port 5173 by default
 ```
 
 ### Phase 3: Render Verdict
@@ -170,7 +170,7 @@ Please address these issues and request validation again.
 - Logic errors that break functionality
 - Security vulnerabilities
 - Data corruption risks
-- Missing error handling on financial operations
+- Missing error handling on a safety path
 
 **Major** (blocks PASS):
 - New warnings

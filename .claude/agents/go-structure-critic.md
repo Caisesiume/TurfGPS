@@ -69,7 +69,7 @@ Execute these checks against the Go service's tree as it stands:
 **4. Boundary Discipline**
 - Nothing outside `` imports from `internal/...`
 - `pkg/` packages do not import from `internal/`
-- `internal/domain/` imports only stdlib + a tiny allow-list (uuid, decimal)
+- `internal/domain/` imports only stdlib + a tiny allow-list (uuid, `orb` for light geometry)
 - `internal/ports/` imports only `internal/domain/` + stdlib
 
 **5. File Organization Inside a Package**
@@ -82,7 +82,7 @@ Execute these checks against the Go service's tree as it stands:
 - No business logic lives in `cmd/`
 
 **7. Dead Weight Detection**
-- Build artifacts checked in (`*.exe`, `*.exe~`, `bot.log`)
+- Build artifacts checked in (`*.exe`, `*.exe~`, log files)
 - Empty directories
 - Files in the wrong scope (e.g., test fixtures in `pkg/`)
 

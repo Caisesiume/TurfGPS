@@ -176,7 +176,7 @@ Task: [task name]
 
 Critical Findings:
 1. **[Critical]** [file.go:LINE]
-   Issue: [serious quality problem — e.g., goroutine leak, swallowed error on financial path]
+   Issue: [serious quality problem — e.g., goroutine leak, swallowed error on a safety path]
    Required Change: [concrete fix]
    Reasoning: [why this is unacceptable]
 

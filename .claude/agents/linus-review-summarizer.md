@@ -45,7 +45,7 @@ LINUS SECURITY CRITIQUE:     [ACK / NEEDS-REVISION / NAK]  | Taste X/10
 
 ### Phase 2: Synthesis
 
-**1. Deduplicate** — the same root issue often surfaces in two lenses (e.g., a non-idempotent order path is both a Quality defect and a Security/integrity defect). Merge into one finding, note both sources.
+**1. Deduplicate** — the same root issue often surfaces in two lenses (e.g., a non-idempotent plan-write path is both a Quality defect and a Security/integrity defect). Merge into one finding, note both sources.
 
 **2. Prioritize** — strict order:
    1. **Security vulnerabilities** (any NAK from Security on a plan-data or personal-data path)
@@ -139,9 +139,9 @@ NEXT STEP
 OVERALL VERDICT: ✅ ACK      OVERALL TASTE: 9/10
 
 WHAT LINUS WOULD SAY:
-Small, correct, and it doesn't invent anything it doesn't need. The order path
-is idempotent, the data structure made the special case disappear instead of
-guarding it, and nothing about the API changed under callers' feet. This is
+Small, correct, and it doesn't invent anything it doesn't need. The plan-write
+path is idempotent, the data structure made the special case disappear instead
+of guarding it, and nothing about the API changed under callers' feet. This is
 what a patch should look like. Applied.
 
 NEXT STEP: Clean. Proceed with normal flow.
@@ -154,10 +154,10 @@ OVERALL VERDICT: ⛔ NAK      OVERALL TASTE: 2/10
 
 WHAT LINUS WOULD SAY:
 The code reads fine and the design is reasonable — and none of that matters,
-because the plan endpoint trusts a short code without rate-limiting retrieval attempts, so
-the caller owns it. That's broken access control on a money system. I don't
-care how clean the rest is; you don't ship an exploit. Fix the authz, then we
-talk about the minor shape stuff.
+because the plan endpoint accepts unlimited retrieval attempts against a short
+code that is the entire authorization model. That's enumeration of strangers'
+location data. I don't care how clean the rest is; you don't ship an exploit.
+Fix the retrieval path, then we talk about the minor shape stuff.
 
 PRIORITIZED ACTION LIST:
 1. [Security] Rate-limit and audit plan retrieval by short code

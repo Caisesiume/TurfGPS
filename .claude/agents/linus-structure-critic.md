@@ -180,7 +180,7 @@ for *indirect != node { indirect = &(*indirect).next }
 // 🛠 — three parallel maps kept "in sync" by hand
 byID    map[string]*Stop
 bySession map[string][]*Stop
-byState map[State][]*Order
+byState map[State][]*Stop
 // ✅ one owner structure; derive views, don't duplicate truth
 ```
 
