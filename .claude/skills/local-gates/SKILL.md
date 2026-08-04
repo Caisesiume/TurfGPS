@@ -33,7 +33,10 @@ The documentation set depends on three mechanical properties. Each has been brok
 
 ### Backend (Go) — required on every PR with Go changes, per D1
 
+**Every command below runs from `service/`**, where `Architecture.md § D8` puts the Go module — never from the repository root.
+
 ```bash
+cd service              # not optional, and not once per session — see the note below
 gofmt -l .              # clean (empty output = pass)
 go vet ./...
 golangci-lint run       # 0 issues
@@ -41,24 +44,33 @@ go test -race -count=1 ./...
 go build ./...
 ```
 
+**Run from the repository root, all five of these pass.** Each resolves against the working directory, has nothing to inspect there, exits zero, and prints what a clean tree prints — the board comes back `fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS` having read no code at all. `Architecture.md § D8` accepts that false pass as the price of the layout; what it costs *here* is that this one `cd` is the entire defence against it, so do not simplify it away. An agent issuing these one command at a time carries the directory into every one — `cd service && go vet ./...` — because a shell that resets between commands is back at the root by the second line, which is exactly where they all succeed against nothing.
+
 The race detector is not optional on this codebase. D1 chose Go specifically for a long-lived stateful service holding many concurrent solve sessions with bounded worker pools over the candidate fan-out — concurrency is the reason the language was picked, so it is the thing most likely to break.
 
 ### Frontend (Vite + React) — required on every PR touching the client, per D2
 
+**Every command below runs from `web/`**, where `Architecture.md § D8` puts the client.
+
 ```bash
+cd web          # not optional, for the same reason as the Go block above
 npm run build   # tsc + vite build, no errors
 npm run lint    # 0 issues
 npm run test    # all pass
 ```
 
+npm resolves a script against the nearest `package.json`, and there is none at the repository root, so from there these three do not run the client's build, lint, or tests at all. That failure is at least visible, which the Go block's is not — the directory here buys a client that is genuinely checked rather than a report that is merely honest. Both blocks are wrong from the root; only one of them is quiet about it.
+
 ### When these activate
 
 The first Go or frontend PR should also introduce a **`Makefile` at the repository root** as the canonical gate runner, and this skill then points at the Makefile targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. Until that PR, the commands above are the list.
+
+The root is the right home for it — `make` has no notion of a module, so the one file can drive both stacks — but **every recipe sets its own working directory**, and a recipe that invokes the Go toolchain without one reintroduces the false pass above with the `cd` no longer visible to notice missing. That is the single thing to get right in that PR: the Makefile's value here is that it encodes each directory once, in the only place that cannot silently be run from somewhere else.
 
 ---
 
 ## The law
 
-1. **Report results verbatim in the PR body.** For documentation: `refs: N checked / 0 unresolved, method: headings | duplication: none | mermaid: N/N`. For code: `fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS`. **The reference line names its method**, because gate 1 now has two and only the expensive one is licensed — a bare `0 unresolved` no longer says whether anything was opened.
+1. **Report results verbatim in the PR body.** For documentation: `refs: N checked / 0 unresolved, method: headings | duplication: none | mermaid: N/N`. For code: `dir: service | fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS`. **The reference line names its method**, because gate 1 now has two and only the expensive one is licensed — a bare `0 unresolved` no longer says whether anything was opened. **The code line names its directory** for exactly the same reason: five passes over an empty root are character-for-character the five passes over a clean module, so a report that omits where it ran is not evidence that anything was compiled.
 2. A gate that fails in a way you do not understand is a **stop-and-report**, not a retry-until-green.
 3. A gate you skipped is reported as skipped, with the reason. Silence reads as a pass, and that is how an unrun gate becomes a merged defect.
