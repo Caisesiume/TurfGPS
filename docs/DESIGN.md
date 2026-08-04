@@ -39,7 +39,7 @@ The planner is not reachable until the system knows two things about the user. O
 
 **Step one: Turf username.** This is **mandatory**, not optional. It is what makes takeover time personal — see *Takeover time* in `CalculationSpecification.md` — and it also determines the Region Lord bonus and drives the ownership indicator during review. A route computed without it would be a worse route, silently.
 
-The username is validated against `POST /v5/users` so a typo is caught immediately rather than degrading every later estimate. Validation is debounced and runs when the field is left rather than on every keystroke, to stay within the one-request-per-second limit described under *Retrieving zones* in `Architecture.md`.
+The username is validated against `POST /v5/users` so a typo is caught immediately rather than degrading every later estimate. Validation is debounced and runs when the field is left rather than on every keystroke, to stay within the one-request-per-second limit described under *Data sources and constraints* in `Architecture.md`.
 
 **Two failure modes must be distinguished, because they are not the same event.**
 

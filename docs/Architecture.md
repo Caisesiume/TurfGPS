@@ -145,6 +145,8 @@ Three properties of this shape are requirements rather than preferences:
 
 The Turf API is the sole source of zone and player data. The following was verified directly against the live API and supersedes any assumption made elsewhere in the documentation set.
 
+**The general rate limit is one request per second per resource**, and it governs the whole API — `POST /v5/users` and `GET /v5/regions` no less than the zone endpoints. Where one endpoint is held more tightly than that, its own limit is recorded with it; `GET /v5/zones/all` is the only one that is, and that limit is the constraint the zone sync is designed around.
+
 Two facts about zone data are product facts rather than integration ones and are stated in `SPECIFICATION.md` instead: *The coordinate is the target*, which is the modelling decision the API's silence about zone extent forces, and *Rounds*, which governs what ownership data means.
 
 ### API version
@@ -215,8 +217,6 @@ An earlier note in this section described a partial download reaching ~82,000 zo
 ```
 
 Tiling logic must respect the product. Splitting a corridor into tiles far below the permitted area multiplies request count for no benefit.
-
-The general rate limit is one request per second per resource.
 
 ### Player data
 

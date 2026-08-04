@@ -846,6 +846,18 @@ The advisor should communicate material uncertainty without overwhelming the use
 
 This is preferable to presenting an unrealistically precise value such as 7 minutes and 14 seconds.
 
+## Currency confidence
+
+A recommendation's worth rests on data that ages, and **how current that data is, is a second confidence dimension** — distinct from the one *Confidence and uncertainty* above carries, and not covered by it.
+
+The difference is the question each asks. *Confidence and uncertainty* asks **how wrong might the time be**: every driver it lists is a source of error in the estimate of what a stop costs. This one asks **how current is what this is worth**: not whether the value was worked out correctly, but whether the facts it was worked out from still hold.
+
+Neither answers the other's question, because the two decay independently. A stop's cost is set by geography, roads, and terrain, and none of those change when ownership does — a plan built from month-old data has exactly the travel-time confidence it had on the day it was built, and has lost none of it. What it has lost is the currency of its worth. *Stored routes go stale* already names what decays: ownership, current points, and any activity-derived estimate. Each of those is a value input rather than a time input. Points and activity reach the user through the factors under *Scoring within the objectives*; ownership reaches them through the indicator specified under *Zones the user already owns* in `DESIGN.md`, where retaking a zone the user already holds is worth less than taking a new one, and where a stale indicator is called worse than none.
+
+**Which dimension a statement belongs to is decided by what it is about, not by how uncertain it sounds.** A statement about the age of the data behind a recommendation belongs here. A statement about the accuracy of a time estimate belongs under *Confidence and uncertainty*, however fresh that estimate's inputs happen to be. Access confidence is a third and separate thing again: *Terrain confidence* assigns it, and it decides whether a zone may be recommended at all rather than qualifying a recommendation already made.
+
+**This section names the dimension; it does not specify it.** Its scale, any threshold on it, and how it is presented are unsettled, and are not this document's to settle — a scale and a threshold are a model, and a model has one home, `CalculationSpecification.md`, which carries no scale for this today; how it appears to the user is an interface question. What is already stated is its direction alone, under *Volatile and optional fields* in `Architecture.md`: a recommendation's confidence should reflect the age of the data it was built from.
+
 ## Safety and legality
 
 All recommendations must assume legal and safe driving behaviour.
