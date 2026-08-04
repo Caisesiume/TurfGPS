@@ -42,20 +42,19 @@ Rationale:    The source's word is *several*; the statement says *more than
               carries the case where the search yields only one alternative
               worth offering. That some route is always offered at all is a
               claim this record does not make: it belongs to
-              SPECIFICATION.md § User time constraints, which declares itself
-              the single definition of the allowance, and is not restated
-              here. This record does not bound curation from below and must
-              not be read as doing so. FR-014 cannot reduce the set below the
-              floor: what it removes are alternatives agreeing on both
-              properties the first criterion above requires them to differ
-              in, so where it fires the floor was never engaged. FR-015 and
-              FR-016 can, and where either cannot hold together with this
-              record, that record governs and the set is offered short
-              rather than filled out. Padding a set to reach a count is
-              fabricated variety — the same dishonesty as a fabricated
-              metric, and the user is the one who pays for it. This is the
-              justified deviation the statement's *should* carries, and it
-              is the only one.
+              `SPECIFICATION.md § User time constraints`, which declares
+              itself the single definition of the allowance, and is not
+              restated here. This record does not bound curation from below
+              and must not be read as doing so. FR-014 cannot reduce the set
+              below the floor: what it removes are alternatives agreeing on
+              both properties the first criterion above requires them to
+              differ in, so where it fires the floor was never engaged. FR-015
+              and FR-016 can, and where either cannot hold together with this
+              record, that record governs and the set is offered short rather
+              than filled out. Padding a set to reach a count is fabricated
+              variety — the same dishonesty as a fabricated metric, and the
+              user is the one who pays for it. This is the justified deviation
+              the statement's *should* carries, and it is the only one.
 Resolved-by:  #12
 ```
 
@@ -90,9 +89,9 @@ Rationale:    This is the identity floor of the source's *effectively
               is FR-016's, judged rather than measured, and this record does
               not discharge it. The two properties compared are the ones the
               documents already use to tell alternatives apart:
-              SPECIFICATION.md § General route alternatives separates general
-              route selection from zone-level detours, so two alternatives
-              agreeing on both are one alternative found twice.
+              `SPECIFICATION.md § General route alternatives` separates
+              general route selection from zone-level detours, so two
+              alternatives agreeing on both are one alternative found twice.
 Resolved-by:  #13
 ```
 
@@ -148,13 +147,13 @@ Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
 Verification: human-judgement — the Owner, against
-              SPECIFICATION.md § Recommended journey alternatives, over the
+              `SPECIFICATION.md § Recommended journey alternatives`, over the
               alternative sets returned for real journeys: whether the set is
               several meaningfully different alternatives rather than
               variations of one
 Acceptance:   the Owner reviews the offered alternative set for each of a
               sample of real journeys and judges, against
-              SPECIFICATION.md § Recommended journey alternatives, whether a
+              `SPECIFICATION.md § Recommended journey alternatives`, whether a
               user choosing between them would have a reason to prefer each
               one; a set whose alternatives the Owner cannot separate on
               grounds a user would act on fails
@@ -174,7 +173,7 @@ Rationale:    FR-014 and FR-015 are the machine-checkable floor of this
               with a number would need a similarity threshold that has no
               home, and a fabricated one would be measured, would pass, and
               would leave the quality it stood for unexamined. So the residue
-              is judged: DELIVERY.md § Escalation and human judgement names
+              is judged: `DELIVERY.md § Escalation and human judgement` names
               whether a route recommendation is genuinely good as the
               product's real bar and as not machine-checkable, and which
               alternatives reach a user is that bar's clearest instance. The
@@ -203,13 +202,13 @@ Verification: test — a journey for which alternatives of only one of the named
               produced alternative dropped and the offered set not emptied for
               the other kinds being absent
 Acceptance:   given a journey for which alternatives of only some of the kinds
-              named in SPECIFICATION.md § Recommended journey alternatives
+              named in `SPECIFICATION.md § Recommended journey alternatives`
               have been produced, when recommendations are offered, then no
               produced alternative is withheld for the absence of a kind that
               was not produced
               given a journey for which every produced alternative is of one
               and the same kind named in
-              SPECIFICATION.md § Recommended journey alternatives, when
+              `SPECIFICATION.md § Recommended journey alternatives`, when
               recommendations are offered, then the offered set is not emptied
               for the other kinds being absent
 Status:       to-build
@@ -231,9 +230,9 @@ Rationale:    The cited section offers the four kinds permissively — a typical
               here, also deliberately. Three of the four are defined in terms
               the cited section does not own — a budget used comfortably, more
               of, or most of — whose home is
-              SPECIFICATION.md § User time constraints, and the fourth in
+              `SPECIFICATION.md § User time constraints`, and the fourth in
               terms of highly ranked attributes, whose home is
-              SPECIFICATION.md § Attribute preference.
+              `SPECIFICATION.md § Attribute preference`.
 Resolved-by:  #15
 ```
 
@@ -278,21 +277,21 @@ Rationale:    The source's *best compliant route available* is the ordinary
               *Optimization objectives* in `SPECIFICATION.md` and by
               *The objective function* in `CalculationSpecification.md`, so
               this record names neither and cites the limit rather than
-              restating it. SPECIFICATION.md § User time constraints
+              restating it. `SPECIFICATION.md § User time constraints`
               declares itself the single definition of the allowance, so the
               limit is named and never quantified — and that at least one
               alternative within it always exists is that section's
               obligation, deferred to the batch scoped to it rather than
-              restated here. What this section uniquely creates is the
-              branch stated above: an alternative already produced within the
-              limit is not dropped for being the poorer in Turf terms, which
-              is the one ground the source's *fewer or only ordinary zones*
-              describes twice. The prohibition is on that ground alone, so it
-              neither forbids ranking the within-limit alternative below a
-              stretch nor collides with FR-015 — an alternative exceeding the
-              limit costs more, so it never beats a within-limit one
-              outright. The verb follows the source's own *should present*;
-              reading `shall` off the *must* in the sentence before it would
-              restate the existence obligation this record defers.
+              restated here. What this section uniquely creates is the branch
+              stated above: an alternative already produced within the limit
+              is not dropped for being the poorer in Turf terms, which is the
+              one ground the source's *fewer or only ordinary zones* describes
+              twice. The prohibition is on that ground alone, so it neither
+              forbids ranking the within-limit alternative below a stretch nor
+              collides with FR-015 — an alternative exceeding the limit costs
+              more, so it never beats a within-limit one outright. The verb
+              follows the source's own *should present*; reading `shall` off
+              the *must* in the sentence before it would restate the existence
+              obligation this record defers.
 Resolved-by:  #16
 ```

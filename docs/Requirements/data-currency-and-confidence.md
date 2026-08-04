@@ -32,25 +32,26 @@ Rationale:    The source states a relation and not its shape, so this record
               An age boundary would be a constant, and it has no home:
               `CalculationSpecification.md` carries no confidence scale, no
               age bucket and no data-age term, and
-              SPECIFICATION.md § Confidence and uncertainty enumerates the
+              `SPECIFICATION.md § Confidence and uncertainty` enumerates the
               drivers of confidence without naming data age among them. The
               access confidence carried under
-              CalculationSpecification.md § Proposed form: value per minute is
-              a gate on eligibility rather than a scale this record could have
-              moved. A criterion written against a boundary would have created
-              the missing constant on the first implementer's desk, and would
-              have chosen the implementation besides: a confidence decaying
-              continuously with age satisfies the statement and straddles no
-              boundary at all. An ordering is what makes this testable without
-              a number — the source compares a more confident recommendation
-              with a less confident one, which needs the two to be comparable,
-              not to sit on a scale — so the method is test rather than
-              human-judgement even though the look found no threshold; the
-              judged method is for a residue no ordering catches. That residue
-              is real and is deliberately not carried here: whether the fall
-              this record obliges is large enough to be honest to the user
-              reading the recommendation, and whether that section's drivers
-              are the right standard for data age at all, are owed to the
-              batch scoped to SPECIFICATION.md § Confidence and uncertainty.
+              `CalculationSpecification.md § Proposed form: value per minute`
+              is a gate on eligibility rather than a scale this record could
+              have moved. A criterion written against a boundary would have
+              created the missing constant on the first implementer's desk,
+              and would have chosen the implementation besides: a confidence
+              decaying continuously with age satisfies the statement and
+              straddles no boundary at all. An ordering is what makes this
+              testable without a number — the source compares a more confident
+              recommendation with a less confident one, which needs the two to
+              be comparable, not to sit on a scale — so the method is test
+              rather than human-judgement even though the look found no
+              threshold; the judged method is for a residue no ordering
+              catches. That residue is real and is deliberately not carried
+              here: whether the fall this record obliges is large enough to be
+              honest to the user reading the recommendation, and whether that
+              section's drivers are the right standard for data age at all,
+              are owed to the batch scoped to
+              `SPECIFICATION.md § Confidence and uncertainty`.
 Resolved-by:  #36
 ```

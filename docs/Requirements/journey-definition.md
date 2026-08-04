@@ -26,8 +26,8 @@ Risk:         A → B is the design centre of the whole product; every later
 Rationale:    Kept separate from FR-002 on singularity, not on verb strength:
               planning A → B and planning a journey with intermediate
               destinations are two separately testable capabilities, and
-              SPECIFICATION.md § Initial product boundaries lists them as two
-              scope items — one origin and one required destination, and
+              `SPECIFICATION.md § Initial product boundaries` lists them as
+              two scope items — one origin and one required destination, and
               optional ordered intermediate destinations. Both statements have
               read `shall` since the Owner's ratification of 1 August 2026, so
               the verbs no longer carry the distinction; merging the records
@@ -55,8 +55,8 @@ Acceptance:   given a request naming an origin, a destination and at least one
 Status:       to-build
 Depends-on:   FR-001
 Risk:         Built wrong or omitted, a capability the first release committed
-              to (SPECIFICATION.md § Initial product boundaries) is silently
-              dropped, and SPECIFICATION.md § Journeys with several legs is
+              to (`SPECIFICATION.md § Initial product boundaries`) is silently
+              dropped, and `SPECIFICATION.md § Journeys with several legs` is
               left with no subject — per-leg budget allocation, remainder
               pooling and the journey-level ceiling become unimplementable and
               untestable — so a user with a stop en route falls back to
@@ -64,13 +64,13 @@ Risk:         Built wrong or omitted, a capability the first release committed
               additional-time allowance, defeating the journey-level ceiling
               outside any place the system can enforce it.
 Rationale:    The source writes "should also support", but
-              SPECIFICATION.md § Initial product boundaries commits optional
+              `SPECIFICATION.md § Initial product boundaries` commits optional
               ordered intermediate destinations to the first release, and
               FR-003 and FR-004 place strictly-obliged duties on the waypoints
               this record admits. An expectation-obliged precondition carrying
               strictly-obliged consequences is a strength inversion, so the
               verb is `shall` on the Owner's ratification of 1 August 2026.
-              DESIGN.md § Required and optional inputs lists intermediate
+              `DESIGN.md § Required and optional inputs` lists intermediate
               waypoints as optional *input* — optional to supply, never
               optional to support, which is the distinction the earlier
               `should` blurred.
@@ -154,7 +154,7 @@ Risk:         Open-ended trip generation is a materially larger optimization
               problem than the bounded one this release solves; admitting it
               by omission changes the product's scope without a decision.
 Rationale:    The source qualifies the exclusion as "at least initially", and
-              SPECIFICATION.md § Genuinely out of reach or out of scope
+              `SPECIFICATION.md § Genuinely out of reach or out of scope`
               repeats it as a deliberate product boundary. The corresponding
               positive branch — a request that does name a destination is
               planned — is FR-001's, and is not restated here.
@@ -183,14 +183,14 @@ Depends-on:   none
 Risk:         A leg routed on a path a car cannot use yields a journey the
               user cannot drive and a cost estimate that means nothing, and
               the error is invisible until the user is at the roadside.
-Rationale:    SPECIFICATION.md § The planning player owns the premise — the
+Rationale:    `SPECIFICATION.md § The planning player` owns the premise — the
               primary mode is a car, and the product does not generate cycling
               routes. The consequence it draws for urban zones is owned by
-              SPECIFICATION.md § Individual zones rather than local collection routes
+              `SPECIFICATION.md § Individual zones rather than local collection routes`
               and is not recorded here. The stated exception keeps this record
-              from contradicting the park-and-walk model. Architecture.md § D3
-              confirms feasibility: one routing engine serves both car and
-              pedestrian costing.
+              from contradicting the park-and-walk model.
+              `Architecture.md § D3` confirms feasibility: one routing engine
+              serves both car and pedestrian costing.
 Resolved-by:  #6
 ```
 
