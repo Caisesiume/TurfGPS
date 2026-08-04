@@ -68,7 +68,32 @@ Each document ends with what it still owes and the open questions it owns. Those
 
 **Every model has exactly one home.** A formula, constant, or threshold is stated in `CalculationSpecification.md` and nowhere else; other documents reference it by section name. This is not tidiness — a second statement of a model is a second thing to keep correct, and the two will diverge.
 
-**Cross-document references name the document.** An italic section name qualified with a filename points elsewhere; an unqualified one points within the same document.
+**A citation is one self-contained token, and the `§` sits inside its delimiters.** A cross-document citation names its target within the delimiters — as the four documents write it, *SPECIFICATION.md § Park-and-walk zones* — and a same-file citation omits the target and opens on the marker — *§ Current state*. The marker being inside is the whole of the design: **a delimited span containing `§` is a citation, and one without it is emphasis.** The two are then decidable by looking at the span — no list of headings to consult, and no filter to separate citations from the ordinary emphasis sharing their delimiter. It is also what makes a bare cross-document citation *unwritable* rather than merely discouraged: the target-less form already means *this file*, so no spelling is left over for "some other document, unnamed".
+
+The form kept here until now put the filename outside the delimiters — *Park-and-walk zones* in `SPECIFICATION.md`. It carries the same information and fails the same test: the italic half cannot be told from emphasis without opening the other file and reading its headings. On 4 August 2026 the four documents held **152 italic spans carrying no filename** — each either a same-document citation or ordinary emphasis, with nothing in the syntax to say which. That is the cost the token form removes, and it is why the token form was chosen over it.
+
+**A filename inside a citation carries the citation's delimiter and no other.** Write *Architecture.md § D1*, never a code-spanned filename nested inside the italics. A filename standing alone in prose, outside any citation, keeps the code span it has always had — `Architecture.md`.
+
+Four consequences of the token being atomic:
+
+- **`above` and `below` sit outside it** — *§ Conventions* above — because they say where the reader will find the thing, which is prose about the citation rather than part of it.
+- **A status suffix normalises away.** The `D6` heading in `Architecture.md` ends ` — *Proposed*`; a citation drops that tail. A suffix records the decision's standing on the day it was read, so a citation carrying one falsifies itself the moment the decision is ratified — and it also nests a second pair of italics inside the first. **A heading carrying a status suffix is better cited by its identifier.**
+- **Where a heading carries a stable identifier, the identifier alone is the citation** — *Architecture.md § D6* — and it is then the whole atomic token.
+- **A line break never falls inside a token**, at any of its seams.
+
+**Two renderings, one token.** The four documents are read rendered, so their delimiters are italic. The requirements corpus's record fields sit inside fences where no markdown renders at all, so grep-ability is the only criterion that applies there and the delimiters are code spans. That half is owned by `.claude/skills/requirements-authoring/SKILL.md § IDs and citations` — including the two fields the delimiters are deliberately kept off — and is not restated here. Nothing about the token itself differs between them.
+
+**The delimiter for every other file is an open question, and is not decided here.** This file, `DELIVERY.md`, `HANDOFF.md`, the corpus's own `README.md`, `INDEX.md` and `TRACEABILITY.md`, and the skill files are all read rendered and none is one of the four documents, so neither rendering's stated reason reaches them. All of them use code spans today. Until this is settled they keep code spans, and none of them is eligible for the list below.
+
+**The migration runs per file, and only as files are touched.** A file converts **whole**, in a commit already editing it for another reason — never as a sweep across the set. The unit is the file rather than the corpus because a **half-converted file cannot be checked by looking at it**: a reader finding one span with a marker and one without cannot tell an unconverted citation from a deliberate emphasis. A half-converted *set* has no such defect, because each file answers for itself — provided it is known which files have converted.
+
+**Converted files:**
+
+- *(none yet)*
+
+That list is what licenses the syntactic check: citation-or-emphasis may be decided by pattern **only for files on it**, and every file not on it must still be checked against the cited document's heading list. **A file joins the list in the same commit that converts it, and in no other commit.** A list that can drift from the files it describes is worse than no list, because the check it licenses would then run against files that cannot bear it.
+
+`70e035f` converted four corpus files' prose citations to code spans on 4 August 2026 and is **not** a conversion under this convention: it settled which delimiter a citation carries, not what the citation contains, and all four files still hold citations with the filename outside the delimiters.
 
 **Numeric constants are proposals unless stated otherwise.** A proposed default exists so that specification work begins with a concrete number to argue against rather than a blank to fill; disagreeing with one is useful, leaving it undecided is not.
 

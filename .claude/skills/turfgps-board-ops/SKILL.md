@@ -109,6 +109,10 @@ Set from the requirement's MoSCoW priority, which the RE assigns and the librari
 
 A story resolving several requirements takes the **highest** priority among them. The scrum-master promotes by Priority first and dependency order second — never the reverse, because promoting a P2 whose blockers happen to be clear ahead of a ready P0 is a sequencing bug, not efficiency.
 
+**A blocker takes the priority of the highest-priority item it blocks.** The table above derives Priority from MoSCoW, and an item with no requirement behind it — a `Task`, typically — has nothing to derive from. Left empty it sorts below every item it gates, so under *Priority first, dependency order second* it would be reached only after every `P0` had been passed over as blocked, each of them blocked on it. The invariant this protects is that **no item ever sorts below something it gates**, which is also why the priority is read off the set of items the blocker currently blocks rather than stamped once and left.
+
+Applied by `@requirements-engineer` filing Task `#37` at `P0` inherited from `#25`, and stated in that issue as a rule not currently written down rather than applied silently. Adopted by the Owner on 4 August 2026.
+
 ### Size (single-select) — `XS` · `S` · `M` · `L` · `XL`
 
 Set by the story-organizer as a sizing check, not an estimate. The rule is that **a story is one reviewable PR's worth of work**. An `L` is a warning and an `XL` is a defect: re-cut it into several stories under the same Epic before filing. The bench is expensive and the judge remands sprawl.
