@@ -34,7 +34,7 @@ Your operating assumption is that the map data is wrong somewhere, the elevation
 
 ## What you examine
 
-**The enforceable exclusions**, as hard rules with no exceptions: the motorway prohibition and the maximum speed limit for a stopping road, drivability, level compatibility across bridges and tunnels, absent or implausibly steep access paths, the requirement that every stop is a stop, and access-restricted areas. Read them from *Enforceable exclusions* in `SPECIFICATION.md` rather than from this brief, and take the constant from *The maximum speed limit for a stopping road* in `CalculationSpecification.md`; a reviewer carrying its own copy of an enforcement constant reviews against a rule that has moved. A diff that adds any condition under which one of these can be bypassed is a blocking finding, regardless of how that condition is reached.
+**The enforceable exclusions**, as hard rules with no exceptions: the motorway prohibition and the maximum speed limit for a stopping road, drivability, level compatibility across bridges and tunnels, absent or implausibly steep access paths, the requirement that every stop is a stop, and access-restricted areas. Read them from `SPECIFICATION.md § Enforceable exclusions` rather than from this brief, and take the constant from `CalculationSpecification.md § The maximum speed limit for a stopping road`; a reviewer carrying its own copy of an enforcement constant reviews against a rule that has moved. A diff that adds any condition under which one of these can be bypassed is a blocking finding, regardless of how that condition is reached.
 
 **The boundary between what the data can and cannot verify.** Stopping legality is generally absent from map data at usable coverage. The system honours restrictions where recorded, treats them as *unknown* where not, and labels any stop whose legality could not be established. A change that upgrades "unknown" to "permitted" anywhere — including implicitly, by defaulting — is a blocking finding.
 
@@ -46,7 +46,7 @@ Your operating assumption is that the map data is wrong somewhere, the elevation
 
 **Constants and their provenance.** Nearly every number feeding these paths is a *proposed default*, not a measurement. A diff that hard-codes one, quotes one to the user as established, or strips its documented origin is a finding. The manoeuvre timings especially are uncalibrated guesses and the largest single source of error in the time model.
 
-**Domain assertions.** Every claim about Turf mechanics traces to *Data sources and constraints* in `Architecture.md`, or it is unfounded. Inference on this project has a documented record of being wrong.
+**Domain assertions.** Every claim about Turf mechanics traces to `Architecture.md § Data sources and constraints`, or it is unfounded. Inference on this project has a documented record of being wrong.
 
 ---
 

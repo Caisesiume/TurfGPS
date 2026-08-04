@@ -16,8 +16,8 @@ Below is a record **exactly as it lands in a category file**: the `##` heading, 
 
 ```
 Statement:    The system shall promote no more candidate zones to full
-              evaluation than the cap defined under *Bounding the candidate
-              set* in CalculationSpecification.md.
+              evaluation than the cap defined under
+              `CalculationSpecification.md § Bounding the candidate set`.
 Category:     Candidate identification
 Source:       SPECIFICATION.md § Candidate zone identification
 Priority:     MUST
@@ -138,9 +138,9 @@ Apply per record. Any reject is a rewrite, not a note.
 
 Each has a home elsewhere; only the consequence for a requirement record is stated here.
 
-1. **Cite constants, never restate them** — `docs/README.md § Conventions`, `safety-path-checklist` § Non-negotiables. For a record: a threshold appears as a reference to its section, never as a number, in the statement *and* in the acceptance criteria.
-2. **A proposed constant must never harden into a `MUST`** — `safety-path-checklist` § The proposal boundary, which also forbids an unexplained literal and forbids quoting a proposal to a user as established. For a record: the obligation is that the system reads the configured value and carries its documented origin, never that the value is a particular figure.
-3. **Never infer a Turf mechanic** — `safety-path-checklist` § Domain facts are verified, not inferred. For a record: a domain assertion with no traceable source is a question for the Owner, not a requirement — do not write the record.
+1. **Cite constants, never restate them** — `docs/README.md § Conventions`, `safety-path-checklist § Non-negotiables`. For a record: a threshold appears as a reference to its section, never as a number, in the statement *and* in the acceptance criteria.
+2. **A proposed constant must never harden into a `MUST`** — `safety-path-checklist § The proposal boundary`, which also forbids an unexplained literal and forbids quoting a proposal to a user as established. For a record: the obligation is that the system reads the configured value and carries its documented origin, never that the value is a particular figure.
+3. **Never infer a Turf mechanic** — `safety-path-checklist § Domain facts are verified, not inferred`. For a record: a domain assertion with no traceable source is a question for the Owner, not a requirement — do not write the record.
 
 **Where override 1 stops: a constant is copied, a relation is expressed.** Override 1 forbids the model's *values*; it is silent on its *shape*, and that silence has to be closed here because it recurs on every cost and value record. A record **may** state the relation its cited section defines — that a cost is a difference against a baseline, that a stop's time is included in it, that value rises with rarity — because on those records the relation **is** the testable content. An acceptance criterion reading *computed correctly per the cited section* asserts nothing a test could fail; it is a citation wearing a criterion's clothes, and it passes the day the arithmetic is inverted. A record **may not** carry the numbers the relation is parameterized by, and may not walk the section's derivation step by step: a reproduced derivation is a second home for the model, which is the defect the one-home rule exists to prevent, and it is a worse one than a copied number because it looks like requirements work rather than duplication.
 

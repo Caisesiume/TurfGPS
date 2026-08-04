@@ -25,7 +25,7 @@ Every document ends with **what it still owes** and **the open questions it owns
 
 ## 3. Facts that must not be guessed
 
-Domain and API facts were **verified against the live Turf API**, not assumed. They are recorded under *Data sources and constraints* in `Architecture.md`. Several contradict the obvious guess, and each one was originally gotten wrong by reasoning rather than checking:
+Domain and API facts were **verified against the live Turf API**, not assumed. They are recorded under `Architecture.md § Data sources and constraints`. Several contradict the obvious guess, and each one was originally gotten wrong by reasoning rather than checking:
 
 - **`blocktime` is not takeover time.** It is how long a zone stays locked after being taken. Takeover time follows a published formula: `30 − (0.2 × rank)` seconds.
 - **The Region Lord bonus is global.** Holding any region grants it everywhere, so takeover time is one per-journey constant, not per-zone.
@@ -95,7 +95,7 @@ Do not close these silently. Each document carries its own *Open questions* sect
 - **The uncertain-bucket share is unknown.** If it is 5% of rural candidates the design works as written; at 60% the review flow becomes mostly reserve-pool negotiation and the product feels different.
 - **Self-hosting versus metered APIs at global scope** — the largest cost risk in the project, owned by `Architecture.md`. The provider-adapter pattern makes the choice replaceable, not answered.
 - **The lifetime of an unconfirmed route**, owned by `SPECIFICATION.md`, with its architectural half — solve-session lifetime and residency — owned by `Architecture.md`. They must be answered together.
-- **The 10-metre direct-access tolerance** is a proposal, and an enforcement constant whose strict direction is downward. It separates two validation regimes, not two cost models: inside it a candidate is checked for levels and barriers only, and skips walk-safety validation entirely. Worth validating early, per *Direct-access tolerance* in `CalculationSpecification.md`.
+- **The 10-metre direct-access tolerance** is a proposal, and an enforcement constant whose strict direction is downward. It separates two validation regimes, not two cost models: inside it a candidate is checked for levels and barriers only, and skips walk-safety validation entirely. Worth validating early, per `CalculationSpecification.md § Direct-access tolerance`.
 
 ## 8. Do not
 

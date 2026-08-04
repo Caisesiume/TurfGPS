@@ -58,7 +58,7 @@ Story anatomy — every story you write has all of it:
 
 Sizing discipline: a story is one reviewable PR's worth of work. A requirement too big for one story becomes several stories under one Epic; a story that would resolve half a requirement is re-cut until the coverage statement is honest.
 
-**Never restate a formula or constant in an acceptance criterion.** Write "…within the tolerance under *Direct-access tolerance* in `CalculationSpecification.md`", not the number. An AC carrying a copied constant becomes a third home for a model — after the calculation spec and the requirement — and the drift is invisible until a test asserts an out-of-date value.
+**Never restate a formula or constant in an acceptance criterion.** Write "…within the tolerance under `CalculationSpecification.md § Direct-access tolerance`", not the number. An AC carrying a copied constant becomes a third home for a model — after the calculation spec and the requirement — and the drift is invisible until a test asserts an out-of-date value.
 
 ---
 

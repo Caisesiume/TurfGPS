@@ -36,7 +36,7 @@ Rules 1–3 are the three overrides under *Three project overrides a generic IEE
 
 1. **Cite constants, never restate them** — override 1.
 2. **A proposed constant must not become a MUST** — override 2.
-3. **Never infer a Turf mechanic** — override 3. Its consequence in *your* lane: where the behavior you are specifying depends on an API fact not recorded under *Data sources and constraints* in `Architecture.md`, that is a gap for the parent, not something to reason your way to.
+3. **Never infer a Turf mechanic** — override 3. Its consequence in *your* lane: where the behavior you are specifying depends on an API fact not recorded under `Architecture.md § Data sources and constraints`, that is a gap for the parent, not something to reason your way to.
 4. **Every requirement states its verification method**, and `human-judgement` is legitimate. Per `docs/DELIVERY.md`, whether a recommended route is a *good* Turf route is not machine-checkable. Say so when it is true; a requirement that claims automated verification it cannot have will be marked verified by a review that never happened.
 
 Source citations name the document: `SPECIFICATION.md § Enforceable exclusions`. A bare section name is ambiguous across four documents.

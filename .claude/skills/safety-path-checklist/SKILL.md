@@ -11,11 +11,11 @@ TurfGPS moves no money. Its equivalent stakes are physical: a defect here propos
 
 > **Not that every zone is classified, but that no zone is classified confidently and wrongly.**
 
-That is from *Accessibility scope for the first release* in `SPECIFICATION.md`, and it is the sentence to test a change against. A change that classifies more zones while loosening confidence is a regression, however good the coverage number looks.
+That is from `SPECIFICATION.md § Accessibility scope for the first release`, and it is the sentence to test a change against. A change that classifies more zones while loosening confidence is a regression, however good the coverage number looks.
 
 ## Enforceable exclusions (hard rules — a zone failing any is excluded regardless of Turf value)
 
-- No stop on a motorway, motorway link, or any road whose speed limit is not **established** to be at or below the maximum for a stopping road. It is a test the road must pass, so an unknown limit excludes it. What establishes a limit, what does not, and the constant itself are stated under *Enforceable exclusions* in `SPECIFICATION.md` — enforce it from there and hold no copy here. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
+- No stop on a motorway, motorway link, or any road whose speed limit is not **established** to be at or below the maximum for a stopping road. It is a test the road must pass, so an unknown limit excludes it. What establishes a limit, what does not, and the constant itself are stated under `SPECIFICATION.md § Enforceable exclusions` — enforce it from there and hold no copy here. A nearby rest area, service road, parking area, or exit may still make the zone accessible; the high-speed carriageway itself never is.
 - No stop on a road not marked drivable by the map data.
 - No direct road-access classification where road and zone are at incompatible levels, or where bridge/tunnel/`layer` data indicates they do not meet.
 - No accessibility across an access path that is absent, disconnected, or implausibly steep.
