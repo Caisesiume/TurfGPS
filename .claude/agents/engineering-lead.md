@@ -126,8 +126,8 @@ When the loop cannot proceed without the human (scope approval, an 8-round judge
 ═══════════════════════════════════════════════════════════════
 ENGINEERING-LEAD ORG REPORT — [timestamp]
 ═══════════════════════════════════════════════════════════════
-LOOP STATUS:      [REQUIREMENTS (pre-board) / TURNING / STALLED / AWAITING HUMAN]
-REQUIREMENTS:     [corpus exists? batches signed off N; open question batches with Owner]
+LOOP STATUS:      [TURNING / STALLED / AWAITING HUMAN]
+REQUIREMENTS:     [live counts: docs/Requirements/README.md § Corpus state; open question batches with Owner]
 BOARD:            Backlog N | Ready N | In progress N | In review N | Ordered Revision N | Done N
 IN FLIGHT:        [worker → item, or "idle"]
 CORRECTIONS:      [misdirection/stall/scope/doc-drift found + which agent re-dispatched, or "none"]

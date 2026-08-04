@@ -54,6 +54,8 @@ Repo for issues, PRs, and milestones: `Caisesiume/TurfGPS`.
 >
 > **Epic/story conventions:** Epics are GitHub **Milestones**; user stories are Issues carrying the **`User Story` label**, tied to their Epic's Milestone, and stating the requirement codes they resolve (`Resolves: FR-*/NFR-*`). Flag any story missing its label, milestone, or `Resolves:` block as a **traceability defect** and route it to @requirements-engineer — do not promote an untraceable story.
 >
+> **A `Task` is none of that, and the test above does not reach it.** A `Task` sequences and promotes exactly as a story does, but carries no `Resolves:` line, joins no Milestone, and is exempt from the coverage audit — all three by design. The rules and the reasons are in `turfgps-board-ops § Labels`; read them there. Flagging a `Task` for missing traceability is a false defect, and it will route work to @requirements-engineer that has nothing to trace.
+>
 > **`human-verified` stories** cannot be closed by agent consensus. Promote them normally, but note the label in the report so @engineering-lead knows a human decision is owed at the end of that item's life rather than discovering it at merge time.
 
 ---

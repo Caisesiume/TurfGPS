@@ -108,6 +108,16 @@ Two distinct consumers must not be conflated:
 
 Map tiles are rendered from the same OSM extract and served as static files; the client uses MapLibre GL JS. Geocoding for address and place search runs against the same data, per *Locations* in `DESIGN.md`, which requires it not be a metered external dependency. Zone-name search needs no external lookup at all — the synced zone table already holds every name.
 
+### D8 — The Go service in `service/`, as one peer directory among several
+
+**Decided.** The Go service occupies **`service/`** and declares its own module, **`github.com/Caisesiume/TurfGPS/service`**. The client of *§ D2* occupies **`web/`**. `docs/` and `.claude/` sit alongside them as peers. **There is no module at the repository root.**
+
+The reason is what this repository actually holds. Its primary artifact today is documentation — the four specification documents, the requirements corpus, and the agent library, against no code at all. (Their live sizes are in `docs/Requirements/INDEX.md` and the agent directory itself; this decision turns on the balance, not on a count, and does not restate one.) A module at the root would make the Go service the repository's *subject*, and it is not the subject; it is one peer among several, and the largest of them is prose. Layout is the first thing a reader infers structure from, and a root module would have them infer the wrong one.
+
+It also gives each deployable its own directory. *§ D2* builds the client as static files served independently of the service, and sibling directories make that separation structural rather than conventional — one build, one deployment unit, one directory each.
+
+**What it costs.** Every Go tool, linter, and CI action assumes the module sits at the repository root. `gofmt -l .`, `go vet ./...`, `go build ./...`, and `golangci-lint run` all resolve against the working directory, so every one of them must be run from `service/` and every CI job needs its working directory set explicitly. The failure mode this creates is worse than the inconvenience: a Go gate run from the repository root **passes vacuously** — it finds no Go files rather than finding no faults, and reports success either way. That is a false pass on a quality gate, and it is bought with this layout. Every command and workflow that invokes the Go toolchain carries the correction, permanently.
+
 ---
 
 ## Runtime topology

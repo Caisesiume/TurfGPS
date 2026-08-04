@@ -132,6 +132,14 @@ All seven exist on the repo:
 | `judge:approved` / `judge:remanded` | PRJudge ruling record (PR labels) |
 | `awaiting-human` | Loop paused on a human decision |
 
+**A `Task` sequences and promotes on the same rules as a story.** It is read for Priority and dependency order exactly as a story is, and *§ Priority* above is written for it specifically — the blocker rule exists because a `Task` has no MoSCoW to derive a priority from. Nothing about the lifecycle differs.
+
+**Its three differences from a story are exemptions, not omissions.** A `Task` carries **no `Resolves:` line**, because no requirement stands behind it; it **joins no Milestone**, because a Milestone is an Epic and an Epic is a cluster of requirements; and it is **exempt from the coverage audit** that @requirements-story-organizer runs in both directions. That last one is the load-bearing statement: a `Task` carrying no requirement codes is **not a gap in coverage** — it is an item the audit does not range over at all. The audit is already scoped to stories by its own wording, and this records that the scoping is deliberate, so that the next reader tightening the audit does not "fix" it into reporting every `Task` as an uncovered story.
+
+**So a `Task` missing a label, milestone, or `Resolves:` block is not a traceability defect.** That test applies to `User Story` items alone. Applying it to a `Task` manufactures a defect out of a design decision, and the traceability law below is unaffected either way — a `Task` never enters the chain it describes.
+
+Ratified by the Owner on 4 August 2026.
+
 **Auto-add is enabled.** The project's *Auto-add to project* workflow is on, so issues land on the board without a manual `project item-add`. Verify its filter in the UI before relying on label-based filtering — if it adds *every* issue rather than only labelled ones, the board will accumulate items the loop does not manage, and the scrum-master should report that rather than silently reconciling them.
 
 **Epics are Milestones** — none exist yet. Create with:
