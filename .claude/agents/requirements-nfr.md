@@ -49,7 +49,7 @@ Ask, per source section, whether it imposes a constraint on any of:
 
 ## Four project rules that bind every requirement you write
 
-Rules 1–3 are the three overrides under *Three project overrides a generic IEEE habit gets wrong* in the `requirements-authoring` skill; it states them and names their homes, and this file does not restate them. Rule 4 is yours.
+Rules 1–3 are the three overrides under `requirements-authoring § Three project overrides a generic IEEE habit gets wrong`; it states them and names their homes, and this file does not restate them. Rule 4 is yours.
 
 1. **Cite constants, never restate them** — override 1.
 2. **A proposed constant must not become a MUST** — override 2. Its consequence in *your* lane is the sharpest in the corpus: a threshold is most of what an NFR says, so an NFR restating the per-stop buffer as its target freezes a guess as a measured bar. Require instead that the value is configurable, documented, and replaceable by measurement, and set the criterion against the section that holds it — never against a figure copied out of it.

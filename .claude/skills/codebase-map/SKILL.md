@@ -21,7 +21,7 @@ For behaviour rather than structure, the routing is: what the product does → `
 
 - **Ports before adapters.** The pipeline consumes the interface, never a concrete provider. Adding a country's dataset is implementing an adapter and registering it, not modifying the optimizer.
 - **Geometry lives in PostGIS.** D1 chose Go with the thinnest geospatial ecosystem of the candidates, and the mitigation is load-bearing: corridor buffers, proximity filtering, and the nearest-neighbour query behind the activity baseline are SQL, not in-process geometry.
-- **The service is stateful.** Solve sessions live in it, which rules out serverless regardless of language. A design that recomputes rather than retains fails *Response time and progressive results*.
+- **The service is stateful.** Solve sessions live in it, which rules out serverless regardless of language. A design that recomputes rather than retains fails `Architecture.md § Response time and progressive results`.
 - **One engine owns geometry that must agree with itself.** Car and pedestrian routing come from the same Valhalla tiles deliberately; splitting them makes a stop's two halves disagree silently.
 - **Recon before code, always** — the map orients you; it does not replace verifying the specific behaviour your item names.
 

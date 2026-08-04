@@ -47,7 +47,7 @@ Nearly every constant in `CalculationSpecification.md` is a **proposed default**
 
 ## Domain facts are verified, not inferred
 
-Every assumption about Turf mechanics made by reasoning rather than checking has turned out wrong. `blocktime` is not takeover time; the Region Lord bonus is global; zones expose only a coordinate; `currentOwner` is round-scoped. The verified facts are in `Architecture.md` under *Data sources and constraints*, and the API self-documents at `GET https://api.turfgame.com/v5`. **Check it rather than inferring.** A domain assertion with no traceable source is a blocking finding.
+Every assumption about Turf mechanics made by reasoning rather than checking has turned out wrong. `blocktime` is not takeover time; the Region Lord bonus is global; zones expose only a coordinate; `currentOwner` is round-scoped. The verified facts are under `Architecture.md § Data sources and constraints`, and the API self-documents at `GET https://api.turfgame.com/v5`. **Check it rather than inferring.** A domain assertion with no traceable source is a blocking finding.
 
 ## Non-negotiables
 

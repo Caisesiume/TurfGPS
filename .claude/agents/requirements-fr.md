@@ -32,7 +32,7 @@ For TurfGPS specifically, functional behavior clusters around **initialization a
 
 ## Four project rules that bind every requirement you write
 
-Rules 1–3 are the three overrides under *Three project overrides a generic IEEE habit gets wrong* in the `requirements-authoring` skill; it states them and names their homes, and this file does not restate them. Rule 4 is yours.
+Rules 1–3 are the three overrides under `requirements-authoring § Three project overrides a generic IEEE habit gets wrong`; it states them and names their homes, and this file does not restate them. Rule 4 is yours.
 
 1. **Cite constants, never restate them** — override 1.
 2. **A proposed constant must not become a MUST** — override 2.

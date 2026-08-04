@@ -58,7 +58,7 @@ Each document ends with **what it still owes** and **the open questions it owns*
 
 ### Four project rules that override generic RE habit
 
-Rules 1–3 are the three overrides under *Three project overrides a generic IEEE habit gets wrong* in the `requirements-authoring` skill, which states them and names their homes. This file does not restate them — and deliberately names no constant, because a rule against a second home for a value cannot itself be that second home. Rule 4 is yours.
+Rules 1–3 are the three overrides under `requirements-authoring § Three project overrides a generic IEEE habit gets wrong`, which states them and names their homes. This file does not restate them — and deliberately names no constant, because a rule against a second home for a value cannot itself be that second home. Rule 4 is yours.
 
 1. **Cite constants, never restate them** — override 1. Its consequence for you: a record arriving from a sub-agent with a number in its statement or acceptance criteria goes back, it is not filed with a note.
 2. **A proposal must not harden into a MUST** — override 2. Its consequence for you: this is the failure mode integration is most likely to miss, because a hardened proposal reads as a *better* requirement — more precise, more testable — right up to the point the value is measured and every record naming it is wrong.
