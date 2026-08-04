@@ -48,11 +48,10 @@ Expected Behavior: [what should work]
 Execute these checks in order:
 
 **1. Build Verification**
-```powershell
-cd "$(git rev-parse --show-toplevel)"
-go build ./...
-# Must exit 0 with no errors
-```
+
+Run the **backend gates** — format, vet, lint, tests, build — per `local-gates § Backend (Go)`. The skill holds the commands and, critically, the directory they run from; take them from there every time rather than from memory.
+
+**This step used to `cd` to the repository root, and that was the exact wrong place.** The Go module lives in `service/`, per `Architecture.md § D8`, so from the root every one of these commands resolves against nothing, exits zero, and prints what a clean tree prints. You are the agent that fails worst under that: your verdict is blocking, so a vacuous pass here does not merely mislead a reader — it marks a task done. **Report the directory you ran in**, and treat any gate result reaching you without one as unrun rather than as green.
 
 **2. Error Detection**
 - Use `get_errors` tool on all modified files
@@ -77,10 +76,8 @@ go build ./...
 - No unreachable code
 
 **6. Test Execution** (if applicable)
-```powershell
-go test ./...
-# All tests must pass
-```
+
+Covered by the backend gates in step 1 — the skill's test command carries `-race` and `-count=1`, neither of which is optional here. `-race` because concurrency is why `Architecture.md § D1` chose Go, and `-count=1` because a cached pass is a report about a previous tree.
 
 **7. Integration Validation**
 - API endpoints respond correctly
@@ -96,11 +93,8 @@ go test ./...
 - No hardcoded values
 
 **9. Frontend Checks** (if UI changes)
-```bash
-cd web
-npm run build        # Must succeed
-# Vite's dev server serves on port 5173 by default
-```
+
+Run the **frontend gates** — build, lint, tests — per `local-gates § Frontend (Vite + React)`. This step previously ran the build alone; lint and tests are equally part of the gate and a client that compiles is not a client that works.
 
 ### Phase 3: Render Verdict
 

@@ -11,11 +11,15 @@ The repository is currently documentation-only, so the documentation gates below
 
 ---
 
-## Documentation gates — **live now**, required on every PR touching `docs/`
+## Documentation gates
+
+**Live now**, and required on every PR touching `docs/`.
 
 The documentation set depends on three mechanical properties. Each has been broken at least once. Two are cheap to check; the first stopped being cheap when the citation convention landed, and the note below the list says exactly how much of it can be run today.
 
 1. **Every citation resolves, and every citation is one token.** A citation is `Document.md § Section` — self-contained, with the `§` **inside** its delimiters — or `§ Section` with no target, which means a heading in the citing file. Where the cited heading carries a stable identifier, the identifier alone is the citation: `Architecture.md § D1`. The rule and its reasoning live in `docs/README.md § Conventions`, and this gate checks that rule rather than restating it. Three shapes are defects on sight: a **bare section name**, a **filename sitting outside the delimiters** — the superseded form — and a **skill cited by its path**. A skill is cited by its **name**, standing where a filename would, and the name resolves by convention to `.claude/skills/<name>/SKILL.md`; following one therefore costs nothing, which is what makes the path form a defect rather than a longer-winded equivalent. A rename that silently orphans a reference is the common failure; a citation naming no document is the one that hides, because under the current rule it no longer reads as ambiguous, it reads as *this file*, and it orphans there.
+
+   **A heading that must be cited is kept short and free of citations, and this file's headings were shortened on 5 August 2026 to make that true of them.** Two constraints meet here and jointly leave no other option: shortening an ordinary section name to its opening words is refused outright by `requirements-authoring § IDs and citations`, so a long heading must be cited *whole* or not at all; and a heading that itself contains a citation cannot be cited whole without nesting one token inside another. A heading carrying its qualifier — this file's backend heading, before it was shortened, ran the gate's name then an em-dash, the words "required on every PR with Go changes", and a citation to the decision requiring it — is therefore uncitable in both directions at once, and the qualifier belongs in the line beneath it. **The example is spelled out rather than quoted** because quoting it would put a `§` inside a code span in a file whose class takes the code span as its citation delimiter, manufacturing a token that resolves to nothing. This is a consequence of the convention rather than an addition to it; it is recorded here because it is discovered by trying to cite such a heading, which is too late.
 
    **The delimiter is decided by the file, and all three classes are now settled.** The four narrative documents — `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, `DESIGN.md` — are read rendered, so their delimiter is *italics*. The requirements corpus's record fields sit inside fences where nothing renders, so theirs is the code span, with `Source` and `Depends-on` carrying no delimiter at all, per `requirements-authoring § IDs and citations`. **Every other file is a working document — consulted rather than read through — and its delimiter is the code span**, per `docs/README.md § Conventions`, which reaches the rest of `docs/`, the skill files under `.claude/skills/`, and the agent definitions under `.claude/agents/`. This gate checks delimiter conformance in all three classes; resolution and one-token form it checks regardless, neither being changed by any delimiter.
 
@@ -29,9 +33,13 @@ The documentation set depends on three mechanical properties. Each has been brok
 
 ---
 
-## Code gates — **dormant** until the stacks exist
+## Code gates
 
-### Backend (Go) — required on every PR with Go changes, per D1
+**Dormant** until the stacks exist.
+
+### Backend (Go)
+
+Required on every PR with Go changes, per `Architecture.md § D1`.
 
 **Every command below runs from `service/`**, where `Architecture.md § D8` puts the Go module — never from the repository root.
 
@@ -46,9 +54,11 @@ go build ./...
 
 **Run from the repository root, all five of these pass.** Each resolves against the working directory, has nothing to inspect there, exits zero, and prints what a clean tree prints — the board comes back `fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS` having read no code at all. `Architecture.md § D8` accepts that false pass as the price of the layout; what it costs *here* is that this one `cd` is the entire defence against it, so do not simplify it away. An agent issuing these one command at a time carries the directory into every one — `cd service && go vet ./...` — because a shell that resets between commands is back at the root by the second line, which is exactly where they all succeed against nothing.
 
-The race detector is not optional on this codebase. D1 chose Go specifically for a long-lived stateful service holding many concurrent solve sessions with bounded worker pools over the candidate fan-out — concurrency is the reason the language was picked, so it is the thing most likely to break.
+The race detector is not optional on this codebase. `Architecture.md § D1` chose Go specifically for a long-lived stateful service holding many concurrent solve sessions with bounded worker pools over the candidate fan-out — concurrency is the reason the language was picked, so it is the thing most likely to break.
 
-### Frontend (Vite + React) — required on every PR touching the client, per D2
+### Frontend (Vite + React)
+
+Required on every PR touching the client, per `Architecture.md § D2`.
 
 **Every command below runs from `web/`**, where `Architecture.md § D8` puts the client.
 
@@ -64,6 +74,8 @@ npm resolves a script against the nearest `package.json`, and there is none at t
 ### When these activate
 
 The first Go or frontend PR should also introduce a **`Makefile` at the repository root** as the canonical gate runner, and this skill then points at the Makefile targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. Until that PR, the commands above are the list.
+
+**"The list" means this block and no other, and that is now enforced by there being no other.** Ten agent files carried these commands inline, every one of them without the working directory, because they were copied before `Architecture.md § D8` existed and nothing pulled them forward when it did — the ten had gone stale in the same commit that made this file correct. They now **name the gate they must pass and cite this skill for how to run it**. An agent file that reproduces the commands is a defect on sight, however correct the copy looks on the day it is written: a second home for the model outlives whoever checked it, and the gates are still owed a Makefile and a `service/` that exists, so the commands will move again. Reproducing them is licensed in exactly one case — a **reviewer quoting the one check it performs itself**, as an instrument of its own review rather than as the gate — and such a file says inline why the copy is there and cites this skill for the rest.
 
 The root is the right home for it — `make` has no notion of a module, so the one file can drive both stacks — but **every recipe sets its own working directory**, and a recipe that invokes the Go toolchain without one reintroduces the false pass above with the `cd` no longer visible to notice missing. That is the single thing to get right in that PR: the Makefile's value here is that it encodes each directory once, in the only place that cannot silently be run from somewhere else.
 

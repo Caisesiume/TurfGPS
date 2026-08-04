@@ -49,9 +49,8 @@ cd ../TurfGPS-wt/<item-slug>   # ALL work happens here; after merge: git worktre
 Smallest change that is *actually* secure. Fail closed. Validate at the boundary. Keep secrets out of logs and errors (errors handled at one level — and that level does not leak the secret). Prefer structural guarantees (a type that cannot carry a username into the store) over runtime checks. House rules apply in full.
 
 ### Phase 4 — Local gates
-```bash
-gofmt -l . && go vet ./... && golangci-lint run && go test ./... && go build ./...
-```
+Run the **backend gates** — format, vet, lint, tests, build — per `local-gates § Backend (Go)`. The skill holds the commands and the directory each runs from; do not reproduce them here.
+
 Add adversarial tests: the malformed input, the enumerated code, the expired code, the oversized bounding box, the injected spatial predicate. A security change with only happy-path tests is not done.
 
 ### Phase 5 — Open the PR

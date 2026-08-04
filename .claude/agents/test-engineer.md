@@ -48,10 +48,9 @@ cd ../TurfGPS-wt/<item-slug>-tests   # ALL work happens here; after merge: git w
 Write table-driven tests that assert observable behavior. Mock the provider ports; never call the live Turf API or the live DB (use test doubles and a test copy). The Turf API's 30-minute limit on the zone sync makes a test that calls it a hazard to the whole system, not merely a slow test. For each safety-path test, include the adversarial case. Prove your test catches the bug: where feasible, confirm it **fails against the un-fixed code** before it passes against the fixed code.
 
 ### Phase 4 — Local gates
-```bash
-gofmt -l . && go vet ./... && golangci-lint run && go test ./... && go build ./...
-```
-Concurrency tests run under `go test -race`. Frontend tests (if the item is UI) run `npm run test`. Report coverage delta on the touched packages.
+Run the **backend gates** — format, vet, lint, tests, build — per `local-gates § Backend (Go)`, and the **frontend gates** per `local-gates § Frontend (Vite + React)` if the item is UI. The skill holds the commands and the directory each runs from; do not reproduce them here.
+
+**The race detector is on the whole test gate, not only the tests you think are concurrent** — the skill's test command carries `-race` unconditionally, and that is the version that governs. A suite run without it does not become a pass because nothing in the diff looked concurrent. Report coverage delta on the touched packages.
 
 ### Phase 5 — Open the PR
 Board-item link, each acceptance criterion → the test that proves it, files + rationale, safety paths covered, coverage delta, and (where done) evidence the test fails on the un-fixed code. Move to **In review**.

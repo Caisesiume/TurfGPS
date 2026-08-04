@@ -93,12 +93,20 @@ Implementation Summary: [what was built]
 - **Compliance:** does handling of keys/PII/retention meet the platform's stated rules?
 
 **Verification (run it):**
+
+Vet, lint, and the rest are the author's gates — confirm them from the PR body per `local-gates § Backend (Go)`, and treat a report that omits the directory it ran in as unrun. Do not retype that list here.
+
+Then run the two instruments that are yours, which no gate runs:
 ```powershell
-cd TurfGPS
-go vet ./...
+cd "$(git rev-parse --show-toplevel)/service"   # the module, not the repo root
 govulncheck ./...        # dependency & stdlib CVEs
+
+cd "$(git rev-parse --show-toplevel)"           # deliberately the root — see below
 gitleaks detect || true  # if available — secret scan
 ```
+**These are inline because neither is a gate.** `govulncheck` and `gitleaks` are absent from `local-gates` by design — supply-chain and secret scanning are this bench's job, not a precondition for opening a PR — so citing the skill for them would cite a file that does not have them.
+
+**The two directories differ, and that is not a slip.** `govulncheck` is a Go tool: it resolves against the module and, run from the root, finds no packages and reports no vulnerabilities — the same silent pass the Go gate has, arriving in a security review, which is where it costs most. `gitleaks` is the opposite: a secret committed to a CI config, a stray `.env`, or a fixture lives *outside* the module, so scanning only `service/` would miss the paths secrets most often reach the repository by. One tool needs the narrowest scope that is real, the other the widest.
 
 ### Phase 3: Render Verdict (with a Taste Score, 0–10)
 

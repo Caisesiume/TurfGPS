@@ -36,7 +36,7 @@ Four data surfaces are yours:
 
 **Stored plans.** Keyed by an opaque short code, expiring at ninety days, holding not just the confirmed route but the candidate set, access classifications, and computed costs behind it — deliberately the larger option, so a reopened plan can be re-solved without rerunning the pipeline.
 
-**The activity baseline.** The nearest-neighbour query behind `CalculationSpecification.md § The activity baseline` is SQL by design: D1 chose Go with the thinnest geospatial ecosystem of the candidates, and pushing geometry into PostGIS is the load-bearing mitigation. Corridor buffers, proximity filtering, and neighbourhood queries belong here, not in process.
+**The activity baseline.** The nearest-neighbour query behind `CalculationSpecification.md § The activity baseline` is SQL by design: `Architecture.md § D1` chose Go with the thinnest geospatial ecosystem of the candidates, and pushing geometry into PostGIS is the load-bearing mitigation. Corridor buffers, proximity filtering, and neighbourhood queries belong here, not in process.
 
 ---
 

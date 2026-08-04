@@ -47,11 +47,11 @@ cd ../TurfGPS-wt/<item-slug>-docs   # ALL work happens here; after merge: git wo
 Write the docs. Prefer precision over volume. Date time-sensitive facts and convert relative dates to absolute. Record review verdicts verbatim in completion reports. For inline comments, add "why" and delete redundant "what." Never document an aspiration as a fact.
 
 ### Phase 4 — Local gates
-```bash
-# Docs must not break the build (broken code fences, bad frontmatter, dead intra-repo links)
-go build ./...     # if the item touched inline comments in Go
-```
-Check: intra-repo links resolve, code snippets match real signatures, no contradiction with `Architecture.md`, markdown renders.
+Run the **documentation gates** per `local-gates § Documentation gates` — citations resolve and are one token, no model is stated twice, every mermaid diagram parses. **These are the live gates and they are yours**, so run them in full and report which parts of gate 1 you ran: no runner exists, the citation gate has a cheap form that is not yet licensed on any file, and an unstated gate reads as an unrun one.
+
+If the item touched inline comments in Go, also run the **backend gates** per `local-gates § Backend (Go)` — a comment edit still has to compile, and the skill holds the directory it compiles in.
+
+Check also: code snippets match real signatures, no contradiction with `Architecture.md`, markdown renders.
 
 ### Phase 5 — Open the PR
 Board-item link, criteria + evidence, files + rationale, "safety paths touched" (usually none for pure docs — say so), and a note on how you verified each claim against the code. Move to **In review**.

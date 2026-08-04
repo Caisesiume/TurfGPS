@@ -49,15 +49,15 @@ Implementation Summary: [what was built]
 Run these checks on the modified files under `service/`, which is where the Go module lives per `Architecture.md § D8`:
 
 **1. Tooling Baseline**
-```powershell
-cd "$(git rev-parse --show-toplevel)/service"   # not the repo root — see below
-gofmt -l .                     # must produce zero output
-go vet ./...                   # must exit clean
-# staticcheck ./...            # if installed
-go build ./...
-```
 
-**The `cd` is load-bearing.** The module is not at the repository root, per `Architecture.md § D8`, so every command above resolves against the working directory and finds nothing if run from the root. A clean result obtained there is a **vacuous pass** — zero files inspected, zero faults reported, indistinguishable from success. Report the directory you ran them in.
+Format, vet, lint, and build are the author's gates, and their commands live in `local-gates § Backend (Go)`. **Confirm them; do not retype them.** The PR body must carry the directory they ran in — a report without one is not evidence that anything was compiled, and re-running the list yourself from the wrong place reproduces the same vacuous pass one level further down. Where you do re-run them, take the commands from the skill so you are running today's list.
+
+Then run the instrument the gate does not have:
+```powershell
+cd "$(git rev-parse --show-toplevel)/service"   # the module, not the repo root
+staticcheck ./...              # if installed
+```
+**This is inline because `staticcheck` is not a gate.** The gate's linter is `golangci-lint`; `staticcheck` is a deeper analysis you run as a critic, and it catches a class — unused results, impossible conditions, misused stdlib contracts — that a passing gate says nothing about. Its `cd` is load-bearing for the same reason every Go command's is: the module is not at the repository root, per `Architecture.md § D8`, so run from there it inspects zero files and reports zero faults, which is indistinguishable from clean. **Report the directory you ran it in.**
 
 **2. Error Handling**
 - Every returned `error` is checked
@@ -138,8 +138,9 @@ CODE QUALITY CRITIQUE: ✅ APPROVE
 Task: [task name]
 
 Findings:
-- ✅ gofmt: clean
-- ✅ go vet: clean
+- ✅ Author's gates: confirmed, dir: service   [per `local-gates § The law` — a gate line
+                                               with no directory is not a confirmation]
+- ✅ staticcheck: clean (dir: service)
 - ✅ Error handling: wrapped with %w, checked everywhere
 - ✅ Context: propagated correctly
 - ✅ Naming: idiomatic and consistent
@@ -297,7 +298,7 @@ return b
 
 ## What You Do / Don't Do
 
-✅ **Do:** Read every modified line, run `gofmt -l`, run `go vet`, check error chains, audit context flow, flag non-idiomatic style, suggest concrete line edits
+✅ **Do:** Read every modified line, confirm the author's gates carried the directory they ran in, run `staticcheck` yourself, check error chains, audit context flow, flag non-idiomatic style, suggest concrete line edits
 ❌ **Don't:** Review file layout (GoStructureCritic), review architectural patterns (GoArchitectureCritic), implement the fixes yourself, return verdicts directly to PRJudge
 
 ---

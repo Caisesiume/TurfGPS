@@ -44,12 +44,7 @@ npm --prefix web install   # each worktree needs its own node_modules
 Smallest change that meets the criteria. Reuse existing hooks and design-system components before adding new ones. Keep components pure and small; lift shared state deliberately; never leave a `useEffect` with a dishonest dependency array. Coordinate with @progressive-results-specialist (do not reinvent the streaming layer) when the item consumes a solve still in progress.
 
 ### Phase 4 — Frontend local gates (all green before a PR)
-```bash
-cd web
-npm run build        # tsc + vite build, no errors
-npm run lint         # 0 issues
-npm run test         # all pass
-```
+Run the **frontend gates** — build, lint, tests — per `local-gates § Frontend (Vite + React)`. The skill holds the commands and the directory they run from; do not reproduce them here, even though the copy that stood here was correct on the day it was written. The gates are still owed a Makefile, so the list will move.
 
 ### Phase 5 — Open the PR
 `"$GH" pr create` with the board-item link, each acceptance criterion + evidence, files modified with one-line rationale, "safety paths touched" (a card that renders a time estimate or an accessibility classification touches the *display* of a safety judgement — say so), and gate results. Move the item to **In review**.

@@ -53,10 +53,8 @@ Implement the smallest change that satisfies the acceptance criteria. House rule
 **Commit traceability:** every commit message references the user story it serves by GitHub issue ID — all affected stories, every commit (e.g. `fix(optimizer): guard the candidate cap (#12)`). A commit the judge cannot trace to a story is a remand.
 
 ### Phase 4 — Local gates (all must pass before a PR exists)
-```bash
-# the `local-gates` skill is the single source of truth — no Makefile exists yet
-gofmt -l . && go vet ./... && golangci-lint run && go test -race -count=1 ./... && go build ./...
-```
+Run the **backend gates** — format, vet, lint, race-enabled tests, build — per `local-gates § Backend (Go)`. That skill is the single source of truth and holds the commands, including **the working directory they run from**, which is not the repository root and is the whole of what stands between a green board and a run that inspected nothing. Do not reproduce the list here; read it there each time, because it changes.
+
 These prove the code *runs*. They say nothing about quality — that is the bench's job. Do not open a PR hoping reviewers will catch what the gates already could.
 
 ### Phase 5 — Open the PR
@@ -97,7 +95,8 @@ It lands in the Backlog for the RE agent to trace to a requirement and turn into
 [access classification / stop selection / routing exclusions / time ceiling / safety constants — or "none"]
 
 ## Local gates
-gofmt: clean | vet: clean | golangci-lint: 0 issues | tests: PASS (N packages) | build: SUCCESS
+[the report line from `local-gates § The law`, verbatim — it leads with the directory the
+gates ran in, and a line without one is not evidence that anything was compiled]
 ```
 
 ---

@@ -5,7 +5,7 @@ description: The protocol for TurfGPS database migrations on self-hosted Postgre
 
 # PostGIS Migration Protocol
 
-Database: **self-hosted PostgreSQL with PostGIS**, per D4 in `docs/Architecture.md` — one store holding synced zones, OSM-derived feature data, and stored plans.
+Database: **self-hosted PostgreSQL with PostGIS**, per `Architecture.md § D4` — one store holding synced zones, OSM-derived feature data, and stored plans.
 
 > **Status: awaiting the schema.** The schema behind `PlanStore` and the synced zone table are listed under `Architecture.md § Still owed by this document`. Until it exists there is nothing to migrate, and the first migration is itself a reviewable item. The protocol below is in force from that first migration onward; it is transferable law learned on another platform, not a TurfGPS observation, and the parts marked as such should be confirmed against this stack rather than assumed.
 

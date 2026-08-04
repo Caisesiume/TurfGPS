@@ -24,8 +24,8 @@ color: blue
 
 Two constraints narrow the field before anyone argues:
 
-- **The service is stateful and long-lived**, holding solve sessions with retained state. Anything requiring statelessness is already ruled out by D1.
-- **The client is a static SPA over HTTP**, per D2. A transport needing a server-rendering layer is ruled out too.
+- **The service is stateful and long-lived**, holding solve sessions with retained state. Anything requiring statelessness is already ruled out by `Architecture.md § D1`.
+- **The client is a static SPA over HTTP**, per `Architecture.md § D2`. A transport needing a server-rendering layer is ruled out too.
 
 ---
 
@@ -59,7 +59,9 @@ cd ../TurfGPS-wt/<item-slug>   # ALL work happens here; after merge: git worktre
 Smallest change that meets the criteria. Emit *scoped* progress — what stage, what fraction, what is outstanding — not an opaque heartbeat. Preserve route stability across updates. Handle reconnect and resume without replaying work the client already has, and without losing an update between the last acknowledged message and the reconnect. Back-pressure is real: a corridor with hundreds of candidates must not flood a phone on a poor connection.
 
 ### Phase 4 — Gates
-Run the `local-gates` skill's code gates across the whole diff, backend and frontend. Concurrency-touching changes get `-race`; a stream is concurrency by definition.
+Run the code gates across the whole diff, backend and frontend — `local-gates § Backend (Go)` and `local-gates § Frontend (Vite + React)`. Take the commands and their working directories from the skill; a Go gate run from the repository root passes against nothing.
+
+The skill's test gate carries `-race` unconditionally, which for your items is not a formality: a stream is concurrency by definition, so this is the gate most likely to actually find something in your diff.
 
 ### Phase 5 — PR
 Board-item link, criteria + evidence, files + rationale, safety paths touched (usually none — say so), the ordering and reconnect semantics you implemented, and the gate results. Move to **In review**.
