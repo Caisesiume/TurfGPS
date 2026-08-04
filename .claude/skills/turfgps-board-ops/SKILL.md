@@ -86,7 +86,9 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
 
 ## Fields
 
-### Status (single-select) — the lifecycle
+### Status
+
+Single-select, and the item's lifecycle:
 
 `Backlog` → `Ready` → `In progress` → `In review` → `Ordered Revision` → `Done`
 
@@ -96,7 +98,9 @@ Authority map: Backlog→Ready is the **scrum-master's** alone; workers set `In 
 
 `Ordered Revision` exists so a remand is visible as its own column rather than hidden behind a label. An item sitting there **counts against its worker's WIP** — do not promote a replacement item for that worker — and revision preempts any new work.
 
-### Priority (single-select) — `P0` · `P1` · `P2`
+### Priority
+
+Single-select: `P0` · `P1` · `P2`.
 
 Set from the requirement's MoSCoW priority, which the RE assigns and the librarian records:
 
@@ -113,7 +117,9 @@ A story resolving several requirements takes the **highest** priority among them
 
 Applied by `@requirements-engineer` filing Task `#37` at `P0` inherited from `#25`, and stated in that issue as a rule not currently written down rather than applied silently. Adopted by the Owner on 4 August 2026.
 
-### Size (single-select) — `XS` · `S` · `M` · `L` · `XL`
+### Size
+
+Single-select: `XS` · `S` · `M` · `L` · `XL`.
 
 Set by the story-organizer as a sizing check, not an estimate. The rule is that **a story is one reviewable PR's worth of work**. An `L` is a warning and an `XL` is a defect: re-cut it into several stories under the same Epic before filing. The bench is expensive and the judge remands sprawl.
 

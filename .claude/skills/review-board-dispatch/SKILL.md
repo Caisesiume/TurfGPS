@@ -33,7 +33,9 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 Task/story name and link · acceptance criteria + requirement codes · files modified · full diff · **safety paths touched** (see the `safety-path-checklist` skill) · gate results (see `local-gates`) · implementation summary · the read-only clause.
 
-## Scoring law — from `docs/DELIVERY.md`
+## Scoring law
+
+From `docs/DELIVERY.md § Scoring`, which is where it is ratified; this section is how it is applied at dispatch.
 
 - **Each reviewer scores 0–10.** The item is shippable only when the average across all participating agents is **10.00**.
 - **That is a unanimity gate, not an average.** At an average of exactly 10.00 a single sub-10 score blocks. It cannot be diluted by uninvolved agents handing out easy 10s — which is the usual way averaged review scores decay.
