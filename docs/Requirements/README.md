@@ -4,6 +4,8 @@ The front door to the requirements corpus. Every functional and non-functional r
 
 Why a folder rather than a file: `docs/README.md § Requirements/`.
 
+## Corpus state
+
 **Corpus state — 4 August 2026.** 39 requirements, 10 categories in use. **All 39 are `to-build` or later, and `draft` is empty.** The last twenty-one to get there are batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — **signed off by the Owner on 4 August 2026**; nineteen were filed on 3 August 2026 and `FR-033` … `FR-034` on 4 August, added to the same batch on a ruling that closed one of its own open questions. They moved from `draft` **straight to `to-build`**, as both earlier batches did, because `@requirements-reconciler` is dormant and there is no classification step for a record to wait in `approved` for — no record in this corpus has ever held `approved`.
 
 **Batch 3 was the first batch to sit in `draft` after a filing pass**, which was an ordinary state rather than a stall — it had simply never been observed here, because batches 1 and 2 were each signed off the day they were filed. `FR-001` … `FR-012` were signed off by the Owner on 1 August 2026 and `FR-013` … `FR-018` on 2 August 2026. Story creation has now run for every requirement in the corpus: `@requirements-story-organizer` filed four epics and seventeen stories on 2 August 2026, in two passes, one per sign-off, and five further epics and nineteen stories on 4 August 2026 for batch 3. The links live in `TRACEABILITY.md`; each record's `Resolved-by` and the column in `INDEX.md` are views of them.
