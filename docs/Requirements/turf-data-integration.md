@@ -384,3 +384,115 @@ Rationale:    The obligation is defensive and holds whichever way the
               not require it.
 Resolved-by:  —
 ```
+
+## FR-033 — Plan no journey for lack of zone data only where no copy is held
+
+```
+Statement:    The system shall treat the absence of a local synced copy of the
+              zone set, and not the age of an existing copy beyond the bound
+              recorded under *Retrieving zones* in `Architecture.md`, as the
+              ground on which no journey is planned for lack of zone data.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — planning completes and returns recommendations against a
+              local copy older than the tolerated staleness bound, and no
+              journey is planned where no local copy exists at all
+Acceptance:   given a local synced copy of the zone set whose last completed
+              refresh is older than the bound recorded under
+              `Architecture.md § Retrieving zones`, when a journey is planned,
+              then planning completes and returns recommendations
+              given no local synced copy of the zone set, when a journey is
+              planned, then the system plans no journey
+Status:       draft
+Depends-on:   FR-022; FR-023; FR-024
+Risk:         A refusal beyond the bound puts the whole product behind a
+              background job no user can see, retry or reach: one failed or
+              delayed sync stops planning for everyone at once, and the outage
+              lasts as long as the job stays down rather than as long as a
+              request. What the refusal withholds is the stable,
+              non-round-scoped zone data the sync carries — which zones exist
+              and what they are — so the product is removed to protect an
+              answer that had barely moved.
+Rationale:    The cited section obliges the pipeline to tolerate a copy stale
+              up to the bound and stops there, saying nothing about a copy
+              older than that; this record closes that silence on the Owner's
+              ruling of 3 August 2026 — plan against whatever copy exists, and
+              refuse only where none exists — so the unwritten case does not
+              settle itself as a refusal on first contact with it. FR-024 owns
+              the tolerated range and the mid-refresh window; this record
+              begins past the bound and re-asserts neither, which is why the
+              condition is stated as age beyond the cited bound rather than as
+              staleness generally. The two branches are one gate and not two
+              records: the decision reads one input, whether a copy is held,
+              and separated the halves read as permission to fail each other —
+              a record obliging planning from any copy invites planning from
+              none, and a record refusing where none is held is satisfied by
+              refusing always. What a plan built this way may claim about
+              itself is not settled here: the ordering of confidence against
+              data age is NFR-002's and is neither restated nor extended, and
+              the fact the result must carry is FR-034, separated because a
+              plan produced and a plan marked are separately testable
+              outcomes. Nothing here fixes how a refusal is surfaced, which
+              has no source yet.
+Resolved-by:  —
+```
+
+## FR-034 — Record a result as built from data stale beyond the bound
+
+```
+Statement:    The system shall record, on each result built from a local
+              synced copy of the zone set stale beyond the bound recorded
+              under *Retrieving zones* in `Architecture.md`, that the result
+              was built from data stale beyond that bound.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — a result planned from a local copy older than the
+              tolerated staleness bound carries that fact, and a result
+              planned from a copy within the bound does not
+Acceptance:   given a local synced copy of the zone set whose last completed
+              refresh is older than the bound recorded under
+              `Architecture.md § Retrieving zones`, when a journey is planned,
+              then the result returned carries the fact that it was built from
+              data stale beyond that bound
+              given a local synced copy of the zone set whose last completed
+              refresh is within that bound, when a journey is planned, then
+              the result returned carries no such fact
+Status:       draft
+Depends-on:   FR-022; FR-033
+Risk:         A plan built from data past the tolerated bound and returned
+              indistinguishable from one built from a current copy makes the
+              degradation the ruling accepted invisible: the product keeps
+              answering while the basis of its answers quietly erodes, and
+              nothing downstream — the confidence recorded for it, a later
+              diagnosis, the user deciding whether to trust it — can tell
+              which answers to discount. The loss is silent, and it is total
+              exactly when it matters most: a prolonged sync failure reaches
+              every result at once and none of them says so.
+Rationale:    Separated from FR-033 on singularity: producing the plan and
+              recording what it was built from are two outcomes on one branch,
+              and a statement joining them would be half-satisfiable by the
+              half that keeps the product working — which is the half nobody
+              forgets to build. It carries the second half of the Owner's
+              ruling of 3 August 2026, that the result is marked as built from
+              stale data. The second criterion is as much the record's point
+              as the first: a fact recorded on every result records nothing,
+              and the marking informs only where it tracks the condition that
+              produced it; that criterion asserts nothing about whether
+              planning within the bound completes, which is FR-024's. The
+              boundary against NFR-002 is stated because the two read as one
+              record until they are separated. NFR-002 owns the relation
+              between data age and the confidence a recommendation carries and
+              remains its only home — no scale, no ordering and no confidence
+              value is set or implied here. This record carries a fact about
+              provenance, true or false of a given result, and a system could
+              satisfy either without the other: record the fact and never let
+              it move a confidence value, or move confidence and never record
+              what moved it. The record fixes no mechanism — where the fact is
+              held, what it is called, and whether or how it reaches a user
+              are design and interface questions, and the interface has no
+              source in the corpus yet. The obligation is that the result
+              carries the fact.
+Resolved-by:  —
+```

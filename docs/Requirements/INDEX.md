@@ -13,7 +13,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | Category | File | Records |
 |---|---|---|
 | [Journey definition](#journey-definition) | `journey-definition.md` | `FR-001` – `FR-006`, `FR-012` (7) |
-| [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031` (10) |
+| [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031`, `FR-033` – `FR-034` (12) |
 | [Zone data fidelity](#zone-data-fidelity) | `zone-data-fidelity.md` | `FR-020`, `FR-021`, `FR-032` (3) |
 | [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009`, `FR-027` (3) |
 | [Value model](#value-model) | `value-model.md` | `FR-007` (1) |
@@ -23,9 +23,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | [Outbound rate compliance](#outbound-rate-compliance) | `outbound-rate-compliance.md` | `NFR-001` (1) |
 | [Runtime and deployment shape](#runtime-and-deployment-shape) | `runtime-and-deployment-shape.md` | `NFR-003` – `NFR-005` (3) |
 
-**37 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+**39 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**18 rows read `to-build` and 19 read `draft`.** The nineteen drafts are batch 3 — `FR-019` … `FR-032` and `NFR-001` … `NFR-005` — filed 3 August 2026 and **awaiting the Owner's sign-off**. `draft` here means *filed and awaiting sign-off*, not *unfinished*: the records are in place, indexed and traced. On sign-off they move straight to `to-build`, as batches 1 and 2 each did on the day they were filed; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
+**18 rows read `to-build` and 21 read `draft`.** The twenty-one drafts are batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — nineteen filed 3 August 2026 and `FR-033` … `FR-034` on 4 August, all **awaiting the Owner's sign-off**. `draft` here means *filed and awaiting sign-off*, not *unfinished*: the records are in place, indexed and traced. On sign-off they move straight to `to-build`, as batches 1 and 2 each did on the day they were filed; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
 
 **Every batch-3 row reads `—` in `Resolved-by`**, because story creation follows sign-off as a pass of its own and has not run for them. The eighteen `to-build` rows each name a story, allocated in two passes on 2 August 2026.
 
@@ -59,6 +59,8 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | draft | test | — |
 | `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | draft | test | — |
 | `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | draft | test | — |
+| `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | draft | test | — |
+| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | draft | test | — |
 
 `NFR-001` and `NFR-002` were filed under this category on 3 August 2026 and moved out the same day, to `Outbound rate compliance` and `Data currency and confidence`, on the Owner's ruling that a `Category` never spans both kinds — see `README.md` § Category register. Their rows are under those two headings below, and nothing about either record changed in the move but its `Category` field.
 
@@ -142,7 +144,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 ## Reading the Verification column
 
-**The split across the corpus is 32 `test` · 4 `inspection` · 1 `human-judgement`.**
+**The split across the corpus is 34 `test` · 4 `inspection` · 1 `human-judgement`.**
 
 `inspection` appears in this index for the first time with batch 3 — `FR-019`, `FR-020`, `FR-026` and `NFR-004` — and it is a chosen method rather than a test not yet written. Each of the four names the artefact examined, the property that must hold and where a reader confirms it, in the form `.claude/skills/requirements-authoring/SKILL.md` § Acceptance-criteria form requires; none is wrapped in given/when/then, because nothing is executed and a criterion narrating a run nobody performs can never fail. `NFR-004` is the first record in the corpus whose kind and whose method point at different criterion forms, and it takes the method's — which is the rule that section states, not an exception made for it.
 
