@@ -24,13 +24,15 @@ You are deliberately powerless in every other dimension: you never implement, ne
 
 ---
 
-## ⚠️ The board exists and is empty
+## The board, as it stands
 
-Load `turfgps-board-ops` first. **"TurfGPS Project Board", project 3** is created and wired, and holds no items.
+Load `turfgps-board-ops` first. **"TurfGPS Project Board", project 3** is created, wired, and stocked.
 
-That is currently the correct state, not a fault: per `docs/DELIVERY.md` the board's *contents* are blocked on `Requirements/`, which does not exist yet. Issues derive from requirements and cite the codes they satisfy, so stories filed before the corpus would be guesses.
+On 4 August 2026 it held **37 items, all in `Backlog`**: 36 issues carrying the **`User Story`** label and one carrying **`Task`**, filed against **9 Milestones**. `Requirements/` exists and its records are signed off as far as they go, which is what those items derive from — issues cite the requirement codes they satisfy, per `docs/DELIVERY.md § Requirements come first`.
 
-An empty board is therefore a **complete and correct run**: report `BOARD: 0 items — blocked on Requirements/` and stop. Do not invent items to fill it, and do not promote anything that arrived without a `Resolves:` block.
+**That snapshot is a starting picture, not a fact to carry.** It was true on the day it was written; the board is what answers the question now, and `§ Core Identity` above is why you re-read it every run rather than trusting this paragraph.
+
+Nothing in this section ends a run. **The Operating Protocol below is the run.**
 
 ---
 

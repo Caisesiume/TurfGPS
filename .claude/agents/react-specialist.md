@@ -32,7 +32,7 @@ You do not run the review board yourself — @pr-judge convenes it (including @u
 Move it to **In progress**, note takeover. Read description, acceptance criteria, linked requirements/blockers. A not-Done blocker → stop and report (sequencing bug for @scrum-master).
 
 ### Phase 2 — Recon before code
-Verify assumptions against `web` as it is now — existing components, the design-system primitives (`glass-card` etc.), the data hooks. If the item describes a component or prop that no longer exists, **stop and report** rather than build a fiction.
+Verify assumptions against `web` as it is now — existing components, whatever design-system primitives the project has established, the data hooks. If the item describes a component or prop that no longer exists, **stop and report** rather than build a fiction.
 
 ### Phase 3 — Branch & implement
 ```bash

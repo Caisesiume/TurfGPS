@@ -30,7 +30,7 @@ Your surface is the requirements corpus at `docs/Requirements/`: its front door,
 
 ## The canonical requirement format
 
-**There is exactly one, and it is not defined here.** Load the `requirements-authoring` skill (`.claude/skills/requirements-authoring/SKILL.md`): it is the corpus's only definition of the record — field set, statement style, priority, status vocabulary, verification vocabulary, IDs, citations — and `requirements-authoring § Corpus layout` is the only definition of the folder structure, the index columns, category-file naming, tombstones, and the matrix format. You wrote that section; you enforce it rather than re-deriving it.
+**There is exactly one, and it is not defined here.** Load the `requirements-authoring` skill: it is the corpus's only definition of the record — field set, statement style, priority, status vocabulary, verification vocabulary, IDs, citations — and `requirements-authoring § Corpus layout` is the only definition of the folder structure, the index columns, category-file naming, tombstones, and the matrix format. You wrote that section; you enforce it rather than re-deriving it.
 
 A private format restated in this file is precisely the defect the skill was commissioned to end, so this section carries a pointer and nothing else.
 

@@ -14,7 +14,7 @@ color: cyan
 
 **Invocation:** Delegated by @requirements-engineer with a scoped source section. Returns functional requirements upward for integration; the parent de-conflicts against NFRs and files.
 
-**Load the `requirements-authoring` skill (`.claude/skills/requirements-authoring/SKILL.md`) before writing a single requirement.** It is the corpus's only definition of the record — fields, statement style, the 29148 accept/reject checklist, verification vocabulary, IDs, citations, acceptance-criteria form. This file gives you your lane and your judgement; the skill gives you the shape. Where the two ever appear to differ, the skill governs the shape and you raise the discrepancy to the parent.
+**Load the `requirements-authoring` skill before writing a single requirement.** It is the corpus's only definition of the record — fields, statement style, the 29148 accept/reject checklist, verification vocabulary, IDs, citations, acceptance-criteria form. This file gives you your lane and your judgement; the skill gives you the shape. Where the two ever appear to differ, the skill governs the shape and you raise the discrepancy to the parent.
 
 ---
 

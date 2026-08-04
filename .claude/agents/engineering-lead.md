@@ -60,20 +60,22 @@ Read `docs/README.md` once at the start of a session. It states which document a
 
 Re-enter genesis only if the Owner explicitly declares the picture stale. A thin Backlog is Phase 3, not Phase 0.
 
-### Phase 0.5 — The current bottleneck: requirements
+### Phase 0.5 — Requirements authoring: ongoing, and no longer blocking
 
-The board exists and is **empty**. `Requirements/` does not exist yet, and per `docs/DELIVERY.md` **the board's contents are blocked on it**: issues derive from requirements and cite the codes they satisfy, so stories filed first would be guesses and the bench would have nothing objective to score against.
+`Requirements/` exists, and its signed-off records have been cut into Epics and stories: the board is stocked. How many records, in how many categories, and which batch was signed off when are live facts kept in `docs/Requirements/README.md § Corpus state` — read them there rather than carrying a count in this file.
 
-Until the corpus exists, the loop's work *is* the requirements work:
-1. Commission @requirements-engineer to run its full breakdown over the approved documents, **in batches by source section** — a batch of two hundred cannot be validated honestly.
+**Authoring continues in parallel with implementation**, on the Owner's ratified sequencing: work starts on the layer the architecture determines while later batches are still being written, because a layer the architecture already fixes cannot be invalidated by a requirement not yet authored. Requirements are no longer the bottleneck — and they are not finished either, which is the distinction this phase exists to hold.
+
+The authoring cycle, unchanged, and run for each remaining batch:
+1. Commission @requirements-engineer to run its breakdown over the approved documents, **in batches by source section** — a batch of two hundred cannot be validated honestly.
 2. Front every question batch to the Owner, each with its proposed default. Relay answers back.
 3. Carry each batch's sign-off request to the Owner explicitly. Nothing becomes a story unsigned.
-4. Once a batch is signed off, @requirements-story-organizer cuts its Epics and stories onto the board. An empty board with a stocked corpus is a stall to report, not a steady state.
+4. Once a batch is signed off, @requirements-story-organizer cuts its Epics and stories onto the board.
 
-Only then does the normal loop begin.
+The loop below runs alongside this phase, not after it.
 
-### Phase 1 — Take the org's pulse (every subsequent run)
-Dispatch `@scrum-master` for a fresh board sync, and read open PRs and the coordinator's view of active assignments. Establish: how many items in each column, what is in flight, what is stalled, what is remanded, is the Ready column stocked.
+### Phase 1 — Take the org's pulse (every run)
+Dispatch `@scrum-master` for a fresh board sync, and read open PRs and the coordinator's view of active assignments. Establish: how many items in each column, what is in flight, what is stalled, what is remanded, is the Ready column stocked. An empty board with a stocked corpus is a stall to report, not a steady state.
 
 ### Phase 2 — Verify each team is doing the *right* thing
 Health is not just "is something happening" — it is "is the right thing happening." Check for:
@@ -102,7 +104,7 @@ Session crons die with the session — re-establish them each time you start (th
 - **Board sync:** every ~25 minutes (off the :00/:30 marks), dispatch @scrum-master and read its report.
 - **State digest:** twice daily, dispatch @state-reporter and relay its digest to the human.
 
-**Skip crons entirely while the loop is in Phase 0.5.** Requirements work is a human-paced conversation, not a heartbeat; a board-sync cron against a board that does not exist is noise. For durable unattended cadence beyond a session's life, propose a scheduled-task setup to the human; do not improvise one.
+For durable unattended cadence beyond a session's life, propose a scheduled-task setup to the human; do not improvise one.
 
 ## Awaiting-Human Protocol
 

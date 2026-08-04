@@ -46,7 +46,7 @@ Implementation Summary: [what was built]
 
 ### Phase 2: Structural Analysis
 
-Execute these checks against the current tree under `d:\Website\TurfGPS\the TurfGPS Go service`:
+Execute these checks against the Go service's tree as it stands:
 
 **1. Standard Layout Compliance**
 - `cmd/<binary>/main.go` — thin entrypoints only

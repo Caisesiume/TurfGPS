@@ -30,7 +30,7 @@ From that point you run on **every** batch, exactly as described below. The fail
 
 ## The status vocabulary is not yours to define
 
-**Load the `requirements-authoring` skill (`.claude/skills/requirements-authoring/SKILL.md`) before returning a single verdict.** Three of the four verdicts below — `implemented-verified`, `implemented-unverified`, `to-build` — are values on the skill's **status chain**, which is their only definition; you are named there as the agent that writes the first two, with `to-build` as the entry state. Taking them from the skill rather than from this file is what keeps your verdicts and the corpus's `Status` field one vocabulary instead of two that happen to agree.
+**Load the `requirements-authoring` skill before returning a single verdict.** Three of the four verdicts below — `implemented-verified`, `implemented-unverified`, `to-build` — are values on the skill's **status chain**, which is their only definition; you are named there as the agent that writes the first two, with `to-build` as the entry state. Taking them from the skill rather than from this file is what keeps your verdicts and the corpus's `Status` field one vocabulary instead of two that happen to agree.
 
 The same chain defines your own activation from the other side: once you are live, the Owner's sign-off writes **`approved`** and your verdict is what moves a record off it. While you are dormant sign-off skips straight to `to-build`, which is why `approved` is a state that exists only because you do.
 

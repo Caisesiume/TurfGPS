@@ -20,7 +20,7 @@ color: cyan
 
 Load the `turfgps-board-ops` skill. The board is **"TurfGPS Project Board", project 3**, and it is wired: the seven loop labels exist, auto-add is enabled, and the Status field carries the full lifecycle including `Ordered Revision`.
 
-**Load the `requirements-authoring` skill (`.claude/skills/requirements-authoring/SKILL.md`) before cutting a single story.** It is the corpus's only definition of the requirement record, and four things you depend on live there and nowhere else:
+**Load the `requirements-authoring` skill before cutting a single story.** It is the corpus's only definition of the requirement record, and four things you depend on live there and nowhere else:
 
 - **The status chain**, which fixes what *approved* means in the paragraph below. Sign-off moves a record from `draft` **straight to `to-build`** while @requirements-reconciler is dormant, so "**approved requirements**" — the phrase this file files by — means **`to-build` or later**, never the literal status value `approved`. A corpus of `draft` records is one you file nothing from.
 - **The MoSCoW → board mapping** behind the `Priority` bullet below, including the case that bullet does not enumerate: **`WON'T-now` maps to nothing and is not filed as a story at all**. It stays in the corpus as the record of a decided exclusion.

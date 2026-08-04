@@ -52,7 +52,7 @@ Operational detail: how to deploy, target OS, hosting options with price and com
 
 ## Current state
 
-As of 1 August 2026 the set is in this shape, less one document that does not yet exist.
+As of 4 August 2026 the set is in this shape, less one document that does not yet exist.
 
 `Concept.md` held the authoritative product definition at roughly 1,670 lines, having grown past its purpose because formulas, thresholds, integration facts, and interaction flow had nowhere else to live. It was **split** on 31 July 2026, as a move operation rather than an authoring one, into `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md`. It no longer exists; it survives in git history.
 
@@ -60,7 +60,7 @@ As of 1 August 2026 the set is in this shape, less one document that does not ye
 - **`CalculationSpecification.md`** is complete for the first release, less a domain glossary it still owes.
 - **`Architecture.md`** carries binding technology decisions and the Turf API facts. It still owes failure handling, observability, security, and schema.
 - **`DESIGN.md`** carries the full interaction flow. It still owes the visual layer.
-- **`Requirements/`** exists and is being authored — its first requirements are filed across four categories, with the live count in its own `INDEX.md`. It remains the bottleneck for the project board described in `DELIVERY.md`, now because it is far short of the expected volume rather than because it is absent. **`DEPLOYMENT.md`** does not exist yet.
+- **`Requirements/`** exists and is being authored — on 4 August 2026 its records were filed across ten categories, with the live count in its own `INDEX.md`. It is **no longer the bottleneck** for the project board described in `DELIVERY.md`: its signed-off records have been cut into Epics and stories, and the board is stocked. Authoring continues alongside the work the board now carries, still far short of the volume anticipated in `§ Requirements/` above. **`DEPLOYMENT.md`** does not exist yet.
 
 Each document ends with what it still owes and the open questions it owns. Those are the shortest route to what is unfinished.
 
@@ -85,7 +85,7 @@ Four consequences of the token being atomic:
 
 This is **the identifier rule above reaching the token's other half**, which is why it is recorded here and not as a case of its own. There, a heading carrying a stable identifier is cited by that identifier because the identifier is the durable part of the heading and the tail is the volatile part. The same split runs through the target: a skill's **name** is how every agent invokes it, it is the `name` field of the skill's own frontmatter, and it survives the file being moved — while the path around it is a fixed directory and a fixed filename that carry nothing the name does not, and that change without the skill changing. One stable key standing for one location, in both halves of the token.
 
-**Two renderings, one token.** The four documents are read rendered, so their delimiters are italic. The requirements corpus's record fields sit inside fences where no markdown renders at all, so grep-ability is the only criterion that applies there and the delimiters are code spans. That half is owned by `.claude/skills/requirements-authoring/SKILL.md § IDs and citations` — including the two fields the delimiters are deliberately kept off — and is not restated here. Nothing about the token itself differs between them.
+**Two renderings, one token.** The four documents are read rendered, so their delimiters are italic. The requirements corpus's record fields sit inside fences where no markdown renders at all, so grep-ability is the only criterion that applies there and the delimiters are code spans. That half is owned by `requirements-authoring § IDs and citations` — including the two fields the delimiters are deliberately kept off — and is not restated here. Nothing about the token itself differs between them.
 
 **Every other file takes the code span, and a property decides it rather than a tally.** This file, `DELIVERY.md`, `HANDOFF.md`, the corpus's own `README.md`, `INDEX.md` and `TRACEABILITY.md`, the skill files under `.claude/skills/`, and the agent definitions under `.claude/agents/` are all read rendered, and none is one of the four documents, so neither rendering's stated reason reaches them. What does reach them is how they are used: **these are working documents, consulted rather than read through.** A reader arrives at one by searching for a term, or by loading it whole into an agent's context — never front to back — so the criterion that settles the corpus's record fields, that a citation be findable by `grep`, applies here in its own right rather than because a fence suppresses rendering. That is the third class, and its delimiter is the code span.
 
