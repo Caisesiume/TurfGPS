@@ -21,7 +21,7 @@ Acceptance:   the persisted zone representation and the ingest mapping that
               footprint attribute, and neither names the nominal size recorded
               under `Architecture.md § Zone geometry`; a reader confirms this
               in the zone schema definition and in the ingest mapping
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         The API exposes nothing about the shape or size of any
               individual zone, and the nominal figure is a guideline that real
@@ -63,7 +63,7 @@ Acceptance:   given two zones whose coordinates lie closer together than the
               given the same pair of zones, when an operation that consumes
               the distance between them runs, then it completes and its result
               follows from the measured separation
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         The guideline has known exceptions — water zones are commonly,
               and often considerably, closer than it — so a floor assumed
@@ -104,7 +104,7 @@ Acceptance:   given two zones whose coordinates lie closer together than the
               given the same pair of zones, when a stage that groups, indexes
               or selects zones returns a zone set covering the area holding
               them, then both appear in that set as separate zones
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         Water zones are commonly closer together than the placement
               guideline, and often considerably closer, so the case this

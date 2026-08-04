@@ -24,7 +24,7 @@ Acceptance:   files required to start the service on a clean target-platform
               service start-up and first served request in that image: both
               succeed, with no installation step performed between the copy
               and the start
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         A single binary is one of the three properties
               `Architecture.md § D1` chose Go for, and it is the one that lets
@@ -72,7 +72,7 @@ Acceptance:   the service's entry point holds a server that listens for the
               deployment model still owed under
               `Architecture.md § Still owed by this document` comes to define
               it
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         A per-invocation target discards the candidate set, the access
               classifications and the computed costs between requests, and
@@ -114,7 +114,7 @@ Acceptance:   server-side application code executed to serve the client: none,
               client load and first successful call to the service in that
               arrangement: both succeed, with the service reachable only over
               HTTP
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         Server-side rendering adds a build and a deployment layer
               serving no stated requirement, and the frameworks offering it

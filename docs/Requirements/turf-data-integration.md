@@ -21,7 +21,7 @@ Acceptance:   the Turf API adapter and its configuration name exactly one API
               `Architecture.md § API version`; a reader confirms this in the
               adapter's request-construction code and in the configuration
               that supplies its base path
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         The preceding version is deprecated, so a call path built on it
               works until the day it is withdrawn and then fails for every
@@ -59,15 +59,15 @@ Acceptance:   given a local synced copy due for refresh and no user request in
               given a planning request handled while the local synced copy is
               due for refresh, when the request is served, then it issues no
               all-zones request and does not wait on the refresh job
-Status:       draft
+Status:       to-build
 Depends-on:   none
-Risk:         The all-zones download is recorded as large enough and slow
-              enough to have timed out on a partial transfer, and the endpoint
-              admits one request per interval, so a request path that triggers
-              it makes the user wait on that transfer and can spend the whole
-              interval's allowance on a single page load. The copy is then
-              frozen until the interval elapses, so the damage outlives the
-              request that caused it.
+Risk:         The all-zones endpoint admits one request per interval, so a
+              request path that triggers it can spend the whole interval's
+              allowance on a single page load. The copy is then frozen until
+              the interval elapses, so the damage outlives the request that
+              caused it. Freshness is bounded by that limit however fast the
+              transfer is, so a fast download is no reason to move the sync
+              onto the request path.
 Rationale:    This is one obligation rather than two: a job that runs on a
               schedule and can also be triggered by a request is not off the
               request path, and the source states the schedule and the
@@ -94,7 +94,7 @@ Acceptance:   given a local synced copy within the staleness bound recorded
               when the zones lying within that corridor are resolved, then
               they are returned from the local copy and no Turf API request is
               issued
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022
 Risk:         Resolving corridors through the fallback endpoint puts a tiled
               sequence of Turf requests on the planning path, so planning time
@@ -131,7 +131,7 @@ Acceptance:   given a refresh of the local synced copy in progress, when a
               as the staleness bound recorded under
               `Architecture.md § Retrieving zones`, when a journey is planned,
               then planning completes and returns recommendations
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022; FR-023
 Risk:         The refresh runs on a schedule no user sees, so a pipeline that
               refuses to plan while it is running, or against a copy within
@@ -170,7 +170,7 @@ Acceptance:   given an area whose latitude span multiplied by its longitude
               one of whose spans, taken alone, exceeds the constraint's value,
               when requests are constructed for it, then the area is issued as
               a single request
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Rationale:    The second criterion is the record's point and not a refinement
               of the first. A per-axis reading of the constraint admits no
@@ -205,7 +205,7 @@ Acceptance:   the schema of the local synced copy carries no owner and no
               schema definition and in the ingest mapping, and confirms in
               `Architecture.md § Retrieving zones` that the endpoint omits
               both fields
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022
 Risk:         The all-zones response omits `currentOwner` and `dateLastTaken`
               from every record, so a copy carrying those columns holds a
@@ -252,7 +252,7 @@ Acceptance:   given a review session whose player-data call has returned the
               given a review session in which the user reviews further zones
               after the first, when their held state is decided, then the
               number of Turf requests the session has made is unchanged
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         A per-zone ownership lookup turns one call into one call per
               zone reviewed, against a per-second rate limit, so the review
@@ -291,7 +291,7 @@ Acceptance:   given a user who holds a region lordship in exactly one region
               given a user who holds no region lordship, when region-lord
               status is determined, then it resolves as not held and exactly
               one region request is issued
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         The Region Lord takeover bonus applies globally rather than per
               region, so a status determined per zone or per region is wrong
@@ -329,7 +329,7 @@ Acceptance:   given a zone response from which `currentOwner` is absent, when
               given a zone response from which `dateLastTaken` is absent, when
               that zone is processed, then processing completes without error
               and the field is carried as absent rather than as a date
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         Both fields are absent by design for a zone nobody has taken
               this round, so absence is the ordinary case rather than an
@@ -364,7 +364,7 @@ Acceptance:   given a zone reporting a non-zero `totalTakeovers` and no
               `currentOwner`, when a signal derived from that zone's takeover
               history is computed, then the zone is not treated as one that
               has never been taken
-Status:       draft
+Status:       to-build
 Depends-on:   FR-030
 Risk:         The section records zones carrying substantial lifetime takeover
               counts and no date at all, so the absence is ordinary data
@@ -404,7 +404,7 @@ Acceptance:   given a local synced copy of the zone set whose last completed
               then planning completes and returns recommendations
               given no local synced copy of the zone set, when a journey is
               planned, then the system plans no journey
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022; FR-023; FR-024
 Risk:         A refusal beyond the bound puts the whole product behind a
               background job no user can see, retry or reach: one failed or
@@ -459,7 +459,7 @@ Acceptance:   given a local synced copy of the zone set whose last completed
               given a local synced copy of the zone set whose last completed
               refresh is within that bound, when a journey is planned, then
               the result returned carries no such fact
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022; FR-033
 Risk:         A plan built from data past the tolerated bound and returned
               indistinguishable from one built from a current copy makes the

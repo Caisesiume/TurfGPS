@@ -25,9 +25,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 **39 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**18 rows read `to-build` and 21 read `draft`.** The twenty-one drafts are batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — nineteen filed 3 August 2026 and `FR-033` … `FR-034` on 4 August, all **awaiting the Owner's sign-off**. `draft` here means *filed and awaiting sign-off*, not *unfinished*: the records are in place, indexed and traced. On sign-off they move straight to `to-build`, as batches 1 and 2 each did on the day they were filed; `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
+**All 39 rows read `to-build`, and `draft` is empty.** The last twenty-one — batch 3, `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — were signed off by the Owner on 4 August 2026 and moved from `draft` **straight to `to-build`**, as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md` § Corpus state.
 
-**Every batch-3 row reads `—` in `Resolved-by`**, because story creation follows sign-off as a pass of its own and has not run for them. The eighteen `to-build` rows each name a story, allocated in two passes on 2 August 2026.
+**Every batch-3 row still reads `—` in `Resolved-by`**, because story creation follows sign-off as a pass of its own and has not run for them yet: they are `to-build` without a story, which is the expected state between the two passes rather than a gap. The eighteen older rows each name a story, allocated in two passes on 2 August 2026.
 
 ## Journey definition
 
@@ -49,18 +49,18 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-019` | Address every Turf API request to the current API version | Turf data integration | MUST | draft | inspection | — |
-| `FR-022` | Refresh the local zone copy from a scheduled background job | Turf data integration | MUST | draft | test | — |
-| `FR-023` | Resolve a route corridor's zones against the local copy | Turf data integration | MUST | draft | test | — |
-| `FR-024` | Plan against a mid-refresh or stale local copy | Turf data integration | MUST | draft | test | — |
-| `FR-025` | Build bounding-box requests against the permitted area product | Turf data integration | COULD | draft | test | — |
-| `FR-026` | Answer no ownership question from the local zone copy | Turf data integration | MUST | draft | inspection | — |
-| `FR-028` | Decide the user's own holdings by membership in the held-zone list | Turf data integration | MUST | draft | test | — |
-| `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | draft | test | — |
-| `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | draft | test | — |
-| `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | draft | test | — |
-| `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | draft | test | — |
-| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | draft | test | — |
+| `FR-019` | Address every Turf API request to the current API version | Turf data integration | MUST | to-build | inspection | — |
+| `FR-022` | Refresh the local zone copy from a scheduled background job | Turf data integration | MUST | to-build | test | — |
+| `FR-023` | Resolve a route corridor's zones against the local copy | Turf data integration | MUST | to-build | test | — |
+| `FR-024` | Plan against a mid-refresh or stale local copy | Turf data integration | MUST | to-build | test | — |
+| `FR-025` | Build bounding-box requests against the permitted area product | Turf data integration | COULD | to-build | test | — |
+| `FR-026` | Answer no ownership question from the local zone copy | Turf data integration | MUST | to-build | inspection | — |
+| `FR-028` | Decide the user's own holdings by membership in the held-zone list | Turf data integration | MUST | to-build | test | — |
+| `FR-029` | Determine region lordship once, from a single region response | Turf data integration | MUST | to-build | test | — |
+| `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | to-build | test | — |
+| `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | to-build | test | — |
+| `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | to-build | test | — |
+| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | to-build | test | — |
 
 `NFR-001` and `NFR-002` were filed under this category on 3 August 2026 and moved out the same day, to `Outbound rate compliance` and `Data currency and confidence`, on the Owner's ruling that a `Category` never spans both kinds — see `README.md` § Category register. Their rows are under those two headings below, and nothing about either record changed in the move but its `Category` field.
 
@@ -70,9 +70,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-020` | Derive no per-zone extent from the nominal zone size | Zone data fidelity | MUST | draft | inspection | — |
-| `FR-021` | Measure the distance between two zones for that pair | Zone data fidelity | MUST | draft | test | — |
-| `FR-032` | Assume no minimum distance between two zones | Zone data fidelity | MUST | draft | test | — |
+| `FR-020` | Derive no per-zone extent from the nominal zone size | Zone data fidelity | MUST | to-build | inspection | — |
+| `FR-021` | Measure the distance between two zones for that pair | Zone data fidelity | MUST | to-build | test | — |
+| `FR-032` | Assume no minimum distance between two zones | Zone data fidelity | MUST | to-build | test | — |
 
 ## Cost and time composition
 
@@ -82,7 +82,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 |---|---|---|---|---|---|---|
 | `FR-008` | Measure journey cost as time added to the journey without Turf stops | Cost and time composition | MUST | to-build | test | #7 |
 | `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | to-build | test | #8 |
-| `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | draft | test | — |
+| `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | to-build | test | — |
 
 `FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
@@ -122,7 +122,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-002` | Lower confidence as the Turf data behind a recommendation ages | Data currency and confidence | SHOULD | draft | test | — |
+| `NFR-002` | Lower confidence as the Turf data behind a recommendation ages | Data currency and confidence | SHOULD | to-build | test | — |
 
 ## Outbound rate compliance
 
@@ -130,7 +130,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-001` | Hold outbound Turf calls within the API's published limits | Outbound rate compliance | MUST | draft | test | — |
+| `NFR-001` | Hold outbound Turf calls within the API's published limits | Outbound rate compliance | MUST | to-build | test | — |
 
 ## Runtime and deployment shape
 
@@ -138,9 +138,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | draft | test | — |
-| `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | draft | inspection | — |
-| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | draft | test | — |
+| `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | to-build | test | — |
+| `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | to-build | inspection | — |
+| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | to-build | test | — |
 
 ## Reading the Verification column
 

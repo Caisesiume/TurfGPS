@@ -101,7 +101,7 @@ Acceptance:   given two players whose rank and takeover-bonus state are equal
               given a journey that captures each of its zones once, when stop
               time is composed for each stop, then no stop's time carries a
               period during which the zone is locked against being taken again
-Status:       draft
+Status:       to-build
 Depends-on:   FR-009
 Risk:         `blocktime` is the only duration the player endpoint returns, it
               is in seconds, it varies by rank, and takeover duration — the

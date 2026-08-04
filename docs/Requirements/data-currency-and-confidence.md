@@ -25,7 +25,7 @@ Acceptance:   metric — the confidence the system records for a recommendation,
               uncertainty driver held fixed, and the ages sampled are read
               from the deployment's own confidence configuration rather than
               fixed by this record
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Rationale:    The source states a relation and not its shape, so this record
               tests the relation and fixes no age at which confidence changes.
