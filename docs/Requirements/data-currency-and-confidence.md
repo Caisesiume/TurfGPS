@@ -2,7 +2,7 @@
 
 How the age of the data a recommendation was built from bounds the confidence the system may record for it. Its trigger is the **age** of data that is otherwise complete, which is what separates it from `Coverage and data quality`, whose trigger is data that is **thin**; and its subject is the confidence carried by the recommendation rather than the calibration of the time estimate inside it, which is what separates it from `Estimate accuracy`. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## NFR-002 — Lower confidence as the Turf data behind a recommendation ages
 

@@ -2,7 +2,7 @@
 
 The objective a plan optimizes, and the ordering of alternatives under it. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-010 — Do not prefer a journey alternative for its zone count
 

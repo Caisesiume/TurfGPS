@@ -2,7 +2,7 @@
 
 What a journey is: the destinations a request must and may name, the order they are visited in, their preservation through optimization, and the mode of travel between them. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-001 — Plan a journey from an origin to a destination
 

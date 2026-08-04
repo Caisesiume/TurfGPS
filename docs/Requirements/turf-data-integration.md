@@ -2,7 +2,7 @@
 
 How zone, player and region data is obtained from the Turf API and what may be relied on from it: which source answers which question, the local synced copy and the staleness the pipeline tolerates in it, the shape constraints the endpoints place on a single request, and the fields whose absence or round scope constrains what can be concluded. Two neighbours abut it and neither is folded in: **rate over time against the API is `Outbound rate compliance`; per-journey call volume is `Call budget`** — this category owns what is fetched and what it means, never how often it may be asked for. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-019 — Address every Turf API request to the current API version
 

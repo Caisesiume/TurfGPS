@@ -2,7 +2,7 @@
 
 What a journey's Turf value is made of: the zones counted toward it, the attributes that weight them, and the user's stated preferences over those attributes. The mirror of `Cost and time composition`; the two are combined by `Objective selection and ranking`, which owns neither. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-007 — Derive a journey's Turf value from the zones it captures
 

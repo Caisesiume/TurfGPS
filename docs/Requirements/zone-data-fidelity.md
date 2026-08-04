@@ -2,7 +2,7 @@
 
 What the system may and may not assume about an individual zone, and about the relationship between two zones, given what the Turf API exposes and what it merely *guides*. Distinct from `Turf data integration`, which owns how that data is obtained and kept current — this category owns the limits the data's nature places on everything downstream of it, including the cost model and the optimizer. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-020 — Derive no per-zone extent from the nominal zone size
 

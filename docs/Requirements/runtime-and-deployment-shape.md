@@ -2,7 +2,7 @@
 
 The form the system is built and run in: what the build produces, how the client is served, the statefulness the solve session imposes, and the deployment topologies the architecture rules out. Distinct from `Platform support`, which is about the browsers the client must work in. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## NFR-003 — Build the service as one self-contained executable
 

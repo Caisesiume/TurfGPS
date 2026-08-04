@@ -2,7 +2,7 @@
 
 Which journey alternatives reach the user and what the offered set must hold: how many, how varied, what is dropped as redundant or dominated, and what may never be withheld. Distinct from `Route alternative generation`, which produces the corridors, and from `Objective selection and ranking`, which decides the objective and the order — this category decides membership of the offered set, not its ranking. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## FR-013 — Offer more than one journey alternative
 

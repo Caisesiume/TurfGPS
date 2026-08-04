@@ -4,7 +4,7 @@ One table per category, carrying **a row for every ID ever issued** — retired 
 
 **This index is derived; the record is authoritative.** Where a row here and the record in a category file disagree, the record is right and the row is stale — a librarian finding, fixed here, never fixed by editing the record to match. That is what makes it safe to regenerate this file wholesale without ever reading it as a second source of truth.
 
-Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. What a record must contain: `.claude/skills/requirements-authoring/SKILL.md`.
+Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. What a record must contain: `requirements-authoring`.
 
 `Verification` below is the keyword alone; the sentence saying what it proves stays on the record. `Category` is redundant under a category heading and carried anyway, so a `grep FR-001` hit answers the whole question without its surrounding lines.
 

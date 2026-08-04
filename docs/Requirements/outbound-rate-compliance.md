@@ -2,7 +2,7 @@
 
 Holding the system's outbound request rate within the limits an external service publishes, counted across every caller inside the system at once — solve sessions and background jobs together, since the limit is the other party's and applies to the system as a whole. Distinct from `Call budget`, which bounds the per-journey call **volume** the system chooses for itself: this category answers to a ceiling set elsewhere, measured per unit time, and owns the aggregation point at which it is honoured. This scope is the category's entry on the register in `README.md`, which is its home.
 
-Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `.claude/skills/requirements-authoring/SKILL.md`.
+Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## NFR-001 — Hold outbound Turf calls within the API's published limits
 
