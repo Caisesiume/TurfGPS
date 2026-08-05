@@ -33,6 +33,42 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 Task/story name and link · acceptance criteria + requirement codes · files modified · full diff · **safety paths touched** (see the `safety-path-checklist` skill) · gate results (see `local-gates`) · implementation summary · the read-only clause.
 
+## A reviewer does not accept a claim it could check
+
+Everything in the case file above is a **claim**. None of it is evidence, and a reviewer accepts none of it where the means to check it is at hand: not the PR body's account of what changed, not the author's stated gate results, not a count in a commit message, not "the cited section says X." Where the diff, the tree, the section, or the command is available, **the reviewer looks**.
+
+Checking is read-only. `§ The read-only clause (learned the hard way)` still binds — read the diff, read the tree, open the cited heading, run a command that only reads. A check that would write anything is not available to you; that claim goes under `ACCEPTED ON TRUST` naming `@validation-agent` as its owner.
+
+### The report block
+
+Every verdict carries this, in two halves:
+
+```
+VERIFIED INDEPENDENTLY:
+  · …
+ACCEPTED ON TRUST:
+  · …
+```
+
+**The second half is the load-bearing one.** Listing what you checked is easy and flattering, and a reviewer will fill that half without effort. Naming what you took on faith is the only part of this that makes a reviewer *notice* they took something on faith — which is the entire point, because nothing else in a review surfaces an inherited premise. Write that half first if it helps.
+
+**An empty `VERIFIED INDEPENDENTLY` block is itself a finding.** A reviewer that checked nothing has reviewed the PR body, not the work, and has returned an opinion where a verdict was asked for. Say so plainly rather than letting it pass as brevity.
+
+### What the obligation reaches
+
+**It reaches what the verdict rests on** — any claim your own score depends on. It is not a re-run of the suite: that is `@validation-agent`'s job, it runs last and alone for exactly that reason, and duplicating it across the bench would double the cost of every PR to learn nothing new. Where a claim's truth would not move your score, take it on trust and list it.
+
+**`ACCEPTED ON TRUST` is not a dumping ground.** A claim the verdict rests on, written in that half, **is the finding** — the reviewer has just recorded that its own score is unsupported. Check it, or deduct for not being able to, but do not file it and score as though you had.
+
+### Why this is a rule and not a habit
+
+Both of these were found by an agent that checked a premise it had been handed, and neither was found by the pass meant to find it.
+
+- **The board agent that could not see the board.** Its own definition told it an empty board was "a complete and correct run" and to stop; the board held **37 items**. That instruction was reachable on every run, and the run that reached it would have reported an empty backlog and recorded itself as complete. Found 4 August 2026 while sweeping citation delimiters — `c091046`.
+- **The gates that could pass having read nothing.** `Architecture.md § D8` puts the Go module in `service/`. The gate block carried no working directory, so from the repository root all five commands resolve against nothing, exit zero, and print exactly what a clean module prints — and the prescribed report line was character-for-character what that vacuous run produces. Eleven agent files and the PR-body template carried the same directory-less copy, so the path ran unbroken from command to report line. Closed before any PR in this repository existed to carry it; the instrument, not a reviewer, was the thing that would have lied. Found 5 August 2026 because a layout decision recorded its own cost honestly — `d6a7e3e`, `1928a28`.
+
+Neither is something a reviewer catches by reading attentively. Both were **instruments reporting success**, and the only thing that separated the report from the truth was an agent running the thing itself.
+
 ## Scoring law
 
 From `docs/DELIVERY.md § Scoring`, which is where it is ratified; this section is how it is applied at dispatch.
