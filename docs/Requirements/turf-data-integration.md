@@ -517,7 +517,7 @@ Acceptance:   given a zone id the local synced copy already holds and a
               given a zone id the local synced copy does not hold, when a
               refresh returning that id completes, then the copy holds that id
               with the `dateCreated` the refresh returned
-Status:       draft
+Status:       to-build
 Depends-on:   FR-022
 Risk:         A row inserted once and never updated keeps a `dateCreated` the
               API has since revised, and anything derived from the months
@@ -552,7 +552,7 @@ Rationale:    The record binds the write path of the refresh and not its
               on that zone — its coordinates and its takeover count — it
               observes rather than obliges, so no field beyond the one it
               names is bound here.
-Resolved-by:  —
+Resolved-by:  #38
 ```
 
 ## FR-036 — Treat an absent zone type as ordinary data
@@ -574,7 +574,7 @@ Acceptance:   given a zone set in which some records carry a `type` and others
               given a zone record carrying no `type`, when that record is
               ingested, stored or consumed, then no error, rejection or
               data-defect signal is raised on account of the absence
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         `Architecture.md § Retrieving zones` measures the field on a
               minority of zones, so a schema, a validator or an ingest guard
@@ -614,7 +614,7 @@ Rationale:    One record and not two, and the pair it is measured against is
               which reads as ordinary diligence in review, while one fixture
               set carrying records without the field fails every form of it at
               once.
-Resolved-by:  —
+Resolved-by:  #39
 ```
 
 ## FR-037 — Determine a zone's country where the region subkey is absent
@@ -636,7 +636,7 @@ Acceptance:   given a zone whose `region` carries no `country` subkey, when
               given a zone set holding zones that carry the `country` subkey
               and zones that do not, when the set is grouped by country, then
               every zone in the set falls into a group and none is dropped
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Rationale:    The record exists against a named failure mode, and the mode is
               silence: a grouping taken on the subkey drops the zones lacking
@@ -676,5 +676,5 @@ Rationale:    The record exists against a named failure mode, and the mode is
               `COULD` records that no such consumer is built yet rather than
               any weakness in the duty. `WON'T-now` would file no story and
               leave a later aggregate free to be silently short.
-Resolved-by:  —
+Resolved-by:  #40
 ```
