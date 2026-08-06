@@ -25,7 +25,7 @@ Acceptance:   given an offered journey alternative whose additional time
               given an offered journey alternative whose additional time is
               within that limit, when the offered set is presented, then it is
               not identified as a stretch alternative
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-038
 Risk:         An unlabelled stretch is the quiet exceedance the section
               forbids: the user picks the richest-looking route believing it
@@ -69,7 +69,7 @@ Acceptance:   given an offered journey alternative whose additional time
               states its additional time, when the explanation is presented,
               then it also names the zone or the attribute for which the limit
               was exceeded
-Status:       draft
+Status:       to-build
 Depends-on:   FR-047
 Risk:         A stretch alternative the user cannot account for is a route
               they have to take on trust, on precisely the decision the
@@ -108,7 +108,7 @@ Acceptance:   given a journey alternative with more than one leg, when it is
               given the same alternative presented with a per-leg breakdown,
               when it is presented, then the journey total is shown alongside
               the per-leg figures
-Status:       draft
+Status:       to-build
 Depends-on:   FR-002; FR-008
 Rationale:    The section makes the total the figure that matters and the
               breakdown useful detail, so this record obliges the total and

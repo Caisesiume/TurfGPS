@@ -23,7 +23,7 @@ Acceptance:   given a request naming an origin and a destination in which the
               given that same request, when the user attempts to start
               planning, then the system supplies no additional-time limit of
               its own in place of the one not entered
-Status:       draft
+Status:       to-build
 Depends-on:   none
 Risk:         A limit the user never chose is a promise made on their behalf.
               The target, the stretch band and the absolute ceiling are all
@@ -42,8 +42,13 @@ Rationale:    The section's words are that this is always a user-supplied
               than inside it, which is when this gate fires. The criteria turn
               on what the user entered and not on what the request carries: a
               pre-filled default the user never touches is a value the system
-              assumed, and whether such a default is admissible at all is an
-              open question returned with this batch.
+              assumed. Whether such a default is admissible at all was the
+              open question this record returned, and the Owner ruled on 6
+              August 2026 that it is not and that the field starts empty. That
+              obligation is FR-055's rather than this record's, being
+              separately testable and testable at a different moment: this
+              gate fires when planning is attempted, and FR-055 binds what the
+              input holds before anything is attempted.
 Resolved-by:  —
 ```
 
@@ -66,7 +71,7 @@ Acceptance:   given two requests stating the same additional-time limit, one
               given a request whose journey is long enough that an allowance
               proportional to it would exceed the limit stated, when it is
               planned, then the limit in force is still the limit stated
-Status:       draft
+Status:       to-build
 Depends-on:   FR-038
 Risk:         An inferred limit is FR-038's substituted value arriving through
               the one door that record leaves open — a limit the user did
@@ -104,7 +109,7 @@ Acceptance:   given a limit at the low end of the realistic range described
               given a limit at the high end of that range, when the user
               starts planning, then planning runs and the limit in force
               equals the value entered
-Status:       draft
+Status:       to-build
 Depends-on:   FR-038
 Risk:         Both ends of this range are ordinary users of the product, and a
               bound placed on the input excludes one of them outright — the
@@ -146,7 +151,7 @@ Acceptance:   given a limit at the low end of the realistic range described
               given a limit at the high end of that range, when it is entered,
               then the interface presents no warning, caution or confirmation
               step that a value in the middle of that range does not carry
-Status:       draft
+Status:       to-build
 Depends-on:   FR-040
 Rationale:    The obligation is comparative rather than absolute — the section
               forbids treating either end as unusual, not every affordance
@@ -158,5 +163,171 @@ Rationale:    The obligation is comparative rather than absolute — the section
               is not. Priority is SHOULD because nothing becomes unbuildable
               without this record: it forbids an addition rather than obliging
               a capability, and it binds whenever the input is built.
+Resolved-by:  —
+```
+
+## FR-055 — Open the planner with no additional-time limit entered
+
+```
+Statement:    The system shall present the journey's additional-time limit
+              with no value entered when the planner opens.
+Category:     Journey initialization
+Source:       SPECIFICATION.md § User time constraints;
+              DESIGN.md § Required and optional inputs
+Priority:     MUST
+Verification: test — the additional-time limit carries no value when the
+              planner opens, on a device where no journey has been planned and
+              on one where a journey has already been planned against a limit
+              the user entered
+Acceptance:   given a device on which no journey has been planned, when the
+              planner opens, then the additional-time limit carries no value
+              given a device on which a journey has been planned against a
+              limit the user entered, when the planner opens again, then the
+              additional-time limit carries no value
+Status:       draft
+Depends-on:   FR-038
+Risk:         A pre-filled field is the assumption the section forbids,
+              wearing the user's own consent. The value is on the screen, the
+              user presses start, and from that point nothing downstream can
+              tell an entered limit from an assumed one — the target, the
+              stretch band and the absolute ceiling are all derived from that
+              figure, and every check reports a user-supplied limit. The one
+              input the specification insists must never be assumed becomes
+              the one input nobody can audit.
+Rationale:    The Owner ruled on 6 August 2026 that a pre-filled default is
+              not user-supplied and that the field starts empty, closing the
+              open question FR-038 returned. The reason is that a default
+              converts the question the product is asking — how much time will
+              you spare — into an answer nobody chose, and
+              `SPECIFICATION.md § User time constraints` declares itself the
+              single definition of an allowance model built entirely on that
+              figure. This is a separate record and not an extension of FR-038
+              for two reasons. It is testable at a different moment: FR-038
+              fires when planning is attempted, and this fires when the
+              planner opens, before the user has done anything. And it is what
+              makes FR-038's criteria decidable at all — those criteria turn
+              on whether the user entered a limit, and while a default may sit
+              in the field two engineers can read an untouched one as entered
+              and as not entered. Absorbing it would leave FR-038 carrying a
+              gate and an initial state, which is two behaviours. The default
+              is the pattern the design uses elsewhere, which is why the
+              prohibition needs stating:
+              `DESIGN.md § First-run initialization` pre-orders the attribute
+              list by rarity so an untouched list is already valid, and
+              `DESIGN.md § Required and optional inputs` defaults the
+              objective selection. What separates this input from those is
+              that an untouched value here is a typical value assumed, which
+              the cited section forbids by name. The second criterion reads
+              the ruling literally: a limit restored from an earlier session
+              was entered for a different journey, and the allowance is a
+              property of the journey being planned rather than of the device.
+Resolved-by:  —
+```
+
+## FR-056 — Refuse an additional-time limit that is not positive
+
+```
+Statement:    The system shall not admit as a journey's additional-time limit
+              a value that is not positive.
+Category:     Journey initialization
+Source:       SPECIFICATION.md § User time constraints;
+              DESIGN.md § Required and optional inputs
+Priority:     MUST
+Verification: test — a request carrying an additional-time limit that is not
+              positive produces no journey, and no positive limit is planned
+              against in its place
+Acceptance:   given a request in which the user has entered an additional-time
+              limit that is not positive, when the user attempts to start
+              planning, then the system plans no journey
+              given that same request, when the user attempts to start
+              planning, then the system supplies no additional-time limit of
+              its own in place of the value refused
+Status:       draft
+Depends-on:   FR-038
+Risk:         Every quantity in the allowance model is derived from the stated
+              limit, per `SPECIFICATION.md § User time constraints`, so a
+              limit that is not positive propagates into all of them and none
+              of them notices. A limit of nothing spends a full solve to reach
+              an allowance that can hold no stop, and what the user is then
+              shown is the honest no-answer message of
+              `DESIGN.md § When nothing fits at all` — which names the
+              constraints that bound hardest and invites the user to relax
+              them, on a journey where the zones were never the problem. A
+              negative limit is worse: it asks for a Turf journey shorter than
+              the drive without one, and every ceiling check reports
+              compliance with it.
+Rationale:    The Owner ruled on 6 August 2026 that a limit of zero or less is
+              refused, on the ground that a non-positive allowance is a
+              request the product cannot answer. The boundary creates no
+              constant and cites none: positivity is a property of a quantity
+              of time rather than a value that could have been chosen
+              otherwise, which is the reasoning FR-015 records for an ordering
+              needing no tolerance, and the look for a figure found nothing to
+              cite.
+              `CalculationSpecification.md § The absolute additional-time ceiling`
+              derives the allowance from the stated limit and sets no floor
+              under it, and
+              `CalculationSpecification.md § Additional journey time` defines
+              the cost metric without bounding it. This is not FR-040's: that
+              record admits unaltered any value within the realistic range and
+              creates no bound of its own, and the non-positive case sits
+              below the range, where FR-040 neither admits nor refuses. Nor is
+              it FR-038's, where the user entered nothing at all; here they
+              entered something the model cannot use. The two criteria are one
+              behaviour in FR-038's shape rather than two: refusing the value
+              and substituting a workable one for it are the two ways the same
+              outcome fails, and a record stating only the first would be met
+              by a system that plans against a limit of its own choosing. What
+              the interface says when it refuses is not authored here and no
+              document states it.
+Resolved-by:  —
+```
+
+## FR-057 — Impose no maximum admissible additional-time limit
+
+```
+Statement:    The system shall impose no maximum on the additional-time limit
+              a journey may be planned against.
+Category:     Journey initialization
+Source:       SPECIFICATION.md § User time constraints
+Priority:     SHOULD
+Verification: test — two limits above the high end of the realistic range
+              described under `SPECIFICATION.md § User time constraints`, one
+              several times the other, are each planned against as entered,
+              neither refused nor adjusted
+Acceptance:   given an additional-time limit above the high end of the
+              realistic range described under
+              `SPECIFICATION.md § User time constraints`, when the user starts
+              planning, then planning runs and the limit in force equals the
+              value entered
+              given a further limit several times that one, when the user
+              starts planning, then planning runs and the limit in force
+              equals the value entered
+Status:       draft
+Depends-on:   FR-040
+Rationale:    The Owner ruled on 6 August 2026 that no maximum is imposed.
+              FR-040 does not already carry this: it obliges admission within
+              the realistic range and creates no bound of its own, so a
+              maximum placed just above that range satisfies FR-040 while
+              refusing a user the section calls ordinary — and since the
+              range's high end is *several hours* rather than a figure, a
+              bound placed near it is arguable against FR-040 and indefensible
+              against the section. Stated as a prohibition on adding a bound
+              rather than as an obligation to admit any positive value,
+              deliberately: the obliging form would subsume FR-040 and give
+              one duty two homes, and the prohibiting form reaches only the
+              addition FR-040 leaves open. Separate from FR-056 because the
+              outcomes are opposite and separately testable — one obliges a
+              refusal and this forbids one — where FR-040's refusal and
+              adjustment were one behaviour in two guises because both end
+              with the plan built against a value the user did not enter. No
+              maximum is quoted anywhere because there is none to quote: any
+              figure would be a constant with no home in
+              `CalculationSpecification.md`, and the criteria therefore cite
+              the section for the range's high end as the point a test starts
+              above, not as a bound this record creates. Priority is SHOULD on
+              FR-041's precedent: nothing becomes unbuildable without this
+              record, which forbids an addition rather than obliging a
+              capability, and it binds whenever the input is built.
 Resolved-by:  —
 ```

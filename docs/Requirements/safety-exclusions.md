@@ -24,7 +24,7 @@ Acceptance:   given two journeys whose stated additional-time limits are equal
               given one and the same amount of additional time on each of
               those two journeys, when each is tested against its own ceiling,
               then either both pass or both fail
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-038
 Risk:         Read against the journey's duration, the ceiling stops being the
               user's and becomes the road's: a long drive silently admits
@@ -68,7 +68,7 @@ Acceptance:   given a produced journey alternative whose additional time
               given a journey for which every produced alternative exceeds the
               ceiling, when recommendations are offered, then no alternative
               above the ceiling is offered in place of an empty set
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-044
 Risk:         This is the product's one absolute promise about the user's
               time, and the pressure to break it arrives where it is least
@@ -121,7 +121,7 @@ Acceptance:   given a configuration setting the multiplier above the maximum
               given a configuration setting the multiplier below that maximum,
               when the system starts, then the configuration is accepted and
               the ceiling enforced is the one it sets
-Status:       draft
+Status:       to-build
 Depends-on:   FR-044
 Risk:         A ceiling that can be raised is not a ceiling. Raising it is a
               one-line configuration edit, it leaves every ceiling check
@@ -166,7 +166,7 @@ Acceptance:   given a multi-leg journey alternative each of whose legs is
               given a multi-leg journey alternative whose legs' additional
               times sum to more than the limit the user stated, when it is
               presented, then it is not presented as being within that limit
-Status:       draft
+Status:       to-build
 Depends-on:   FR-045; FR-047; FR-050
 Risk:         A ceiling applied per leg compounds: four legs each inside the
               allowance produce a journey far outside it, and every check the

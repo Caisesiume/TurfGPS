@@ -296,49 +296,66 @@ Rationale:    The source's *best compliant route available* is the ordinary
 Resolved-by:  #16
 ```
 
-## FR-043 — Offer a within-limit alternative where one was produced
+## FR-043 — Offer a zone-capturing within-limit alternative where one was produced
 
 ```
-Statement:    Where the system has produced a journey alternative whose
-              additional time is within the additional-time limit the user
-              stated, the system shall offer at least one such alternative.
+Statement:    Where the system has produced a journey alternative that
+              captures at least one zone and whose additional time is within
+              the additional-time limit the user stated, the system shall
+              offer at least one such alternative.
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § User time constraints;
               SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
-Verification: test — a journey for which at least one produced alternative
-              lies within the stated limit yields an offered set holding at
-              least one such alternative, and a journey producing both
-              compliant and above-limit alternatives yields an offered set
-              that is not composed of above-limit alternatives alone
-Acceptance:   given a journey for which at least one produced alternative's
-              additional time is within the limit the user stated, when
-              recommendations are offered, then at least one alternative
-              within that limit is among them
-              given a journey for which both alternatives within that limit
-              and alternatives above it were produced, when recommendations
-              are offered, then the offered set is not composed only of
-              alternatives above the limit
-Status:       draft
+Verification: test — a journey producing a within-limit alternative that
+              captures at least one zone yields an offered set holding at
+              least one such alternative; a journey producing both such an
+              alternative and a within-limit alternative that captures no zone
+              yields an offered set in which the capturing one appears, not
+              the other alone; and a journey producing both compliant and
+              above-limit alternatives yields an offered set that is not
+              composed of above-limit alternatives alone
+Acceptance:   given a journey for which at least one produced alternative
+              captures at least one zone and its additional time is within the
+              limit the user stated, when recommendations are offered, then at
+              least one such alternative is among them
+              given a journey for which both such an alternative and a
+              within-limit alternative capturing no zone were produced, when
+              recommendations are offered, then an alternative capturing no
+              zone does not stand in place of one that captures at least one
+              given a journey for which both an alternative within that limit
+              capturing at least one zone and alternatives above it were
+              produced, when recommendations are offered, then the offered set
+              is not composed only of alternatives above the limit
+Status:       to-build
 Depends-on:   FR-008; FR-013
 Risk:         The user stated a limit and the answer is a set they cannot act
               on without breaking it. This is the one failure that turns the
               stated limit from a constraint into an opening offer, and it
               does so at the moment of choosing, where nothing on the screen
               separates "nothing else fits" from "we preferred the longer
-              routes".
+              routes". The zero-capture failure is the quiet mirror of it: a
+              set whose only within-limit alternative captures nothing is
+              compliant on every check and recommends the drive the user
+              already had.
 Rationale:    The section's guarantee is unconditional in its own words — at
               least one recommended Turf alternative must remain within the
-              stated limit — and this record deliberately states only the
-              conditional that guarantee implies. Two readings of the sentence
-              are open with the Owner and this record is true under both:
-              whether the guaranteed alternative must capture a zone, in which
-              case a short budget on a rural corridor can genuinely have none
-              and `DESIGN.md § When nothing fits at all` owns what is said
-              instead; or whether a journey carrying no Turf stop, which adds
-              no time, discharges it. The unconditional form is unwritable
-              until that is ruled, and the residue is recorded rather than
-              resolved. This is the obligation FR-013 and FR-018 defer to this
+              stated limit — and this record states the conditional that
+              guarantee implies, because nothing yet obliges the system to
+              produce an alternative at all; an obligation to produce one is
+              `Route alternative generation`'s and is not authored here. The
+              Owner ruled on 6 August 2026 what the guaranteed alternative
+              must be: one that captures at least one zone. A journey carrying
+              no Turf stop adds no time and is therefore always within the
+              limit, but it is the product the user already has, so offering
+              it satisfies the guarantee's letter and voids its point. The
+              second criterion states that rather than leaving it to be read
+              out of the first, on FR-039's precedent — it is entailed by the
+              first and names the defeat the ruling forecloses. Where no
+              within-limit alternative capturing a zone was produced, this
+              record obliges nothing and
+              `DESIGN.md § When nothing fits at all` owns what is said
+              instead. This is the obligation FR-013 and FR-018 defer to this
               section. The prioritization half of the same sentence lands here
               too: read as set membership it is this record, and read as
               presentation order it collides with the Owner's ruling of 1
@@ -346,7 +363,10 @@ Rationale:    The section's guarantee is unconditional in its own words — at
               authored. FR-014 and FR-015 cannot reduce the offered set below
               this floor — FR-014 leaves one of two identical alternatives
               standing, and an alternative dominating a compliant one costs no
-              more, so it is itself within the limit. FR-016 cannot either, on
+              more, so it is itself within the limit, and carries at least its
+              Turf value, which under
+              `CalculationSpecification.md § Zone value` no alternative
+              capturing nothing can match. FR-016 cannot either, on
               its own standard: it obliges a set in which each alternative
               gives the user a distinct reason to choose it, and an
               alternative within the limit the user themselves stated carries
@@ -385,7 +405,7 @@ Acceptance:   the Owner reviews each offered above-limit alternative alongside
               exceeding the stated limit; an above-limit alternative whose
               additional value the Owner would not have spent the additional
               time on fails
-Status:       draft
+Status:       to-build
 Depends-on:   FR-007; FR-008
 Risk:         Offered freely, the stretch band stops being an exception and
               becomes the product's ordinary output: every journey acquires a

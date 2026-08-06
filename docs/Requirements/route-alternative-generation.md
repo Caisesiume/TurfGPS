@@ -24,7 +24,7 @@ Acceptance:   given a limit at the low end of the realistic range described
               given a limit at the low end of that range, when the user starts
               planning, then planning runs and is not refused for the limit's
               size
-Status:       draft
+Status:       to-build
 Depends-on:   FR-038; FR-040
 Risk:         The user with the smallest budget is the one this product
               converts from a curiosity into a habit, and an empty screen is

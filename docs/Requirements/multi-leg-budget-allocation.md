@@ -22,7 +22,7 @@ Acceptance:   given a journey with more than one leg, when a leg is optimized,
               budget
               given a journey with more than one leg, when its first leg is
               optimized, then a share has already been allocated to every leg
-Status:       draft
+Status:       to-build
 Depends-on:   FR-002; FR-038
 Risk:         Without the allocation each leg consumes the whole allowance and
               the finished journey exceeds it once per leg — the promise made
@@ -60,7 +60,7 @@ Acceptance:   given a journey of two legs whose baseline driving times stand
               allocated to them stand in that same ratio
               given a journey of two legs of equal baseline driving time, when
               the budget is allocated, then the two shares are equal
-Status:       draft
+Status:       to-build
 Depends-on:   FR-050
 Rationale:    A relation and not a formula: the record states the proportion
               the section defines and fixes no figure, so a change in how
@@ -98,7 +98,7 @@ Acceptance:   given a journey of several legs in which one leg's optimization
               given a journey in which no leg leaves any part of its share
               unused, when a later leg is optimized, then it may draw no more
               than its own allocated share
-Status:       draft
+Status:       to-build
 Depends-on:   FR-050; FR-051
 Rationale:    The section's reason for the pool is a leg along which too few
               accessible zones exist, and it states the behaviour for the

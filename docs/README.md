@@ -108,9 +108,21 @@ This is **the identifier rule above reaching the token's other half**, which is 
 
 **The migration runs per file, and only as files are touched.** A file converts **whole**, in a commit already editing it for another reason — never as a sweep across the set. The unit is the file rather than the corpus because a **half-converted file cannot be checked by looking at it**: a reader finding one span with a marker and one without cannot tell an unconverted citation from a deliberate emphasis. A half-converted *set* has no such defect, because each file answers for itself — provided it is known which files have converted.
 
+**A file born in the token form joins by declaration, and that is the second and last route onto the list.** The paragraph above admits a file by **migration**, and a file that never held the old form was never migrated — so the corpus's newest and cleanest files were permanently ineligible, while the list stayed empty and licensed nothing. That is the list meaning exactly one thing at the cost of the check reaching nothing, and the cost runs the wrong way. **A file whose citations are token-form from its first commit joins the list in that same commit, declared in the commit message.** Raised by `@requirements-engineer` on 6 August 2026, when batch 4 created five such files, and ratified by the Owner the same day.
+
+**The two routes admit on the same evidence and differ only in when it is gathered.** A migration establishes token-form completeness by converting; a declaration establishes it by inspection at creation. Neither admits a file whose state is merely assumed — **a file joins on a check that was actually run**, and a declaration made without running it is precisely the drift the list exists to prevent, wearing the form that licenses it.
+
+**The list keeps its name, which now records how it began rather than how it is joined.** A born-token-form file was never converted, so the name is inexact for one of the two routes. Renaming it would touch `requirements-authoring § IDs and citations`, which cites it by that name, and the ruling admitting the second route used the name too — so the mismatch is stated here instead of chased through three files. What the list means is unchanged and is the only thing a reader needs: **every citation in a file on it is token-form.**
+
 **Converted files:**
 
-- *(none yet)*
+- `docs/Requirements/journey-initialization.md` — born token-form
+- `docs/Requirements/multi-leg-budget-allocation.md` — born token-form
+- `docs/Requirements/recommendation-disclosure.md` — born token-form
+- `docs/Requirements/route-alternative-generation.md` — born token-form
+- `docs/Requirements/safety-exclusions.md` — born token-form
+
+**Those five were admitted one commit late, and it is recorded rather than smoothed over.** They were created in `1bb42e5`, before this route existed, and admitted in the commit signing batch 4 off — on a check run at admission rather than at creation. That is the whole of the exception and it is not a precedent: a file born after 6 August 2026 declares in its creating commit or does not join.
 
 That list is what licenses the syntactic check: citation-or-emphasis may be decided by pattern **only for files on it**, and every file not on it must still be checked against the cited document's heading list. **A file joins the list in the same commit that converts it, and in no other commit.** A list that can drift from the files it describes is worse than no list, because the check it licenses would then run against files that cannot bear it.
 

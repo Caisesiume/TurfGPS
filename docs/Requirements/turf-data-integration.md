@@ -605,15 +605,18 @@ Rationale:    One record and not two, and the pair it is measured against is
               FR-030's shape. The record states the need rather than the
               storage choice the section's evidence illustrates it with: what
               the local copy's schema may declare is `Architecture.md § D4`'s,
-              and that schema is listed as still owed under
-              `Architecture.md § Still owed by this document`, so a record
-              naming a column would bind a decision nobody has taken.
-              Verification is test rather than inspection for the reason
-              FR-032 gives: the assumption can hide in a schema constraint, a
-              validator, an ingest guard, a metric or an alert rule, each of
-              which reads as ordinary diligence in review, while one fixture
-              set carrying records without the field fails every form of it at
-              once.
+              and `Architecture.md § The zone table` now declares that column
+              and declares it nullable, so a record naming a column would give
+              a decision already taken a second home rather than pre-empt one
+              not yet taken. `Architecture.md § The schema` marks that DDL a
+              proposal, which sharpens the point rather than blunting it: a
+              record naming the column would harden a proposal into an
+              obligation. Verification is test rather than inspection for the
+              reason FR-032 gives: the assumption can hide in a schema
+              constraint, a validator, an ingest guard, a metric or an alert
+              rule, each of which reads as ordinary diligence in review, while
+              one fixture set carrying records without the field fails every
+              form of it at once.
 Resolved-by:  #39
 ```
 
