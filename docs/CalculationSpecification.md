@@ -122,7 +122,7 @@ The ceiling is **115% of the user's stated additional-time limit** — an allowa
 
 The model this constant serves — soft target, hard ceiling, and the clearly-labelled stretch band between them — is stated under *User time constraints* in `SPECIFICATION.md` and is not restated here.
 
-**The base is the additional time, never the journey duration.** The multiplier applies to the additional time the user permitted, not to the total duration of the journey. This is the misreading the constant exists to foreclose, because it fails in the direction that puts a driver somewhere they did not agree to be: on a six-hour drive with a twenty-minute budget, the ceiling is **23 minutes of additional time**. Read against journey duration it would be 54 minutes — 2.3 times what the driver agreed to, while every ceiling check still reported compliance.
+**The base is the additional time, never the journey duration.** The multiplier applies to the additional time the user permitted, not to the total duration of the journey. This is the misreading the constant exists to foreclose, because it fails in the direction that puts a driver somewhere they did not agree to be: on a six-hour drive with a twenty-minute budget, the ceiling is **23 minutes of additional time**. Read against journey duration it would be 54 minutes — 2.7 times what the driver agreed to, while every ceiling check still reported compliance.
 
 **The ceiling is journey-level, never per-leg.** Where a journey has several legs, the quantity the ceiling tests is the sum of additional time across all of them, per *Journeys with several legs* in `SPECIFICATION.md`. Applied per leg instead, four legs at 115% each would compound far past the promise made to the user.
 

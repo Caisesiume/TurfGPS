@@ -30,7 +30,7 @@ Whether stopping is *legally permitted* at a roadside position is generally abse
 
 ## The absolute ceiling
 
-The stated additional-time limit is a **soft target**; **115% of it is a hard ceiling**, re-checked after every change during review. No recommendation exceeds it for any reason, however valuable the zone. An uncertain stop accepted during review is tested against its conservative upper bound, and where that bound would breach 115% **the acceptance is refused**. A stop that might breach the ceiling is treated as one that does.
+The stated additional-time limit is a **soft target**; a fixed multiple of it is a **hard ceiling**, re-checked after every change during review. The multiplier, and the one direction it may be revised, are stated under `CalculationSpecification.md § The absolute additional-time ceiling` — enforce it from there and hold no copy here. No recommendation exceeds the ceiling for any reason, however valuable the zone. An uncertain stop accepted during review is tested against its conservative upper bound, and where that bound would breach the ceiling **the acceptance is refused**. A stop that might breach the ceiling is treated as one that does.
 
 ## The uncertain bucket
 
