@@ -214,7 +214,7 @@ They must therefore be held as **configuration rather than as constants in code*
 
 Stored plans are listed, most recent first, each identified by its origin and destination and the date it was planned — the two things a user actually remembers about a route. The retrieval code is available from each entry, so a plan can be moved to another device individually.
 
-A code that has expired or is not recognised must produce a plain, unalarming explanation and an obvious way to start a new plan, rather than an error. Reopening a plan restarts its expiry clock, so a route in active use is never lost to a timer.
+A code that has expired or is not recognised must produce a plain, unalarming explanation and an obvious way to start a new plan, rather than an error. Reopening a plan restarts its expiry clock, so a plan in ordinary use is not lost to the idle timer between one journey and the next. That reset is bounded rather than unlimited: a second clock runs from the day the plan was created, reopening does not touch it, and when it runs out the plan is deleted however actively it was being used — per *Architecture.md § Persistence and cross-device transfer*. A plan that reaches that point meets the expired-code path above, so what the user finds is the same plain explanation and the same way back to a new plan, rather than a route that has silently disappeared.
 
 The plan itself is shown exactly as the user approved it. Volatile data refreshes in the background after the plan is already on screen, and anything material is surfaced as information rather than as an automatic edit, per *Stored routes go stale* in `SPECIFICATION.md`.
 
