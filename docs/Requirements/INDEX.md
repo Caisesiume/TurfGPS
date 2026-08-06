@@ -13,21 +13,26 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | Category | File | Records |
 |---|---|---|
 | [Journey definition](#journey-definition) | `journey-definition.md` | `FR-001` – `FR-006`, `FR-012` (7) |
+| [Journey initialization](#journey-initialization) | `journey-initialization.md` | `FR-038` – `FR-041` (4) |
+| [Route alternative generation](#route-alternative-generation) | `route-alternative-generation.md` | `FR-042` (1) |
 | [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031`, `FR-033` – `FR-037` (15) |
 | [Zone data fidelity](#zone-data-fidelity) | `zone-data-fidelity.md` | `FR-020`, `FR-021`, `FR-032` (3) |
 | [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009`, `FR-027` (3) |
+| [Multi-leg budget allocation](#multi-leg-budget-allocation) | `multi-leg-budget-allocation.md` | `FR-050` – `FR-052` (3) |
 | [Value model](#value-model) | `value-model.md` | `FR-007` (1) |
 | [Objective selection and ranking](#objective-selection-and-ranking) | `objective-selection-and-ranking.md` | `FR-010`, `FR-011` (2) |
-| [Recommendation set composition](#recommendation-set-composition) | `recommendation-set-composition.md` | `FR-013` – `FR-018` (6) |
+| [Recommendation set composition](#recommendation-set-composition) | `recommendation-set-composition.md` | `FR-013` – `FR-018`, `FR-043`, `FR-049` (8) |
+| [Recommendation disclosure](#recommendation-disclosure) | `recommendation-disclosure.md` | `FR-047`, `FR-048`, `FR-054` (3) |
+| [Safety exclusions](#safety-exclusions) | `safety-exclusions.md` | `FR-044` – `FR-046`, `FR-053` (4) |
 | [Data currency and confidence](#data-currency-and-confidence) | `data-currency-and-confidence.md` | `NFR-002` (1) |
 | [Outbound rate compliance](#outbound-rate-compliance) | `outbound-rate-compliance.md` | `NFR-001` (1) |
 | [Runtime and deployment shape](#runtime-and-deployment-shape) | `runtime-and-deployment-shape.md` | `NFR-003` – `NFR-005` (3) |
 
-**42 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+**59 requirements, in 15 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**All 42 rows read `to-build`, and none reads `draft`.** Batch 3b — `FR-035` … `FR-037`, filed 6 August 2026 — was signed off by the Owner later the same day and moved from `draft` **straight to `to-build`**, as batch 3 did on 4 August 2026 and as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md § Corpus state`.
+**42 rows read `to-build` and 17 read `draft`.** The seventeen are batch 4 — `FR-038` … `FR-054`, filed 6 August 2026 — and `draft` is where an authored record sits until the Owner signs it. Batch 3b, filed the same day, held that shape for part of it and then moved from `draft` **straight to `to-build`**, as batch 3 did on 4 August 2026 and as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. **Nothing in this column says how far the build has got** — that question is answered by following `Resolved-by` to the stories, never by a value written here. See `README.md § Corpus state`.
 
-**All 42 rows name at least one story in `Resolved-by`, and none reads `—`.** They were allocated in four passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, and the three batch-3b rows on 6 August 2026, each allocation following the Owner's sign-off as a pass of its own. Nine epics and thirty-nine stories carry them, the last pass cutting no new epic. `—` would say *not yet allocated* here and never *unknown*, and it says nothing today because nothing reads it. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
+**42 rows name at least one story in `Resolved-by` and 17 read `—`.** The forty-two were allocated in four passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, and the three batch-3b rows on 6 August 2026, each allocation following the Owner's sign-off as a pass of its own — and nine epics and thirty-nine stories carry them. The seventeen reading `—` are batch 4, filed ahead of any sign-off and therefore ahead of any story: `—` says *not yet allocated* here and never *unknown*, and this is the ordinary interval between a filing pass and the story pass that follows it. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
 
 ## Journey definition
 
@@ -42,6 +47,25 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-005` | Require a destination | Journey definition | MUST | to-build | test | #4 |
 | `FR-006` | Plan journey travel as travel by car | Journey definition | MUST | to-build | test | #6 |
 | `FR-012` | Require an intermediate destination on a return to the origin | Journey definition | MUST | to-build | test | #5 |
+
+## Journey initialization
+
+`journey-initialization.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-038` | Plan no journey without an additional-time limit the user entered | Journey initialization | MUST | draft | test | — |
+| `FR-039` | Derive no additional-time limit from the journey's length | Journey initialization | MUST | draft | test | — |
+| `FR-040` | Admit an additional-time limit anywhere in the realistic range | Journey initialization | MUST | draft | test | — |
+| `FR-041` | Present neither end of the realistic range as unusual | Journey initialization | SHOULD | draft | test | — |
+
+## Route alternative generation
+
+`route-alternative-generation.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-042` | Search for alternatives whatever the size of the stated limit | Route alternative generation | MUST | draft | test | — |
 
 ## Turf data integration
 
@@ -89,6 +113,18 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 `FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
+## Multi-leg budget allocation
+
+`multi-leg-budget-allocation.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-050` | Allocate the budget across legs before optimizing any leg | Multi-leg budget allocation | MUST | draft | test | — |
+| `FR-051` | Size each leg's share in proportion to its baseline driving time | Multi-leg budget allocation | SHOULD | draft | test | — |
+| `FR-052` | Return an unused share to a pool for the remaining legs | Multi-leg budget allocation | SHOULD | draft | test | — |
+
+`FR-050` … `FR-052` were authored proposing `Cost and time composition` and filed here on `@requirements-engineer`'s assignment of 6 August 2026, the register entry being added in the same pass. The two categories are mirrors — that one composes a cost from its components, this one decomposes an allowance into shares — and the reasoning is on the register in `README.md`, not here.
+
 ## Value model
 
 `value-model.md`
@@ -118,6 +154,31 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-016` | Offer alternatives that differ in ways a user would act on | Recommendation set composition | MUST | to-build | human-judgement | #17 |
 | `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | to-build | test | #15 |
 | `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | to-build | test | #16 |
+| `FR-043` | Offer a within-limit alternative where one was produced | Recommendation set composition | MUST | draft | test | — |
+| `FR-049` | Offer an above-limit alternative only where value justifies it | Recommendation set composition | MUST | draft | human-judgement | — |
+
+## Recommendation disclosure
+
+`recommendation-disclosure.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-047` | Present an above-limit alternative as a stretch alternative | Recommendation disclosure | MUST | draft | test | — |
+| `FR-048` | Name what the stated limit was exceeded for | Recommendation disclosure | MUST | draft | test | — |
+| `FR-054` | Present the additional time for the journey as a whole | Recommendation disclosure | SHOULD | draft | test | — |
+
+`FR-047`, `FR-048` and `FR-054` were authored proposing `Recommendation set composition` and filed here on `@requirements-engineer`'s assignment of 6 August 2026, the register entry being added in the same pass. That category disclaims presentation in its own scope line, so the three could not have filed there; the reasoning is on the register in `README.md`, not here.
+
+## Safety exclusions
+
+`safety-exclusions.md`
+
+| ID | Title | Category | Priority | Status | Verification | Resolved-by |
+|---|---|---|---|---|---|---|
+| `FR-044` | Derive the absolute ceiling from the stated additional time | Safety exclusions | MUST | draft | test | — |
+| `FR-045` | Offer no journey alternative above the absolute ceiling | Safety exclusions | MUST | draft | test | — |
+| `FR-046` | Reject a configured ceiling multiplier above the permitted maximum | Safety exclusions | MUST | draft | test | — |
+| `FR-053` | Test the limit and the ceiling against the sum across all legs | Safety exclusions | MUST | draft | test | — |
 
 ## Data currency and confidence
 
@@ -147,11 +208,11 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 ## Reading the Verification column
 
-**The split across the corpus is 37 `test` · 4 `inspection` · 1 `human-judgement`.**
+**The split across the corpus is 53 `test` · 4 `inspection` · 2 `human-judgement`.** Batch 4 added sixteen `test` and one `human-judgement` on 6 August 2026.
 
 `inspection` appears in this index for the first time with batch 3 — `FR-019`, `FR-020`, `FR-026` and `NFR-004` — and it is a chosen method rather than a test not yet written. Each of the four names the artefact examined, the property that must hold and where a reader confirms it, in the form `requirements-authoring § Acceptance-criteria form` requires; none is wrapped in given/when/then, because nothing is executed and a criterion narrating a run nobody performs can never fail. `NFR-004` is the first record in the corpus whose kind and whose method point at different criterion forms, and it takes the method's — which is the rule that section states, not an exception made for it.
 
-`human-judgement` on `FR-016` is likewise not a placeholder for a method not yet chosen: the record names the judge and the standard applied. What the keyword means, how a story resolving such a record is labelled, and why a fabricated metric would be worse, are in `requirements-authoring § Verification methods`.
+`human-judgement` on `FR-016` and on `FR-049` is likewise not a placeholder for a method not yet chosen: each record names the judge and the standard applied. What the keyword means, how a story resolving such a record is labelled, and why a fabricated metric would be worse, are in `requirements-authoring § Verification methods`.
 
 An earlier wording of that sentence ended *and the story that resolves it carries the `human-verified` label*, which was a **story's label mirrored in the corpus** and is forbidden without exception by `requirements-authoring § Corpus layout`. Raised by `@requirements-librarian` on 4 August 2026 and repaired the same day. The reading that saved it — that the skill states the same convention, so this was a cross-reference rather than a second home — is exactly why it survived three passes: it asserted the label of **one live issue**, which the board answers correctly and this page cannot. The repair points at the rule instead of copying the instance, which is what a cross-reference should have done from the start.
 

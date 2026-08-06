@@ -295,3 +295,125 @@ Rationale:    The source's *best compliant route available* is the ordinary
               obligation this record defers.
 Resolved-by:  #16
 ```
+
+## FR-043 — Offer a within-limit alternative where one was produced
+
+```
+Statement:    Where the system has produced a journey alternative whose
+              additional time is within the additional-time limit the user
+              stated, the system shall offer at least one such alternative.
+Category:     Recommendation set composition
+Source:       SPECIFICATION.md § User time constraints;
+              SPECIFICATION.md § Recommended journey alternatives
+Priority:     MUST
+Verification: test — a journey for which at least one produced alternative
+              lies within the stated limit yields an offered set holding at
+              least one such alternative, and a journey producing both
+              compliant and above-limit alternatives yields an offered set
+              that is not composed of above-limit alternatives alone
+Acceptance:   given a journey for which at least one produced alternative's
+              additional time is within the limit the user stated, when
+              recommendations are offered, then at least one alternative
+              within that limit is among them
+              given a journey for which both alternatives within that limit
+              and alternatives above it were produced, when recommendations
+              are offered, then the offered set is not composed only of
+              alternatives above the limit
+Status:       draft
+Depends-on:   FR-008; FR-013
+Risk:         The user stated a limit and the answer is a set they cannot act
+              on without breaking it. This is the one failure that turns the
+              stated limit from a constraint into an opening offer, and it
+              does so at the moment of choosing, where nothing on the screen
+              separates "nothing else fits" from "we preferred the longer
+              routes".
+Rationale:    The section's guarantee is unconditional in its own words — at
+              least one recommended Turf alternative must remain within the
+              stated limit — and this record deliberately states only the
+              conditional that guarantee implies. Two readings of the sentence
+              are open with the Owner and this record is true under both:
+              whether the guaranteed alternative must capture a zone, in which
+              case a short budget on a rural corridor can genuinely have none
+              and `DESIGN.md § When nothing fits at all` owns what is said
+              instead; or whether a journey carrying no Turf stop, which adds
+              no time, discharges it. The unconditional form is unwritable
+              until that is ruled, and the residue is recorded rather than
+              resolved. This is the obligation FR-013 and FR-018 defer to this
+              section. The prioritization half of the same sentence lands here
+              too: read as set membership it is this record, and read as
+              presentation order it collides with the Owner's ruling of 1
+              August 2026 recorded on FR-010, so no ordering obligation is
+              authored. FR-014 and FR-015 cannot reduce the offered set below
+              this floor — FR-014 leaves one of two identical alternatives
+              standing, and an alternative dominating a compliant one costs no
+              more, so it is itself within the limit. FR-016 cannot either, on
+              its own standard: it obliges a set in which each alternative
+              gives the user a distinct reason to choose it, and an
+              alternative within the limit the user themselves stated carries
+              the most legible such reason in the set — it is the one thing
+              they asked for by name, and it is distinct from every
+              above-limit alternative on exactly the axis they chose to
+              constrain. Removing the last compliant alternative therefore
+              makes the set worse by the judge's own standard rather than
+              better, so no precedence between the two records is authored
+              here. FR-013's rule for its own floor is a different obligation
+              and is left undisturbed.
+Resolved-by:  —
+```
+
+## FR-049 — Offer an above-limit alternative only where value justifies it
+
+```
+Statement:    The system shall offer a journey alternative whose additional
+              time exceeds the additional-time limit the user stated only
+              where the additional Turf value it carries justifies exceeding
+              that limit.
+Category:     Recommendation set composition
+Source:       SPECIFICATION.md § User time constraints;
+              SPECIFICATION.md § Recommended journey alternatives
+Priority:     MUST
+Verification: human-judgement — the Owner, against
+              `SPECIFICATION.md § User time constraints`, over the above-limit
+              alternatives offered for real journeys: whether the Turf value
+              each carries beyond the within-limit alternatives offered with
+              it is a clear justification for exceeding the limit the user
+              stated
+Acceptance:   the Owner reviews each offered above-limit alternative alongside
+              the within-limit alternatives offered with it and judges,
+              against `SPECIFICATION.md § User time constraints`, whether the
+              additional Turf value it carries is a clear justification for
+              exceeding the stated limit; an above-limit alternative whose
+              additional value the Owner would not have spent the additional
+              time on fails
+Status:       draft
+Depends-on:   FR-007; FR-008
+Risk:         Offered freely, the stretch band stops being an exception and
+              becomes the product's ordinary output: every journey acquires a
+              slightly longer route, the stated limit becomes an opening
+              position, and the identification FR-047 requires turns into
+              noise the user learns to click past.
+Rationale:    FR-015 is the machine-checkable floor and is not restated here —
+              an above-limit alternative carrying no more value than one
+              offered within the limit costs more for no gain, so that record
+              already removes it, and every above-limit alternative surviving
+              it carries strictly more value than every within-limit
+              alternative offered beside it. What is left is whether the gain
+              is clear, which is a bar rather than an ordering, and the look
+              for one found nothing:
+              `CalculationSpecification.md § The objective function` gives a
+              comparison form and no threshold;
+              `CalculationSpecification.md § Zone value` and its
+              rank-to-weight curve weight attributes without setting a bar for
+              justifying extra time;
+              `CalculationSpecification.md § The absolute additional-time ceiling`
+              bounds the time and says nothing about value; and
+              `CalculationSpecification.md § Bounds the interaction layer depends on`
+              holds only the uncertain-stop bound and the review-escalation
+              thresholds. A figure standing in for clear would have been
+              chosen here, would then be measured, and would pass, leaving the
+              quality it stood for unexamined — so the residue is judged, on
+              FR-016's precedent, and
+              `DELIVERY.md § Escalation and human judgement` names exactly
+              this kind of question as not machine-checkable.
+Resolved-by:  —
+```
