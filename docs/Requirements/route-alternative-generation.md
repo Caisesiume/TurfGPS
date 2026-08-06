@@ -43,5 +43,5 @@ Rationale:    The section requires the optimizer to behave sensibly across the
               large budget must not degenerate into is owned by
               `SPECIFICATION.md § Individual zones rather than local collection routes`
               and restating it here would give that prohibition a second home.
-Resolved-by:  —
+Resolved-by:  #49
 ```

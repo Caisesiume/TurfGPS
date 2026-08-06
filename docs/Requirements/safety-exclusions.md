@@ -42,7 +42,7 @@ Rationale:    The cited calculation section names this as the misreading the
               quantity, and that is the failure with no symptom. Separate from
               FR-039 in the same way — that record binds the limit the user
               stated, this one binds the allowance built on top of it.
-Resolved-by:  —
+Resolved-by:  #44
 ```
 
 ## FR-045 — Offer no journey alternative above the absolute ceiling
@@ -96,7 +96,7 @@ Rationale:    The obligation is enforcement, not arithmetic: whatever value
               authored here. Time is never grounds for relaxing a safety rule
               and value is never grounds for relaxing this one, per
               `safety-path-checklist § The absolute ceiling`.
-Resolved-by:  —
+Resolved-by:  #50
 ```
 
 ## FR-046 — Reject a configured ceiling multiplier above the permitted maximum
@@ -142,7 +142,7 @@ Rationale:    The cited section states both properties this record rests on:
               created; the model the constant serves is stated under
               `SPECIFICATION.md § User time constraints` and is cited by
               FR-044 and FR-045 for it.
-Resolved-by:  —
+Resolved-by:  #51
 ```
 
 ## FR-053 — Test the limit and the ceiling against the sum across all legs
@@ -185,5 +185,5 @@ Rationale:    This restates neither FR-045's prohibition nor FR-047's
               that constant is cited. That the sum may exceed the stated limit
               at all is the stretch band, which is why the second criterion
               binds how the alternative is presented rather than refusing it.
-Resolved-by:  —
+Resolved-by:  #56
 ```

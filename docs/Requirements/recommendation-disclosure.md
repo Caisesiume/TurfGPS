@@ -43,7 +43,7 @@ Rationale:    One record and not two, though the section states the
               and is not authored here; that a stretch alternative must also
               carry a reason is FR-048's, and whether it should have been
               offered at all is FR-049's.
-Resolved-by:  —
+Resolved-by:  #45
 ```
 
 ## FR-048 — Name what the stated limit was exceeded for
@@ -88,7 +88,7 @@ Rationale:    The section names the content the explanation must carry and
               authored here. Where more than one zone accounts for the
               exceedance the section is silent, and that gap is returned with
               this batch rather than closed by a rule invented here.
-Resolved-by:  —
+Resolved-by:  #52
 ```
 
 ## FR-054 — Present the additional time for the journey as a whole
@@ -118,5 +118,5 @@ Rationale:    The section makes the total the figure that matters and the
               presented is the one FR-053 tests, which is what keeps the
               number the user reads and the number the ceiling checks from
               being two different figures.
-Resolved-by:  —
+Resolved-by:  #54
 ```

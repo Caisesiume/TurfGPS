@@ -193,7 +193,7 @@ Resolved-by:  #17
 Statement:    The system shall not withhold a journey alternative it has
               produced for the reason that the alternatives produced do not
               include every kind of alternative named under
-              *Recommended journey alternatives* in `SPECIFICATION.md`.
+              `SPECIFICATION.md § Recommended journey alternatives`.
 Category:     Recommendation set composition
 Source:       SPECIFICATION.md § Recommended journey alternatives
 Priority:     MUST
@@ -241,7 +241,7 @@ Resolved-by:  #15
 ```
 Statement:    Where no zone carrying an attribute is reachable within the
               user's stated additional-time limit, per
-              *User time constraints* in `SPECIFICATION.md`, the system should
+              `SPECIFICATION.md § User time constraints`, the system should
               not withhold a journey alternative that lies within that limit
               for carrying less Turf value than an alternative that exceeds
               it.
@@ -274,25 +274,25 @@ Risk:         The zone-poor corridor is the ordinary case away from cities. A
 Rationale:    The source's *best compliant route available* is the ordinary
               ranking applied unchanged, not a second ordering rule: what
               makes one alternative better than another is owned by
-              *Optimization objectives* in `SPECIFICATION.md` and by
-              *The objective function* in `CalculationSpecification.md`, so
-              this record names neither and cites the limit rather than
-              restating it. `SPECIFICATION.md § User time constraints`
-              declares itself the single definition of the allowance, so the
-              limit is named and never quantified — and that at least one
-              alternative within it always exists is that section's
-              obligation, deferred to the batch scoped to it rather than
-              restated here. What this section uniquely creates is the branch
-              stated above: an alternative already produced within the limit
-              is not dropped for being the poorer in Turf terms, which is the
-              one ground the source's *fewer or only ordinary zones* describes
-              twice. The prohibition is on that ground alone, so it neither
-              forbids ranking the within-limit alternative below a stretch nor
-              collides with FR-015 — an alternative exceeding the limit costs
-              more, so it never beats a within-limit one outright. The verb
-              follows the source's own *should present*; reading `shall` off
-              the *must* in the sentence before it would restate the existence
-              obligation this record defers.
+              `SPECIFICATION.md § Optimization objectives` and by
+              `CalculationSpecification.md § The objective function`, so this
+              record names neither and cites the limit rather than restating
+              it. `SPECIFICATION.md § User time constraints` declares itself
+              the single definition of the allowance, so the limit is named
+              and never quantified — and that at least one alternative within
+              it always exists is that section's obligation, deferred to the
+              batch scoped to it rather than restated here. What this section
+              uniquely creates is the branch stated above: an alternative
+              already produced within the limit is not dropped for being the
+              poorer in Turf terms, which is the one ground the source's
+              *fewer or only ordinary zones* describes twice. The prohibition
+              is on that ground alone, so it neither forbids ranking the
+              within-limit alternative below a stretch nor collides with
+              FR-015 — an alternative exceeding the limit costs more, so it
+              never beats a within-limit one outright. The verb follows the
+              source's own *should present*; reading `shall` off the *must* in
+              the sentence before it would restate the existence obligation
+              this record defers.
 Resolved-by:  #16
 ```
 
@@ -378,7 +378,7 @@ Rationale:    The section's guarantee is unconditional in its own words — at
               better, so no precedence between the two records is authored
               here. FR-013's rule for its own floor is a different obligation
               and is left undisturbed.
-Resolved-by:  —
+Resolved-by:  #47
 ```
 
 ## FR-049 — Offer an above-limit alternative only where value justifies it
@@ -435,5 +435,5 @@ Rationale:    FR-015 is the machine-checkable floor and is not restated here —
               FR-016's precedent, and
               `DELIVERY.md § Escalation and human judgement` names exactly
               this kind of question as not machine-checkable.
-Resolved-by:  —
+Resolved-by:  #57
 ```

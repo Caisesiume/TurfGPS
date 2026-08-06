@@ -49,7 +49,7 @@ Rationale:    The section's words are that this is always a user-supplied
               separately testable and testable at a different moment: this
               gate fires when planning is attempted, and FR-055 binds what the
               input holds before anything is attempted.
-Resolved-by:  —
+Resolved-by:  #41
 ```
 
 ## FR-039 — Derive no additional-time limit from the journey's length
@@ -87,7 +87,7 @@ Rationale:    Distinct from FR-044, which fixes what the ceiling is derived
               yields a ceiling that is correct arithmetic over the wrong base.
               The second criterion names the specific inference the section
               forbids rather than leaving it to be read out of the first.
-Resolved-by:  —
+Resolved-by:  #42
 ```
 
 ## FR-040 — Admit an additional-time limit anywhere in the realistic range
@@ -128,7 +128,7 @@ Rationale:    The section gives the range's ends as examples of ordinary
               other half of the section's sentence and is FR-041's, being
               separately testable: a value can be admitted unaltered and still
               be argued with.
-Resolved-by:  —
+Resolved-by:  #43
 ```
 
 ## FR-041 — Present neither end of the realistic range as unusual
@@ -163,7 +163,7 @@ Rationale:    The obligation is comparative rather than absolute — the section
               is not. Priority is SHOULD because nothing becomes unbuildable
               without this record: it forbids an addition rather than obliging
               a capability, and it binds whenever the input is built.
-Resolved-by:  —
+Resolved-by:  #48
 ```
 
 ## FR-055 — Open the planner with no additional-time limit entered

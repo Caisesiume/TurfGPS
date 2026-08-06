@@ -32,7 +32,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 **59 rows read `to-build` and 3 read `draft`.** Batch 4 — `FR-038` … `FR-054` — was signed off on 6 August 2026 and all seventeen moved from `draft` **straight to `to-build`**, as batch 3b did earlier the same day, as batch 3 did on 4 August 2026 and as batches 1 and 2 each did on the day they were filed. The three still reading `draft` are `FR-055` … `FR-057`, filed the same day under the three rulings that came with that signature: the Owner ruled the substance and has not signed this wording, and `@requirements-engineer` does not sign records it commissioned. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. **Nothing in this column says how far the build has got** — that question is answered by following `Resolved-by` to the stories, never by a value written here. See `README.md § Corpus state`.
 
-**42 rows name at least one story in `Resolved-by` and 20 read `—`.** The forty-two were allocated in four passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, and the three batch-3b rows on 6 August 2026, each allocation following the Owner's sign-off as a pass of its own — and nine epics and thirty-nine stories carry them. Seventeen of the twenty reading `—` are batch 4, signed off on 6 August 2026 with no story pass yet run for it, and the other three are `FR-055` … `FR-057`, which are still `draft` and therefore ahead of sign-off as well as ahead of any story. `—` says *not yet allocated* here and never *unknown*, and both cases are the ordinary interval before the story pass. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
+**59 rows name at least one story in `Resolved-by` and 3 read `—`.** The fifty-nine were allocated in five passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, and the three batch-3b rows and seventeen batch-4 rows on 6 August 2026, each allocation following the Owner's sign-off as a pass of its own — and thirteen epics and fifty-six stories carry them. The three reading `—` are `FR-055` … `FR-057`, which are still `draft` and therefore ahead of sign-off as well as ahead of any story. **The rows naming a story and the rows reading `to-build` are the same fifty-nine again**, which closes the interval batch 4's sign-off opened: a `—` in this column once more means *not yet signed off*, as it did before 6 August 2026. `—` says *not yet allocated* here and never *unknown*. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
 
 ## Journey definition
 
@@ -54,10 +54,10 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-038` | Plan no journey without an additional-time limit the user entered | Journey initialization | MUST | to-build | test | — |
-| `FR-039` | Derive no additional-time limit from the journey's length | Journey initialization | MUST | to-build | test | — |
-| `FR-040` | Admit an additional-time limit anywhere in the realistic range | Journey initialization | MUST | to-build | test | — |
-| `FR-041` | Present neither end of the realistic range as unusual | Journey initialization | SHOULD | to-build | test | — |
+| `FR-038` | Plan no journey without an additional-time limit the user entered | Journey initialization | MUST | to-build | test | #41 |
+| `FR-039` | Derive no additional-time limit from the journey's length | Journey initialization | MUST | to-build | test | #42 |
+| `FR-040` | Admit an additional-time limit anywhere in the realistic range | Journey initialization | MUST | to-build | test | #43 |
+| `FR-041` | Present neither end of the realistic range as unusual | Journey initialization | SHOULD | to-build | test | #48 |
 | `FR-055` | Open the planner with no additional-time limit entered | Journey initialization | MUST | draft | test | — |
 | `FR-056` | Refuse an additional-time limit that is not positive | Journey initialization | MUST | draft | test | — |
 | `FR-057` | Impose no maximum admissible additional-time limit | Journey initialization | SHOULD | draft | test | — |
@@ -68,7 +68,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-042` | Search for alternatives whatever the size of the stated limit | Route alternative generation | MUST | to-build | test | — |
+| `FR-042` | Search for alternatives whatever the size of the stated limit | Route alternative generation | MUST | to-build | test | #49 |
 
 ## Turf data integration
 
@@ -122,9 +122,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-050` | Allocate the budget across legs before optimizing any leg | Multi-leg budget allocation | MUST | to-build | test | — |
-| `FR-051` | Size each leg's share in proportion to its baseline driving time | Multi-leg budget allocation | SHOULD | to-build | test | — |
-| `FR-052` | Return an unused share to a pool for the remaining legs | Multi-leg budget allocation | SHOULD | to-build | test | — |
+| `FR-050` | Allocate the budget across legs before optimizing any leg | Multi-leg budget allocation | MUST | to-build | test | #46 |
+| `FR-051` | Size each leg's share in proportion to its baseline driving time | Multi-leg budget allocation | SHOULD | to-build | test | #53 |
+| `FR-052` | Return an unused share to a pool for the remaining legs | Multi-leg budget allocation | SHOULD | to-build | test | #55 |
 
 `FR-050` … `FR-052` were authored proposing `Cost and time composition` and filed here on `@requirements-engineer`'s assignment of 6 August 2026, the register entry being added in the same pass. The two categories are mirrors — that one composes a cost from its components, this one decomposes an allowance into shares — and the reasoning is on the register in `README.md`, not here.
 
@@ -157,8 +157,8 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-016` | Offer alternatives that differ in ways a user would act on | Recommendation set composition | MUST | to-build | human-judgement | #17 |
 | `FR-017` | Do not withhold alternatives for a missing kind of alternative | Recommendation set composition | MUST | to-build | test | #15 |
 | `FR-018` | Do not withhold a compliant alternative for its lower Turf value | Recommendation set composition | MUST | to-build | test | #16 |
-| `FR-043` | Offer a zone-capturing within-limit alternative where one was produced | Recommendation set composition | MUST | to-build | test | — |
-| `FR-049` | Offer an above-limit alternative only where value justifies it | Recommendation set composition | MUST | to-build | human-judgement | — |
+| `FR-043` | Offer a zone-capturing within-limit alternative where one was produced | Recommendation set composition | MUST | to-build | test | #47 |
+| `FR-049` | Offer an above-limit alternative only where value justifies it | Recommendation set composition | MUST | to-build | human-judgement | #57 |
 
 ## Recommendation disclosure
 
@@ -166,9 +166,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-047` | Present an above-limit alternative as a stretch alternative | Recommendation disclosure | MUST | to-build | test | — |
-| `FR-048` | Name what the stated limit was exceeded for | Recommendation disclosure | MUST | to-build | test | — |
-| `FR-054` | Present the additional time for the journey as a whole | Recommendation disclosure | SHOULD | to-build | test | — |
+| `FR-047` | Present an above-limit alternative as a stretch alternative | Recommendation disclosure | MUST | to-build | test | #45 |
+| `FR-048` | Name what the stated limit was exceeded for | Recommendation disclosure | MUST | to-build | test | #52 |
+| `FR-054` | Present the additional time for the journey as a whole | Recommendation disclosure | SHOULD | to-build | test | #54 |
 
 `FR-047`, `FR-048` and `FR-054` were authored proposing `Recommendation set composition` and filed here on `@requirements-engineer`'s assignment of 6 August 2026, the register entry being added in the same pass. That category disclaims presentation in its own scope line, so the three could not have filed there; the reasoning is on the register in `README.md`, not here.
 
@@ -178,10 +178,10 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-044` | Derive the absolute ceiling from the stated additional time | Safety exclusions | MUST | to-build | test | — |
-| `FR-045` | Offer no journey alternative above the absolute ceiling | Safety exclusions | MUST | to-build | test | — |
-| `FR-046` | Reject a configured ceiling multiplier above the permitted maximum | Safety exclusions | MUST | to-build | test | — |
-| `FR-053` | Test the limit and the ceiling against the sum across all legs | Safety exclusions | MUST | to-build | test | — |
+| `FR-044` | Derive the absolute ceiling from the stated additional time | Safety exclusions | MUST | to-build | test | #44 |
+| `FR-045` | Offer no journey alternative above the absolute ceiling | Safety exclusions | MUST | to-build | test | #50 |
+| `FR-046` | Reject a configured ceiling multiplier above the permitted maximum | Safety exclusions | MUST | to-build | test | #51 |
+| `FR-053` | Test the limit and the ceiling against the sum across all legs | Safety exclusions | MUST | to-build | test | #56 |
 
 ## Data currency and confidence
 

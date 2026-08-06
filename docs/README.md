@@ -119,10 +119,15 @@ This is **the identifier rule above reaching the token's other half**, which is 
 - `docs/Requirements/journey-initialization.md` — born token-form
 - `docs/Requirements/multi-leg-budget-allocation.md` — born token-form
 - `docs/Requirements/recommendation-disclosure.md` — born token-form
+- `docs/Requirements/recommendation-set-composition.md` — migrated
 - `docs/Requirements/route-alternative-generation.md` — born token-form
 - `docs/Requirements/safety-exclusions.md` — born token-form
 
-**Those five were admitted one commit late, and it is recorded rather than smoothed over.** They were created in `1bb42e5`, before this route existed, and admitted in the commit signing batch 4 off — on a check run at admission rather than at creation. That is the whole of the exception and it is not a precedent: a file born after 6 August 2026 declares in its creating commit or does not join.
+**Each entry says which route admitted it**, because the two are checked differently if either is ever audited: a migration is confirmed against the file's own history, a birth against the commit that declared it.
+
+**Five of the six were admitted one commit late, and it is recorded rather than smoothed over.** The born-token-form five were created in `1bb42e5`, before that route existed, and admitted in the commit signing batch 4 off — on a check run at admission rather than at creation. That is the whole of the exception and it is not a precedent: a file born after 6 August 2026 declares in its creating commit or does not join. `recommendation-set-composition.md` needs no such allowance; it converted and joined in one commit, as the rule requires.
+
+**That migration is also the worked example of the rule above it.** It was eligible on 6 August and **declined**, because the commit then editing the file was repairing `FR-043`'s content — and a citation rewrite sitting in a diff beside a content edit cannot be told from one. It converted in the next commit instead, which wrote story links and nothing else. The lesson is that *a commit already editing the file for another reason* is a floor and not the whole test: **the other reason must be one the conversion cannot be mistaken for.**
 
 That list is what licenses the syntactic check: citation-or-emphasis may be decided by pattern **only for files on it**, and every file not on it must still be checked against the cited document's heading list. **A file joins the list in the same commit that converts it, and in no other commit.** A list that can drift from the files it describes is worse than no list, because the check it licenses would then run against files that cannot bear it.
 

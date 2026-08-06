@@ -40,7 +40,7 @@ Rationale:    The obligation is the allocation's existence and its timing, not
               leg is reached lets an early leg spend against a budget the
               later legs have not yet claimed from, which is the same failure
               arriving one leg at a time.
-Resolved-by:  —
+Resolved-by:  #46
 ```
 
 ## FR-051 — Size each leg's share in proportion to its baseline driving time
@@ -76,7 +76,7 @@ Rationale:    A relation and not a formula: the record states the proportion
               pooling the shares no longer stand in the baseline ratio, and a
               criterion measured then would fail against a correct
               implementation.
-Resolved-by:  —
+Resolved-by:  #53
 ```
 
 ## FR-052 — Return an unused share to a pool for the remaining legs
@@ -111,5 +111,5 @@ Rationale:    The section's reason for the pool is a leg along which too few
               offer it to and the journey simply uses less than the user
               allowed; the section obliges nothing there and neither does this
               record.
-Resolved-by:  —
+Resolved-by:  #55
 ```
