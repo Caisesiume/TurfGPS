@@ -362,20 +362,452 @@ It is not an account. There is no email address, no password, no login, and no i
 
 Two obligations come with it:
 
-* **Expiry.** Stored plans should expire — ninety days is a reasonable default — so that storage is bounded and abandoned plans do not accumulate indefinitely. Reopening a plan restarts the clock, per *Returning to a stored plan* in `DESIGN.md`. **The reset needs a ceiling above it, proposed at twelve months from creation.** The ninety-day clock bounds an *abandoned* plan and only that: a plan reopened every eighty-ninth day is retained forever, and by the obligation below, what it retains is a dwelling coordinate. A plan should therefore be deleted at most **twelve months after it was created**, however often it has been opened. The two are independent — reopening extends the ninety days exactly as `DESIGN.md` specifies, and nothing extends the ceiling.
+* **Expiry.** Stored plans should expire — ninety days is a reasonable default — so that storage is bounded and abandoned plans do not accumulate indefinitely. Reopening a plan restarts the clock, per *DESIGN.md § Returning to a stored plan*. **The reset needs a ceiling above it, proposed at twelve months from creation.** The ninety-day clock bounds an *abandoned* plan and only that: a plan reopened every eighty-ninth day is retained forever, and by the obligation below, what it retains is a dwelling coordinate. A plan should therefore be deleted at most **twelve months after it was created**, however often it has been opened. The two are independent — reopening extends the ninety days exactly as `DESIGN.md` specifies, and nothing extends the ceiling.
 
-  Twelve months is **a proposed default, not a measured result** — a concrete number to argue against. It is longer than any plausible reuse cycle for a single journey: a route still being opened after a full year of Turf rounds has had its value, and re-planning it costs the user one search. It is short enough that the store never holds a dwelling coordinate indefinitely on the strength of habit alone. And it is the only bound that makes the store's worst case computable — one year of plan creation, independent of how users open things — which the ninety-day rule by itself does not give. It bounds **the life of a stored plan** and nothing else; the twelve months appearing under *Proposed adjustment* in `CalculationSpecification.md` bounds a **zone's age** and is an unrelated figure that happens to share a value. Neither constrains the other, and either may move without the other moving.
+  Twelve months is **a proposed default, not a measured result** — a concrete number to argue against. It is longer than any plausible reuse cycle for a single journey: a route still being opened after a full year of Turf rounds has had its value, and re-planning it costs the user one search. It is short enough that the store never holds a dwelling coordinate indefinitely on the strength of habit alone. And it is the only bound that makes the store's worst case computable — one year of plan creation, independent of how users open things — which the ninety-day rule by itself does not give. It bounds **the life of a stored plan** and nothing else; the twelve months appearing under *CalculationSpecification.md § Proposed adjustment* bounds a **zone's age** and is an unrelated figure that happens to share a value. Neither constrains the other, and either may move without the other moving.
 
-  **One consequence belongs in `DESIGN.md` rather than here, and is not yet reflected there.** *Returning to a stored plan* in `DESIGN.md` states that a route in active use is never lost to a timer; a ceiling makes that conditional, because at twelve months an actively used plan is deleted. The expired-code path that document already specifies is the right carrier for it, but its assurance is stated more strongly than the ceiling allows and needs amending to match.
+  **One consequence belongs in `DESIGN.md` rather than here, and was reflected there on 6 August 2026.** *DESIGN.md § Returning to a stored plan* had stated that a route in active use is never lost to a timer; a ceiling makes that conditional, because at twelve months an actively used plan is deleted. That section now names the two clocks separately and carries the deletion through the expired-code path it already specifies, so the assurance it gives is the one the ceiling allows.
 * **Personal data.** **A plan holding only coordinates and zone identifiers is not free of personal data**, and treating it as though it were understates what is stored. A plan carries an **origin the user typed**, and for many journeys that origin is their home. A precise dwelling coordinate, held under a stable identifier alongside the date it was planned, is personal data in substance whatever it is called. It **cannot be designed out** — the product cannot plan a route from an origin it does not know — so the controls that matter are retention and access, not omission. The user's Turf username is the separable part: either keep it out of the stored object, or state its retention explicitly. The first is simpler and is the recommendation.
 
 This keeps the no-accounts decision intact while closing the cross-device gap that would otherwise undermine the persistence requirement.
 
 ---
 
+## The schema
+
+This is the schema *§ Still owed by this document* has owed since the document was written: the synced zone table, the plan store behind `PlanStore`, and the bookkeeping the sync needs to be auditable. It is a **proposal**. No DDL has been applied anywhere, because there is no database yet — and that is the reason to settle the design now rather than later, when every choice below costs a migration against a live table instead of a paragraph.
+
+Every figure in this section was measured against the complete zone response of 3 August 2026 — all 154,845 records — unless it says otherwise. Where a figure depends on when the corpus was read, the instant is stated with it. **The reference instant is `2026-08-03T10:10:09Z`**, the moment the dump was retrieved. It is stated rather than implied because an age-dependent figure without its clock cannot be re-derived, and the first draft of this section was wrong by two hours for exactly that reason: the retrieval time was read off a local Stockholm wall clock and recorded as though it were UTC.
+
+### The queries the schema exists to serve
+
+The schema is derived from these five queries and from nothing else. Each is written before the table it reads, because the index falls out of the query and never out of the entity diagram.
+
+**Q1 — corridor containment.** Given a route as a line and a half-width in metres, return every zone inside it with the columns the cost model consumes. This is the query on the request path, and the one whose latency is the product.
+
+```sql
+SELECT id, name, latitude, longitude, date_created, total_takeovers,
+       takeover_points, points_per_hour, type_id
+FROM   zone
+WHERE  ST_DWithin(geom, $1::geography, $2);
+```
+
+Measured result sizes, over five representative routes:
+
+| Route | 1 km half-width | 5 km | 15 km |
+|---|---:|---:|---:|
+| Within Stockholm (~9 km) | 156 | 1,061 | 4,089 |
+| Stockholm → Uppsala (~65 km) | 610 | 2,861 | 5,935 |
+| London → Manchester (~260 km) | 387 | 2,048 | 6,468 |
+| Östersund → Umeå (~350 km, rural) | 189 | 805 | 1,186 |
+| Stockholm → Göteborg (~400 km) | 819 | 3,857 | 8,874 |
+
+**Q2 — the activity baseline.** For a candidate zone, the nearest 100 zones bounded to 25 km, whichever limit binds first, per *CalculationSpecification.md § The activity baseline*. This runs once per candidate, so it is written as a lateral join over the corridor result rather than as one query repeated thousands of times.
+
+```sql
+SELECT c.id, n.id AS neighbour_id, n.total_takeovers, n.date_created
+FROM   candidate c
+CROSS  JOIN LATERAL (
+         SELECT z.id, z.total_takeovers, z.date_created
+         FROM   zone z
+         WHERE  ST_DWithin(z.geom, c.geom, 25000)
+           AND  z.id <> c.id
+         ORDER  BY z.geom <-> c.geom
+         LIMIT  100
+       ) n;
+```
+
+The distance bound sits in the `WHERE` clause and not in a filter applied after the ordering, because only there can the index use it. Measured over 1,200 random zones, the number of zones within 25 km is **p50 = 575, p90 = 2,831, p99 = 5,621, max = 5,914** — so the inner scan typically discards several hundred rows to keep a hundred, and **85.75%** of the time the count binds before the radius does. In the remaining **14.25%** the radius binds, and in **5.25%** of cases fewer than 20 zones lie within it, which is the guard *CalculationSpecification.md § Proposed adjustment* already specifies firing.
+
+**Q3 — plan lookup by code.** One row by primary key, with expiry enforced in the predicate rather than in application code, so that an expired plan is unreadable even if the sweep has not yet run.
+
+```sql
+SELECT payload, schema_version
+FROM   plan
+WHERE  code = $1 AND expires_at > now();
+```
+
+**Q4 — the expiry sweep.** A scheduled delete, discussed under *§ The plan table*.
+
+**Q5 — the sync merge.** 154,845 staged rows reconciled against the table, in one transaction. Discussed under *§ The sync write path*.
+
+Nothing else queries the zone table. In particular **no query in the pipeline filters or groups by region, area, country, or type** — those columns are projected out of a result set Q1 has already selected. That fact decides several indexes below, by deciding that they are not created.
+
+### The zone table
+
+Seventeen columns. Nine come from the API directly, five are the flattened `region` and `type` objects, one is derived, and two are bookkeeping.
+
+```sql
+CREATE TABLE IF NOT EXISTS zone (
+    id               integer      PRIMARY KEY,
+    name             text         NOT NULL,
+    latitude         double precision NOT NULL,
+    longitude        double precision NOT NULL,
+    geom             geography(Point, 4326)
+                     GENERATED ALWAYS AS (
+                       ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+                     ) STORED,
+    date_created     timestamptz  NOT NULL,
+    total_takeovers  integer      NOT NULL,
+    takeover_points  smallint     NOT NULL,
+    points_per_hour  smallint     NOT NULL,
+    type_id          smallint,
+    region_id        smallint     NOT NULL,
+    region_name      text         NOT NULL,
+    region_country   text,
+    area_id          integer,
+    area_name        text,
+    first_seen_at    timestamptz  NOT NULL,
+    last_changed_at  timestamptz  NOT NULL,
+
+    CONSTRAINT zone_lat_range        CHECK (latitude  BETWEEN  -90 AND  90),
+    CONSTRAINT zone_lon_range        CHECK (longitude BETWEEN -180 AND 180),
+    CONSTRAINT zone_takeovers_nonneg CHECK (total_takeovers >= 0)
+);
+```
+
+The widths are measured, not guessed. `id` runs 71 to 811,670 and fits `integer`. `total_takeovers` reaches **84,321**, which does **not** fit `smallint` — a plausible-looking choice that fails on real data. `takeover_points` runs 65 to 185 and `points_per_hour` runs 1 to 9, both comfortably `smallint`. `region_id` runs 95 to 469, `area_id` runs 1,797 to 4,682, `type_id` runs 3 to 23. Every one is a non-negative integer on every record, and none is ever fractional.
+
+**`latitude` and `longitude` are stored as scalars even though `geom` is derived from them, and that redundancy is the point.** If only the point were stored there would be nothing left to check the axis order *against* — the swap becomes unfalsifiable the moment the row is written. Keeping the source scalars is what makes the guard under *§ Geometry, SRID, and the coordinate guard* possible at all. The API returns two scalars rather than a coordinate pair, per *§ Retrieving zones*, so this stores what the API actually sends and derives the pair once, in DDL.
+
+**`type_name` is not stored.** Across 154,845 records the `type` object holds **eleven** ids, each with exactly one name and no disagreement anywhere: `3` Water Zone, `6` Winner Zone, `8` Bridge, `9` Holy, `13` Train Station, `14` Castle/Fort, `15` World Heritage, `16` Ruins/Ancient Remains, `21` Monument, `22` National Park, `23` Summit. Storing the name repeats eleven strings across 24,643 rows and carries nothing the id does not. The sync counts any id outside that set and reports it rather than inventing a label for it.
+
+**`type_id` is nullable, and this is the field a schema gets wrong** — as *§ Retrieving zones* already records, `NOT NULL` fails on **130,202** of 154,845 records. `region_country`, `area_id` and `area_name` are nullable for reasons the next section gives.
+
+### The two absences, and the test that keeps them absent
+
+`currentOwner` and `dateLastTaken` are absent from every one of the 154,845 records. There are therefore **no columns for them**, and there must never be: they are round-scoped, per *§ Volatile and optional fields*, and a synced table that acquires a round-scoped column acquires a rollover problem it currently does not have.
+
+Documenting that is not enough, because the failure is an *addition* made later by someone who has not read this paragraph. The mechanism is a **set-equality test** over the live catalogue, run in CI against a migrated copy:
+
+```sql
+SELECT array_agg(column_name ORDER BY column_name)
+FROM   information_schema.columns
+WHERE  table_schema = 'public' AND table_name = 'zone';
+```
+
+asserted **equal, as a set**, to the seventeen literal names:
+
+```text
+area_id, area_name, date_created, first_seen_at, geom, id, last_changed_at,
+latitude, longitude, name, points_per_hour, region_country, region_id,
+region_name, takeover_points, total_takeovers, type_id
+```
+
+Equality in **both** directions is the whole design, and the direction that matters is the unusual one. A test asserting *these columns exist* cannot fail when a column is added, and a column being added is precisely the event being guarded against. A test asserting *no more than these exist* fails the moment `current_owner` appears, with a message naming it. The other direction catches the opposite drift: a field the sync writes that has quietly lost its column.
+
+That is also why the column list above is worth reading carefully. It is not documentation of the table; it is the assertion, and the table is checked against it.
+
+### The region hierarchy is not a tree
+
+The obvious normalisation — a `country` table, a `region` table keyed to it, an `area` table keyed to the region — cannot be built from this feed. Three measured facts kill it, and they are recorded here because the normalisation is the attractive answer and will be proposed again.
+
+**First, `region.country` is not the country of a zone.** It carries **eleven** values, all two lowercase letters: `se` (56,508 zones), `gb` (49,444), `de` (18,047), `dk` (7,691), `fi` (6,188), `no` (4,830), `nl` (2,104), `us` (1,984), `kr` (1,884), `jp` (1,362), `is` (165). Those eleven are the countries Turf has subdivided into regions. **Every other country is itself a region**: 181 region ids whose `region.name` *is* a country name — Ireland, Spain, Australia, Italy, France, Greece, Switzerland, Poland and 173 more — carry no `country` subkey at all, and account for the 4,638 zones *§ Retrieving zones* warns a group-by silently drops. So the country of a Swedish zone is the code `se` in one field, and the country of an Irish zone is the string `Ireland` in a different field, in a different vocabulary. A `country` dimension would need a name-to-code mapping the sync cannot derive, for 181 values, maintained by hand.
+
+**Second, area is absent in two unrelated ways.** All 4,638 country-less zones also lack an area — that correlation is exact, not approximate. But a further **538** zones do carry a country and still have no area: 531 in `kr`, 6 in `no`, 1 in `us`. So `area_id` is nullable for two different reasons and `NOT NULL` would fail on 5,176 records.
+
+**Third, and decisively, area does not nest inside region.** Two area ids sit under two different region ids each: area `3157` (Gyeongsangnam) under regions `169` and `171`, four zones; area `3068` (Hendrik-Ido-Ambacht) under regions `118` and `169`, two zones. Six zones out of 154,845 — 0.004% — and enough. A table `area(id PRIMARY KEY, region_id NOT NULL REFERENCES region)` **fails its precondition audit against real data**, today, before it is ever written. Nor is this a transient defect: both straddles are present in the January 2025 dump as well, and across the 18.92 months between the two dumps **no area id changed its parent region set at all**.
+
+So region and area are stored **denormalised on the zone row**: `region_id`, `region_name`, `region_country`, `area_id`, `area_name`. It costs roughly 30 bytes a row and removes two joins from Q1, which is the query on the request path. What would have been foreign keys become assertions the sync checks and reports: across the corpus, **zero** region ids carry more than one name and **zero** area ids carry more than one name, and the sync counts violations rather than refusing the response.
+
+Two related facts, recorded so nobody keys on the wrong thing. Region *names* are not unique — `Georgia` is both region `323` and region `432`, the country and the US state. Area names are worse: **25 area names are shared by more than one area id**, including several Korean district names used by three or four cities each. The id is the key; the name is a label. And the zone table sees only **335** of the 344 regions `GET /v5/regions` returns, per *§ Region lords* — nine regions have no zones — so a region table built from this feed would be incomplete as well as mis-shapen.
+
+### What becomes a constraint
+
+A property measured true today is not thereby a constraint. The test is not *is it true* but *should a violation abort the sync* — because that is what a constraint does: it takes the whole 154,845-row transaction down and leaves the table an hour stale, with the next attempt thirty minutes away.
+
+| Property | Measured on the corpus | Enforced? |
+|---|---|---|
+| `id` unique | 154,845 of 154,845 | **Yes** — `PRIMARY KEY`. It is the upsert's conflict target; without it the write path has no meaning. |
+| `latitude` within [−90, 90], `longitude` within [−180, 180] | holds; observed −54.499085 to 78.654199 and −178.412541 to 178.834506 | **Yes** — `CHECK`. Cheap, and the only declarative thing between a swapped write and a valid-looking row. Its reach is small; see the next section. |
+| `total_takeovers >= 0` | min 0, max 84,321, zero negatives | **Yes** — `CHECK`. |
+| `region_id` present | 154,845 of 154,845 | **Yes** — `NOT NULL`. |
+| `name` unique | 154,845 distinct names, zero collisions | **No.** Nothing documents uniqueness as a guarantee, Turf may permit a collision tomorrow, and a `UNIQUE` index would abort an entire sync over a cosmetic property. Counted and reported instead. |
+| `total_takeovers` never decreases | zero decreases across 138,830 ids over 18.92 months | **No.** A `CHECK` cannot express it; it needs a trigger, and a trigger's only power here is to abort a sync carrying real upstream data. Counted and reported. |
+| `takeover_points` within [65, 185], `points_per_hour` within [1, 9] | holds today | **No.** Both moved on **25,949** rows — 18.69% — between the two dumps, and always together, which reads as Turf recalibrating scoring. Freezing today's observed range would abort the sync the next time that happens. The `smallint` width carries the only constraint worth having. |
+| `date_created <= now()` | zero future-dated records at the reference instant | **Cannot be a constraint.** PostgreSQL rejects a `CHECK` containing a non-immutable function, and `now()` is not immutable. This is a real gap rather than a stylistic one: *CalculationSpecification.md § Takeover rate* has no guard for a negative divisor. It becomes a **staging-table assertion** in the sync, checked before the merge. |
+| `type_id` present | fails on 130,202 | **No.** |
+| `region_country` present | fails on 4,638 | **No.** |
+| `area_id` present | fails on 5,176 | **No.** |
+| `area_id` nests within one `region_id` | **fails on 2 area ids, 6 zones** | **No, and it cannot be.** See the previous section. |
+
+The pattern is worth naming. Four properties are enforced and six are merely true. The difference is not confidence — the six are as well measured as the four — but consequence: **enforcing a property whose violation is Turf's decision to make converts an upstream data change into a local outage.**
+
+### Geometry, SRID, and the coordinate guard
+
+The type is `geography(Point, 4326)`, and the SRID is written explicitly everywhere it could be defaulted.
+
+`geography` rather than `geometry` because the distances the pipeline computes are metres on the ellipsoid at every scale from **28.93 m** — the closest pair of zones found in an 11,690-zone sample — to 800 km, and because the corpus spans latitudes −54.50 to +78.65 and longitudes −178.41 to +178.83, with **125 zones east of 170°E and 3 west of 170°W**. No single projected SRID covers that, and `geometry` in 4326 would measure in degrees, which are not a unit of distance. `geography` also crosses the antimeridian correctly with no special case, which a planar type does not.
+
+**`geom` is a generated column, and that is the primary defence.** The axis order appears exactly once, in DDL, inside `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`. `ST_MakePoint` takes X then Y — longitude then latitude — which is the exact inversion the deleted prototype got wrong when it indexed `[latitude, longitude]` under a convention specifying `[longitude, latitude]`. A generated column means **the write path never supplies the point and therefore cannot invert it**. Moving the mistake out of code that runs thousands of times and into the one line reviewers actually read is worth more than any test.
+
+The test exists anyway, because the one line may be wrong.
+
+**A range check is not that test, and the corpus says why.** Under a table-wide swap, `CHECK (latitude BETWEEN -90 AND 90)` fires only on rows whose true longitude exceeds 90°. That is **5,982 rows — 3.86%** of the corpus, and all of them are in Korea (1,884), the United States (1,744), Japan (1,362), Australia (299), Thailand (163), New Zealand (152), China (87) and Canada (56). **In all six primary markets of *§ D5* — Sweden, the UK, Germany, Norway, Denmark and Finland — the number of rows a latitude range check would catch is zero.** Swedish longitudes run 10.99° to 24.17°; British, 0.00° to 8.57°. A developer writing a fixture from Nordic data — which is what a Turf developer writes, and what the prototype used — gets a check that cannot fail. For **96.14%** of the corpus a swapped coordinate is still a coordinate PostGIS accepts without complaint.
+
+**The guard is three assertions, run in CI against a migrated copy.** It uses two real zones from the corpus, with the expected distances computed independently by Vincenty on the WGS84 spheroid.
+
+*Assertion 1 — a known distance.* Zone `8240` **VonScheeles** (59.346932, 18.021527) and zone `119704` **StGravkoret** (59.354872, 18.029727) are **1000.0006 m** apart. `ST_Distance(a.geom, b.geom)` must equal that to within 1 mm. The pair was chosen for being almost exactly a kilometre apart, because a fixture whose expected value is memorable is a fixture someone will notice has changed.
+
+*Assertion 2 — the axis order, named.* For every row, `ST_Y(geom::geometry) = latitude` and `ST_X(geom::geometry) = longitude`. This is what makes storing the raw scalars worthwhile: the assertion compares the derived point against the source values, so its failure message says *which axis*, rather than reporting a distance wrong by some factor and leaving the reader to work out why.
+
+*Assertion 3 — the fixture is capable of failing.* Swapping the fixture's own coordinates must change the computed distance by more than the tolerance. For the pair above the swap gives **1237.1695 m**, a factor of **1.2372**. Without this assertion the guard can be silently defanged by someone substituting a better-looking pair — and the corpus contains **27 zones whose latitude and longitude are within one degree of each other**, any of which would make assertions 1 and 2 pass under a swap. A test that does not check it can fail is a test that reports success either way.
+
+Two further things that fixture pins, both silent failures otherwise. That 1.2372 factor is the danger expressed as one number: **a coordinate swap in Stockholm produces a distance 24% too large — not an absurdity, a plausible figure.** Nothing in a log would look wrong. And `ST_Distance(geography, geography)` defaults to the spheroid; passing `false` for `use_spheroid` selects a sphere and returns **997.7710 m** for the same pair, off by 2.23 m or 0.223%. On the long leg — zone `8226` **Riksgatan** to zone `346` **QueensPark**, **398,139.0284 m** — the sphere is off by 1,264 m, 0.318%. A millimetre tolerance means the fixture pins the spheroid setting too, at no extra cost.
+
+### The indexes
+
+Two on `zone`, two on `plan`, one on the sync log. That is all of them.
+
+```sql
+-- zone
+zone_pkey                     btree (id)          -- implicit, from PRIMARY KEY
+CREATE INDEX CONCURRENTLY IF NOT EXISTS zone_geom_gist ON zone USING gist (geom);
+
+-- plan
+plan_pkey                     btree (code)        -- implicit, from PRIMARY KEY
+CREATE INDEX CONCURRENTLY IF NOT EXISTS plan_expires_at_idx ON plan (expires_at);
+
+-- sync_run
+sync_run_pkey                 btree (id)          -- implicit
+```
+
+`zone_pkey` serves the upsert's conflict target in Q5 and the resolution of zone ids held in a stored plan. `zone_geom_gist` serves **both** Q1 and Q2 — the `ST_DWithin` containment and the `<->` nearest-neighbour ordering come off one index, which is a property of GiST on geography and not a coincidence to be relied on silently. `plan_expires_at_idx` serves Q3's predicate and Q4's sweep.
+
+**Four indexes are deliberately not created**, and the reasoning is recorded because each looks obviously useful:
+
+* **No index on `region_id`, `area_id`, `region_country` or `type_id`.** No query shape reads them as a predicate. `type_id` is the tempting one, since the cost model consumes it — but it consumes it for rows Q1 has already selected, which makes it a projection. An unused index is not free: it is paid for on every one of the roughly 1,840 rows a sync writes, forty-eight times a day, forever.
+* **No index on `total_takeovers` or `date_created`.** The takeover rate is computed across a corridor result set, never looked up by rate.
+* **No BRIN.** BRIN requires physical correlation between value and page order. The sync writes in the API's response order, which is neither spatial nor temporal, and updated rows land wherever there is free space. BRIN would not fail; it would degrade to a full scan while still appearing in `EXPLAIN`, which is the worse outcome.
+* **No SP-GiST.** Its point opclasses cover `geometry`, not `geography`. Adopting it means adopting a planar type and reintroducing the projection problem the previous section rejected.
+
+**The index with no cell size.** GiST over `geography(Point, 4326)` has no grid resolution, no cell size, no precision or bits parameter. It derives its bounding boxes from the geometries themselves; there is nothing to tune and therefore nothing to tune wrongly. That is not a minor convenience on this surface, it is a selection criterion. The deleted prototype's `2dsphere` index carried a version parameter, and MongoDB's legacy `2d` index carries `bits` — a precision knob whose wrong value degrades results rather than raising. The ad-hoc grid used to produce the measurements *in this very section* needed a cell size of 0.02° chosen by hand, and chosen badly it would have returned wrong neighbour counts without complaining once. BRIN carries `pages_per_range`. **On a surface that has already produced one silent geospatial defect, prefer the component with the fewest settings that can be quietly wrong** — the same argument that made `geom` a generated column.
+
+**None of this is proved.** `CREATE INDEX` succeeding proves nothing; only `EXPLAIN` on the real query shape counts, and there is no database to run it against. See *§ What is unproven*, item 1. It is the most important admission in this section.
+
+### The sync write path
+
+The sync is a scheduled worker, never anything on a request path, for the reason *§ Retrieving zones* gives: the limit of one request per 30 minutes bounds freshness regardless of how fast the transfer is. What follows is how it writes.
+
+**Stage, assert, merge — in that order, with one transaction for the merge.**
+
+```sql
+CREATE UNLOGGED TABLE IF NOT EXISTS zone_incoming (
+    id integer, name text, latitude double precision, longitude double precision,
+    date_created timestamptz, total_takeovers integer,
+    takeover_points smallint, points_per_hour smallint, type_id smallint,
+    region_id smallint, region_name text, region_country text,
+    area_id integer, area_name text
+);
+```
+
+`UNLOGGED` because the staging table is rebuilt from the API on every run: 154,845 rows loaded by binary `COPY` generate no WAL, and losing the table to a crash costs nothing. It is truncated, loaded, and then asserted against **before** anything touches `zone`:
+
+* the row count is within a floor of the current table's count — a truncated response must not be merged at all;
+* no duplicate ids;
+* every latitude within [−90, 90] and every longitude within [−180, 180];
+* **no `date_created` later than the sync's own start instant** — the constraint that could not be a `CHECK`, checked here instead, where it can be.
+
+Then the merge:
+
+```sql
+INSERT INTO zone (id, name, latitude, longitude, date_created, total_takeovers,
+                  takeover_points, points_per_hour, type_id, region_id,
+                  region_name, region_country, area_id, area_name,
+                  first_seen_at, last_changed_at)
+SELECT i.*, $ts, $ts FROM zone_incoming i
+ON CONFLICT (id) DO UPDATE SET
+       name            = excluded.name,
+       latitude        = excluded.latitude,
+       longitude       = excluded.longitude,
+       date_created    = excluded.date_created,
+       total_takeovers = excluded.total_takeovers,
+       takeover_points = excluded.takeover_points,
+       points_per_hour = excluded.points_per_hour,
+       type_id         = excluded.type_id,
+       region_id       = excluded.region_id,
+       region_name     = excluded.region_name,
+       region_country  = excluded.region_country,
+       area_id         = excluded.area_id,
+       area_name       = excluded.area_name,
+       last_changed_at = excluded.last_changed_at
+WHERE  zone.name            IS DISTINCT FROM excluded.name
+   OR  zone.latitude        IS DISTINCT FROM excluded.latitude
+   OR  zone.longitude       IS DISTINCT FROM excluded.longitude
+   OR  zone.date_created    IS DISTINCT FROM excluded.date_created
+   OR  zone.total_takeovers IS DISTINCT FROM excluded.total_takeovers
+   OR  zone.takeover_points IS DISTINCT FROM excluded.takeover_points
+   OR  zone.points_per_hour IS DISTINCT FROM excluded.points_per_hour
+   OR  zone.type_id         IS DISTINCT FROM excluded.type_id
+   OR  zone.region_id       IS DISTINCT FROM excluded.region_id
+   OR  zone.region_name     IS DISTINCT FROM excluded.region_name
+   OR  zone.region_country  IS DISTINCT FROM excluded.region_country
+   OR  zone.area_id         IS DISTINCT FROM excluded.area_id
+   OR  zone.area_name       IS DISTINCT FROM excluded.area_name;
+```
+
+Four properties of that statement are load-bearing.
+
+**`first_seen_at` is absent from the `SET` list.** It is written on insert and never again. It is not the same thing as `date_created`, which is Turf's and — as *§ Retrieving zones* records — mutable.
+
+**Every field is refreshed, including the ones that look constant.** *§ Retrieving zones* establishes this for `date_created`, mutated on exactly one id in 138,830 over nineteen months. The measurement extends further: over the same 18.92 months, **1,034 zones changed coordinates** (0.745%), of which 1,008 moved more than a metre, 267 more than 100 m, 23 more than a kilometre — and one, id `564254` (`HyrcanianWood`), **moved 809 km under the same id**. `name` changed on 521, `type` appeared or vanished on 206, `area_id` changed on 11, `type_id` on 6, `region_id` on 1. A write path that skips fields it assumes constant carries all of these as silent staleness, and the coordinate ones as silent spatial error.
+
+**`IS DISTINCT FROM` rather than `<>`, and this is not pedantry.** `type_id`, `region_country`, `area_id` and `area_name` are nullable, and `<>` yields `NULL` — not true — when either side is `NULL`, so an update that should fire silently does not. The measurement says what that costs: `type` **appeared or vanished on 206 ids** in nineteen months. With `<>`, every one of those 206 rows keeps a stale `type_id` forever.
+
+**The `WHERE` on the `DO UPDATE` is what keeps the sync small.** At the reference instant the corpus sustains 1,406,301 takeovers per month, about 1,926 an hour. Modelled as independent arrivals, the expected number of *distinct* zones whose `totalTakeovers` changes is **941 in thirty minutes (0.61% of the table)** and **1,840 in an hour (1.19%)**; over 24 hours it is 24,242 (15.66%), and over the full nineteen months between dumps 92.61% of common ids changed. Writing only changed rows makes a sync write on the order of a thousand rows. Writing every row makes it 154,845 — a hundredfold difference, forty-eight times a day.
+
+**A single transaction is also the whole answer to tolerating a mid-refresh read.** Under MVCC no reader can observe a partial merge: Q1 and Q2 see either the state before the sync or the state after it, never a mixture. The merge takes `ROW EXCLUSIVE`, which does not block readers. Staleness of up to an hour remains — that is a product fact, forced by the rate limit — but *partial* state is not something a query has to defend against, provided the sync never splits its merge into batches. It must not.
+
+**Sync bookkeeping** is a table rather than log lines, because the questions asked of it are queries:
+
+```sql
+CREATE TABLE IF NOT EXISTS sync_run (
+    id             bigserial   PRIMARY KEY,
+    started_at     timestamptz NOT NULL,
+    completed_at   timestamptz,
+    outcome        text        NOT NULL,   -- ok | http_error | assertion_failed | aborted
+    http_status    smallint,
+    response_bytes bigint,
+    zones_received integer,
+    rows_inserted  integer,
+    rows_updated   integer,
+    rows_unchanged integer,
+    absent_count   integer,
+    absent_ids     integer[]
+);
+```
+
+`completed_at` is what `last_changed_at` on a zone row is stamped with, so every changed row is attributable to a run. Two figures are worth watching from the first day: `rows_updated` far above the modelled ~1,840 means the change-detection `WHERE` has stopped discriminating, and `zones_received` falling means a truncated response — the failure the staging assertions exist to catch.
+
+There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows every thirty minutes — roughly 23 MB of dead tuples per run, forty-eight runs a day, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
+
+### Absence is recorded and never acted on
+
+An id present in the table and missing from the response is computed on every run, recorded in `sync_run.absent_ids`, and **nothing is deleted on the strength of it.**
+
+The measurement is the argument. Of the **138,830** ids in the January 2025 dump, **zero** are missing from the August 2026 response; 16,015 ids were added. **Zone deletion has never been observed in nineteen months.** Against that, the cost of getting it wrong is unbounded in one direction: *§ Retrieving zones* records an earlier observation of a download that stopped at roughly 82,000 zones. Under a delete-on-absence rule, merging that response removes about 47% of the table in one transaction — and the next opportunity to repair it is thirty minutes away, because the rate limit does not care that the last response was broken.
+
+The asymmetry decides it. The condition a delete rule handles has never occurred; the condition it creates is a half-empty zone table on a request path. Absence is a **signal to a human**, surfaced through `sync_run.absent_count`, and never an instruction to the write path. If deletion is one day observed, `absent_ids` is the evidence that says so, and the rule can be revisited with data rather than with caution.
+
+### Migrating against a running sync
+
+Once the table is live, the sync holds a write transaction over it every thirty minutes and a migration has to be written around that. `postgis-migration-protocol` governs; four points are specific to this table.
+
+**Take a `lock_timeout` before any `ALTER TABLE`.** `ALTER TABLE` needs `ACCESS EXCLUSIVE`, and a *queued* `ACCESS EXCLUSIVE` request blocks every reader behind it — including Q1 on the request path. Waiting behind a sync therefore stalls the product, not merely the migration. `SET lock_timeout = '2s'` and retry; never wait.
+
+**Better than timing it, serialise against it.** The sync's schedule is the system's own, so both the sync and the migration take a `pg_advisory_lock` on a well-known key. That turns *hope it is idle* into a guarantee, and it costs one line in each.
+
+**`CREATE INDEX CONCURRENTLY`, always, and name the failure in the rollback.** It cannot run inside a transaction block, so each index is its own migration step; and a failed concurrent build leaves an `INVALID` index behind that must be dropped explicitly. That drop belongs in the documented rollback, not in the operator's memory.
+
+**Adding a `CHECK` is two steps.** `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE CONSTRAINT` in a separate transaction — validation takes only `SHARE UPDATE EXCLUSIVE` and does not block the sync's writes.
+
+And the one that argues for settling all of this now: **adding a `STORED` generated column rewrites the whole table under `ACCESS EXCLUSIVE`.** On 154,845 rows that is seconds rather than minutes, but it is a full rewrite holding the strongest lock in the system, scheduled against a job that runs forty-eight times a day. In migration 001 there is no data, no sync, and no lock to contend with. Getting `geom` right in the first migration costs nothing; adding it in the fourth costs a rewrite and a maintenance window.
+
+### The plan table
+
+```sql
+CREATE TABLE IF NOT EXISTS plan (
+    code            text        PRIMARY KEY,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    last_opened_at  timestamptz NOT NULL DEFAULT now(),
+    expires_at      timestamptz NOT NULL,
+    hard_expires_at timestamptz NOT NULL,
+    schema_version  integer     NOT NULL,
+    payload         jsonb       NOT NULL,
+
+    CONSTRAINT plan_ceiling_binds CHECK (expires_at <= hard_expires_at),
+    CONSTRAINT plan_no_username   CHECK (
+            NOT jsonb_exists(payload, 'username')
+        AND NOT jsonb_exists(payload, 'turfUsername')
+    )
+);
+```
+
+The two clocks in *§ Persistence and cross-device transfer* map onto two columns. `expires_at` is the rolling ninety days, reset on every open per *DESIGN.md § Returning to a stored plan*. `hard_expires_at` is the **ratified twelve-month ceiling from creation**, and nothing resets it.
+
+**`CHECK (expires_at <= hard_expires_at)` is what makes the ceiling unforgettable**, and it has a pleasant side effect: because `expires_at` can never exceed the ceiling, the sweep needs one predicate rather than two.
+
+```sql
+DELETE FROM plan WHERE expires_at <= now();
+```
+
+A reopen computes `expires_at = LEAST(now() + interval '90 days', hard_expires_at)`, and the constraint rejects it if it does not.
+
+**The ceiling cannot be a generated column, and this is worth recording because it is the first thing anyone will try.** `timestamptz + interval` is `STABLE`, not `IMMUTABLE` — month and day arithmetic on a `timestamptz` depends on the session time zone — so neither `GENERATED ALWAYS AS (created_at + interval '12 months') STORED` nor a `CHECK` phrased in those terms is legal. The enforcement is therefore **column-level privileges**:
+
+```sql
+REVOKE UPDATE (created_at, hard_expires_at) ON plan FROM app_role;
+GRANT  UPDATE (last_opened_at, expires_at)  ON plan TO   app_role;
+```
+
+The reopen path only ever needs to write those two columns. The ceiling is then enforced by the grant rather than by application discipline, which is the only version of it that survives a refactor.
+
+**`payload` is `jsonb` rather than a compressed `bytea`,** and the trade is real. Nothing queries inside the payload, so `bytea` would be smaller and faster. `jsonb` is chosen because the format *will* change within a plan's own lifetime, and `schema_version` plus a store that can read its own rows makes a format migration a query. TOAST compresses it in any case. The ceiling bounds the problem to twelve months of format history, which is exactly the amount of backward compatibility the store must carry.
+
+Sizing is estimated rather than measured, because the plan format does not exist. The candidate counts are measured: 156 for a short city plan at 1 km half-width, 8,874 for Stockholm → Göteborg at 15 km. At 200–400 bytes of stored classification and cost per candidate that is **0.03 MB to 3.39 MB uncompressed per plan**, before TOAST. The figure that matters operationally is that multiplied by a year of plan creation, and it is why the twelve-month ceiling has a storage argument as well as a privacy one.
+
+### Personal data
+
+*§ Persistence and cross-device transfer* now states that a plan holding coordinates and zone identifiers is **not** free of personal data, and this section agrees with it rather than re-arguing it. The origin the user typed is frequently their home; it cannot be designed out, because the product cannot plan a route from an origin it does not know. What the schema can do is three things.
+
+**Bound retention, and make the bound unbypassable.** Ninety days rolling and twelve months absolute, enforced by `plan_ceiling_binds` and the column grant above rather than by a code path someone can forget.
+
+**Keep the separable part out.** The Turf username is the one piece of identity that need not be stored, and *§ Persistence and cross-device transfer* recommends omitting it. There is no column for it, and `plan_no_username` refuses a payload carrying it at the top level. That constraint's limit is stated honestly: `jsonb_exists` tests top-level keys only, so a nested `username` passes it. It is a tripwire against the obvious mistake, not a proof of absence, and it should be described that way rather than relied upon.
+
+**Name the part the schema does not decide.** The code is a plan's only credential, and a plan holds a dwelling coordinate. Length, alphabet and entropy are a security decision rather than a schema one — the schema records only that the column is `text`, and that the decision is outstanding and belongs to review. A short code that is both memorable and the sole access control is an enumeration target, and rate limiting on Q3 is part of the same answer.
+
+### Round rollover
+
+**For the zone table, round rollover is a non-event — and that is a property to preserve deliberately, not a happy accident.** It holds because nothing round-scoped is stored: `GET /v5/zones/all` carries neither `currentOwner` nor `dateLastTaken` on any of the 154,845 records, no column exists for either, and the set-equality test fails if one appears. Round boundaries therefore need no invalidation, no cache flush, and no rollover job on this surface.
+
+The user's held-zone list is round-scoped and is deliberately **not** in the database at all: *§ The user's held zones are already known* establishes that one call to `POST /v5/users` answers the ownership question for every zone in a route, and that no cache is required. Nothing to expire.
+
+**The one place a rollover bug could still be introduced is the stored plan,** and it is worth saying before someone does. A plan that recorded *you own this zone* would be true for one round and wrong afterwards. Plans are long-lived by design — ninety days rolling, twelve months absolute — and Turf rounds are far shorter, so a plan near its ceiling spans on the order of a dozen rounds and anything round-scoped inside it is wrong for most of its life. **The plan payload therefore stores no ownership**, and the indicator is recomputed at review time from the live `zones` array on every open.
+
+*§ Volatile and optional fields* notes that the floor of `dateLastTaken` reveals the current round's start date, derivable from the data rather than from a calendar. The sync cannot supply it — neither field is in the response — so if the round start is ever needed it comes from `POST /v5/zones`, and it is not stored by this schema.
+
+### Volume
+
+Volume is not a risk on the zone surface, and the figures are worth having so that nobody designs as though it were.
+
+**The zone table today.** 154,845 rows. The wire form is 43,260,217 bytes, 279.4 bytes per zone, per *§ Retrieving zones*. Estimated on disk from column widths: roughly **150 bytes a heap row, about 23 MB**; the GiST index on geography at typical overhead, **6–9 MB**; the primary key, about **3.5 MB**. **Order 35 MB in total** — small enough to sit entirely in shared buffers on any machine that would run this at all, which is what makes Q1's cost a question about index selectivity rather than about I/O.
+
+**Growth.** 16,015 ids were added between 4 January 2025 and the reference instant — 18.92 months, about **846 a month**, roughly 10,000 a year. Yearly creation across the corpus's history runs from 1,091 in 2010 to 23,239 in 2021, so the rate varies by a factor of twenty; but even at the historical peak the table takes years to double. Nothing here needs partitioning.
+
+**Churn and vacuum.** With change-only writes, roughly 941 row versions per thirty-minute run, on the order of 45,000 a day against a 154,845-row table. Autovacuum's default scale factor triggers at about 31,000 dead tuples, so the table wants vacuuming a small number of times a day and gets it. Coordinate changes are rare enough — 1,034 in nineteen months — that almost every update leaves the indexed column untouched and is HOT-eligible given free space on the page, which argues for a `fillfactor` below 100. No value has been chosen; see *§ What is unproven*, item 8.
+
+**Plans are the surface where volume could actually hurt**, and it is unknowable today because usage is unknown. What *is* knowable is the bound: with the ceiling, the store holds at most twelve months of plan creation regardless of how often anything is opened. At 0.03–3.39 MB a plan uncompressed, ten thousand plans a year is single-digit gigabytes at the low end and tens of gigabytes at the high end. That range is wide because the per-candidate size is invented, and narrowing it is a measurement to take as soon as the plan format exists.
+
+### What is unproven
+
+Ten things. The first is the one that matters most, and it disqualifies this section from being anything but a proposal.
+
+1. **No `EXPLAIN` evidence exists for anything here.** There is no database. Every index claim above is a prediction, and the rule this project works to is that `CREATE INDEX` succeeding proves nothing — only `EXPLAIN` on the real query shape counts. **The first migration's acceptance must include `EXPLAIN (ANALYZE, BUFFERS)` output for Q1, Q2 and Q3 against a loaded copy**, and until it does, the index set is unverified. A corridor query falling back to a sequential scan over 154,845 rows is the difference between a product and a timeout, and nothing here rules it out.
+2. **The generated column's expression may not be accepted as `STORED`.** PostgreSQL requires it be `IMMUTABLE`, and `ST_SetSRID(ST_MakePoint(...), 4326)::geography` composes three PostGIS functions plus a cast. PostGIS marks them immutable, but this has not been run. If it is rejected, the axis order moves back into the write path and the three-assertion guard stops being a backstop and becomes the only defence.
+3. **KNN ordering on `geography` is assumed exact.** `ORDER BY geom <-> $point` returns true distance ordering on geography in PostGIS 2.2 and later; on older versions `<->` returns a bounding-box measure, and *the nearest 100* would be nearest-ish — silently, and plausibly. The PostGIS version is not chosen anywhere in this document, and Q2's correctness depends on it.
+4. **The plan payload size is estimated, not measured.** The candidate counts are real — 156 to 8,874 across the measured routes — but the bytes per candidate are invented, because the plan format does not exist. Every storage figure for plans moves linearly with that guess.
+5. **Sync churn is modelled, not observed.** The 941-per-half-hour and 1,840-per-hour figures are Poisson expectations derived from lifetime rates, which assume takeovers arrive uniformly in time. They do not — Turf is played in daylight and at weekends. The peak exceeds the mean by an unmeasured factor, and the write path must be sized against the peak rather than against these numbers.
+6. **Whether a 25 km neighbourhood is ever entirely zero-activity remains inferred.** *CalculationSpecification.md § The activity baseline* records this and the schema inherits it. The query that would settle it is Q2, which needs the database that does not exist.
+7. **The corridor half-width is not chosen anywhere.** Measured results span 156 to 8,874 rows, a factor of 57. The index's usefulness does not depend on the choice; the row counts the rest of the pipeline must absorb depend on it entirely, and no document sets it.
+8. **The row-size and index-size estimates are arithmetic, not `pg_total_relation_size`.** About 150 bytes a row and about 35 MB in total are computed from column widths and typical GiST overhead. Real figures depend on alignment, fillfactor and TOAST decisions that have not been tested — and no `fillfactor` has been chosen for `zone`, though the HOT-update argument above says one below 100 is wanted.
+9. **No autovacuum settings have been tested against this write pattern.** The vacuum estimate assumes defaults and the modelled churn, and both may be wrong. A table that bloats under a writer running forty-eight times a day fails slowly and quietly, which is the hardest kind to notice.
+10. **The plan code's entropy is unspecified, and the store is the only thing behind it.** The code is the sole credential for an object containing a dwelling coordinate. Choosing its length and alphabet is a security decision that belongs to review rather than to this section; it is recorded here so that it is an open item and not an oversight.
+
+### What this section does not cover
+
+**OSM-derived features are absent, deliberately.** They are the third data surface — barriers, `layer`/`bridge`/`tunnel` relationships, parking, access restrictions, `maxspeed` — and the enforceable exclusions in access classification depend on them entirely, which makes their correctness a safety concern rather than a modelling one. They get their own design and their own review, not a paragraph appended here. What this section fixes on their behalf is the convention every later spatial table must share: `geography`, SRID 4326 written explicitly, and the same three-assertion coordinate guard.
+
+Also outside it: the elevation surface, which cannot be designed until *§ D6* settles between `godal` and PostGIS raster; solve-session residency, which is an open question this document already carries and which decides whether unconfirmed sessions touch the database at all; connection pooling, and any role beyond the single `app_role` named above; and backup, restore and retention of the database itself as distinct from the plans inside it.
+
+And finally, this is a design and not a migration. **The DDL is written next, and it is its own reviewable item** — idempotent, with a documented rollback, applied by nobody without explicit human authorisation, against a database that does not yet exist.
+
+---
+
 ## Still owed by this document
 
-Sections this document owes independently of the content moved into it: **failure handling**, **observability**, **security architecture**, the **schema** behind `PlanStore` and the synced zone table, and the deployment model handed to `DEPLOYMENT.md`.
+Sections this document owes independently of the content moved into it: **failure handling**, **observability**, **security architecture**, and the deployment model handed to `DEPLOYMENT.md`.
+
+The **schema** left this list on 6 August 2026, and only for the two tables *§ The schema* proposes — the synced zone table and the plan store behind `PlanStore`. The **OSM-derived feature tables** of *§ D4* are still owed and sit deliberately outside that section: they carry the enforceable exclusions in access classification, which makes them a safety surface owed its own design and its own review rather than an appendix to this one. What else that section leaves open is listed in *§ What this section does not cover*.
 
 ---
 
