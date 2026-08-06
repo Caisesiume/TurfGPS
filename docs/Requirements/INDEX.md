@@ -13,7 +13,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | Category | File | Records |
 |---|---|---|
 | [Journey definition](#journey-definition) | `journey-definition.md` | `FR-001` – `FR-006`, `FR-012` (7) |
-| [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031`, `FR-033` – `FR-034` (12) |
+| [Turf data integration](#turf-data-integration) | `turf-data-integration.md` | `FR-019`, `FR-022` – `FR-026`, `FR-028` – `FR-031`, `FR-033` – `FR-037` (15) |
 | [Zone data fidelity](#zone-data-fidelity) | `zone-data-fidelity.md` | `FR-020`, `FR-021`, `FR-032` (3) |
 | [Cost and time composition](#cost-and-time-composition) | `cost-and-time-composition.md` | `FR-008`, `FR-009`, `FR-027` (3) |
 | [Value model](#value-model) | `value-model.md` | `FR-007` (1) |
@@ -23,11 +23,11 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | [Outbound rate compliance](#outbound-rate-compliance) | `outbound-rate-compliance.md` | `NFR-001` (1) |
 | [Runtime and deployment shape](#runtime-and-deployment-shape) | `runtime-and-deployment-shape.md` | `NFR-003` – `NFR-005` (3) |
 
-**39 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
+**42 requirements, in 10 categories.** Sections below follow the register's order in `README.md`, not the ID order — a category's records are contiguous in its own file, never across the corpus. A category on the register with no records filed yet has no file and no section here; the register in `README.md` is the full list of legal names, and a name's absence from this page means unfiled, never illegal.
 
-**All 39 rows read `to-build`, and `draft` is empty.** The last twenty-one — batch 3, `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — were signed off by the Owner on 4 August 2026 and moved from `draft` **straight to `to-build`**, as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md § Corpus state`.
+**39 rows read `to-build` and 3 read `draft`.** The three are batch 3b — `FR-035` … `FR-037`, filed 6 August 2026 — which have not yet been signed off; batch 3 sat in `draft` between its own filing and its sign-off in the same way. Batch 3 — `FR-019` … `FR-034` and `NFR-001` … `NFR-005` — was signed off by the Owner on 4 August 2026 and moved from `draft` **straight to `to-build`**, as batches 1 and 2 each did on the day they were filed. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. See `README.md § Corpus state`.
 
-**No row reads `—` in `Resolved-by`**: all 39 name at least one story, allocated in three passes — eighteen on 2 August 2026 and the twenty-one batch-3 rows on 4 August 2026, each allocation following the Owner's sign-off as a pass of its own. Nine epics and thirty-six stories carry them. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
+**39 rows name at least one story in `Resolved-by`, and 3 read `—`.** The thirty-nine were allocated in three passes — eighteen on 2 August 2026 and the twenty-one batch-3 rows on 4 August 2026, each allocation following the Owner's sign-off as a pass of its own. Nine epics and thirty-six stories carry them. The three reading `—` are batch 3b, `FR-035` … `FR-037`, filed on 6 August 2026 and awaiting sign-off, so no story exists for them yet. That is what `—` says here — *not yet allocated*, never *unknown* — and it is not an orphan, the orphan test applying only to a requirement whose epic is in flight. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
 
 ## Journey definition
 
@@ -61,6 +61,9 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 | `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | to-build | test | #31 |
 | `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | to-build | test | #33 |
 | `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | to-build | test | #35 |
+| `FR-035` | Update dateCreated on zones the local copy already holds | Turf data integration | MUST | draft | test | — |
+| `FR-036` | Treat an absent zone type as ordinary data | Turf data integration | MUST | draft | test | — |
+| `FR-037` | Determine a zone's country where the region subkey is absent | Turf data integration | COULD | draft | test | — |
 
 `NFR-001` and `NFR-002` were filed under this category on 3 August 2026 and moved out the same day, to `Outbound rate compliance` and `Data currency and confidence`, on the Owner's ruling that a `Category` never spans both kinds — see `README.md § Category register`. Their rows are under those two headings below, and nothing about either record changed in the move but its `Category` field.
 
@@ -144,7 +147,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 ## Reading the Verification column
 
-**The split across the corpus is 34 `test` · 4 `inspection` · 1 `human-judgement`.**
+**The split across the corpus is 37 `test` · 4 `inspection` · 1 `human-judgement`.**
 
 `inspection` appears in this index for the first time with batch 3 — `FR-019`, `FR-020`, `FR-026` and `NFR-004` — and it is a chosen method rather than a test not yet written. Each of the four names the artefact examined, the property that must hold and where a reader confirms it, in the form `requirements-authoring § Acceptance-criteria form` requires; none is wrapped in given/when/then, because nothing is executed and a criterion narrating a run nobody performs can never fail. `NFR-004` is the first record in the corpus whose kind and whose method point at different criterion forms, and it takes the method's — which is the rule that section states, not an exception made for it.
 

@@ -496,3 +496,185 @@ Rationale:    Separated from FR-033 on singularity: producing the plan and
               carries the fact.
 Resolved-by:  #35
 ```
+
+## FR-035 — Update dateCreated on zones the local copy already holds
+
+```
+Statement:    The system shall store the `dateCreated` a refresh returns for a
+              zone in its local synced copy of the zone set, whether or not
+              the copy already holds that zone.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — a refresh returning a revised `dateCreated` for an id the
+              copy already holds leaves the stored value equal to the returned
+              one, and an id new to the copy is stored with the value the
+              refresh returned
+Acceptance:   given a zone id the local synced copy already holds and a
+              refresh returning for that id a `dateCreated` different from the
+              stored one, when the refresh completes, then the stored
+              `dateCreated` for that id is the value the refresh returned
+              given a zone id the local synced copy does not hold, when a
+              refresh returning that id completes, then the copy holds that id
+              with the `dateCreated` the refresh returned
+Status:       draft
+Depends-on:   FR-022
+Risk:         A row inserted once and never updated keeps a `dateCreated` the
+              API has since revised, and anything derived from the months
+              since that date is then computed against the wrong denominator —
+              `CalculationSpecification.md § Takeover rate` divides lifetime
+              takeovers by exactly that interval, so a stale date inflates the
+              rate rather than merely blurring it, and
+              `Architecture.md § Retrieving zones` measures how far the rate
+              moved for the one zone it observed being re-sited. Nothing
+              surfaces the error: the zone carries a plausible date, a
+              plausible count and a plausible rate, and no signal separates it
+              from a zone whose date never moved. Rarity is what makes the
+              defect dangerous rather than negligible — that section found the
+              revision exceptional across the whole interval it compared, so
+              no fixture, no sample and no reviewer meets the case by
+              accident, and a write path that gets it wrong reads as correct
+              in review for as long as the product runs.
+Rationale:    The record binds the write path of the refresh and not its
+              trigger, which is FR-022's: a job running on schedule that
+              writes only ids it has not seen before satisfies FR-022 while
+              leaving every held zone's date frozen at first sight. The
+              obligation is stated as the value stored rather than as an
+              upsert keyed on `id`, because the cited section offers that as
+              one sufficient way to meet the need rather than as the need — a
+              write path meeting it another way is compliant, and the same
+              section states that no detection mechanism is required, so none
+              is obliged here either. The two criteria are one obligation
+              under two conditions: the outcome asserted is identical in both,
+              that the stored value is the value the refresh returned, and
+              separating them would leave the held-id half readable as an
+              exception. What the section observes moving alongside the date
+              on that zone — its coordinates and its takeover count — it
+              observes rather than obliges, so no field beyond the one it
+              names is bound here.
+Resolved-by:  —
+```
+
+## FR-036 — Treat an absent zone type as ordinary data
+
+```
+Statement:    The system shall treat a zone record carrying no `type` as
+              ordinary data wherever that record is ingested, stored or
+              consumed, and not as an anomaly or as a defect in the sync.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — a zone set in which some records carry no `type` is
+              ingested with every record retained, and no error, rejection or
+              data-defect signal is raised on account of the absent field
+Acceptance:   given a zone set in which some records carry a `type` and others
+              carry none, when the set is ingested, then every record in it is
+              retained and the ingest completes as it does for a set in which
+              every record carries one
+              given a zone record carrying no `type`, when that record is
+              ingested, stored or consumed, then no error, rejection or
+              data-defect signal is raised on account of the absence
+Status:       draft
+Depends-on:   none
+Risk:         `Architecture.md § Retrieving zones` measures the field on a
+              minority of zones, so a schema, a validator or an ingest guard
+              that requires it rejects most of the corpus rather than a fringe
+              of it, and candidate discovery then runs against a fraction of
+              the game while every later stage reasons correctly about the
+              wrong world. The escalating half is quieter and worse: a
+              data-defect signal raised on the ordinary case fires on nearly
+              every record, so whoever reads it stops reading it, and the sync
+              failure it was built to catch then arrives in a channel already
+              written off as noise.
+Rationale:    One record and not two, and the pair it is measured against is
+              FR-030 with FR-031. Those two split because a correctly carried
+              absence can still be misread downstream — the absence survives
+              ingest and a consumer concludes the zone was never taken — so
+              carrying and concluding are independent, and a system can
+              satisfy either while failing the other. Here the halves are not
+              independent: rejecting the record and raising an alert on it are
+              two forms of one conclusion, that the absence is a fault, and
+              the cited section states them in one breath as one prohibition,
+              leaving no second inference for a record of its own. What is
+              genuinely separate is substitution — an ingest supplying a value
+              for the absent field escalates nothing and is not reached by
+              this record; the duty that the absence survive unsubstituted
+              into consuming code is stated by
+              `SPECIFICATION.md § Zone attributes and user-defined value`,
+              which is unswept, and belongs to the batch scoped there in
+              FR-030's shape. The record states the need rather than the
+              storage choice the section's evidence illustrates it with: what
+              the local copy's schema may declare is `Architecture.md § D4`'s,
+              and that schema is listed as still owed under
+              `Architecture.md § Still owed by this document`, so a record
+              naming a column would bind a decision nobody has taken.
+              Verification is test rather than inspection for the reason
+              FR-032 gives: the assumption can hide in a schema constraint, a
+              validator, an ingest guard, a metric or an alert rule, each of
+              which reads as ordinary diligence in review, while one fixture
+              set carrying records without the field fails every form of it at
+              once.
+Resolved-by:  —
+```
+
+## FR-037 — Determine a zone's country where the region subkey is absent
+
+```
+Statement:    The system shall obtain a zone's country, wherever one is
+              required, from `region.country` where that subkey is present and
+              from `region.name` where it is absent.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     COULD
+Verification: test — a zone whose `region` carries no `country` subkey yields
+              a country, and a set holding such zones alongside zones that
+              carry the subkey places every one of them in a group when
+              grouped by country
+Acceptance:   given a zone whose `region` carries no `country` subkey, when
+              that zone's country is required, then it is obtained from
+              `region.name` and the zone yields a country
+              given a zone set holding zones that carry the `country` subkey
+              and zones that do not, when the set is grouped by country, then
+              every zone in the set falls into a group and none is dropped
+Status:       draft
+Depends-on:   none
+Rationale:    The record exists against a named failure mode, and the mode is
+              silence: a grouping taken on the subkey drops the zones lacking
+              it rather than failing, so the aggregate looks complete and is
+              not, and nothing in the result separates a country with few
+              zones from a country whose zones were dropped whole.
+              `Architecture.md § Retrieving zones` records the zones lacking
+              the subkey as concentrated under a handful of country names
+              rather than scattered across the set, so the loss is not a thin
+              uniform sampling error but the removal of whole countries from
+              any per-country view — which is exactly the shape a reader takes
+              for a fact about the game rather than a defect in the query. Two
+              readings of the cited paragraph were considered and this is the
+              one it supports. The section supplies the resolution itself:
+              where the subkey is missing the country's name is carried in
+              `region.name`, so a country can be obtained for every zone and
+              the aggregate made genuinely complete. The alternative, that an
+              aggregate short of zones must fail visibly, would oblige a
+              failure behaviour and a destination for it that no document
+              states, and it would leave the section's own resolving fact with
+              nothing to do. That is also why it is not a second record: the
+              two are not separately testable outcomes of one source, they are
+              one outcome and one construction the source does not make. The
+              statement names both branches of the determination rather than
+              the absent one alone because they are two branches of one gate
+              reading one input, whether the subkey is present, exactly as
+              FR-033's two are; a record stating only the fallback would read
+              as licence to take the subkey wherever it happens to be there.
+              The country obtained here serves aggregates over the fetched
+              zone set and nothing else, and is in particular never an input
+              to speed-limit resolution:
+              `SPECIFICATION.md § An unknown speed limit fails the check`
+              forbids a resolved limit resting on a country attribution
+              supplied by the resolver rather than by the data. The statement
+              is `shall` while nothing in the first release requires a zone's
+              country: the obligation binds the moment anything does, and
+              `COULD` records that no such consumer is built yet rather than
+              any weakness in the duty. `WON'T-now` would file no story and
+              leave a later aggregate free to be silently short.
+Resolved-by:  —
+```
