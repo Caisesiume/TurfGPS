@@ -86,3 +86,13 @@ The root is the right home for it — `make` has no notion of a module, so the o
 1. **Report results verbatim in the PR body.** For documentation: `refs: N checked / 0 unresolved, method: headings | duplication: none | mermaid: N/N`. For code: `dir: service | fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS`. **The reference line names its method**, because gate 1 now has two and only the expensive one is licensed — a bare `0 unresolved` no longer says whether anything was opened. **The code line names its directory** for exactly the same reason: five passes over an empty root are character-for-character the five passes over a clean module, so a report that omits where it ran is not evidence that anything was compiled.
 2. A gate that fails in a way you do not understand is a **stop-and-report**, not a retry-until-green.
 3. A gate you skipped is reported as skipped, with the reason. Silence reads as a pass, and that is how an unrun gate becomes a merged defect.
+4. **A test bound to a `test`-verified acceptance criterion reports its red demonstration.** The rule is `docs/DELIVERY.md § Proof that a test can fail`, which is where it is ratified and where its scope and both its awkward cases are settled; **this is only the line it is reported on**, and it is here rather than there because law 1 above is already the one place that says what a PR body must carry as evidence. It is **not a gate** — a gate is one command over the whole diff, and this is one entry per criterion — so it is reported alongside the gate lines and never folded into them. One entry per `test`-verified criterion the PR claims to satisfy:
+
+   ```
+   <REQ-ID> · <TestName> · neutralised: <what was put back> · red: <the assertion's message>
+   <REQ-ID> · <TestName> · demonstration owed → <story #>
+   ```
+
+   **The entry carries the assertion's own message and never the bare word `FAIL`** — that constraint is the one part of the form that is not free-text, and `docs/DELIVERY.md § Red for the wrong reason` is where it is argued rather than here. Writing the message is what makes the entry checkable by a reader; writing the verdict is what makes it unfalsifiable.
+
+   A PR landing no such test carries no such entries, and says so once rather than omitting the line — laws 1 and 3 apply here unchanged.
