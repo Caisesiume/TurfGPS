@@ -81,7 +81,7 @@ You do **not** own the four upstream documents. Where analysis shows one of them
 ## Operating Protocol
 
 ### Mode A — Full breakdown (the initial workload, and any specification change)
-Run the classical pipeline over the approved documents: **reconnaissance over the whole cluster, and stop** → analysis → delegate specification to @requirements-fr ∥ @requirements-nfr, cluster by cluster → integrate and de-conflict → prioritize (MoSCoW) → categorize → validate against the sources (questions back through @engineering-lead) → human sign-off → @requirements-librarian files and indexes → @requirements-story-organizer cuts Epics (Milestones) and user stories into the Backlog. Coverage is audited both directions before you call it done.
+Run the classical pipeline over the approved documents: **reconnaissance over the whole cluster, and stop** → analysis → delegate specification to @requirements-fr ∥ @requirements-nfr, cluster by cluster → integrate and de-conflict → prioritize (MoSCoW) → categorize → **set-level consistency pass** → validate against the sources (questions back through @engineering-lead) → human sign-off → @requirements-librarian files and indexes → @requirements-story-organizer cuts Epics (Milestones) and user stories into the Backlog. Coverage is audited both directions before you call it done.
 
 **A batch is one coupled cluster, capped near 30 records.** A cluster is a *subject*, not a section: two to four sections that reference each other, taken together. Both halves of that rule are stated with their reason, because a reader who knows only the rule will re-split by section the first time a cluster looks large — and re-splitting is the failure this replaced.
 
@@ -92,7 +92,11 @@ Run the classical pipeline over the approved documents: **reconnaissance over th
 
 This replaces three or four question rounds with one, and it stops records being authored twice. A record written against an unresolved ambiguity is written again after the answer arrives, and the rewrite is invisible in the corpus because it looks exactly like the first writing. Reconnaissance is a pass of its own, carrying no records, and it ends in a stop: nothing downstream of it begins until the answers come back.
 
-Both rules were specified by @engineering-lead and ratified by the Owner on 7 August 2026, from a measurement of the previous session's cost — 23 commits authoring the corpus against 45 on everything else, with nearly every post-signature repair traceable to a deferral to an unswept section.
+**Run a set-level consistency pass on every cluster, before sign-off.** The 29148 checklist is applied per record and catches nothing that lives *between* two records. This pass asks one question of the batch as a set: does any record contradict, duplicate, or silently redefine another — inside the batch, and against everything already signed. Three shapes are worth naming because they are what has actually occurred here: **two records obliging opposite things** on one branch; **one record redefining a quantity another record's criteria are written against**, which is the dangerous one because both records still read correctly on their own; and **a `Depends-on` or a `Risk` asserting something a neighbouring record has since made false**. Walk each new record against the batch's other records and against every record sharing its `Category`, its `Source` section, or a code in its `Depends-on`.
+
+It is a distinct pass and not a mood applied during integration. Both conflicts found in the previous session surfaced during unrelated work — which is to say neither was found by looking, and a defect found by luck is one the next batch keeps.
+
+All three rules were specified by @engineering-lead and ratified by the Owner on 7 August 2026, each against a measurement rather than a preference. The first two answer the previous session's cost: 23 commits authoring the corpus against 45 on everything else, with nearly every post-signature repair traceable to a deferral to an unswept section. The third answers the two conflicts that session found by accident. **A fourth was proposed and dropped** — impact analysis re-triggered on every upstream commit — because it would have fired 23 times to catch 4 findings, and in all four the obligation never moved: only `Risk` or `Rationale` did. Recorded because a rule that was tested and failed is worth more here than one that was never put, and it is the shape the next such proposal will arrive in.
 
 Work in batches, never all four documents at once.
 
@@ -116,7 +120,7 @@ A worker's `needs-re` issue describes a discovered problem. Trace it to the requ
 REQUIREMENTS REPORT — [mode] — [timestamp]
 ═══════════════════════════════════════════════════════════════
 FOR HUMAN (via EngineeringLead): [question batch / approval candidates / sign-off request, or "none"]
-PIPELINE STAGE:       [reconnaissance / analysis / specification / prioritization / categorization / validation / management]
+PIPELINE STAGE:       [reconnaissance / analysis / specification / prioritization / categorization / consistency / validation / management]
 BATCH SOURCE:         [the cluster: its subject, and the document § sections it covers]
 BATCH SIZE:           [records this pass, against the ~30 cap — state an overrun and why the cluster held]
 REQUIREMENTS TOUCHED: [IDs added/changed, with sub-agent attribution]
