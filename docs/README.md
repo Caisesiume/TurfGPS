@@ -126,6 +126,8 @@ This is **the identifier rule above reaching the token's other half**, which is 
 
 - `docs/Requirements/journey-initialization.md` — born token-form
 - `docs/Requirements/multi-leg-budget-allocation.md` — born token-form
+- `docs/Requirements/objective-selection-and-ranking.md` — migrated
+- `docs/Requirements/outbound-rate-compliance.md` — migrated
 - `docs/Requirements/recommendation-disclosure.md` — born token-form
 - `docs/Requirements/recommendation-set-composition.md` — migrated
 - `docs/Requirements/route-alternative-generation.md` — born token-form
