@@ -311,59 +311,92 @@ Rationale:    The cited section makes a stop serving several zones the common
 Resolved-by:  —
 ```
 
-## FR-093 — Compute both halves of a stop against one stopping position
+## FR-093 — Compute both halves of a stop against one resolved stopping position
 
 ```
 Statement:    The system shall compute a stop's driving cost and its walking
-              cost against one and the same stopping position, resolved once
-              rather than once per cost model.
+              cost against one stopping position as the driving costing model
+              resolves it onto the network, rather than resolving that
+              position independently for each cost model.
 Category:     Cost and time composition
 Source:       SPECIFICATION.md § Access-path validation
 Priority:     MUST
-Verification: test — a stop whose driving cost and walking cost are both
-              computed uses one stopping position for both, and a position a
-              car costing model and a pedestrian costing model would place
-              differently is resolved once and used by both
+Verification: test — a stop beside a carriageway carrying a parallel mapped
+              footway computes its walking cost from the point the driving
+              costing model resolved, and the same stop priced with its
+              walking cost measured from the pedestrian costing model's own
+              resolution of the same input coordinate fails
 Acceptance:   given a stop whose driving cost and whose walking cost are both
               computed, when the stop is priced, then both are computed
-              against the same identified stopping position
-              given a stopping position that a car costing model and a
-              pedestrian costing model would each place differently, when the
-              stop is priced, then the position is resolved once, on the
-              routing engine `Architecture.md § D3` decides on, and both costs
-              are computed against that one resolution
+              against the stopping position as the driving costing model
+              resolved it onto the network
+              given a stopping position beside a carriageway carrying a
+              parallel mapped footway, which a driving costing model and a
+              pedestrian costing model resolve to different points of the
+              network, when the stop is priced, then the walking cost is
+              measured from the point the driving model resolved and not from
+              the point the pedestrian model would
 Status:       draft
 Depends-on:   FR-074; FR-086; FR-092
-Volatility:   settled — `Architecture.md § D3` is decided, states the failure
-              this record prevents as its reason for refusing split engines,
-              and `safety-path-checklist § Non-negotiables` states the same
-              rule; the record rests on no figure
-Risk:         The two halves of one stop are priced by different models
-              against what is nominally one place, and nothing else in the
-              corpus binds them to the same one: FR-086 routes the driving
-              cost through the stopping location and FR-074 measures the
-              walking cost from the stopping position. Resolved separately
-              they are two places, the walk is measured from somewhere the car
-              never stops, and the failure is silent — every stop still yields
-              a plausible number, which `Architecture.md § D3` calls the worst
-              available failure mode against a product whose measure of
-              success is that no zone is classified confidently and wrongly.
-Rationale:    The cited section chains the car to the walk through one
-              proposed stopping location, and `Architecture.md § D3` rejects
-              split engines on exactly this ground: two engines snap that
-              point to their own graphs, so the two halves of one stop's cost
-              would be computed against different geometry. The technology is
-              named because this requirement is about that decision and is
-              cited rather than described, which is the one case the
-              `Appropriate` check permits. Separate from FR-092 because the
-              two fail independently and neither test finds the other: a
-              system can refuse every manufactured position and still resolve
-              the honest one twice, and one that resolves once can resolve a
-              snapped point. Separate from FR-086, which fixes how the driving
-              cost is obtained and says nothing about what the walking half is
-              measured from. Nothing here obliges a particular engine beyond
-              the decision cited, and nothing here restates either cost model
-              — what each half computes is FR-074's and FR-086's, and this
-              record binds only that they agree about where the car stopped.
+Volatility:   settled — `Architecture.md § D3` is decided and states the
+              failure this record prevents as its reason for refusing split
+              engines, the chaining that makes the car's resolution the
+              authoritative one is the canonical model under
+              `CalculationSpecification.md § Elevation-aware walking time`,
+              and the record rests on no figure
+Risk:         The two halves of one stop are priced by two costing models
+              against what is nominally one place, and one input coordinate
+              does not make it one place. Where a carriageway and its parallel
+              footway are separately mapped, a car costing and a pedestrian
+              costing have different edges available to them, so the same
+              coordinate resolves to two points and the walk is measured from
+              a point the car never occupies. The error is not random. It is
+              short by the offset, on every stop of that shape, in the
+              direction that makes the zone win. Nothing else in the corpus
+              binds the two: FR-086 routes the driving cost through the
+              stopping position and FR-074 measures the walking cost from it,
+              and two resolutions of one coordinate satisfy both. Every stop
+              still yields a plausible number, which `Architecture.md § D3`
+              calls the worst available failure mode against a product whose
+              measure of success is that no zone is classified confidently and
+              wrongly.
+Rationale:    The cited section chains the walk from the proposed stopping
+              position to the zone's coordinate, and
+              `CalculationSpecification.md § Elevation-aware walking time`
+              prices that walk as a route visiting each zone's coordinate and
+              returning to the car — car, walk, car through one point.
+              `Architecture.md § D3` refuses split engines on exactly that
+              ground, and the reason it gives is about resolution rather than
+              about engines: the point is snapped to two graphs, so the two
+              halves of one stop are computed against different geometry. That
+              reason outlives the decision it was written for and is not spent
+              by it. Each costing model correlates the input to the network
+              under its own access rules, and nothing in the decision to run
+              one instance establishes that a car costing and a pedestrian
+              costing put one coordinate at the same point — so an
+              implementation handing one coordinate to both satisfies a
+              criterion reading resolved once and reproduces the failure
+              whole. That is why the object named here is the resolved
+              position and not the coordinate the models are given. Whether
+              the two in fact diverge on a given engine is an external
+              behaviour nobody in this repository has verified, and this
+              record does not rest on the answer: obliging one resolution
+              costs nothing if they agree and is the whole of the safeguard if
+              they do not. The car's resolution is the authoritative one
+              because it is where the vehicle physically stops — the driving
+              cost is the cost of bringing the car to that point, and the walk
+              chained to it begins and ends where the car actually is. Naming
+              the costing models is the one case the Appropriate check in
+              `requirements-authoring` permits, the requirement being about
+              that decision, and it is cited rather than described. Separate
+              from FR-092 because the two fail independently and neither test
+              finds the other: a system can refuse every manufactured position
+              and still resolve the honest one twice, and one that resolves
+              once can resolve a manufactured point. Separate from FR-086,
+              which fixes how the driving cost is obtained and says nothing
+              about what the walking half is measured from. Nothing here
+              restates either cost model — what each half computes is FR-074's
+              and FR-086's, and this record binds only that they agree about
+              where the car stopped.
 Resolved-by:  —
 ```

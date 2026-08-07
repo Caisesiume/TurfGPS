@@ -177,14 +177,14 @@ Source:       SPECIFICATION.md § Terrain confidence
 Priority:     SHOULD
 Verification: test — a recommended stop whose access estimate rests on an
               unmapped final approach is presented with that fact stated, and
-              one resting on a mapped stopping location, a connected path and
+              one resting on a mapped stopping position, a connected path and
               a complete profile carries no such statement
 Acceptance:   given a recommended stop whose access estimate rests on an
               unmapped final approach or an incomplete elevation profile, when
               the recommendation is presented, then the presentation states
               that the estimate carries that uncertainty and what it rests on
               given a recommended stop whose access estimate rests on a mapped
-              stopping location, a connected pedestrian path and a complete
+              stopping position, a connected pedestrian path and a complete
               elevation profile, when the recommendation is presented, then no
               such statement is made for it
 Status:       draft

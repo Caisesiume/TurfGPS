@@ -79,7 +79,7 @@ Resolved-by:  #14, #15
 
 `Depends-on` and `Risk` are not decoration: `docs/README.md § Requirements/` names risk and dependencies as corpus content, and the scrum-master sequences promotions by **Priority first and dependency order second** — never the reverse, per `turfgps-board-ops § Priority`.
 
-**The category register.** `Category` is a controlled vocabulary with exactly one home: the register in `docs/Requirements/README.md`. A name is legal once it appears there, and it is `@requirements-engineer` alone that seeds and extends it — a new category is an RE act, not a side effect of authoring. `@requirements-librarian` files a record under its `Category` verbatim and **flags any record whose `Category` is not on the register**, rather than inventing a near-match. The functional-area and quality-attribute lists in the RE agents' own definitions are **coverage prompts** — they exist to make an author ask "does this section impose anything here?" — and are never a source of category names. Two spellings of one area produce two files for one subsystem, and coverage per subsystem stops being checkable, which is the whole reason the field exists.
+Two fields take their values from a **register** rather than from the author's judgement — `Category`, and any noun naming a registered object. Both registers live in `docs/Requirements/README.md` and both have a section of their own below.
 
 **Status chain:** `draft` → `approved` → `to-build` → `implemented-unverified` → `implemented-verified`, plus `retired`.
 
@@ -91,6 +91,20 @@ Resolved-by:  #14, #15
 **A status states how far a requirement has got; it never instructs.** `to-build` does not mean build it now — `Priority` and the board decide that. The value bounds what may be claimed about the requirement, not what anyone should do next.
 
 **The chain says nothing about how far the *build* has got, deliberately.** That question belongs to the board, and a record reaches it through `Resolved-by`: the story numbers are a live link, answered correctly whenever it is followed, where a status copied onto the record is an assertion the corpus has no way to keep true. A chain value whose only event lives on the board does not belong in this chain — see `§ What the corpus may hold about a story or an epic`.
+
+## The category register
+
+`Category` is a controlled vocabulary with exactly one home: the register in `docs/Requirements/README.md`. A name is legal once it appears there, and it is `@requirements-engineer` alone that seeds and extends it — a new category is an RE act, not a side effect of authoring. `@requirements-librarian` files a record under its `Category` verbatim and **flags any record whose `Category` is not on the register**, rather than inventing a near-match. The functional-area and quality-attribute lists in the RE agents' own definitions are **coverage prompts** — they exist to make an author ask "does this section impose anything here?" — and are never a source of category names. Two spellings of one area produce two files for one subsystem, and coverage per subsystem stops being checkable, which is the whole reason the field exists.
+
+## The term register
+
+**`Category` is not the only controlled vocabulary this corpus needs.** Where several records oblige things about **one physical object**, the noun for that object is registered in `docs/Requirements/README.md` alongside the category register, and an author writes the registered noun verbatim in every field. It is `@requirements-engineer` alone that settles or extends it, on the category register's reasoning exactly: a second noun is a decision, never a synonym an author reaches for mid-sentence. `@requirements-librarian` **flags a record using an unregistered noun for a registered object** rather than translating it.
+
+**The reason is sharper here than for categories, and it is worth stating rather than inferring.** A duplicate category costs coverage checking; a duplicate noun costs an *obligation*. Two records can each read perfectly, cite their sources faithfully, and pass every per-record check while obliging things about what a reader takes to be one object and an implementer builds as two — and no per-record check can see it, because neither record is wrong. That is the set-level shape, and the corpus has paid for it: *road position* and *stopping position* ran side by side with nothing binding the point a level check passed at to the point the car stopped at, and the count and the repair are recorded at the settlement in `docs/Requirements/README.md § Term register`.
+
+**Three bounds, because each is a repair someone will otherwise make.** The **upstream documents are not bound** by this register and carry several spellings of some objects; where a document owes a glossary, the settled noun is an upstream finding for the Owner rather than a licence to edit the document. **Reported speech is not translated** — a record describing what a cited section says quotes that section's noun, because translating it changes what the record attributes to its source. And a **different object is not a violation**: *stopping place* applied to a road, or *parking location* naming a place-class, are other objects that happen to read alike, and the register binds the object rather than the word.
+
+**A settled noun is applied by reading, not by pattern.** The corpus wraps its fields, so an occurrence broken across a line break survives any per-line replacement — which is exactly how four of them survived the settlement of 7 August 2026, one of them inside the acceptance criterion of a record whose statement had already been converted. A settlement pass is checked by reading the records that carry the object, and the check is not a `grep`.
 
 ## Obligation lives in the verb; priority lives in the field
 
@@ -180,7 +194,7 @@ Owned by `@requirements-librarian`. The corpus root is **`docs/Requirements/`** 
 
 | Path | Holds |
 |---|---|
-| `README.md` | Front door: what the corpus is, the **category register**, the ID allocation ledger, and the folder's invariants |
+| `README.md` | Front door: what the corpus is, the **category register**, the **term register**, the ID allocation ledger, and the folder's invariants |
 | `INDEX.md` | One index table per category, carrying a row for every ID ever issued |
 | `<category>.md` | One file per category; every record lives in exactly one |
 | `TRACEABILITY.md` | The matrix, both directions |

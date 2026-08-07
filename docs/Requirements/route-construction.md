@@ -4,11 +4,11 @@ Assembling one journey alternative from a general route and a set of classified 
 
 Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
-## FR-086 — Route a detour's cost through the proposed stopping location
+## FR-086 — Route a detour's cost through the proposed stopping position
 
 ```
 Statement:    The system shall obtain the cost of a detour to a candidate zone
-              by routing the journey through the proposed stopping location
+              by routing the journey through the proposed stopping position
               and comparing the result against the baseline, and shall derive
               it from no geometric measure.
 Category:     Route construction
@@ -22,7 +22,7 @@ Acceptance:   given a candidate lying a short distance from the route line but
               reachable only by continuing to a distant exit, turning and
               returning, when its detour cost is obtained, then the cost is
               the difference between the journey routed through its stopping
-              location and the baseline
+              position and the baseline
               given the same candidate, when its detour cost is obtained, then
               the cost is not derived from its distance to the route line,
               from a radius, or from any other straight-line measure
@@ -41,7 +41,7 @@ Risk:         A straight-line estimate beside a dual carriageway can be twenty
 Rationale:    The cited section states the rule and the failures it prevents:
               one-way systems, central reservations, restricted turns and
               asymmetric exits all produce the same effect, and routing
-              through the stop point captures every one of them with no
+              through the stopping position captures every one of them with no
               special handling. The one legitimate use of a straight-line
               measure is cheaply reducing the corridor to a set worth routing,
               which FR-063 and FR-064 carry; a straight-line walking distance

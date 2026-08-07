@@ -106,8 +106,8 @@ Resolved-by:  —
 
 ```
 Statement:    Where the data establishes that a candidate within the
-              direct-access tolerance is at a level the road position does not
-              meet, or that a barrier lies between them, the system shall
+              direct-access tolerance is at a level the stopping position does
+              not meet, or that a barrier lies between them, the system shall
               evaluate the candidate on the park-and-walk branch rather than
               exclude it on that finding.
 Category:     Access classification
@@ -120,20 +120,20 @@ Verification: test — a candidate inside the tolerance separated from the road
               check, while one whose level relationship cannot be resolved is
               not routed to that branch by this rule
 Acceptance:   given a candidate within the direct-access tolerance whose
-              bridge, tunnel or layer data establishes that the road position
-              and the zone do not meet, or for which the data records a
-              barrier between them, when its access is classified, then it is
-              evaluated for a connected walkable path and an obtainable
+              bridge, tunnel or layer data establishes that the stopping
+              position and the zone do not meet, or for which the data records
+              a barrier between them, when its access is classified, then it
+              is evaluated for a connected walkable path and an obtainable
               elevation profile
               given the same candidate, when that evaluation completes, then
               its class follows from what the evaluation found and not from
               the failed direct-access check
               given a candidate within the direct-access tolerance whose level
-              relationship to the road position cannot be resolved from the
-              data, when its access is classified, then this rule does not
+              relationship to the stopping position cannot be resolved from
+              the data, when its access is classified, then this rule does not
               route it to the park-and-walk branch
 Status:       draft
-Depends-on:   FR-068; FR-070; FR-072
+Depends-on:   FR-068; FR-070; FR-072; FR-092
 Volatility:   proposed-constant — which candidates can reach this branch at
               all is decided by the direct-access tolerance under
               `CalculationSpecification.md § Direct-access tolerance`, a
@@ -165,9 +165,12 @@ Rationale:    The cited section states that a zone is not lost by falling
               between the two. The second criterion is what makes the first
               more than a formality: an implementation can run the walking
               evaluation and still carry the failed check forward as a veto.
-              `Risk` is present on a should because this is an
-              access-classification record and therefore a safety path, per
-              `safety-path-checklist`.
+              The position in the antecedent is the candidate's identified
+              stopping position, which is why `Depends-on` names FR-092;
+              FR-070 carries the argument for evaluating the level check there
+              and it is not repeated here. `Risk` is present on a should
+              because this is an access-classification record and therefore a
+              safety path, per `safety-path-checklist`.
 Resolved-by:  —
 ```
 
@@ -175,8 +178,8 @@ Resolved-by:  —
 
 ```
 Statement:    Where elevation or structural data leaves the relationship
-              between a road position and a zone ambiguous, the system shall
-              classify the zone as uncertain rather than as directly
+              between a stopping position and a zone ambiguous, the system
+              shall classify the zone as uncertain rather than as directly
               road-accessible.
 Category:     Access classification
 Source:       SPECIFICATION.md § Direct road-access validation
@@ -186,15 +189,15 @@ Verification: test — a candidate whose bridge or tunnel relationship to the
               and not directly road-accessible, while one whose relationship
               is resolved and compatible is not made uncertain by this rule
 Acceptance:   given a candidate within the direct-access tolerance whose
-              bridge, tunnel or layer relationship to the road position cannot
-              be resolved from the data available, when its access is
+              bridge, tunnel or layer relationship to the stopping position
+              cannot be resolved from the data available, when its access is
               classified, then it is classified uncertain and not directly
               road-accessible
-              given a candidate whose level relationship to the road position
-              is resolved and compatible, when its access is classified, then
-              this rule does not make it uncertain
+              given a candidate whose level relationship to the stopping
+              position is resolved and compatible, when its access is
+              classified, then this rule does not make it uncertain
 Status:       draft
-Depends-on:   FR-067; FR-070
+Depends-on:   FR-067; FR-070; FR-092
 Volatility:   settled — the downgrade on ambiguous evidence is stated outright
               by the cited section and rests on no figure
 Risk:         Ambiguous data resolved in the system's favour is the exact
@@ -213,7 +216,11 @@ Rationale:    The cited section states this outright, and it acts on different
               would validate the very ground the ambiguity is about. Uncertain
               rather than excluded because the zone may be perfectly
               reachable; what an uncertain classification then means for the
-              search is FR-084's.
+              search is FR-084's. The position whose relationship is in
+              question is the candidate's identified stopping position, which
+              is why `Depends-on` names FR-092; FR-070 carries the argument
+              for evaluating the level relationship there and it is not
+              repeated here.
 Resolved-by:  —
 ```
 
@@ -464,7 +471,7 @@ Acceptance:   given a candidate whose access estimate rests on any of the
               classified, then it is classified uncertain or excluded and not
               directly road-accessible or park-and-walk
               given a candidate whose access estimate rests on a mapped
-              stopping location, a connected pedestrian path, a complete
+              stopping position, a connected pedestrian path, a complete
               elevation profile, known road and path levels and no identified
               barrier, when its access is classified, then this rule does not
               make it uncertain
@@ -648,18 +655,18 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall classify a zone as accessible only where it has
-              identified a connection between a legal stopping location and
+              identified a connection between a legal stopping position and
               the zone's coordinate.
 Category:     Access classification
 Source:       SPECIFICATION.md § Accessibility principle
 Priority:     MUST
 Verification: test — a candidate for which no connection between a legal
-              stopping location and its coordinate has been identified is not
+              stopping position and its coordinate has been identified is not
               classified accessible, and neither is one lying within a
               configured radius of a road or a parking location with no such
               connection identified
 Acceptance:   given a candidate for which no connection between a legal
-              stopping location and the zone's coordinate has been identified,
+              stopping position and the zone's coordinate has been identified,
               when its access is classified, then it is not classified
               directly road-accessible or park-and-walk
               given a candidate whose coordinate lies within a configured
@@ -681,7 +688,7 @@ Risk:         Proximity is the measure that is always available and always
               results.
 Rationale:    The cited section states that a zone is accessible only where
               the optimizer can identify a plausible, safe and sufficiently
-              efficient connection between a legal stopping location and the
+              efficient connection between a legal stopping position and the
               zone's coordinate, and that this principle governs the whole of
               its section and takes precedence over any narrower statement in
               it. What this record carries is the identification: safe is
@@ -748,12 +755,12 @@ Risk:         A snapped coordinate is a stopping position the system invented,
 Rationale:    The cited direct-access section requires evidence that the
               vehicle can stop at a valid location from which the zone can
               actually be captured, and the access-path section measures the
-              walkable route from the proposed stopping location: both name
+              walkable route from the proposed stopping position: both name
               the object and neither obliges its identification, which is why
               it appears in the corpus only inside FR-006's exception clause
               while eight records in this batch pivot on it. Not FR-085's:
               that record obliges a connection between a legal stopping
-              location and the coordinate, and with nothing constraining what
+              position and the coordinate, and with nothing constraining what
               may play that role a snapped edge point satisfies it through a
               trivial connection. What may be concluded about a position's
               legality is bounded by

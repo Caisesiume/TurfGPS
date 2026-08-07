@@ -116,14 +116,14 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-083` — Admit park-and-walk only on a routed path and an obtained elevation profile | — | — |
 | `FR-084` — Keep uncertain candidates out of the optimization | — | — |
 | `FR-085` — Classify a zone accessible only on an identified connection | — | — |
-| `FR-086` — Route a detour's cost through the proposed stopping location | — | — |
+| `FR-086` — Route a detour's cost through the proposed stopping position | — | — |
 | `FR-087` — Reuse no candidate's detour cost across journeys | — | — |
 | `FR-088` — State the material uncertainty in an access estimate | — | — |
-| `FR-089` — Gate the direct class on the road-class and speed-limit exclusions | — | — |
+| `FR-089` — Propose no stop on a road the exclusions refuse | — | — |
 | `FR-090` — Reject a maximum stopping speed above the permitted value | — | — |
-| `FR-091` — Plan no journey while the implausible-gradient threshold is unconfigured | — | — |
+| `FR-091` — Plan no journey while an owed enforcement constant is unconfigured | — | — |
 | `FR-092` — Identify a stopping position rather than manufacture one | — | — |
-| `FR-093` — Compute both halves of a stop against one stopping position | — | — |
+| `FR-093` — Compute both halves of a stop against one resolved stopping position | — | — |
 | `NFR-006` — Fall access confidence with the evidence behind the estimate | — | — |
 | `NFR-007` — Classify no zone confidently and wrongly | — | — |
 

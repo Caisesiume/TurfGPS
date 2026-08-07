@@ -155,7 +155,7 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-086` | Route a detour's cost through the proposed stopping location | Route construction | MUST | draft | test | — |
+| `FR-086` | Route a detour's cost through the proposed stopping position | Route construction | MUST | draft | test | — |
 | `FR-087` | Reuse no candidate's detour cost across journeys | Route construction | MUST | draft | test | — |
 
 ## Cost and time composition
@@ -170,7 +170,7 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-062` | Keep the general-route deviation separable from the Turf stop time | Cost and time composition | SHOULD | draft | test | — |
 | `FR-074` | Compute access cost from the routed path and its elevation profile | Cost and time composition | MUST | draft | test | — |
 | `FR-079` | Price a park-and-walk stop over the set of zones it serves | Cost and time composition | MUST | draft | test | — |
-| `FR-093` | Compute both halves of a stop against one stopping position | Cost and time composition | MUST | draft | test | — |
+| `FR-093` | Compute both halves of a stop against one resolved stopping position | Cost and time composition | MUST | draft | test | — |
 
 `FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
@@ -247,9 +247,9 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-070` | Require compatible levels and no barrier for direct road access | Safety exclusions | MUST | draft | test | — |
 | `FR-076` | Exclude an absent, disconnected, or implausibly steep access path | Safety exclusions | MUST | draft | test | — |
 | `FR-077` | Let no zone's value admit an unsafe or infeasible access route | Safety exclusions | MUST | draft | test | — |
-| `FR-089` | Gate the direct class on the road-class and speed-limit exclusions | Safety exclusions | MUST | draft | test | — |
+| `FR-089` | Propose no stop on a road the exclusions refuse | Safety exclusions | MUST | draft | test | — |
 | `FR-090` | Reject a maximum stopping speed above the permitted value | Safety exclusions | MUST | draft | test | — |
-| `FR-091` | Plan no journey while the implausible-gradient threshold is unconfigured | Safety exclusions | MUST | draft | test | — |
+| `FR-091` | Plan no journey while an owed enforcement constant is unconfigured | Safety exclusions | MUST | draft | test | — |
 
 The category triples in one pass and its subject widens with it: `FR-044` … `FR-046` and `FR-053` are the time ceiling, and the eight added here are the enforceable exclusions — the other half of the scope line the register has carried since consolidation. `FR-069`, `FR-090` and `FR-091` are configuration records rather than behaviour at solve time, and they sit here because the constants they guard are the exclusions' own; each states a direction or an absence and none states a figure.
 
