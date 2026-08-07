@@ -96,6 +96,12 @@ Note the casing exactly: **`In progress`** and **`In review`** are lower-case af
 
 Authority map: Backlog→Ready is the **scrum-master's** alone; workers set `In progress`/`In review` on their own item; the **pr-judge** sets `Ordered Revision`; `Done` requires merge evidence.
 
+**Auto-add lands an item with `Status` empty, not in the entry column, and the filing agent sets `Backlog`.** An item nobody sets is not sitting at the head of the chain above — it is outside the chain entirely: invisible to a Backlog-filtered view, and unsequenceable by the scrum-master who would otherwise be the one to promote it. The party that filed the issue is the party that knows it exists, so it is that agent's to set, in the same pass as the labels and the milestone.
+
+**Setting `Backlog` is not a promotion, and the authority map above is untouched by it.** It records the column the item is already in rather than moving it out of one; Backlog→Ready remains the scrum-master's alone, and a filing agent that writes `Backlog` has moved nothing and decided nothing about sequence. Same shape as the blocker rule under `§ Priority` below: a field left empty does not read as *not yet decided*, it reads as *sorts nowhere*, and the item is passed over rather than queued.
+
+Applied by `@requirements-story-organizer`, which has been setting it on every filing and reporting that it did so rather than doing it silently. Recorded on 7 August 2026.
+
 `Ordered Revision` exists so a remand is visible as its own column rather than hidden behind a label. An item sitting there **counts against its worker's WIP** — do not promote a replacement item for that worker — and revision preempts any new work.
 
 ### Priority
@@ -138,7 +144,7 @@ All seven exist on the repo:
 | `judge:approved` / `judge:remanded` | PRJudge ruling record (PR labels) |
 | `awaiting-human` | Loop paused on a human decision |
 
-**A `Task` sequences and promotes on the same rules as a story.** It is read for Priority and dependency order exactly as a story is, and *§ Priority* above is written for it specifically — the blocker rule exists because a `Task` has no MoSCoW to derive a priority from. Nothing about the lifecycle differs.
+**A `Task` sequences and promotes on the same rules as a story.** It is read for Priority and dependency order exactly as a story is, and `§ Priority` above is written for it specifically — the blocker rule exists because a `Task` has no MoSCoW to derive a priority from. Nothing about the lifecycle differs.
 
 **Its three differences from a story are exemptions, not omissions.** A `Task` carries **no `Resolves:` line**, because no requirement stands behind it; it **joins no Milestone**, because a Milestone is an Epic and an Epic is a cluster of requirements; and it is **exempt from the coverage audit** that @requirements-story-organizer runs in both directions. That last one is the load-bearing statement: a `Task` carrying no requirement codes is **not a gap in coverage** — it is an item the audit does not range over at all. The audit is already scoped to stories by its own wording, and this records that the scoping is deliberate, so that the next reader tightening the audit does not "fix" it into reporting every `Task` as an uncovered story.
 

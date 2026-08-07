@@ -795,7 +795,9 @@ Persistence covers reopening on the same device after an arbitrary interval. It 
 
 A user may hold **several plans at once**. Planning a summer road trip does not discard the route planned for next weekend, and starting a new journey never overwrites an existing one. How stored plans are listed and reopened is specified under *Returning to a stored plan* in `DESIGN.md`.
 
-A stored route keeps **everything** — not only the confirmed plan, but the candidate set, the access classifications, and the computed costs behind it. This is deliberately the larger option. It means a reopened route can be re-solved, and zones swapped during a later review, without rerunning the pipeline from the beginning.
+A stored route keeps **everything** — not only the confirmed plan, but the candidate set, the access classifications, the computed costs behind it, and the additional-time allowance it was planned against, defined under *§ User time constraints*. This is deliberately the larger option. It means a reopened route can be re-solved, and zones swapped during a later review, without rerunning the pipeline from the beginning.
+
+**The allowance is on that list because re-solvability requires it.** A zone swapped during a later review is judged against a limit, and the only limit that can judge it is the one this journey was planned against — re-solved against anything else, the plan is re-solved against a constraint the user never agreed to, and nothing about the result would look wrong. The allowance is therefore a property of the journey rather than of the device or the session, and it travels with the stored route for the same reason the costs do.
 
 ### No accounts
 
