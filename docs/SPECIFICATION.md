@@ -324,6 +324,8 @@ Zones with low-confidence access should be excluded from time-sensitive recommen
 
 A zone is considered accessible only when the optimizer can identify a plausible, safe, and sufficiently efficient connection between a legal stopping location and the zone's coordinate.
 
+What makes a position a legal stopping location is defined under *§ What establishes a stopping position*. This principle requires the connection; it does not itself establish the position at either end of it.
+
 This principle governs the whole of this section and takes precedence over any narrower statement above it.
 
 Accessibility must therefore be determined using:
@@ -926,6 +928,42 @@ The optimizer must never treat a lower time cost as grounds for relaxing anythin
 A zone being geographically reachable does not make it a valid recommendation. Accessibility classification must incorporate road type, speed limit, mapped access, and stopping suitability.
 
 Where the available data is insufficient to establish safe access, the system should either exclude the zone or clearly classify it as uncertain rather than treating it as a normal recommendation.
+
+### What establishes a stopping position
+
+The rule immediately above leaves a choice open — exclude the zone, or classify it uncertain — and this section decides it. It also settles an object that several sections turn on and none defines. *§ Accessibility principle* requires a connection between *a legal stopping location* and the zone's coordinate; *§ Directly road-accessible zones* has the car stop legally and safely; *§ Park-and-walk zones* has the user stop at a road, parking area, or other suitable access point. Nothing said what makes a position one of those, and a condition on an undefined object cannot fail. Settled on 7 August 2026.
+
+**A stopping position is established only where the map data carries a feature that is itself a place to stop** — a mapped parking area, a lay-by, a rest area, a service road, a shoulder, or an attribute explicitly recording that stopping is permitted. The *kinds* of feature are named here and the attributes identifying each of them deliberately are not: that detail belongs to the OSM-derived feature tables owed under *Architecture.md § Still owed by this document*, which records them as a safety surface owed their own design and their own review. This document is not their home.
+
+**The absence of a restriction is never evidence of permission.** This is the load-bearing half of the rule and the half an implementation erodes first. A position is not established by the way being drivable, by its recorded limit sitting at or below the maximum for a stopping road, by no stopping restriction being recorded against it, or by its being the nearest point on a drivable way to the zone's coordinate. Every one of those is a fact about what the data does *not* say, and reading any of them as establishing a position is unknown upgraded to permitted by defaulting — the identical failure *§ An unknown speed limit fails the check* forbids one list above, arriving here as a plausible position rather than as a plausible number. **No lookup, no default, and no road attribute short of the feature itself establishes a stopping position.**
+
+**A position that is not established is uncertain, and uncertain is not excluded.** The distinction decides what reaches the user, so it is not a shade of the same outcome. An excluded zone is gone: no presentation, no reserve, no second look. An uncertain zone reaches the user with its uncertainty stated, under *§ Handling the uncertain bucket* — unpriced, unscored, outside the cost model and outside the ranking, and offered during review as something the driver may judge on arrival. **Absence in the data is recorded, never acted on.** The product never asserts a stop it cannot support, and it never removes a zone merely because the map is thin. Read as an exclusion rule this definition is inverted, and it would discard exactly the candidates the reserve pool exists to carry.
+
+A candidate therefore resolves three ways rather than two:
+
+* **Established** — the data carries a stopping feature at the position, and the position survives the exclusions. The zone may be classified confidently, subject to everything else this section requires of it.
+* **Uncertain** — no stopping feature is identified there, and no exclusion applies. The zone survives into review carrying no time estimate and no score.
+* **Excluded** — an enforceable exclusion applies. The zone is removed, whatever features sit near it.
+
+**The exclusions bind independently, and a feature never rescues a position from one.** *§ Enforceable exclusions* applies to the position regardless of what the data carries there, and it applies on both access branches: a park-and-walk stopping position is subject to it exactly as a direct one is. A motorway hard shoulder is the case to hold in mind — it is mapped, it is a shoulder, and it is part of a motorway, so it is excluded and is never established. Establishment is a necessary condition for a confident classification and never a sufficient one.
+
+**This settles one term and no more.** An established stopping position does not make a zone accessible: *§ Accessibility principle* still requires an identified connection between that position and the zone's coordinate, and the barrier, elevation, and confidence rules above still decide whether the connection supports a recommendation. Neither does it establish that stopping is *lawful* there at the moment of arrival — the data does not carry that, per the list above, and no part of this definition claims it. What it establishes is that the position is a place the map records as a place to stop. That is the most the data supports, and more than the system had.
+
+**One object, however it is spelled.** Elsewhere this document writes *stopping location*, *legal stopping location*, *stopping place*, and *legal stopping point*; `CalculationSpecification.md` and the requirements corpus write *stopping position*, which is the spelling used here. All five name one object, and this definition governs it under every one of them. Four spellings for one object is how two implementations of it come to exist, each satisfying the rules written in its own vocabulary.
+
+**The labelling duty above is discharged by the classification, not by a footnote.** *§ Requirements the data cannot verify* requires a proposed stop whose legality could not be established to be labelled as such. That label is the uncertain classification together with its stated reason, behaving as *§ Handling the uncertain bucket* defines. It cannot be discharged by annotating a confidently priced recommendation, because a confidently priced recommendation is precisely the assertion this definition refuses to make.
+
+#### An unmapped verge is uncertain, not a stop
+
+This is a stated product boundary, taken with the consequence known. It is not a defect, an oversight, or a gap awaiting a fix.
+
+The alternative considered and rejected was that **road class carries it** — that any way at or below the maximum for a stopping road is itself a place to stop, with no feature required. It was rejected because it makes the condition unfailable: virtually every candidate sits beside such a way, so virtually every candidate would establish a position and the test would remove nothing it was written to remove. The cost of rejecting it is exact, and it is paid in the terrain this product exists for. A zone reachable only from an ordinary rural verge, with no mapped parking, lay-by, or shoulder on the approach, **goes to uncertain rather than being offered**.
+
+**The boundary is not confined to the case that names it.** It reaches every position where stopping features are thinly mapped, and that includes the ordinary urban street with no mapped street parking. Wherever the feature data is sparse the confident class narrows to what is mapped and the uncertain bucket carries the remainder — and *§ Accessibility scope for the first release* names zones beside a drivable road as the principal target of the whole system, so the share that moves is not marginal. How large it is has not been measured; unlike *§ The United Kingdom is a park-and-walk market*, this boundary is stated against no count, and a reader must not take it as one.
+
+Two things already in this document carry more weight as a result. *§ Handling the uncertain bucket* now carries more than the rural candidates it was written for. And *§ This should be measured, not assumed* earmarks the reserve pool for removal if users do not accept what it offers — removing it while this definition stands would make those candidates invisible rather than uncertain, which is the exclusion this definition refuses, arriving by the back door. Whoever acts on that measurement decides both together.
+
+The exchange is the one *§ Accessibility scope for the first release* already states the product is willing to make, and the measure of success it closes on is the test this definition is built to pass. A verge that is in fact a perfectly good place to stop, offered as uncertain, costs the user a judgement they are well placed to make from the driver's seat. The same verge offered as an established stop costs them a decision the system had no grounds to take for them.
 
 ## Initial product boundaries
 
