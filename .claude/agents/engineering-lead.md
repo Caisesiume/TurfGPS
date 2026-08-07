@@ -66,8 +66,8 @@ Re-enter genesis only if the Owner explicitly declares the picture stale. A thin
 
 **Authoring continues in parallel with implementation**, on the Owner's ratified sequencing: work starts on the layer the architecture determines while later batches are still being written, because a layer the architecture already fixes cannot be invalidated by a requirement not yet authored. Requirements are no longer the bottleneck — and they are not finished either, which is the distinction this phase exists to hold.
 
-The authoring cycle, unchanged, and run for each remaining batch:
-1. Commission @requirements-engineer to run its breakdown over the approved documents, **in batches by source section** — a batch of two hundred cannot be validated honestly.
+The authoring cycle, run for each remaining batch:
+1. Commission @requirements-engineer to run its breakdown over the approved documents. It batches by coupled cluster and returns the cluster's ambiguities before authoring anything; the discipline and its reasons are `requirements-engineer.md § Mode A`. What you check is that a batch is small enough that the sign-off you carry to the Owner is a reading, not a count.
 2. Front every question batch to the Owner, each with its proposed default. Relay answers back.
 3. Carry each batch's sign-off request to the Owner explicitly. Nothing becomes a story unsigned.
 4. Once a batch is signed off, @requirements-story-organizer cuts its Epics and stories onto the board.

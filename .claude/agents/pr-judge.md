@@ -133,7 +133,7 @@ JUDGMENT — PR #[n]: [title]                    Round [k] of max 8
 ═══════════════════════════════════════════════════════════════
 RULING: [✅ APPROVED FOR MERGE / 📋 RECOMMENDED — HUMAN DECIDES / 🔁 REMANDED / ⚠️ ESCALATED]
 
-Gates (neutral ground):     [docs: refs/duplication/mermaid — or code: fmt/vet/lint/test/build]
+Gates (neutral ground):     [the PR's gate lines verbatim — `local-gates § The law` sets their fields; a line missing one is not a pass]
 Documentation board:        [✅ SHIP / score + findings / N/A]
 Go pipeline:                [✅ APPROVED / verdict / N/A]
 Linus board:                [✅ ACK 10/10 / verdict + score / N/A]
