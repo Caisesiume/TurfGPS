@@ -18,6 +18,8 @@ A disagreement between the two directions is a finding for `@requirements-engine
 
 **This allocation opened no interval at all, which is the shape every batch but batch 4 has held.** The signature and the allocation both fell on 7 August 2026 and were written into this file in a single pass, so `FR-055` … `FR-057` never held the state batch 4 was the first — and so far the only — batch to commit: `Resolved-by: —` never meant *signed off, story pass due* for any of the three. Their `—` carried one meaning throughout and it was the earlier one, *filed and not yet signed*; that is the state they were committed in on 6 August 2026 and the state they left on 7 August. Story creation is still a pass of its own and still gated on sign-off — what is absent here is a **committed** interval between the two, not the second pass. The distinction is the one that matters to a later reader, because it is this file they consult and not the calendar: an interval no commit ever held is one the corpus never had.
 
+**Batch 5 filed, 7 August 2026 — no story allocation has run for it.** `FR-058` … `FR-093`, `NFR-006` and `NFR-007` were filed the same day and take a row apiece in the first table below reading `—` under both columns, which is the ordinary interval between a filing pass and the story pass that follows it: sign-off gates story creation, not the reverse, so no epic and no story exists for any of the thirty-eight. Nothing was added in the *Story → requirement* direction, which carries one row per story and has no story to carry. The em-dash means *not yet allocated* and never *unknown*, and for these thirty-eight it carries the earlier of its two readings — *filed and not yet signed* — as batch 3b's did and as `FR-055` … `FR-057`'s did. **It is the largest such interval the corpus has held**, batch 4's seventeen being the previous largest, and the first to open on the day one closed: the three rows `FR-055` … `FR-057` vacated earlier on 7 August 2026 were replaced by thirty-eight in this pass.
+
 ## Requirement → story
 
 One row per non-retired requirement. Every requirement in the corpus appears here, whether or not a story exists for it — a requirement missing from this table is a filing error. A requirement that retires leaves it, taking the link's single home with it; what its `Resolved-by` then reads is fixed by the freeze rule in `README.md § How this folder works`.
@@ -86,10 +88,48 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-055` — Open the planner with no additional-time limit entered | The additional time the user agreed to spend | #60 |
 | `FR-056` — Refuse an additional-time limit that is not positive | The additional time the user agreed to spend | #58 |
 | `FR-057` — Impose no maximum admissible additional-time limit | The additional time the user agreed to spend | #59 |
+| `FR-058` — Generate more than one general road route | — | — |
+| `FR-059` — Produce general road routes that are different drives | — | — |
+| `FR-060` — Build on more than the fastest conventional route | — | — |
+| `FR-061` — Test the stated limit and the ceiling against the whole additional time | — | — |
+| `FR-062` — Keep the general-route deviation separable from the Turf stop time | — | — |
+| `FR-063` — Bound a corridor set by the corridor half-width | — | — |
+| `FR-064` — Promote no more candidates to full evaluation than the cap | — | — |
+| `FR-065` — Record where the promotion cap bound | — | — |
+| `FR-066` — Tell the user where the promotion cap shaped the result | — | — |
+| `FR-067` — Assign exactly one access class to every classified candidate | — | — |
+| `FR-068` — Choose the validation regime from the direct-access tolerance | — | — |
+| `FR-069` — Reject a direct-access tolerance above the permitted value | — | — |
+| `FR-070` — Require compatible levels and no barrier for direct road access | — | — |
+| `FR-071` — Send an established level or barrier failure to the park-and-walk branch | — | — |
+| `FR-072` — Classify uncertain where the direct-access evidence is ambiguous | — | — |
+| `FR-073` — Measure a candidate's access route to the zone's coordinate | — | — |
+| `FR-074` — Compute access cost from the routed path and its elevation profile | — | — |
+| `FR-075` — Build no access path from a way the data bars to pedestrians | — | — |
+| `FR-076` — Exclude an absent, disconnected, or implausibly steep access path | — | — |
+| `FR-077` — Let no zone's value admit an unsafe or infeasible access route | — | — |
+| `FR-078` — Validate every leg of a multi-zone walking route | — | — |
+| `FR-079` — Price a park-and-walk stop over the set of zones it serves | — | — |
+| `FR-080` — Apply the configured maximum walking distance as a bound | — | — |
+| `FR-081` — Assign a confidence level to every access estimate | — | — |
+| `FR-082` — Classify a low-confidence access estimate as uncertain | — | — |
+| `FR-083` — Admit park-and-walk only on a routed path and an obtained elevation profile | — | — |
+| `FR-084` — Keep uncertain candidates out of the optimization | — | — |
+| `FR-085` — Classify a zone accessible only on an identified connection | — | — |
+| `FR-086` — Route a detour's cost through the proposed stopping location | — | — |
+| `FR-087` — Reuse no candidate's detour cost across journeys | — | — |
+| `FR-088` — State the material uncertainty in an access estimate | — | — |
+| `FR-089` — Gate the direct class on the road-class and speed-limit exclusions | — | — |
+| `FR-090` — Reject a maximum stopping speed above the permitted value | — | — |
+| `FR-091` — Plan no journey while the implausible-gradient threshold is unconfigured | — | — |
+| `FR-092` — Identify a stopping position rather than manufacture one | — | — |
+| `FR-093` — Compute both halves of a stop against one stopping position | — | — |
+| `NFR-006` — Fall access confidence with the evidence behind the estimate | — | — |
+| `NFR-007` — Classify no zone confidently and wrongly | — | — |
 
-62 of 62 requirements listed. **All sixty-two carry an epic and at least one story** — thirteen epics and fifty-nine stories, allocated in six passes — and **no row reads `—` under either column**. The rule stays one row per non-retired requirement rather than one row per requirement that has a story: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters. **The rule was first exercised by batch 3b** — between its filing and its story allocation, both on 6 August 2026, `FR-035` … `FR-037` were the first three rows this table had ever held with no story behind them — and batch 4 was the second and much larger instance of the same shape, and the first in which the requirements were **signed off** rather than `draft`. `FR-055` … `FR-057` were the third, in the `draft` shape, from their filing on 6 August 2026 until their sign-off and allocation on 7 August 2026. All three intervals are closed and each was the length of a pass. **That the table is full today is not the rule lapsing**, and it is the state the rule was written to be checkable against rather than the state it assumes: the next filing pass will put `—` rows back, and they will be correct.
+100 of 100 requirements listed. **Sixty-two carry an epic and at least one story** — thirteen epics and fifty-nine stories, allocated in six passes — and **thirty-eight read `—` under both columns**, those being batch 5, filed 7 August 2026 ahead of any sign-off and therefore ahead of any story. The rule stays one row per non-retired requirement rather than one row per requirement that has a story: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters. **The rule was first exercised by batch 3b** — between its filing and its story allocation, both on 6 August 2026, `FR-035` … `FR-037` were the first three rows this table had ever held with no story behind them — and batch 4 was the second and much larger instance of the same shape, and the first in which the requirements were **signed off** rather than `draft`. `FR-055` … `FR-057` were the third, in the `draft` shape, from their filing on 6 August 2026 until their sign-off and allocation on 7 August 2026; batch 5 is the fourth and by some distance the largest. The first three intervals are closed and each was the length of a pass. **The previous wording of this paragraph said the next filing pass would put `—` rows back and that they would be correct** — this is that pass, and they are.
 
-**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **No row reads `—` under either column today, so the corpus holds no orphan and no candidate for one.** That is the weakest of the reasons a corpus can be orphan-free and it is worth naming as such: the rule is unexercised here rather than satisfied by argument, and it will need running again the moment a filing pass puts a `—` back. **Sign-off does not bite, and the point survives the two cases that prompted it**: the test is an epic in flight, not a signature, so a signed-off requirement with no epic is exactly as far from being an orphan as a `draft` one. `FR-035` … `FR-037` held that shape for part of 6 August 2026, `FR-038` … `FR-054` for another part of the same day, and `FR-055` … `FR-057` from that day until 7 August 2026 — none of the twenty-three was ever an orphan, for the same reason. The last three are additionally the case where sign-off and allocation shared a pass, so their `—` was never even read against a signature. Every requirement code here that names a story appears in the second table below, and every code there appears here — a code with a story in one direction and no counterpart in the other is a finding. A requirement with no story is absent from that table by construction and is not that finding.
+**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **Thirty-eight rows read `—` today and none of them is an orphan**, because each also reads `—` under *Epic (Milestone)* — no epic has been cut for batch 5, so none of the thirty-eight has reached the test. The rule bites on the first of them to still read `—` under *Stories* once its epic is cut. **The rule is now exercised rather than merely unexercised**, which is the state the previous wording of this paragraph said it would need to return to: it was satisfied vacuously while the table was full, and it is satisfied by argument today. **Sign-off does not bite, and the point survives the three cases that prompted it**: the test is an epic in flight, not a signature, so a signed-off requirement with no epic is exactly as far from being an orphan as a `draft` one. `FR-035` … `FR-037` held that shape for part of 6 August 2026, `FR-038` … `FR-054` for another part of the same day, and `FR-055` … `FR-057` from that day until 7 August 2026 — none of the twenty-three was ever an orphan, for the same reason. The last three are additionally the case where sign-off and allocation shared a pass, so their `—` was never even read against a signature. Every requirement code here that names a story appears in the second table below, and every code there appears here — a code with a story in one direction and no counterpart in the other is a finding. A requirement with no story is absent from that table by construction and is not that finding.
 
 ## Story → requirement
 

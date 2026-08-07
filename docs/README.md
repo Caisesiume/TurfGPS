@@ -124,6 +124,10 @@ This is **the identifier rule above reaching the token's other half**, which is 
 
 **Converted files:**
 
+- `docs/Requirements/access-classification.md` — born token-form
+- `docs/Requirements/candidate-identification.md` — born token-form
+- `docs/Requirements/classification-correctness.md` — born token-form
+- `docs/Requirements/coverage-and-data-quality.md` — born token-form
 - `docs/Requirements/journey-initialization.md` — born token-form
 - `docs/Requirements/multi-leg-budget-allocation.md` — born token-form
 - `docs/Requirements/objective-selection-and-ranking.md` — migrated
@@ -131,11 +135,14 @@ This is **the identifier rule above reaching the token's other half**, which is 
 - `docs/Requirements/recommendation-disclosure.md` — born token-form
 - `docs/Requirements/recommendation-set-composition.md` — migrated
 - `docs/Requirements/route-alternative-generation.md` — born token-form
+- `docs/Requirements/route-construction.md` — born token-form
 - `docs/Requirements/safety-exclusions.md` — born token-form
 
 **Each entry says which route admitted it**, because the two are checked differently if either is ever audited: a migration is confirmed against the file's own history, a birth against the commit that declared it.
 
 **Five of the six were admitted one commit late, and it is recorded rather than smoothed over.** The born-token-form five were created in `1bb42e5`, before that route existed, and admitted in the commit signing batch 4 off — on a check run at admission rather than at creation. That is the whole of the exception and it is not a precedent: a file born after 6 August 2026 declares in its creating commit or does not join. `recommendation-set-composition.md` needs no such allowance; it converted and joined in one commit, as the rule requires.
+
+**Batch 5's five are the first to take the born-token-form route as it was designed**, declared in the commit that creates them rather than one later. `access-classification.md`, `candidate-identification.md`, `classification-correctness.md`, `coverage-and-data-quality.md` and `route-construction.md` were created and admitted on 7 August 2026 on a check `@requirements-librarian` ran before admitting: **zero old-form citations, zero italic spans, zero underscore spans, and zero delimiters in any `Source` or `Depends-on` line**, against 62 token-form citations in code spans, 25 undelimited `Source` citations and 36 undelimited `Depends-on` codes across the five. The clause about italic spans is reported because it was checked and not because the list turns on it — `§ Conventions` above already records that a span without the section marker decides as emphasis, and `journey-initialization.md` carries one. **The three already-listed files this batch appended records to — `recommendation-disclosure.md`, `route-alternative-generation.md` and `safety-exclusions.md` — were re-checked after the append** and still hold zero old-form citations, which is the check that has to be re-run whenever a listed file grows.
 
 **That migration is also the worked example of the rule above it.** It was eligible on 6 August and **declined**, because the commit then editing the file was repairing `FR-043`'s content — and a citation rewrite sitting in a diff beside a content edit cannot be told from one. It converted in the next commit instead, which wrote story links and nothing else. The lesson is that *a commit already editing the file for another reason* is a floor and not the whole test: **the other reason must be one the conversion cannot be mistaken for.**
 

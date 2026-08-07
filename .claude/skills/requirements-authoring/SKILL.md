@@ -22,10 +22,13 @@ Category:     Candidate identification
 Source:       SPECIFICATION.md § Candidate zone identification
 Priority:     MUST
 Verification: test — a corridor holding more qualifying zones than the cap
-              promotes exactly the cap, and records that the cap bound
+              promotes exactly the cap, and one holding fewer promotes all
+              of them
 Acceptance:   given a corridor containing more qualifying zones than the
               configured cap, when candidates are promoted, then exactly the
-              cap proceeds and the binding is recorded
+              cap proceeds
+              given a corridor containing fewer qualifying zones than the
+              cap, when candidates are promoted, then all of them proceed
 Status:       to-build
 Depends-on:   FR-018
 Volatility:   proposed-constant — the cap under

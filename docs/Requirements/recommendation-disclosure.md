@@ -120,3 +120,111 @@ Rationale:    The section makes the total the figure that matters and the
               being two different figures.
 Resolved-by:  #54
 ```
+
+## FR-066 — Tell the user where the promotion cap shaped the result
+
+```
+Statement:    Where the system has recorded that the promotion cap bound for a
+              route alternative, it should tell the user that the result was
+              shaped by a limit on how many candidate zones were examined.
+Category:     Recommendation disclosure
+Source:       CalculationSpecification.md § Bounding the candidate set;
+              SPECIFICATION.md § Candidate zone identification
+Priority:     SHOULD
+Verification: test — a journey for which the cap's binding was recorded is
+              presented with that fact stated to the user, and one for which
+              it was not carries no such statement
+Acceptance:   given a journey for which the system recorded that the promotion
+              cap bound, when its recommendations are presented, then the user
+              is told that the result was shaped by a limit on how many
+              candidate zones were examined
+              given a journey for which no such binding was recorded, when its
+              recommendations are presented, then no such statement is made
+Status:       draft
+Depends-on:   FR-065
+Volatility:   proposed-constant — the disclosure fires against the promotion
+              cap under
+              `CalculationSpecification.md § Bounding the candidate set`, a
+              proposed default, so how often a user meets it moves with that
+              figure
+Rationale:    The cited calculation section's stated reason for recording the
+              binding is the user — someone in a dense area is receiving a
+              result shaped by a limit rather than by their preferences — so
+              an internal flag does not discharge it, and the Owner ruled on 7
+              August 2026 that the disclosure is a second record. What is said
+              follows the posture under
+              `SPECIFICATION.md § Confidence and uncertainty`: material
+              uncertainty is communicated without overwhelming the user, so
+              this record binds that the user is told and never how, which is
+              `DESIGN.md`'s. The verb is should because the cited section
+              states the recording as a should and this is the softer half of
+              it; the second criterion exists so the obligation cannot be
+              built as a standing notice on every journey. Risk is omitted and
+              its argument folded here, on FR-025's precedent: the failure
+              withholds a caveat rather than sending a driver anywhere, and
+              FR-065 carries the diagnostic loss.
+Resolved-by:  —
+```
+
+## FR-088 — State the material uncertainty in an access estimate
+
+```
+Statement:    Where a recommendation rests on an access estimate carrying
+              material uncertainty, the system should state that uncertainty
+              and what it rests on to the user.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Terrain confidence
+Priority:     SHOULD
+Verification: test — a recommended stop whose access estimate rests on an
+              unmapped final approach is presented with that fact stated, and
+              one resting on a mapped stopping location, a connected path and
+              a complete profile carries no such statement
+Acceptance:   given a recommended stop whose access estimate rests on an
+              unmapped final approach or an incomplete elevation profile, when
+              the recommendation is presented, then the presentation states
+              that the estimate carries that uncertainty and what it rests on
+              given a recommended stop whose access estimate rests on a mapped
+              stopping location, a connected pedestrian path and a complete
+              elevation profile, when the recommendation is presented, then no
+              such statement is made for it
+Status:       draft
+Depends-on:   FR-081
+Volatility:   open-question — what counts as material rests on the enumeration
+              under `SPECIFICATION.md § Terrain confidence` standing as a
+              working default, no scale for access confidence existing in
+              `CalculationSpecification.md`
+Risk:         What the user is told is the last gate before the driver acts,
+              and this record is the whole of it. A stop presented without its
+              caveat reads exactly like a mapped, profiled estimate, so the
+              driver arrives at an unmapped final approach and an estimated
+              climb having been given no reason to expect either.
+              `SPECIFICATION.md § Requirements the data cannot verify`
+              reserves the judgement at the roadside to the driver precisely
+              because the system cannot make it, and an estimate that says
+              nothing takes that judgement back by withholding the one thing
+              it would be made on.
+Rationale:    The cited section obliges the recommendation to communicate
+              material uncertainty and gives a worked example of what that
+              means for an access estimate — a mapped parking location, an
+              unmapped final approach, an estimated elevation gain — and the
+              criteria are written against the inputs it enumerates rather
+              than against a materiality threshold, because none exists.
+              Distinct from the confidence this batch assigns and gates on:
+              FR-081 produces the level and FR-082 decides what may be
+              recommended at all, while this record is about what is said of a
+              stop that has already passed that gate. Distinct also from the
+              currency dimension, which
+              `SPECIFICATION.md § Currency confidence` separates by name and
+              whose honesty residue `README.md` already records as owed to
+              another batch. What the statement looks like is `DESIGN.md`'s;
+              the second criterion exists so the record cannot be built as a
+              standing disclaimer on every stop. `Risk` is present rather than
+              folded into this field because what the user is told about a
+              stop is a lane of `safety-path-checklist` rather than an
+              adjacent concern:
+              `SPECIFICATION.md § Requirements the data cannot verify` makes
+              the labelling of an unverified stop an obligation in the same
+              list as the exclusions, and the record is on the safety set on
+              the sentinel's ruling of 7 August 2026.
+Resolved-by:  —
+```
