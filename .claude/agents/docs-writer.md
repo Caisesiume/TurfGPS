@@ -47,7 +47,7 @@ cd ../TurfGPS-wt/<item-slug>-docs   # ALL work happens here; after merge: git wo
 Write the docs. Prefer precision over volume. Date time-sensitive facts and convert relative dates to absolute. Record review verdicts verbatim in completion reports. For inline comments, add "why" and delete redundant "what." Never document an aspiration as a fact.
 
 ### Phase 4 — Local gates
-Run the **documentation gates** per `local-gates § Documentation gates` — citations resolve and are one token, no model is stated twice, every mermaid diagram parses. **These are the live gates and they are yours**, so run them in full and report which parts of gate 1 you ran: no runner exists, the citation gate has a cheap form that is not yet licensed on any file, and an unstated gate reads as an unrun one.
+Run the **documentation gates** per `local-gates § Documentation gates`, which holds what each gate checks and which parts of gate 1 reach which files. **These are the live gates and they are yours**, so run them in full and report them in the form `local-gates § The law` requires — for gate 1, the parts you ran and the files and method you ran them over — because that law counts an unstated gate as an unrun one. What the gates check is deliberately not listed here: an enumeration in this file would freeze the gate at whatever it checked on the day this line was written, and tell you to skip whatever it grew.
 
 If the item touched inline comments in Go, also run the **backend gates** per `local-gates § Backend (Go)` — a comment edit still has to compile, and the skill holds the directory it compiles in.
 
