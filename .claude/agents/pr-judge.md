@@ -134,6 +134,7 @@ JUDGMENT — PR #[n]: [title]                    Round [k] of max 8
 RULING: [✅ APPROVED FOR MERGE / 📋 RECOMMENDED — HUMAN DECIDES / 🔁 REMANDED / ⚠️ ESCALATED]
 
 Gates (neutral ground):     [the PR's gate lines verbatim — `local-gates § The law` sets their fields; a line missing one is not a pass]
+Red demonstrations:         [the PR's entries verbatim, or its statement that it landed no such test — `local-gates § The law` sets their form and when they are owed; an entry short of that form is not a pass, and folding them into the gates line is not a report]
 Documentation board:        [✅ SHIP / score + findings / N/A]
 Go pipeline:                [✅ APPROVED / verdict / N/A]
 Linus board:                [✅ ACK 10/10 / verdict + score / N/A]

@@ -203,7 +203,7 @@ This is the canonical park-and-walk stop-time model. It is stated only here, and
 
 ### Flat-distance fallback
 
-Where no connected path or elevation profile can be obtained, the system may fall back to a symmetric straight-line estimate:
+Where a connected path is identified but its elevation profile cannot be obtained, the system may fall back to a symmetric straight-line estimate:
 
 ```text
 total walking distance =
@@ -216,6 +216,10 @@ walking time =
 ```
 
 This fallback is explicitly a degraded estimate. It ignores terrain, gradient, and barriers, and it assumes the outbound and return journeys take equal time — an assumption *Elevation-aware walking time* rejects wherever real data exists. Any candidate priced with this fallback must be marked low-confidence and is subject to the exclusion rules under *Elevation and feasibility rules* in `SPECIFICATION.md`. It must never be used to justify a recommendation presented as reliable.
+
+**The fallback prices an uncertainty about a path that exists; it never prices an absence.** An access path that is absent or disconnected is excluded outright under *Enforceable exclusions* in `SPECIFICATION.md`, which is a hard rule rather than a preference — and a hard rule is not satisfied by pricing the candidate anyway, however degraded the estimate and however plainly it is labelled. What reaches this fallback is a path the system found and could not profile; what never reaches it is a path the system could not find. The flowchart under *Stop time* is the decision procedure that sorts the two, and where its reading and this wording ever appear to differ, the flowchart governs.
+
+The opening condition above was written as a disjunction until 7 August 2026 — *no connected path **or** elevation profile* — which granted the fallback over an absent path and contradicted both that exclusion and the flowchart. The Owner ruled the flowchart's reading. That is recorded rather than quietly corrected, because the disjunction is the reading a reader arrives with: doubling a straight line to a path nobody could find produces a plausible number for a candidate that should never have been priced at all, and it produces it in the direction that makes the candidate look cheap.
 
 ### Direct road-access calculation
 
