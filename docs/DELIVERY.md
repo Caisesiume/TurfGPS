@@ -26,6 +26,22 @@ Issues are derived from the requirements in `Requirements/`, and cite the requir
 
 Consequently `SPECIFICATION.md` and `Requirements/` block the board. `DESIGN.md` and `DEPLOYMENT.md` do not, and can follow.
 
+### Who owns what
+
+**One home for the split**, ratified in `docs/adr/ADR-0003-backlog-dependency-planner.md`. Contracts elsewhere cite this table rather than restating it.
+
+| The question | The owner |
+|---|---|
+| What is true about the requirements | `@requirements-engineer`, authored by `@requirements-fr` / `@requirements-nfr`, corpus curated by `@requirements-librarian` |
+| What the work items **are** — Epics and stories, the *nodes* | `@requirements-story-organizer` |
+| What must precede what — the persistent dependency *edges* | `@backlog-dependency-planner` |
+| Which items are **ready**, and board truth | `@scrum-master` |
+| Which ready item **runs next**, and merge order | `@project-coordinator` |
+| Which specialists **implement** it | `@worker-manager` |
+| Whether it is **shippable** | `@pr-judge` |
+
+The three middle rows are the ones that merge if nobody watches, and they are why the table exists: decomposition creates the nodes, the planner owns the edges, readiness is a third question asked of both. An agent answering two of them has answered one of them without review — which is how a backlog acquires ordering nobody verified and cannot later distinguish from ordering that was.
+
 ## Proof that a test can fail
 
 **Every test written for a `test`-verified acceptance criterion is demonstrated to fail without the change under test, and the pull request states the demonstration.** A criterion whose test has never been red is asserted, not verified.
@@ -203,9 +219,9 @@ next_cycle_justification:
 
 ### Root cause
 
-**Every finding is classified by root cause:** implementation · requirement · architecture · design · test · infrastructure.
+**Every finding is classified by root cause:** implementation · requirement · architecture · design · test · infrastructure · dependency · planning.
 
-A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
+A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. A **`dependency` or `planning`** defect — work that failed because it ran in the wrong structural order, a consumer built before the contract it consumes — routes to `@backlog-dependency-planner`, which owns the backlog graph that order came from. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
 
 ## Execution shapes
 

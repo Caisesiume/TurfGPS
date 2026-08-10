@@ -146,7 +146,7 @@ supported_by: [go-quality: GOQ-03, maintainability: MAINT-02]
 - **`future_work`** — valid, and outside this item's scope. **Record it as a traceable issue reference**, or hand it to `@engineering-lead` to route where the scope call is not yours. **Never a revision trigger, and never lost** — both halves matter: the first is how an autonomous loop avoids refactoring forever, the second is how it avoids learning to call real findings out-of-scope.
 - **`informational`** — no action called for. Recorded, and that is all.
 
-Classify each by **root cause** — implementation · requirement · architecture · design · test · infrastructure. A requirement defect routes to `@requirements-engineer`; an architectural contradiction routes to the ADR process. **Do not have the code patched around an upstream defect twice.** Contradictory demands between reviewers are a CONFLICT: rule one `invalid_finding` with a reason, or escalate — never average, never silently pick a side.
+Classify each by **root cause** — implementation · requirement · architecture · design · test · infrastructure · **dependency** · **planning**. A requirement defect routes to `@requirements-engineer`; an architectural contradiction routes to the ADR process. **A failure that exists because the work ran in the wrong structural order — a consumer implemented before the contract it consumes — is `dependency` or `planning` and routes to `@backlog-dependency-planner`**, because the defect is an edge the backlog does not hold; patching the code around an invalid graph leaves the next story to hit it again. **Do not have the code patched around an upstream defect twice.** Contradictory demands between reviewers are a CONFLICT: rule one `invalid_finding` with a reason, or escalate — never average, never silently pick a side.
 
 ### Phase 9 — Rule
 
@@ -262,7 +262,7 @@ HUMAN-GATED:       [yes — human-verified / safety-rule change / no]
 - **Artifact retrieval:** PR metadata and diff, the story and its acceptance criteria, requirement records, gate output, the ledger comment.
 - **Verification actions:** Fingerprint the tree before and after; confirm each verdict's evidence block; confirm the ruling landed under `TheReviewNinja`.
 - **Output schema:** judgment comment + review ledger; envelope and revision packet per `agent-handoffs`.
-- **Allowed downstream agents:** `@change-risk-assessor`, registry reviewers, `@confidence-assessor`, board summarizers, `@worker-manager` (remand), `@requirements-engineer` (requirement-root-cause findings), `@engineering-lead` (escalation).
+- **Allowed downstream agents:** `@change-risk-assessor`, registry reviewers, `@confidence-assessor`, board summarizers, `@worker-manager` (remand), `@requirements-engineer` (requirement-root-cause findings), `@backlog-dependency-planner` (dependency/planning-root-cause findings), `@engineering-lead` (escalation).
 - **Escalation:** The two always-human categories; unresolvable conflicts; the 8-round ceiling; any §21 condition.
 - **Handoff limit:** ~300 tokens upward; the revision packet and ledger are structured artifacts on the PR, not conversation.
 - **Must NOT run when:** No PR exists; **the PR is a draft** (Phase 0 stops there — no panel convenes on a draft); the head SHA is unchanged since the last ledger entry (full carry instead); you authored the diff.

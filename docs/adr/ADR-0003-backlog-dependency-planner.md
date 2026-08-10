@@ -1,0 +1,126 @@
+# ADR-0003 — A dedicated backlog dependency planner
+
+**Status:** accepted — 2026-08-10
+**Source:** `docs/adr/agent-org-directive-3.md`, the Owner's third directive, kept verbatim. Where that file and this one differ on a repository-specific adaptation, **this record is the ratified form**. Section references (`§N`) point at that directive.
+**Relation to ADR-0001 / ADR-0002:** a targeted change **on** that architecture, not a replacement for it. No specialist is deleted, no safety floor weakened, no settled decision reopened. Every ADR-0002 optimization listed in §30 survives — fingerprint gating, scoped retrieval, references over context, compact envelopes, selective review invalidation, deterministic checks before LLM calls.
+
+## Context
+
+`@scrum-master` owned two different jobs: **board truth and readiness**, and **semantic dependency reasoning**. The second one ran on every sync. A board change woke it, it read the backlog, re-read the architecture, and re-derived an implementation ordering — data plane before consumers, ports before adapters, schema before code, backend before frontend — that had not changed since the previous run and would not change again until the work graph did. Dependency reasoning is *durable*: it belongs to the moment the graph changes, not to the moment somebody looks at the board.
+
+### Pre-edit inspection — what already existed
+
+Per the directive's final instruction, inspected before any edit; recorded so a later reader does not mistake an absence below for an oversight.
+
+| Inspected | Found, 2026-08-10 |
+|---|---|
+| Who wrote dependencies | `@requirements-story-organizer`, at story creation — `Blocked by: #41` plus per-edge provenance prose in a `## Dependencies` body section |
+| Who re-derived them | `@scrum-master`, every sync, in its Phase 3 architectural-ordering block |
+| How many live sections | **59** open issues carry `## Dependencies`; **53** carry at least one `Blocked by:` line; **0** carry a soft edge, because no syntax for one existed |
+| Native GitHub dependency API | Live and readable — `gh api repos/Caisesiume/TurfGPS/issues/43/dependencies/blocked_by` → `200`, `[]` |
+| Who consumed the ordering | `@project-coordinator`, described as consuming "@scrum-master's dependency analysis" |
+
+So the graph already existed and was already persisted in GitHub. What was missing was an **owner** for it, a **type** on its edges, and the rule that it is *read* rather than *recomputed*.
+
+## Decision
+
+### P1 — `@backlog-dependency-planner` exists
+
+*Context: §1–§5, §15–§19. The durable reasoning needed an owner, and it was not going to be the agent that runs every sync.*
+
+New agent `.claude/agents/backlog-dependency-planner.md` (opus; Read, Grep, Glob, Bash, Skill, `mcp__github`). It answers **what must be true before this work can safely begin?** and owns edge existence, edge type, edge provenance, conflict classification, and selective re-evaluation. It does **not** own requirements truth, story content, board Status, worker assignment, implementation, PR review, priority itself, or runtime scheduling. Its duties: minimum necessary ordering, maximum safe parallelism, and a concrete one-line reason on every edge — **relatedness is not a dependency**.
+
+### P2 — The `## Dependencies` body section is the authoritative representation
+
+*Context: §6, §16. The directive's preference order puts native relationships first; the inspection found the third option already deployed at scale, with two properties the first does not have.*
+
+The format's one home is **`turfgps-board-ops § The dependency representation`**: the grammar (`Blocked by: #N — reason` hard, `Soft dependency: #N — reason` soft, optional one-line `Basis:`), the hard/soft semantics, who writes and who reads, and the grandfather clause. Everything else cites it.
+
+**The grandfather clause is deliberate.** The 59 existing sections are valid hard edges exactly as written; the planner brings a subgraph up to the grammar the first time an event touches it. A migration pass over 59 issue bodies would touch every story on the board at once to change nothing any agent reads differently.
+
+**Native-API migration is deferred, not rejected** — and this record owns that decision. The API is readable today. Against it: the body convention already exists at scale, it carries **provenance** and the **soft type** natively where the relation has no field for either, and it is greppable without an API call, which is what makes `dependents.sh` possible. If the native relationship gains a type and a reason, migrating is a mechanical pass and this section is where the option was recorded.
+
+### P3 — The organizer emits hints, not edges
+
+*Context: §7, §8. A hint written as an edge is indistinguishable from a verified one the moment it is on the board.*
+
+`@requirements-story-organizer` stays Story Architect and **stops writing `Blocked by:` lines**. New stories carry the `## Dependencies` heading with `_Pending @backlog-dependency-planner._`. What it noticed while cutting goes into `dependency_hints` in its handoff. Its completion is the planner's trigger; the dispatch itself is routed by whoever commissioned it — normally `@requirements-engineer` through `@engineering-lead` — because the organizer holds no Agent tool and agents do not dispatch sideways.
+
+### P4 — The scrum-master evaluates readiness against the persisted graph
+
+*Context: §9–§11, §27. This is where the saving is: the second path must be substantially cheaper than the first.*
+
+Phase 3's architectural-ordering block is **deleted**. In its place: verify traceability · read the persisted hard edges · confirm every hard blocker is Done and merged · confirm no explicit blocking state remains · apply the Priority/WIP policy · promote. **It never silently repairs the graph**: a story whose ACs plainly consume another with no persisted edge, or an edge naming a nonexistent issue, returns a `dependency_finding` to the planner. Everything ADR-0002 gave it survives — fingerprint gate, scoped retrieval, priority-first promotion, WIP, traceability flagging, statelessness — and the file is shorter than before.
+
+### P5 — The coordinator stays runtime-only
+
+*Context: §12. Smallest edit in the wave, and the one that keeps the rebuilt-graph problem from reappearing one lane down.*
+
+It consumes the Ready queue in the order `@scrum-master` gave it from the persisted graph, and **never inspects the backlog to reconstruct dependencies**.
+
+### P6 — `scripts/loop/dependents.sh`
+
+*Context: §22, §41. When an upstream story completes, no LLM reasons from scratch about every blocked story.*
+
+Argument: the merged or closed issue number. It reads open issues once, parses hard blockers out of each `## Dependencies` section, checks each blocker's state, and prints `eligible:` and `still_blocked:`. Soft edges are deliberately not read — counting one would manufacture a blocker. A blocker whose state cannot be read **counts as still blocking**, the same rule `fingerprint.sh` applies to an unreadable component. Output is capped; `none` and exit 0 when nothing depended on the issue.
+
+### P7 — Two schemas in `agent-handoffs`
+
+*Context: §11, §18, §20. `agent-handoffs § Dependency findings and graph updates`.*
+
+**`dependency_finding`** — reporter, story, suspected or missing prerequisite, evidence references, recommendation. Returned by `@scrum-master`, specialists, `@worker-manager`, `@pr-judge`; **always** routed to the planner; reporters never edit edges. **`graph_update`** — stories examined, edges added/removed/preserved with type and reason, newly unblocked, newly blocked, parallelizable sets, affected Epics. The organizer's envelope may extend with `dependency_hints`.
+
+### P8 — `dependency` and `planning` join the root-cause vocabulary
+
+*Context: §21. Do not repeatedly patch around an invalid backlog graph.*
+
+In `pr-judge.md § Phase 8` and `DELIVERY.md § Root cause`. Work that failed because it ran in the wrong structural order — a consumer implemented before its contract — routes to the planner, not to another revision cycle.
+
+### P9 — Implementation feedback, and who may dispatch the planner
+
+*Context: §13, §14, §20, §30.*
+
+`@worker-manager` returns a `dependency_finding` for a prerequisite discovered mid-implementation and edits no edge. `@engineering-lead` consumes graph health rather than deriving order, and dispatches the planner **only on a graph event** — story batches created or changed, scope changes, an architecture decision moving a boundary, hints, or a finding arriving. **Never on cadence, a poll, or a fingerprint change**: a fingerprint detects that something moved, and treating it as a graph event would restore precisely the per-sync recomputation this record removes.
+
+### P10 — Governance
+
+*Context: §24, §29. One authoritative home per rule; do not copy the policy into every agent.*
+
+`DELIVERY.md § Who owns what` carries the ownership table — requirements truth · nodes · edges · readiness · runtime · implementation routing · review — and `DELIVERY.md § Root cause` carries the new routing line. `docs/adr/README.md` lists the directive and this record.
+
+## §31 acceptance criteria — where each is satisfied
+
+| # | Criterion | Satisfied by |
+|---|---|---|
+| 1 | A dedicated owner for the persistent graph | P1 |
+| 2 | Organizer creates work, emits hints, is not the authority | P3 |
+| 3 | Scrum-master no longer reconstructs architectural order | P4 — the Phase 3 block is deleted |
+| 4 | Scrum-master consumes persisted hard blockers | P4 |
+| 5 | Coordinator remains runtime-only | P5 |
+| 6 | Lead consumes graph state | P9 |
+| 7 | Analysis runs only when graph-relevant artifacts change | P1 activation list · P9 dispatch rule |
+| 8 | One story change invalidates only its subgraph | P1 — selective invalidation, on the intersection-test philosophy |
+| 9 | Hard and soft are distinguished | P2 grammar |
+| 10 | Safe parallelism explicitly preserved | P1 duties · `graph_update.parallelizable` |
+| 11 | Provenance persisted compactly | P2 `Basis:` line |
+| 12 | Hidden dependencies from implementation route to the planner | P7 · P9 |
+| 13 | Planning defects from review route to the planner | P8 |
+| 14 | Unrelated board changes cause no recomputation | P9 — no fingerprint row wakes the planner |
+| 15 | Newly satisfied dependencies detected cheaply after merges | P6 |
+| 16 | GitHub remains the source of dependency truth | P2 — the edges live in issue bodies |
+| 17 | The pipeline progresses without lead or scrum-master rebuilding the graph | P3 → P1 → P4 → P5 flow |
+
+## Consequences
+
+**What this obliges:**
+
+- **One more agent in the chain between stories and Ready.** A story batch is not schedulable until the planner has run over it. That gap is visible by design — the placeholder says so on the issue — but a batch filed while nobody dispatches the planner sits with no edges at all, and the scrum-master will read that as *unblocked* and promote it.
+- **A third load-bearing shell script.** `dependents.sh` parses issue bodies, so a story that writes `Blocked by` in unexpected shape is invisible to it. It fails toward *blocked* rather than *eligible* in every ambiguous case, which is the safe direction but will hold work when the grammar drifts.
+- **Two grammars on the board for a while.** The grandfather clause means 59 sections in the old shape coexist with the new one until events touch them. Both are readable; only the new one carries a type.
+
+**What this gives up:**
+
+- **The scrum-master's second opinion.** It used to re-derive the ordering every sync, so an edge that was wrong had a chance of being noticed by an agent reading the architecture fresh. That check is gone on purpose — it cost a full architectural re-read per sync to almost always reproduce the same answer — and what replaces it is `dependency_finding`, which fires only when something looks wrong from where a consumer stands.
+- **Immediacy.** Dependency reasoning now happens at graph-change time, so a graph event that nobody routes leaves stale edges in place until the next one. The failure mode moves from *expensive and current* to *cheap and possibly stale*.
+
+**Reversibility: high.** The representation is unchanged issue-body text that predates this record, the new agent is one file, the script is one file that can simply stop being called, and restoring the scrum-master's Phase 3 block is a revert of a deletion. Nothing here migrates data.

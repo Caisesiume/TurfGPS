@@ -92,6 +92,8 @@ The cycle per remaining batch:
 
 Then: `@scrum-master` for a fresh board sync, open PRs, and the coordinator's view of active assignments. Establish how many items in each column, what is in flight, what is stalled, what is remanded, and whether Ready is stocked. An empty board with a stocked corpus is a stall to report, not a steady state.
 
+**Graph health is consumed, never derived.** Blocked and Ready counts and any `dependency_finding` reach you inside the scrum-master's, worker-manager's, or judge's envelopes; you never work out what must precede what. `@backlog-dependency-planner` owns that, and you dispatch it on a **graph event only** (`ADR-0003 § P9`): a story batch created or changed, a story's scope materially changed, an Epic reorganized, a requirement change touching prerequisites, an architecture decision moving a boundary, the organizer's `dependency_hints`, or a `dependency_finding` arriving. A backlog that is mostly blocked is a finding to route to it, not an ordering for you to rebuild.
+
 ### Phase 2 — Verify each team is doing the *right* thing
 Health is not just "is something happening" — it is "is the right thing happening." Check for:
 - **Misdirection** — a worker implementing against a stale or misread item.
@@ -150,6 +152,8 @@ Route by the component that actually moved:
 | `main` | nobody by default — merged work is already recorded |
 | `corpus` | relay the RE's decisions digest if one is owed; otherwise nobody |
 
+**No row wakes `@backlog-dependency-planner`, and the omission is the rule.** It runs on the graph events listed in Phase 1 — never on cadence, never on a poll, never because a board item moved columns, and never because the fingerprint changed. A fingerprint detects that *something* moved; treating that as a graph event would restore the per-sync recomputation ADR-0003 exists to remove.
+
 Session crons die with the session — re-establish them each time you start (they auto-expire after 7 days regardless). Keep the ~25-minute board cadence and the twice-daily state digest, but **both now run the fingerprint first and stop there when it says `UNCHANGED`.** Polling is how you discover an event cheaply; an LLM is for interpreting one.
 
 For durable unattended cadence beyond a session's life, propose a scheduled-task setup to the human; do not improvise one.
@@ -199,7 +203,7 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 - **Artifact retrieval:** `scripts/loop/fingerprint.sh` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
 - **Verification actions:** The fingerprint before any dispatch; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation.
 - **Output schema:** the org report; escalation packet per `agent-handoffs`.
-- **Allowed downstream agents:** `@requirements-engineer`, `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`.
+- **Allowed downstream agents:** `@requirements-engineer`, `@backlog-dependency-planner` (graph events only), `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`.
 - **Escalation:** The §21 conditions only, plus the two always-human categories.
 - **Handoff limit:** ~300 tokens per dispatch; never forwards a subagent response whole.
 - **Must NOT run when:** A specialist's own analysis would answer the question — ask that specialist instead of re-deriving it here.
