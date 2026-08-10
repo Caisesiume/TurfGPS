@@ -27,3 +27,5 @@ State the cost as well as the benefit. A record that lists only advantages is ad
 |---|---|
 | `agent-org-directive.md` | Not an ADR — the Owner's directive of 2026-08-10, kept verbatim as the source order ADR-0001 adapts |
 | `ADR-0001-artifact-driven-agent-org.md` | The ratified adaptation of that directive onto this repository's fleet |
+| `agent-org-directive-2.md` | Not an ADR — the Owner's second directive of 2026-08-10, kept verbatim as the source order ADR-0002 adapts |
+| `ADR-0002-token-efficiency.md` | Token efficiency of the agent organization — the audited leaks and the fourteen ratified optimizations |

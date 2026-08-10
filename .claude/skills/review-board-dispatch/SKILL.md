@@ -1,6 +1,6 @@
 ---
 name: review-board-dispatch
-description: Mechanics for safely convening TurfGPS's reviewers — the read-only clause, tree-integrity verification, sequencing, review identity, the evidence obligation, and the reviewer registry that decides who is convened at all. Use whenever dispatching any reviewer.
+description: Mechanics for safely convening TurfGPS's reviewers — the deterministic preflight that closes lanes before any LLM runs, the read-only clause, tree-integrity verification, sequencing, review identity, the selection and negative-routing law, the reviewer registry that decides who is convened at all, and the marginal-contribution rule for overlapping reviewers. Dispatch-side only: the evidence law reviewers must satisfy lives in `agent-handoffs`. Use whenever dispatching any reviewer.
 ---
 
 # Review Board Dispatch — Safe Convening Mechanics
@@ -37,41 +37,31 @@ PR number and the story it links · acceptance criteria and requirement codes ·
 
 ## A reviewer does not accept a claim it could check
 
-Everything in the case file above is a **claim**. None of it is evidence, and a reviewer accepts none of it where the means to check it is at hand: not the PR body's account of what changed, not the author's stated gate results, not a count in a commit message, not "the cited section says X." Where the diff, the tree, the section, or the command is available, **the reviewer looks**.
+**Moved.** The evidence law — the rule, the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block, what the obligation reaches, and both recorded incidents — now lives in **`agent-handoffs § A reviewer does not accept a claim it could check`**, which every reviewer already loads. It was here, so no reviewer could reach its own standard without loading the judge's dispatch mechanics too. This heading remains only so existing citations land somewhere true; cite the new home.
 
-Checking is read-only. `§ The read-only clause (learned the hard way)` still binds — read the diff, read the tree, open the cited heading, run a command that only reads. A check that would write anything is not available to you; that claim goes under `ACCEPTED ON TRUST` naming `@validation-agent` as its owner.
+## Deterministic preflight
 
-### The report block
+**Run this before anything else in a review, and before an LLM is called at all.** Git, GitHub, a glob, a SHA, and a script answer several routing questions exactly, and paying a model to answer them is paying for a worse version of a certain answer.
 
-Every verdict carries this, in two halves:
-
-```
-VERIFIED INDEPENDENTLY:
-  · …
-ACCEPTED ON TRUST:
-  · …
+```bash
+scripts/loop/diff-domains.sh                 # defaults to origin/main...HEAD
+scripts/loop/diff-domains.sh <base> <head>   # explicit
 ```
 
-**The second half is the load-bearing one.** Listing what you checked is easy and flattering, and a reviewer will fill that half without effort. Naming what you took on faith is the only part of this that makes a reviewer *notice* they took something on faith — which is the entire point, because nothing else in a review surfaces an inherited premise. Write that half first if it helps.
+It classifies every changed file by domain and returns counts, `docs_only`, `lanes_closed`, and `safety_path_candidates`. Act on its **exact negatives**:
 
-**An empty `VERIFIED INDEPENDENTLY` block is itself a finding.** A reviewer that checked nothing has reviewed the PR body, not the work, and has returned an opinion where a verdict was asked for. Say so plainly rather than letting it pass as brevity.
+| Deterministic fact | Consequence, with no LLM involved |
+|---|---|
+| no `*.go` files in the diff | `@go-quality-critic`, `@go-structure-critic`, `@go-architecture-critic` are **closed** |
+| no frontend files | `@ux-reviewer`, `@design-reviewer`, `@ui-engineer` are **closed** |
+| no schema files | the schema and migration lane is **closed** |
+| `docs_only: true` | the registry's auto-low row applies — **no `@change-risk-assessor` run** |
+| PR is a draft | **stop.** No panel convenes on a draft |
+| head SHA unchanged since the last ledger entry | **full carry.** Nothing re-reviews; update the ledger and stop |
 
-**This block is the standard; `inspected: diff: true` is only the floor.** The verdict schema in `agent-handoffs` carries that flag, and a verdict reporting `false` is automatically invalid. But a flag is a self-assessment and the block is an enumeration, so a verdict may satisfy the flag and still fail here. The judge checks the block.
+**The §50 guard, and it is not negotiable:** *deterministic checks close lanes only where the file-domain mapping is exact; anything semantic — safety paths above all — stays with `@change-risk-assessor` and `@pr-judge`.*
 
-### What the obligation reaches
-
-**It reaches what the verdict rests on** — any claim your own verdict depends on. It is not a re-run of the suite: that is `@validation-agent`'s job, it runs last and alone for exactly that reason, and duplicating it across the bench would double the cost of every PR to learn nothing new. Where a claim's truth would not move your verdict, take it on trust and list it.
-
-**`ACCEPTED ON TRUST` is not a dumping ground.** A claim the verdict rests on, written in that half, **is the finding** — the reviewer has just recorded that its own verdict is unsupported. Check it, or file the gap as a finding, but do not list it and rule as though you had.
-
-### Why this is a rule and not a habit
-
-Both of these were found by an agent that checked a premise it had been handed, and neither was found by the pass meant to find it.
-
-- **The board agent that could not see the board.** Its own definition told it an empty board was "a complete and correct run" and to stop; the board held **37 items**. That instruction was reachable on every run, and the run that reached it would have reported an empty backlog and recorded itself as complete. Found 4 August 2026 while sweeping citation delimiters — `c091046`.
-- **The gates that could pass having read nothing.** `Architecture.md § D8` puts the Go module in `service/`. The gate block carried no working directory, so from the repository root all five commands resolve against nothing, exit zero, and print exactly what a clean module prints — and the prescribed report line was character-for-character what that vacuous run produces. Eleven agent files and the PR-body template carried the same directory-less copy, so the path ran unbroken from command to report line. Closed before any PR in this repository existed to carry it; the instrument, not a reviewer, was the thing that would have lied. Found 5 August 2026 because a layout decision recorded its own cost honestly — `d6a7e3e`, `1928a28`.
-
-Neither is something a reviewer catches by reading attentively. Both were **instruments reporting success**, and the only thing that separated the report from the truth was an agent running the thing itself.
+That guard is why the script only ever **closes** a lane and never opens one, and why `safety_path_candidates` prints `hint_only: sentinel activation is semantic` next to itself. A file list can prove a Go critic has nothing to read. It cannot prove a safety rule was not changed, because a safety rule can be changed by a constant in a file no hard-coded list has heard of — and the cost of those two errors is not remotely symmetric.
 
 ## Selection law
 
@@ -83,6 +73,23 @@ From `docs/DELIVERY.md § Selection`, which is where it is ratified; this sectio
 - **Verdicts are `pass` / `revise` / `blocker`** with confidence and severity-tagged findings — schema in `agent-handoffs`. A `revise` or `blocker` naming no concrete finding is invalid and goes back; so is a `pass` that names an actionable problem without filing it.
 - **N/A is not a courtesy pass.** A *convened* reviewer that finds its lane genuinely untouched returns `N/A`. Selection means this should now be rare — a common `N/A` is evidence the registry row is wrong, and is worth reporting as such.
 - **Contradictory demands between reviewers** = CONFLICT. The judge resolves it by ruling one finding `invalid_finding` with a reason, or escalates it; never averages, never silently picks a side.
+
+### Negative routing
+
+`@change-risk-assessor` returns `review_required`, `review_optional`, and `review_not_required`. The third is **a hard negative, not a shrug.**
+
+**A lane listed under `review_not_required` is not convened.** The judge may overrule it, but only by recording why, on the PR, in this shape:
+
+```yaml
+reviewer_override:
+  reviewer: performance-reviewer
+  risk_assessment: not_required
+  reason: revision introduced an O(n^2) candidate loop not present in the original assessment
+```
+
+Without a recorded override: **do not run it.** An assessment that can be quietly ignored is an assessment nobody has to write honestly, and the whole selective model rests on that output meaning something.
+
+**`review_optional` is not "run if there is budget."** It runs on a concrete signal, and the signal is named when it fires: unusual diff structure · the implementer flagged uncertainty · a conflict between reviewers · an acceptance criterion that depends on that domain · prior defect history in the component · a confidence gap. No signal, no run.
 
 ## The reviewer registry
 
@@ -98,23 +105,25 @@ One row per reviewer. `Invalidated by` is what re-runs it after a revision; anyt
 | `@linus-structure-critic` | code structure and layout | Go diff at high tier, or structure flagged | Docs-only; config-only | File moves, splits, or signature changes |
 | `@linus-architecture-critic` | module boundaries, ports/adapters, concurrency design | Cross-boundary change | Change confined inside one package's internals | Any boundary, port, adapter, or concurrency-design change |
 | `@linus-security-critic` | security surface | Auth, input validation, spatial queries, stored personal data, plan retrieval, secrets, external requests, data-touching migrations | Pure styling; docs-only | Any change to a listed surface |
-| `@go-quality-critic` | idiomatic Go | Any Go diff | No Go in the diff | Any Go change |
+| `@go-quality-critic` | idiomatic Go | Go diff with behavioural or interface change: new/changed exported identifiers, error-handling or context-propagation changes, concurrency primitives, or non-trivial implementation logic (roughly 40+ changed Go lines); or the risk assessment requests the correctness lane | Rename-, move-, comment-, or formatting-only Go diffs; docs-only | Further change to the functions or packages it reviewed, or a new exported API, error-path, or concurrency change elsewhere |
 | `@go-structure-critic` | package and file organization | Packages or files added or moved | Edits confined to the existing file set | Further adds, moves, or renames |
 | `@go-architecture-critic` | Go interfaces and boundaries | Interface or boundary change | Leaf implementation-only change behind a stable interface | Further interface or boundary change |
-| `@ux-reviewer` | user-facing behaviour | Frontend diff | Backend, migrations, CI, infrastructure | Further frontend change |
-| `@design-reviewer` | visual and interaction design | Frontend diff | Backend, migrations, CI, infrastructure | Further frontend change |
+| `@ux-reviewer` | user-facing behaviour | Frontend diff changing user-visible behaviour: flows, states, feedback, copy, information hierarchy | Logic or state refactors with unchanged rendering; backend, migrations, CI | Further user-visible behaviour change |
+| `@design-reviewer` | visual and interaction design | Frontend diff changing layout, composition, design tokens, theme, or visual states | Logic-only; copy-only (that is `@ux-reviewer`); backend, migrations, CI | Further visual change |
 | `@ui-engineer` | component structure, state strategy | Frontend component-structure or state-strategy change | Styling-only or copy-only change | Further component or state-strategy change |
-| `@maintainability-reviewer` | future readers' cost | Medium+ tier, or a new module, or a diff over ~150 lines | Trivial low-tier diff | Any further substantive code change |
+| `@maintainability-reviewer` | future readers' cost | A new module, roughly 150+ changed lines, or the risk assessment requests the lane | Trivial diffs; minimal-patch revisions introducing no new concept | A revision restructuring what it reviewed, introducing a new module or concept, or addressing one of its own findings |
 | `@modularity-reviewer` | seams between units | New packages or types, or boundary moves | Edits inside an existing unit | New packages/types, or moves across a boundary |
 | `@evolvability-reviewer` | known extension seams: routing provider, elevation adapters, country widening, points/medals | The diff touches a seam | No seam in the diff | Changes at a seam |
 | `@scalability-reviewer` | growth under load | Concurrency, pools, caps, fan-out, back-pressure | Single-request synchronous path with no shared resource | Changes to concurrency, limits, or fan-out |
 | `@performance-reviewer` | hot paths: solve loop, spatial queries, candidate fan-out | The diff touches a hot path | Cold paths; startup-only code | Changes to a hot path |
-| `@code-smell-reviewer` | local code health | Any code diff at medium+ tier | Docs-only; low tier | Any further code change |
+| `@code-smell-reviewer` | local code health | Medium+ tier diff adding roughly 100+ changed implementation lines, or a duplication/nesting/dead-code signal flagged by the risk assessment or another reviewer | Docs-only; low tier; minimal-patch revision diffs adding no new logic | A revision adding new implementation logic — not comment, config, or doc edits |
 | `@over-engineering-reviewer` | unearned complexity | New abstractions, layers, or configuration surface | Diffs that only delete or inline | New abstraction, layer, or config knob |
 | `@confidence-assessor` | evidence sufficiency (meta) | Medium tier with ≥3 verdicts or any disagreement; **always at high tier** | Fewer than 3 verdicts and no disagreement; never as a code reviewer | New or changed verdicts |
-| `@craft-review-summarizer` · `@linus-review-summarizer` · `@go-review-summarizer` | one voice per board | **≥3 members of that board ran this cycle** | Fewer than 3 ran — the judge reads the verdicts directly | Any member of that board re-running |
+| `@craft-review-summarizer` · `@linus-review-summarizer` · `@go-review-summarizer` | one voice per board | **5+ members of that board ran this cycle**, OR the judge records multiple substantive cross-reviewer conflicts requiring synthesis, OR the combined verdict payload is genuinely too large to weigh directly (recorded as such) | 1–4 compact verdicts — the judge reads them directly | Any member of that board re-running |
 
-**A summarizer below three verdicts is re-narration, not synthesis** — it adds a hop and a paraphrase between the judge and evidence the judge can read in full.
+**Structured data is not summarized by another LLM merely to make it structured again.** A verdict is already 150–300 tokens of schema; a summarizer that consumes three of them and emits a fourth has added a hop, a paraphrase, and a full execution between the judge and evidence the judge can read whole.
+
+**State the effect plainly, because it is the point rather than a side effect:** the Go board has three members and the Linus board has four, so **neither can ever meet the count condition**. Their summarizers are now conflict-triggered only. That is not an oversight to be corrected by lowering the number — it is what happens when a threshold is set by what synthesis actually costs rather than by what the historical architecture happened to do.
 
 **@ui-engineer also has an architect half** — commissioned by @worker-manager during implementation, which is not board convening; its registry row covers only the reviewer half. The omission is deliberate.
 
@@ -123,12 +132,44 @@ One row per reviewer. `Invalidated by` is what re-runs it after a revision; anyt
 | Tier | Panel |
 |---|---|
 | **low** | `@validation-agent` + 1–2 domain-matched reviewers from the registry |
-| **medium** | the low set + the correctness lane for the language touched + `@maintainability-reviewer` + `@confidence-assessor` if ≥3 verdicts or any disagreement |
+| **medium** | the low set + the correctness lane for the language touched + `@confidence-assessor` if ≥3 verdicts or any disagreement |
 | **high** | the medium set + the architecture lane + the security lane where flagged + `@confidence-assessor` **always**. **Every mandatory reviewer must return `pass`** |
 
 Plus, at every tier without exception: `@safety-sentinel` on any safety-path diff.
 
+**Medium's floor is validation, the correctness lane, and conditional confidence — `@maintainability-reviewer` is no longer mandatory there.** It is not weakened, only moved: its registry row above fires on a new module, on roughly 150+ changed lines, or when the risk assessment asks for the lane, and a medium-tier diff meeting any of those still gets it. What is removed is its activation by *tier alone*, which convened it on medium diffs that introduced no new concept for it to weigh.
+
 The tiers are floors, not ceilings. Adding a reviewer the registry activates is correct at any tier; removing one the tier mandates is not.
+
+## The marginal contribution rule
+
+Several reviewers in the registry share a border. Two of them convened on the same diff will usually both find something, and will usually both find *the same* thing in two vocabularies — which reads like corroboration and costs like coverage.
+
+**Before convening a reviewer whose domain substantially overlaps one already convened, record the question the second one uniquely answers:**
+
+```yaml
+candidate_reviewer: linus-quality-critic
+overlaps_with: [go-quality-critic]
+marginal_question:
+  - "Could the implementation be logically incorrect despite being idiomatic Go?"
+expected_unique_value: true
+```
+
+**If `marginal_question` cannot be stated clearly: do not invoke.** The inability to say what the second reviewer adds *is the answer* — it is not a prompt to think harder about the justification.
+
+| Family | The second one is convened only if… |
+|---|---|
+| `@go-quality-critic` ↔ `@linus-quality-critic` | Linus adds: could this be **logically incorrect or fragile at runtime** despite being idiomatic? |
+| `@go-architecture-critic` ↔ `@linus-architecture-critic` | Linus adds: is this **operationally sound system-wide** — resilience, observability — beyond Go-idiomatic boundaries? |
+| `@maintainability-reviewer` ↔ `@code-smell-reviewer` | Is the **cost of the next change** genuinely distinct from the smell census? |
+| `@modularity-reviewer` ↔ `@go-`/`@linus-structure-critic` | Are **coupling and dependency direction** at issue, beyond file and package shape? |
+| `@evolvability-reviewer` ↔ the architecture lanes | Is a **named extension seam** concretely implicated — routing provider, elevation adapters, country widening, points/medals? |
+| `@performance-reviewer` ↔ `@scalability-reviewer` | Are **both now-cost and growth-behaviour** concretely implicated? |
+| `@ux-reviewer` ↔ `@design-reviewer` ↔ `@ui-engineer` | Route by what changed — behaviour → ux, visuals → design, component/state architecture → ui-engineer. A second one joins only with its own stated question. |
+
+**Default within a family: convene the one whose trigger matched most specifically.** A broad match and a narrow match on the same diff is one reviewer's evidence, not two.
+
+These agents stay registered and stay distinct — **the rule is a convening condition, not a merge.** The moment a diff genuinely raises both questions, both run, and the recorded `marginal_question` is what makes that defensible rather than habitual.
 
 ## Incremental review validity
 

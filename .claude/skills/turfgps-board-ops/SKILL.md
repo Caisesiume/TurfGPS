@@ -84,6 +84,25 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
       --field-id <status-field-id> --single-select-option-id <option-id>
 ```
 
+## Scoped retrieval
+
+*§45.* **A full board dump is never context.** Ask for the items a pass will act on and project only the fields it reads: `item-list` takes `--limit` and `--jq`, and the filtering happens in `gh`'s built-in jq engine before anything reaches a context window. Standalone `jq` is not installed on this machine — piping to it fails.
+
+**Run `scripts/loop/fingerprint.sh` before any board read.** It reports the board component `UNCHANGED` or `CHANGED` deterministically (exit `0`/`10`, `2` degraded), and an unchanged board is a reason not to read the board at all.
+
+Four statuses matter to a routine pass: **`Ready`** (promotable), **`In progress`** (WIP), **`Ordered Revision`** (preempts everything), and anything labelled **`awaiting-human`** (paused). The rest is history, and history is retrieved when a question needs it.
+
+```bash
+# status-filtered, projected to what the pass actually reads
+"$GH" project item-list 3 --owner Caisesiume --limit 100 --format json \
+      --jq '[.items[] | select(.status == "Ready") | {id, title, status, number: .content.number}]'
+
+# one known item, fetched by number — never a list scanned to find it
+"$GH" issue view <N> --json number,title,labels,milestone,body
+```
+
+Locality follows the role: the coordinators read the statuses they sequence, @worker-manager one assigned item, @pr-judge one PR.
+
 ## Fields
 
 ### Status

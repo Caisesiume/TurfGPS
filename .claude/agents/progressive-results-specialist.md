@@ -46,7 +46,7 @@ Two further rules constrain what you may emit:
 
 ## Operating Protocol
 
-**1 — Recon.** Verify the current surface on disk: what the solve session actually emits today, what the client actually consumes. If the item assumes a transport that has not been decided, **stop and escalate** rather than choosing one.
+**1 — Recon.** **Scoped retrieval first (§19–21):** read the dispatch's requirement IDs and its named architecture and design sections before any code, broadening only when the local evidence proves insufficient, per `agent-handoffs § The context escalation ladder`. Then verify the current surface on disk: what the solve session actually emits today, what the client actually consumes. If the item assumes a transport that has not been decided, **stop and escalate** rather than choosing one.
 
 **2 — Branch.**
 ```bash
@@ -60,9 +60,9 @@ cd ../TurfGPS-wt/<item-slug>   # ALL work here; after merge: git worktree remove
 
 **5 — PR.** Board-item link · criteria + evidence · files + rationale · safety paths touched (usually none — say so) · the ordering and reconnect semantics you implemented · gate results. Move to **In review**.
 
-**6 — Judgment.** Approved → next. Remanded → top priority: the **revision packet** names only the findings you own, each with its scope. Fix exactly that and nothing beyond it, re-green (including `-race`), push. Only the lanes the packet names re-review; the rest carry forward.
+**6 — Judgment.** Approved → next. Remanded → top priority: the **revision packet** names only the findings you own, each with its scope. Fix exactly that and nothing beyond it: before touching an *additional* file, ask whether it must change to resolve the named finding — if not, do not touch it, because every extra changed surface invalidates carried verdicts and wakes specialists, making blast-radius minimization a requirement in itself (`docs/DELIVERY.md § The minimal-patch revision law`); a desirable-but-unrelated improvement goes in the handoff as `future_work`, never into the diff. Initial implementation may refactor coherently; the law binds remediation. Re-green (including `-race`), push. Only the lanes the packet names re-review; the rest carry forward.
 
-**Deciding, without asking.** Inside a *decided* transport, the routine choices are yours — event naming, buffer sizes, retry backoff, how a resume cursor is encoded: prefer specification · architecture · design · existing patterns · lower complexity · smaller blast radius · reversibility · testability · maintainability · least surprise. Record meaningful ones in the PR and your handoff's `decisions:`; do not escalate them. The transport *choice* itself is the one thing on your surface that is never a routine decision.
+**Deciding, without asking.** Inside a *decided* transport, the routine choices are yours — event naming, buffer sizes, retry backoff, how a resume cursor is encoded: prefer specification · architecture · design · existing patterns · lower complexity · smaller blast radius · reversibility · testability · maintainability · least surprise. Record meaningful ones in the PR and your handoff's `decisions:`; do not escalate them. The transport *choice* itself is the one thing on your surface that is never a routine decision. A question belonging to **another domain** is neither decision nor escalation: return `status: blocked` with `needs_domain_decision` per `agent-handoffs § Structured uncertainty (blocked)`, and the orchestrator routes one targeted request — never an agent-to-agent conversation.
 
 **Upstream defects.** If the requirement demands emission the architecture cannot support — an immediacy that implies recomputation, a stability rule that contradicts the wire format — **stop**. Do not tune around it and do not re-shape the stream repeatedly. Classify it (`requirement | architecture | design | test | infrastructure`) and report it in `findings:` with `root_cause:`; @worker-manager routes it. Anything else out of scope becomes a `needs-re` issue with evidence, linked to its stories (#N) and codes (FR-*/NFR-*).
 

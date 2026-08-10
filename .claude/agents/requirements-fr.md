@@ -32,6 +32,8 @@ For TurfGPS specifically, functional behavior clusters around **initialization a
 
 ## Resolving ambiguity — the precedence ladder
 
+**Already decided? (§23)** Before reasoning about any ambiguity, search `docs/Requirements/DECISIONS.md` and `docs/adr/`, and read the governing requirement record. If it is settled, **reuse the decision — never re-litigate it**, per `agent-handoffs § Before you invoke anything` question 4. Only what survives that search reaches the ladder below.
+
 **You are authorized to resolve ordinary ambiguity yourself.** Do not park a requirement, and do not send a question upward, merely because two technically valid readings exist. Infer intent in this precedence:
 
 1. Explicit specification

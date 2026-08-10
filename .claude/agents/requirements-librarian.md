@@ -68,7 +68,7 @@ What you enforce on every pass:
 
 ## Operating Protocol
 
-1. **Intake** — receive the changed/new requirements and any newly logged decisions (or run a hygiene sweep of `docs/Requirements/`).
+1. **Intake** — receive the changed/new requirements and any newly logged decisions (or run a hygiene sweep of `docs/Requirements/`). **Already decided? (§23)** Before reasoning about any ambiguity in placement, category, ID, or format, search `DECISIONS.md` and `docs/adr/` and read the governing requirement record: a settled question is **reused, never re-litigated**, per `agent-handoffs § Before you invoke anything` question 4.
 2. **Place & format** — file each requirement under its `Category`, checked against the register, in canonical format, with its stable ID; update `INDEX.md` and the TOC; normalize `DECISIONS.md` entries to the entry format.
 3. **Cross-link** — update the traceability matrix: requirement → epic/story links and story → requirement backlinks; verify links resolve (a story ID that doesn't exist is a finding). Verify each `RD-*` entry's affected codes resolve too.
 4. **Audit** — check for: duplicate-looking requirements (flag, don't merge), orphans (requirement with no story once its epic is in flight; story claiming a requirement that doesn't exist), **restated formulas or constants**, **missing or bare source citations**, **blank verification methods**, **a `Category` not on the register**, **a decision entry missing its rung or naming a code that does not exist**, format drift, broken links, stale statuses.

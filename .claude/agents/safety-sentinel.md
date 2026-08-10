@@ -62,7 +62,7 @@ Your operating assumption is that the map data is wrong somewhere, the elevation
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `review-board-dispatch § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: safety-sentinel
