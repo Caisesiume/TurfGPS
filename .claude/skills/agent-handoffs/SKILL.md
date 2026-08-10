@@ -199,6 +199,41 @@ needs_domain_decision:
 
 The orchestrator that dispatched you routes **one** targeted request, and the answer becomes an artifact or a recorded decision — an ADR, a `DECISIONS.md` entry, an amended requirement — so the next agent retrieves it rather than asking again. **Agents never chat**: a back-and-forth costs a full execution per turn and leaves nothing behind that anyone can retrieve.
 
+## Dependency findings and graph updates
+
+*ADR-0003 § P7. The persisted grammar both schemas refer to is `turfgps-board-ops § The dependency representation`, and is not restated here.*
+
+### Dependency finding
+
+Returned by `@scrum-master`, an implementation specialist, `@worker-manager`, or `@pr-judge` when the graph looks wrong from where they stand. It **always routes to `@backlog-dependency-planner`**, and the reporter edits no edge: a graph repaired in passing by four agents is a graph with no owner, and the repair nobody reviewed is the one that survives.
+
+```yaml
+dependency_finding:
+  reporter: scrum-master
+  story: 46
+  suspected_prerequisite: 43          # or missing_prerequisite / invalid_edge: <n>
+  evidence: ["#46 AC-2 reads the persisted classification", "#43 is what creates it"]
+  recommendation: verify and persist a hard edge — 46 blocked by 43
+```
+
+### Graph update
+
+Returned by `@backlog-dependency-planner`. Edges, not prose: no story text, no requirement text, no account of the pass.
+
+```yaml
+graph_update:
+  stories_examined: [41, 43, 46, 47]
+  added:   [{blocked: 46, prerequisite: 43, type: hard, reason: "consumes the persisted classification"}]
+  removed: [{blocked: 47, prerequisite: 41, reason: "#41 merged; basis satisfied"}]
+  preserved: 9                        # a count — edges outside the pass are untouched, not re-listed
+  newly_unblocked: [43]
+  newly_blocked: []
+  parallelizable: [[43, 52]]
+  affected_epics: ["Access classification"]
+```
+
+`@requirements-story-organizer` may extend its envelope with **`dependency_hints`** — `{downstream, upstream, reason}`, references only: hints for the planner, never authority over the graph.
+
 ## A reviewer does not accept a claim it could check
 
 *Ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md § D5`; moved here by ADR-0002 § O1. This is the home of the evidence law. It lives beside the verdict schema that carries it because every reviewer already loads this skill, and none of them should have to load the judge's dispatch mechanics to find the standard their own verdict is measured against.*

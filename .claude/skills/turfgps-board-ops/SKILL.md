@@ -147,7 +147,7 @@ Set from the requirement's MoSCoW priority, which the RE assigns and the librari
 | COULD | `P2` |
 | WON'T-now | not filed as a story at all |
 
-A story resolving several requirements takes the **highest** priority among them. The scrum-master promotes by Priority first and dependency order second — never the reverse, because promoting a P2 whose blockers happen to be clear ahead of a ready P0 is a sequencing bug, not efficiency.
+A story resolving several requirements takes the **highest** priority among them. The scrum-master promotes by Priority first and dependency order second — never the reverse, because promoting a P2 whose blockers happen to be clear ahead of a ready P0 is a sequencing bug, not efficiency. That dependency order is **read off the persisted edges**, never re-derived at promotion time — see `§ The dependency representation`.
 
 **A blocker takes the priority of the highest-priority item it blocks.** The table above derives Priority from MoSCoW, and an item with no requirement behind it — a `Task`, typically — has nothing to derive from. Left empty it sorts below every item it gates, so under *Priority first, dependency order second* it would be reached only after every `P0` had been passed over as blocked, each of them blocked on it. The invariant this protects is that **no item ever sorts below something it gates**, which is also why the priority is read off the set of items the blocker currently blocks rather than stamped once and left.
 
@@ -199,6 +199,44 @@ Like every judgment artifact it is posted under `GH_JUDGE_TOKEN` and signed `/ T
 ```bash
 "$GH" api repos/Caisesiume/TurfGPS/milestones -f title="<epic>" -f description="<requirement cluster>"
 ```
+
+## The dependency representation
+
+*Ratified in `docs/adr/ADR-0003-backlog-dependency-planner.md § P2`. This is the **one authoritative home** for the format: every agent that writes or reads a dependency cites this section rather than restating the grammar, so there is one place to change when it changes.*
+
+A story's dependencies live in a **`## Dependencies` section in the issue body**, and nowhere else. One store, because a second one is the one that disagrees.
+
+```markdown
+## Dependencies
+
+Blocked by: #41 — the entered limit must exist before this story can bind what happens to it
+Soft dependency: #49 — shares the review-card surface; cheaper to land after it
+Basis: FR-038 · `Architecture.md § Ports and adapters`
+```
+
+- **`Blocked by: #N — <one-line reason>`** is a **hard** edge. Several blockers are several lines, or `Blocked by: #7, #41` with one reason line per blocker below it.
+- **`Soft dependency: #N — <one-line reason>`** is a **soft** edge: preferable order that **never blocks readiness**. No agent may read one as a gate.
+- **`Basis:`** is optional, at most one line per edge — requirement codes and `Document.md § Section` citations. Enough that a later agent can check the edge without recomputing the plan; not the reasoning that produced it.
+
+**Every edge carries a concrete reason**, because an edge nobody can verify is the edge nobody dares delete — which is how a backlog quietly becomes a serial chain.
+
+**A planned story with no edges says so: `No dependencies.`** New stories are filed with `_Pending @backlog-dependency-planner._` in this section, and **the placeholder is an explicit blocking state, not an empty graph** — unplanned is not unblocked. A story promotes only once the planner has replaced the placeholder, with edges or with `No dependencies.`; a placeholder that outlives its batch's planning pass is itself a `dependency_finding`.
+
+**Hard versus soft is a throughput decision, not a nicety.** Hard means the downstream story must not reach `Ready` until the upstream one is `Done`; soft means preference only. With one edge type every preference is stated as a gate, and the board serializes work that could have run in parallel.
+
+### Who writes, who reads
+
+**@backlog-dependency-planner writes this section and is the only agent that may** — through the GitHub MCP, per `§ Two channels, two identities — do not collapse them` above; an edge is not a judgment and never goes out under the judge's token. It writes the edges only: the narrative, the acceptance criteria, the `Resolves:` line, the labels and the fields belong to other owners.
+
+Readers: **@scrum-master** reads the hard edges for readiness · **@project-coordinator** consumes the Ready queue's order and never reads edges to rebuild it · **`scripts/loop/dependents.sh`** reads them deterministically after a merge. Any agent that spots a wrong, missing, or stale edge files a `dependency_finding` (`agent-handoffs § Dependency findings and graph updates`) and **edits nothing**.
+
+### The grandfather clause
+
+The `## Dependencies` sections already on the board — **59 sections, 53 carrying `Blocked by:` lines**, measured 2026-08-10 — predate this grammar and are **valid hard edges exactly as written**, reasons in prose below the line rather than on it. No mass migration is owed: the planner brings a subgraph up to the grammar the first time an event touches it. Rewriting 59 issue bodies to gain a punctuation mark would touch every story on the board at once to change nothing any agent reads differently.
+
+### Why not native GitHub dependencies
+
+The native issue-dependency API is live and readable here — `gh api repos/Caisesiume/TurfGPS/issues/43/dependencies/blocked_by` returned `200` and `[]` on 2026-08-10. It is **deferred, not rejected**: the body convention already exists at scale, carries provenance and the soft type — for which the native relation has no field — and is greppable without an API call. Migration stays available if the tooling gains those two things, and `ADR-0003 § P2` owns that record.
 
 ## Traceability law
 

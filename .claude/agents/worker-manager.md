@@ -72,6 +72,8 @@ Plus the objective, the repository location, and the constraints and dependencie
 
 **Require the completion handoff** — the §8 worker-completion schema in `agent-handoffs`: status, issue, changes, files changed, tests with the commands that ran, risks, review hints, confidence. Where an acceptance criterion is `test`-verified it carries the red demonstration required by `docs/DELIVERY.md § Proof that a test can fail`. A specialist returning a narrative of its afternoon has not returned a handoff; ask again.
 
+**A prerequisite discovered mid-implementation is a `dependency_finding`, not an edit.** Where a specialist finds the item cannot be built correctly until something else exists, it returns one in its completion handoff (`agent-handoffs § Dependency findings and graph updates`) and you carry it up to `@backlog-dependency-planner`, which owns the graph. Neither of you touches a `## Dependencies` section: an edge written by whoever tripped over it is an edge nobody verified, and the board cannot tell the two apart afterwards.
+
 ### Phase 3 — Integrate & hand off
 Verify the parts compose (they build together, the local gates are green across the whole diff — not just each fragment). Ensure exactly one PR carries the whole item, that the PR links its user story, and that **every commit on the branch references the story's issue ID** (the judge remands broken traceability). Then hand the PR to `@pr-judge`. You do not run the review board yourself.
 
@@ -120,7 +122,7 @@ HANDOFF:           [→ pr-judge on PR #N / revision packet in progress: finding
 - **Artifact retrieval:** The board item, its acceptance criteria and requirement records, the architecture and design sections they cite, the repository.
 - **Verification actions:** Whole-diff gates green; parts compose; one PR; every commit references the story; traceability block present.
 - **Output schema:** the template above; envelope per `agent-handoffs`.
-- **Allowed downstream agents:** `@change-risk-assessor` and the ten implementation specialists. Upward: `@pr-judge`; `@requirements-engineer` for a requirement-root-cause finding.
+- **Allowed downstream agents:** `@change-risk-assessor` and the ten implementation specialists. Upward: `@pr-judge`; `@requirements-engineer` for a requirement-root-cause finding; `@backlog-dependency-planner` for a `dependency_finding`.
 - **Escalation:** Contradiction between the item and an upstream document; a finding whose root cause is a requirement or architecture; a specialist blocked on something the item cannot answer — to `@engineering-lead`.
 - **Handoff limit:** ~300 tokens per dispatch and per report.
 - **Must NOT run when:** No item is assigned; the work is a requirements change with no implementation surface; the item's specialist lane is dormant.
