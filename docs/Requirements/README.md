@@ -6,6 +6,8 @@ Why a folder rather than a file: `docs/README.md § Requirements/`.
 
 ## Corpus state
 
+**Process amendment — 10 August 2026** (`ADR-0001 § D6`). Owner sign-off ceases to gate `draft` → `to-build`. `@requirements-engineer` records the transition itself once every question in a batch is resolved under the precedence ladder, each resolution logged in `DECISIONS.md`; a record carrying an escalation-qualifying question stays `draft` on its own, not with its batch behind it. Story creation follows `to-build`. The sign-off history below is unchanged as history.
+
 **Corpus state — 6 August 2026.** 62 requirements, 15 categories in use. **59 are `to-build` and 3 are `draft`.** Batch 4 — `FR-038` … `FR-054`, filed this day from `SPECIFICATION.md § User time constraints` — was **signed off by the Owner the same day** and all seventeen moved `draft` → `to-build`. It is the largest batch the corpus has taken in one pass and the first to open five category files at once, two of them under names added to the register in the same pass. **Its story pass has since run, later the same day** — four epics and seventeen stories, `#41` … `#57` — so all seventeen now name a story and none reads `Resolved-by: —`. Story creation follows sign-off as a pass of its own, and the interval between the two was the first this corpus has held with signed-off requirements and no story behind them; it lasted one pass and is closed.
 
 The three `draft` records are `FR-055` … `FR-057`, filed the same day under the rulings that came with batch 4's signature. **They are `draft` deliberately and not by omission**: the Owner ruled the substance and has not signed this wording, and `@requirements-engineer` does not sign records it commissioned. Nothing downstream may treat one as settled.
@@ -26,6 +28,7 @@ Batch 3b — `FR-035` … `FR-037` — was filed earlier the same day and **sign
 |---|---|
 | `README.md` | This page: front door, category register, ID allocation ledger, folder invariants |
 | `INDEX.md` | One index table per category, carrying a row for every ID ever issued |
+| `DECISIONS.md` | The ordinary-ambiguity decision log: ID, date, question, interpretation, precedence rung, affected records (`ADR-0001 § D6`) |
 | `journey-definition.md` | The `Journey definition` records — one file per category, named from the register below |
 | `journey-initialization.md` | The `Journey initialization` records |
 | `route-alternative-generation.md` | The `Route alternative generation` records |

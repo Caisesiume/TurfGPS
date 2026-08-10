@@ -13,6 +13,7 @@ This folder is the front door to the TurfGPS documentation set. Each document an
 | `DESIGN.md` | What design qualities are required to satisfy those requirements? |
 | `DEPLOYMENT.md` | How should this system operate with as little complexity as possible? |
 | `DELIVERY.md` | How does work get tracked, reviewed, and shipped? |
+| `adr/` | Which consequential engineering decisions were made, and why? |
 
 ### SPECIFICATION.md
 
@@ -30,7 +31,7 @@ A **folder rather than a single file**, because the expected volume — on the o
 
 Every requirement carries an explicit **verification method**. Much of this product's quality bar is human judgement rather than anything machine-checkable — whether a recommended route is a *good* Turf route cannot be asserted by a test — and the requirement must say so, or review will claim to have verified something it did not.
 
-Traceability IDs matter beyond tidiness: issues on the project board cite the requirements they satisfy, and review agents check against them. See `DELIVERY.md`.
+Traceability IDs matter beyond tidiness: issues on the project board cite the requirements they satisfy, and review agents check against them. See `DELIVERY.md`. The corpus also carries `DECISIONS.md` — the log of ordinary-ambiguity resolutions decided under the precedence ladder rather than carried to the Owner, per `ADR-0001 § D6`.
 
 ### CalculationSpecification.md
 
@@ -50,6 +51,10 @@ User interaction design, user experience, graphic profile, the feelings the desi
 
 Operational detail: how to deploy, target OS, hosting options with price and complexity comparisons, pipeline and CI detail, full deployment architecture with diagrams, and operational direction.
 
+### adr/
+
+Architecture Decision Records — the durable home for consequential engineering decisions, with the convention in `adr/README.md`. `ADR-0001` ratifies how the agent organization runs, and the Owner directive it executes is preserved verbatim beside it. A decision that lives only in a conversation is lost; this folder is where it lives instead.
+
 ## Current state
 
 As of 4 August 2026 the set is in this shape, less one document that does not yet exist.
@@ -60,6 +65,7 @@ As of 4 August 2026 the set is in this shape, less one document that does not ye
 - **`CalculationSpecification.md`** is complete for the first release, less a domain glossary it still owes.
 - **`Architecture.md`** carries binding technology decisions and the Turf API facts. It still owes failure handling, observability, security, and schema.
 - **`DESIGN.md`** carries the full interaction flow. It still owes the visual layer.
+- **`adr/`** exists as of 10 August 2026. `ADR-0001` governs the delivery and review model, and `DELIVERY.md` was rewritten under it the same day.
 - **`Requirements/`** exists and is being authored — on 4 August 2026 its records were filed across ten categories, with the live count in its own `INDEX.md`. It is **no longer the bottleneck** for the project board described in `DELIVERY.md`: its signed-off records have been cut into Epics and stories, and the board is stocked. Authoring continues alongside the work the board now carries, still far short of the volume anticipated in `§ Requirements/` above. **`DEPLOYMENT.md`** does not exist yet.
 
 Each document ends with what it still owes and the open questions it owns. Those are the shortest route to what is unfinished.
