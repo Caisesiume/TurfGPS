@@ -2,6 +2,8 @@
 
 Written 31 July 2026 to carry context between machines. Read this first if you are starting fresh on this project.
 
+**Amended 10 August 2026.** Section 6 is history: the corpus is stocked and the board carries its stories — `docs/README.md § Current state` is the live picture. The agent organization now runs under `ADR-0001` and `DELIVERY.md`: reviewers convene by registry, ordinary ambiguity is decided under a precedence ladder and logged, and only escalation-qualifying questions reach the Owner.
+
 ---
 
 ## 1. What this project is
@@ -18,6 +20,7 @@ It is not a zone map and not a navigation app. It is an optimizer with an explan
 2. **`docs/SPECIFICATION.md`** — roughly 1,065 lines, the authoritative product definition. Purpose, optimization framing, accessibility classification, value model, safety rules, boundaries.
 3. Then whichever of **`docs/CalculationSpecification.md`**, **`docs/Architecture.md`**, and **`docs/DESIGN.md`** the work touches.
 4. **`docs/DELIVERY.md`** — how work is tracked and reviewed.
+5. **`docs/adr/`** — the decision records. `ADR-0001` defines how the agent organization runs.
 
 Do not skim `SPECIFICATION.md`. It is long because it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
 
@@ -100,7 +103,7 @@ Do not close these silently. Each document carries its own *Open questions* sect
 ## 8. Do not
 
 - Do not treat a proposed constant as measured.
-- Do not decide an open question without asking.
+- Do not close a catalogued open question without the Owner. Ordinary ambiguity is decided under the precedence ladder and recorded — `ADR-0001 § D6`.
 - Do not infer Turf mechanics — check the API.
 - Do not restate a formula outside `CalculationSpecification.md`.
 - Do not read, print, or echo `GH_JUDGE_TOKEN`. It is referenced by name only, and passed to `gh` through the environment.
