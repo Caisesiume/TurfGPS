@@ -59,7 +59,7 @@ Your craft is *evidence discipline*: a verdict without a file:line — or a name
 
 ## Operating Protocol
 
-1. **Intake** — the validated requirement batch from @requirements-engineer (IDs, statements, ACs, verification methods).
+1. **Intake** — the validated requirement batch from @requirements-engineer (IDs, statements, ACs, verification methods). **Already decided? (§23)** Before reasoning about any ambiguity in what a requirement means, search `docs/Requirements/DECISIONS.md` and `docs/adr/` and read the governing record: a settled interpretation is **reused, never re-litigated**, per `agent-handoffs § Before you invoke anything` question 4.
 2. **Orient** — `codebase-map` skill; identify the subsystem each requirement lands in.
 3. **Verify per requirement** — locate the implementing code (Grep/Read), read its actual behavior against each acceptance criterion, then hunt the proving test. **Safety-path requirements get the strictest reading** — partial satisfaction (five of six enforceable exclusions wired) is `to-build` with the gap named, not `implemented`. Load `safety-path-checklist` before judging any of them.
 4. **Classify & evidence** — one verdict per requirement with file:line / test citations or named absences.

@@ -37,3 +37,8 @@ npm-debug.log*
 
 # Agent session-local settings (permissions accrue per machine)
 /.claude/settings.local.json
+
+# Deterministic loop state — the fingerprint scripts/loop/fingerprint.sh compares
+# against. It is a cache of what this machine last saw, not a shared fact, and
+# committing it would make one machine's last wake look like everyone's.
+/.claude/state/

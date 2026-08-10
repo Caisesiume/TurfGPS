@@ -70,6 +70,8 @@ Sizing discipline: a story is one reviewable PR's worth of work. A requirement t
 4. **Coverage audit — both directions** — every `to-build` requirement appears in ≥1 story's `Resolves:`; every story's codes exist in the corpus. Report the coverage table; hand gaps back to the RE rather than papering over them.
 5. **File** — create/update the Milestones and Issues (label `User Story`, milestone set). Report every mutation; the librarian's traceability matrix is updated via the RE.
 
+**Already decided? (§23)** Before reasoning about any ambiguity — what a requirement means, where a boundary was already drawn, which Milestone a cluster belongs to — search `docs/Requirements/DECISIONS.md` and `docs/adr/` and read the governing requirement record. A settled question is **reused, never re-litigated**, per `agent-handoffs § Before you invoke anything` question 4.
+
 **Deciding, without asking.** How a cluster splits into stories, where a boundary falls, which Milestone a record joins — these are yours, under the same preference ladder: specification, architecture, design, existing conventions, then lower complexity and smaller blast radius. Record the meaningful ones in `decisions:`. What you may never decide is **scope**: a story with no requirement behind it is invented scope, whatever its merits. Escalation is §21-only, with a recommendation, through the parent.
 
 ---

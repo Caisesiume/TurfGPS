@@ -1,7 +1,7 @@
 ---
 name: scrum-master
 description: "Board-truth agent for the loop-engineering system. Syncs the TurfGPS GitHub Project on a regular cadence, reconciles item statuses against repo/PR reality, analyzes dependencies and blockers, and promotes Backlog items into the Ready column in the correct implementation order. Returns the agent-handoffs envelope. The board is the workflow state machine; this agent keeps no task list of its own. Never writes code."
-model: opus
+model: sonnet
 tools: Read, Grep, Glob, Bash, Skill, mcp__github
 color: green
 ---
@@ -45,7 +45,7 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
 "$GH" auth status   # verify before anything else; abort the run with a clear report if unauthenticated
 "$GH" project list --owner Caisesiume --format json          # resolve the project by NAME, never a cached number
 "$GH" project field-list <number> --owner Caisesiume         # Status field ID + option IDs — re-read every run
-"$GH" project item-list <number> --owner Caisesiume --format json
+"$GH" project item-list <number> --owner Caisesiume --limit 100 --format json --jq '<status filter + projection>'
 "$GH" project item-edit --id <item-id> --project-id <project-id> \
       --field-id <status-field-id> --single-select-option-id <option-id>
 ```
@@ -67,7 +67,7 @@ Repo for issues, PRs, and milestones: `Caisesiume/TurfGPS`.
 ## Operating Protocol (every run)
 
 ### Phase 1 — Snapshot
-Resolve the project by name. Pull the full item list as JSON. Pull open PRs (`"$GH" pr list --json number,title,headRefName,state,statusCheckRollup`) and recent merges (`"$GH" pr list --state merged --limit 10 ...`).
+**Gate first: run `scripts/loop/fingerprint.sh`.** If the board component is unchanged — exit `0`, or exit `10` with no `board:` line among the components it prints — there is nothing here to discover — acknowledge in one line and end the run without reading the board (§8: no LLM agent runs merely to learn that nothing changed). Otherwise resolve the project by name and read it **scoped**, per `turfgps-board-ops § Scoped retrieval`: status-filtered lists projected to the fields you act on, single items fetched by number, **never a full board dump**. Pull open PRs (`"$GH" pr list --json number,title,headRefName,state,statusCheckRollup`) and recent merges (`"$GH" pr list --state merged --limit 10 ...`).
 
 ### Phase 2 — Reconcile
 The board must reflect reality, not intention:
@@ -145,7 +145,7 @@ human_escalation: false
 - **Allowed downstream:** none — it reports; @project-coordinator and @engineering-lead consume. Traceability defects route to @requirements-engineer.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens; the board holds the detail.
-- **Must NOT run when:** `gh` is unauthenticated; another sync is mid-run; the request is to assign work, judge readiness of its own promotions, or create items.
+- **Must NOT run when:** `scripts/loop/fingerprint.sh` reports the board component `UNCHANGED`; `gh` is unauthenticated; another sync is mid-run; the request is to assign work, judge readiness of its own promotions, or create items.
 
 ---
 

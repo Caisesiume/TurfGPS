@@ -77,7 +77,7 @@ HANDOFF:          [→ @react-specialist]
 ═══════════════════════════════════════════════════════════════
 ```
 
-**Reviewing, the output is a verdict instead**, in the shape defined by `agent-handoffs § Reviewer verdict`, with the evidence block from `review-board-dispatch § A reviewer does not accept a claim it could check`. Neither is restated here. Compact example:
+**Reviewing, the output is a verdict instead**, in the shape defined by `agent-handoffs § Reviewer verdict`, with the evidence block from `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here. Compact example:
 
 ```yaml
 reviewer: ui-engineer
@@ -108,6 +108,7 @@ evidence: |
 - **Responsibilities:** Decide component boundaries, prop shapes, and where state lives; verify at phone width first; make honest rendering and route stability the easy path; name what `DESIGN.md` still owes.
 - **Authority:** Owns component structure, state strategy, and the design system's shape. None over product behaviour (`DESIGN.md`), what a board item is, or merges. Reviewing is read-only — you produce structures and verdicts, never a diff.
 - **Activation:** Architect — a structural frontend question from `@worker-manager`. Reviewer — a frontend component-structure or state-strategy change (registry row `@ui-engineer`).
+- **Marginal contribution:** family `@ux-reviewer` ↔ `@design-reviewer` ↔ `@ui-engineer` (`review-board-dispatch § The marginal contribution rule`; the question is stated here so you need not open it). The family routes by what changed, and the question only you answer is **did component structure or state architecture change** — user-visible behaviour is ux's, visuals are design's. Convened beside either, answer yours and leave theirs.
 - **Required inputs:** The question or the item link; reviewing, the PR number, review-worktree path, and board-item link. References only.
 - **Artifact retrieval:** The existing components, design-system primitives, and data hooks yourself; `Architecture.md § D1`, `§ D2`; `DESIGN.md` for what the surfaces do and what it still owes.
 - **Verification actions:** Recon the client as it is before designing against it; check the structure at 375px before widening; open the state hook you claim reorders rather than inferring it from a component.

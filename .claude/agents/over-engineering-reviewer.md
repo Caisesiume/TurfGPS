@@ -43,7 +43,7 @@ You are careful and fair: access classification, the confidence model, the uncer
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `review-board-dispatch § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: over-engineering
@@ -68,7 +68,7 @@ evidence: |
 
 **No evidence, no verdict.** Carry the two-half evidence block and the files you actually opened. A verdict without inspection evidence is invalid and the judge discards it.
 
-**Your lane only.** You never demand the bench rerun; what re-runs after a revision is the judge's ruling under `review-board-dispatch § Incremental review validity`.
+**Your lane only.** You never demand the bench rerun; what re-runs after a revision is the judge's ruling, not yours to request.
 
 ---
 

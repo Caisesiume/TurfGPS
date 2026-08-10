@@ -2,7 +2,15 @@
 
 How work on TurfGPS is tracked, reviewed, and judged shippable.
 
-Documentation work runs through this model today; the code half of it activates with the Go and frontend stacks. The agent organization that applies it is ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md`.
+Documentation work runs through this model today; the code half of it activates with the Go and frontend stacks. The agent organization that applies it is ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md`, and the cost of executing it is governed by `docs/adr/ADR-0002-token-efficiency.md`.
+
+## The general law of invocation
+
+**No agent runs because its role is relevant in the abstract. It runs because there is a concrete unresolved decision in its domain.**
+
+Everything else in this document about selection, carrying, budgets, and stopping is that sentence applied to a particular moment. It is worth stating on its own because the failure it prevents never looks like a failure from inside: convening a reviewer whose lane the diff plausibly touches feels like diligence, and produces a `pass` that changed nothing, cost a full execution, and adds a signature to the record from an agent that had nothing to weigh.
+
+The test is not *could this agent have an opinion here* — it is **what decision is currently unresolved that this agent's judgement would settle.** If that question has no answer, the invocation has no purpose, and not making it is the decision rather than the omission.
 
 ## Work tracking
 
@@ -46,7 +54,7 @@ The corpus has already caught this defect one level up. `NFR-001` carried an acc
 
 ### What a reviewer does with it
 
-Confirming a demonstration instead of reading the claim of one is an instance of `review-board-dispatch § A reviewer does not accept a claim it could check`, and is governed there rather than here. One consequence is worth naming because it is not obvious: **re-running a demonstration is a write**, since it neutralises an implementation in a tree, so it is not available to a critic under that section's read-only bound and belongs in the `ACCEPTED ON TRUST` half. What is available read-only is the shape of the recorded evidence — that an entry exists for every `test`-verified criterion the item claims, and that each carries an assertion's message rather than a build failure.
+Confirming a demonstration instead of reading the claim of one is an instance of `agent-handoffs § A reviewer does not accept a claim it could check`, and is governed there rather than here. One consequence is worth naming because it is not obvious: **re-running a demonstration is a write**, since it neutralises an implementation in a tree, so it is not available to a critic under that section's read-only bound and belongs in the `ACCEPTED ON TRUST` half. What is available read-only is the shape of the recorded evidence — that an entry exists for every `test`-verified criterion the item claims, and that each carries an assertion's message rather than a build failure.
 
 The form the pull request reports this in sits with the gate report law, under `local-gates § The law`.
 
@@ -90,16 +98,37 @@ Two floors are not subject to selection:
 Each convened reviewer returns **`pass`**, **`revise`**, or **`blocker`**, with a confidence and severity-tagged findings. The schema is in the `agent-handoffs` skill; the evidence obligations are in `review-board-dispatch`.
 
 - **Enumerate or certify.** A `revise` or `blocker` with no concrete finding is invalid and goes back — it is an impression where a verdict was asked for. So is a `pass` that mentions an actionable problem without filing it: the problem is a finding with an owner, or it is informational and says so.
-- **Evidence or the verdict does not count.** A review that did not inspect the actual code or diff is invalid on its face. The full obligation — the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block — is in `review-board-dispatch § A reviewer does not accept a claim it could check`, and it is the standard, not a formality.
+- **Evidence or the verdict does not count.** A review that did not inspect the actual code or diff is invalid on its face. The full obligation — the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block — is in `agent-handoffs § A reviewer does not accept a claim it could check`, and it is the standard, not a formality.
 - **N/A is not a courtesy pass.** A convened reviewer that finds its lane genuinely untouched returns `N/A`. It does not pass. An agent that passes because it found nothing to examine has recorded an approval it never performed, and that matters later, when the question is who actually approved something.
 
 ### Findings and their owners
 
-**Every actionable finding resolves into exactly one of `required_change`, `accepted_risk`, or `invalid_finding`, and each carries a named owner.**
+**Every finding resolves into exactly one of five outcomes, and each carries a named owner:**
 
-There is no *approved with suggestions*. A suggestion nobody owns is how a real defect leaves the room dressed as politeness. If something should actually change, it is a `required_change`. If it should not change now, it is an `accepted_risk` recorded with its owner, or an informational observation explicitly marked non-actionable.
+| Resolution | Meaning | What it triggers |
+|---|---|---|
+| `required_change` | it should actually change, now | a revision cycle |
+| `accepted_risk` | real, and not worth another cycle | nothing — recorded with its owner and reason |
+| `invalid_finding` | out of lane, a misread, or contradicted by a named artifact | nothing — recorded with the reason |
+| `future_work` | **valid, and outside this item's scope** | a traceable issue reference — never a revision |
+| `informational` | no action is called for | nothing — recorded |
 
-`invalid_finding` is a real outcome and must state why — a reviewer out of lane, a misread of the diff, a claim the artifact contradicts. Ruling it invalid without a reason is the judge substituting its own opinion for a reviewer's.
+There is no *approved with suggestions*. A suggestion nobody owns is how a real defect leaves the room dressed as politeness.
+
+**`future_work` is the outcome that keeps the loop from perfecting itself to a standstill.** Before it existed, a valid improvement outside scope had two homes and both were wrong: `required_change`, which starts a cycle the item never asked for, or a passing remark, which loses it. So the judge records it as a **traceable issue reference** — or hands it to `@engineering-lead` to route where the scope decision is not the judge's to make. It is **never a revision trigger and never lost**, and those two clauses are equally load-bearing: dropping the first is how an autonomous loop refactors forever, dropping the second is how it learns to call real findings out-of-scope.
+
+`invalid_finding` must state *why* — a reviewer out of lane, a misread of the diff, a claim the artifact contradicts. Ruling it invalid without a reason is the judge substituting its own opinion for a reviewer's.
+
+### Duplicate findings are one finding
+
+**Two reviewers naming the same file, the same location, the same root cause, and the same required change have found one defect, not two.** The judge normalizes them into a single finding whose `supported_by` lists each reviewer's own ID:
+
+```yaml
+finding: CORE-07
+supported_by: [go-quality: GOQ-03, maintainability: MAINT-02]
+```
+
+**Multiple votes strengthen the evidence; they never multiply the fix.** Left unnormalized they become two tasks, two revisions, or a count of "8 findings" that overstates the state of the PR and drives a cycle the work does not need.
 
 ### The merge decision
 
@@ -115,11 +144,39 @@ In all cases: **zero unresolved `required_change`** among the convened reviewers
 
 **The answer to uncertainty is never "run everybody again."** `@confidence-assessor` names the specific weak point — a shallow review, a conflict, an unexplained finding — and follow-up is one reviewer and one question.
 
+### The stopping rule
+
+**The loop stops, and merges, when all five of these hold:**
+
+```
+required_changes: 0 · machine_gates: green · required_review_lanes: satisfied
+confidence: sufficient_for_risk · human_gate: false
+```
+
+At that point the ruling is MERGE. **Do not ask agents for final thoughts. Do not perform one last review. Do not run a polish cycle.**
+
+No lane requires subjective perfection, and none is entitled to it. A PR passes because the required behaviour is satisfied, the gates are green, no required change is unresolved, the risk is acceptable, and the evidence is sufficient — not because every reviewer has run out of things it could imagine improving. **There is always another refactor.** An autonomous loop with no stopping rule does not converge on quality; it converges on whatever the last reviewer happened to notice, at full price per lap.
+
+**Stopping is part of correctness here, not a concession to budget.** A judge that keeps going when the five conditions are met is not being careful — it is failing to make the decision it exists to make.
+
 ### Revision, and what stays valid
 
 A remand produces a **revision packet**, not a restart: the required changes with their owners and scope, and the list of reviewers to re-run afterwards. `@worker-manager` activates only the specialist that owns each finding.
 
 **After a patch, only reviewers whose domain intersects the new diff re-run.** Previous verdicts remain valid otherwise, and are carried forward marked with the SHA they were issued against. A documentation-only revision does not invalidate security, data integrity, or performance; a schema revision may invalidate data integrity, backend correctness, and performance, and almost certainly does not invalidate accessibility.
+
+**A changed SHA is not, by itself, an invalidation.** The two kinds of rerun are governed differently and conflating them is what re-convened the bench on one-line fixes:
+
+- **Machine verification** — build, lint, tests, gates, `@validation-agent` — **reruns on every commit.** It is cheap, deterministic, and worthless if stale.
+- **Semantic specialist review** reruns **only when the revision intersects that reviewer's domain**, on the files-and-domain test in `review-board-dispatch § The intersection test`. "The PR changed" is not a reason; *the PR changed in this lane* is.
+
+### The minimal-patch revision law
+
+**A revision changes the smallest surface that resolves the named finding.** No unrelated cleanup, no opportunistic refactor, no cross-file formatting, no while-I-am-here improvement. Before touching an additional file, the implementing specialist asks one question — **does this file have to change to resolve the named finding?** If the answer is no, it is not touched.
+
+This is a token-efficiency requirement as much as a review-hygiene one, and the mechanism is worth being explicit about: every extra changed surface is a surface that can meet some reviewer's `Invalidated by` condition, so an unrelated tidy-up in a revision cycle does not merely add lines — it re-convenes reviewers whose verdicts would otherwise have carried. Desirable-but-unrelated cleanup becomes `future_work` with a traceable issue.
+
+Initial implementation may refactor coherently; **review remediation patches narrowly.** `@worker-manager` states this law in every revision dispatch, because the specialist receiving a remand is precisely the agent most tempted to improve one more thing while it is in there.
 
 **The judge keeps a review ledger** as a structured comment on the PR — reviewer, verdict, confidence, diff SHA reviewed, domain — updated every cycle. The ledger is what makes carried-forward validity checkable by someone who was not there, which is the same reason the red-demonstration rule prefers evidence to sequence.
 
@@ -131,6 +188,17 @@ Each cycle records unresolved findings, newly introduced findings, findings reso
 
 **Before exceeding the budget, the judge must determine why convergence failed.** Conflicting requirement · unstable architecture · faulty reviewer · overly broad implementation · reviewer disagreement · ambiguous acceptance criteria · an implementation that keeps reintroducing regressions. Solve the cause; repeating the loop is not a plan.
 
+**Every additional cycle justifies itself before it starts.** The judge records what the next one is expected to produce:
+
+```yaml
+next_cycle_justification:
+  unresolved_required_changes: [SEC-01]
+  expected_reviewers: [linus-security-critic]
+  expected_new_information: "whether the rotation fix closes the reuse window"
+```
+
+**If `expected_new_information` is empty, do not start the cycle.** A cycle that can name no new information it expects to obtain is a cycle that will produce the verdicts it already has. Note the narrower point inside this: fixing an implementation issue justifies **targeted validation** of the fix; it does not, by itself, justify semantic re-review from every lane that ran before.
+
 **8 rounds remains the absolute ceiling**, and reaching it escalates to the repository owner with the full cycle history. It is kept because deliberately exacting critics can deadlock, with a fix for one reviewer's objection creating another's, and that is not hypothetical on this repository: during the review of the product concept — since split into `SPECIFICATION.md` and its companions — a first pass produced 13 findings, and the round of fixes addressing them introduced **three of the four blockers** found by the second pass. Under the budgets above, reaching the ceiling is now itself a reportable failure rather than a normal ending.
 
 ### Root cause
@@ -138,6 +206,21 @@ Each cycle records unresolved findings, newly introduced findings, findings reso
 **Every finding is classified by root cause:** implementation · requirement · architecture · design · test · infrastructure.
 
 A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
+
+## Execution shapes
+
+**These are normative, not illustrative.** They state what the execution graph is *supposed* to look like at each size of work, so that a graph much larger than its shape is visible as a defect rather than admired as thoroughness. The graph scales with risk and scope — and only with those.
+
+| The work | The shape |
+|---|---|
+| **A tiny documentation fix** | deterministic classifier → `@docs-reviewer` *if semantic content changed* → validation if required → judge. **1–2 LLM agents.** Not a ten-agent chain through lead, scrum master, coordinator, worker manager, risk assessor, writer, reviewer, summarizer, confidence, judge. |
+| **A small Go bug fix** | `@worker-manager` → `@change-risk-assessor` → `@go-worker` → `@validation-agent` → 1–2 relevant reviewers → `@pr-judge`. `@confidence-assessor` only if the evidence or a disagreement warrants it. |
+| **A small revision after a security finding** | revision packet → the owning specialist → `@validation-agent` → the security reviewer → correctness *only if semantic behaviour changed* → `@pr-judge`. **All unrelated prior verdicts carry forward.** |
+| **A high-risk architecture change** | `@engineering-lead` → the requirements or architecture decision → `@worker-manager` → several specialists → `@change-risk-assessor` → a larger selected panel → `@confidence-assessor` → `@pr-judge`. |
+
+The last row is the one that keeps the others honest: **the large graph is not forbidden, it is earned.** A ten-agent chain on a high-risk architecture change is correct, and the same chain on a typo is the same cost buying nothing.
+
+**Bloat is a signal to inspect, not an automatic failure.** Three signals worth stopping on: a small change with more than ~7 meaningful specialist executions · a low-risk PR with more than 3 domain reviewers · a revision cycle invoking more agents than the original without an increase in risk. Each means look at the routing; the decision about whether it was justified stays semantic.
 
 ## Review identity
 
@@ -158,6 +241,8 @@ Every review comment is signed:
 ## Escalation and human judgement
 
 **Human escalation is an exceptional path, and it is the same path everywhere.** Ordinary engineering uncertainty is decided, not escalated: where several solutions are valid, prefer compliance with the specification, then architecture, then design, then existing codebase patterns, then lower complexity, smaller blast radius, easier reversibility, stronger testability, maintainability, and least surprising behaviour. Record the decision instead of asking.
+
+**First, check whether it has already been decided.** Before reasoning about any ambiguity, search `docs/Requirements/DECISIONS.md`, the ADRs in `docs/adr/`, the requirement record itself, and the board or PR record — if the question is settled, **reuse the answer rather than re-litigating it.** Re-deciding a settled question costs a full execution and, at best, reproduces the answer that already existed.
 
 A question reaches the human only when one of these holds: **product intent is undefined** and the source documents cannot distinguish between materially different behaviours; **two product documents conflict**; the choice is a **business tradeoff** requiring knowledge not in the repository, requirements, or architecture; the decision is **irreversible or high-impact** — a destructive migration, a major architectural replacement, a substantial scope increase, an externally visible breaking change; or **risk exceeds autonomous authority** and the change cannot be made safe within established project constraints.
 

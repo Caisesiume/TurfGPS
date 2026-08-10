@@ -36,7 +36,7 @@ You never touch the definition of work (that is @requirements-engineer) and you 
 GH="/c/Program Files/GitHub CLI/gh.exe"
 "$GH" pr list --json number,title,headRefName,state,statusCheckRollup,mergeable
 "$GH" project list --owner Caisesiume --format json          # resolve by NAME, never a cached number
-"$GH" project item-list <N> --owner Caisesiume --format json
+"$GH" project item-list <N> --owner Caisesiume --limit 100 --format json --jq '<status filter + projection>'
 ```
 You read assignments (item In progress + linked branch/PR + assignee) and open PRs to build the live picture. Assignment itself is recorded on the board item (assignee / a take-over comment); you coordinate it, workers set their own In progress per their protocol.
 
@@ -45,7 +45,7 @@ You read assignments (item In progress + linked branch/PR + assignee) and open P
 ## Operating Protocol
 
 ### Phase 1 — Build the live picture
-From the board and open PRs, map: each worker/specialist → the item they hold (In progress or Ordered Revision). Identify free capacity and the Ready queue (already dependency-ordered by @scrum-master).
+**Gate first: run `scripts/loop/fingerprint.sh`.** If the board component is unchanged — exit `0`, or exit `10` with no `board:` line among the components it prints — the picture you would rebuild is the one you last reported — acknowledge in one line and end the run without reading the board (§8: no LLM agent runs merely to learn that nothing changed). Otherwise read **scoped**, per `turfgps-board-ops § Scoped retrieval`: status-filtered lists projected to the fields you dispatch on, single items fetched by number, **never a full board dump**. From that and open PRs, map: each worker/specialist → the item they hold (In progress or Ordered Revision). Identify free capacity and the Ready queue (already dependency-ordered by @scrum-master).
 
 ### Phase 2 — Honor priority order
 1. **Remands first** — an item in `Ordered Revision` preempts everything for the worker that owns it. Never assign new work to a worker with an open remand.
@@ -110,7 +110,7 @@ human_escalation: false
 - **Allowed downstream:** `@worker-manager` (dispatch). Upward: `@engineering-lead`.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens per dispatch and per report.
-- **Must NOT run when:** No item is Ready and none is in flight; the request is to promote an item, re-judge readiness, pick a specialist, or convene the risk assessor.
+- **Must NOT run when:** `scripts/loop/fingerprint.sh` reports the board component `UNCHANGED`; no item is Ready and none is in flight; the request is to promote an item, re-judge readiness, pick a specialist, or convene the risk assessor.
 
 ---
 
