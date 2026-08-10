@@ -98,6 +98,23 @@ Authority map: Backlog→Ready is the **scrum-master's** alone; workers set `In 
 
 `Ordered Revision` exists so a remand is visible as its own column rather than hidden behind a label. An item sitting there **counts against its worker's WIP** — do not promote a replacement item for that worker — and revision preempts any new work.
 
+#### The six columns carry a ten-state lifecycle
+
+`docs/adr/ADR-0001-artifact-driven-agent-org.md § D7` ratifies the richer lifecycle of the Owner directive **as a mapping onto these six columns**, not as new columns:
+
+| Lifecycle state | Column |
+|---|---|
+| Backlog | `Backlog` |
+| Requirements Ready · Ready for Implementation | `Ready` |
+| In Progress | `In progress` |
+| Implementation Complete · Review | `In review` |
+| Revision Required | `Ordered Revision` |
+| Review Passed · Ready to Merge · Merged | `Done` — set at merge, not at approval |
+
+**No schema churn, deliberately.** Finer states would have to be branched on by some agent to be worth their cost, and no agent branches on the difference between *Requirements Ready* and *Ready for Implementation* — the promotion rule is the same. The Status options were regenerated once already, on 31 July 2026, and every option ID changed with them; a second regeneration to gain names nothing reads would be cost without benefit.
+
+Two consequences worth stating, because they are where the mapping is lossy: an item in `In review` may be either awaiting a panel or mid-panel — the PR's review ledger says which, not the board. And `Done` means **merged**; a judge approval with no merge is still `In review`.
+
 ### Priority
 
 Single-select: `P0` · `P1` · `P2`.
@@ -127,8 +144,6 @@ Set by the story-organizer as a sizing check, not an estimate. The rule is that 
 
 ## Labels
 
-All seven exist on the repo:
-
 | Label | Meaning |
 |---|---|
 | `User Story` | A user story. Tied to an Epic (**Milestone**), body carries `Resolves: FR-*/NFR-*` |
@@ -137,6 +152,11 @@ All seven exist on the repo:
 | `human-verified` | The resolving requirement's verification method is human judgement; agent consensus cannot close it |
 | `judge:approved` / `judge:remanded` | PRJudge ruling record (PR labels) |
 | `awaiting-human` | Loop paused on a human decision |
+| `risk:low` · `risk:medium` · `risk:high` | **PR labels.** The tier `@change-risk-assessor` returned for the diff, applied by `@pr-judge` at PR open |
+
+The first seven exist on the repo; **the three `risk:*` labels must be created before the first PR is judged** — `"$GH" label create "risk:low" --description "..."` and so on.
+
+**The risk tier is a label rather than a comment because it decides things other agents read.** It sets the revision budget (3 normally, 5 on `risk:high`), it drives the mandatory reviewer set, and it lets `@engineering-lead` see review load across the board without opening every PR. Applied by the judge from the assessor's PR-open output, which is authoritative over any intake prediction; re-applied if a force-push changes the diff's character.
 
 **A `Task` sequences and promotes on the same rules as a story.** It is read for Priority and dependency order exactly as a story is, and *§ Priority* above is written for it specifically — the blocker rule exists because a `Task` has no MoSCoW to derive a priority from. Nothing about the lifecycle differs.
 
@@ -145,6 +165,14 @@ All seven exist on the repo:
 **So a `Task` missing a label, milestone, or `Resolves:` block is not a traceability defect.** That test applies to `User Story` items alone. Applying it to a `Task` manufactures a defect out of a design decision, and the traceability law below is unaffected either way — a `Task` never enters the chain it describes.
 
 Ratified by the Owner on 4 August 2026.
+
+### The review ledger is a PR comment, not a board field
+
+`@pr-judge` keeps one **review ledger** comment per PR — reviewer, domain, verdict, confidence, the diff SHA each verdict was issued against, and the cycle — updated every revision cycle, with carried-forward verdicts marked `carried (SHA)`. Its format and the incremental-validity rules that govern it live in `review-board-dispatch § Incremental review validity`; do not restate them here or on the board.
+
+It is a comment because it is **per-cycle history**, and the board holds current state. Trying to carry it in board fields would need a field per reviewer and would still lose the SHA — and the SHA is the whole point, since a carried verdict is a claim that someone who was not there should be able to check.
+
+Like every judgment artifact it is posted under `GH_JUDGE_TOKEN` and signed `/ The Review Ninja`.
 
 **Auto-add is enabled.** The project's *Auto-add to project* workflow is on, so issues land on the board without a manual `project item-add`. Verify its filter in the UI before relying on label-based filtering — if it adds *every* issue rather than only labelled ones, the board will accumulate items the loop does not manage, and the scrum-master should report that rather than silently reconciling them.
 
