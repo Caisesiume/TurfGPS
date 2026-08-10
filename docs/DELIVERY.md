@@ -2,7 +2,7 @@
 
 How work on TurfGPS is tracked, reviewed, and judged shippable.
 
-This describes the target working model. It is not yet set up.
+Documentation work runs through this model today; the code half of it activates with the Go and frontend stacks. The agent organization that applies it is ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md`.
 
 ## Work tracking
 
@@ -52,35 +52,92 @@ The form the pull request reports this in sits with the gate report law, under `
 
 ## Review
 
-Every item reaching test or verification is reviewed by a range of specialist agents before it is judged shippable or sent back for revision.
+Every item reaching test or verification is reviewed by specialist agents before it is judged shippable or sent back for revision. **Which** specialists is a decision, not a default.
 
 Most agents own a **single software quality attribute** — performance, modularity, scalability, security, maintainability, evolvability, over-engineering, user experience, documentation, test coverage, and so on. Reviewing one dimension well beats reviewing everything shallowly, and it makes each verdict attributable.
 
 Alongside them sit the **"Linus" critics**, modelled on Linus Torvalds' direct review style: blunt, and willing to raise a small defect loudly rather than let it pass for being small.
 
-### Scoring
+### What this supersedes
 
-Each review agent scores the diff from **0 to 10**.
+**This document supersedes the 10.00 unanimity gate and the whole-bench re-convening rule.** Both are withdrawn, and an agent file still describing them is out of date rather than authoritative.
 
-The item is shippable only when the average across all participating agents is **10.00**.
+They are withdrawn because of what they cost against what they bought. Convening every reviewer on every diff mostly produced `N/A` from agents whose attribute the change never touched, and re-convening all of them after a one-line fix reproduced the previous verdicts at full price. That is a large, repeated token cost for no marginal quality.
 
-Anything less sends it back for revision, and **every agent that scored below 10 must state precisely what would earn a 10**. A score without an actionable reason is not a review.
+The old gate did have one property worth keeping: **it could not be diluted.** A single sub-10 blocked nine 10s, so uninvolved agents handing out easy passes could not average a real objection away. That property is retained by a different mechanism — **findings are owned and resolved, never counted**. Nothing is averaged now, so there is nothing to dilute. A finding leaves the process only by being fixed, by being accepted as a recorded risk with a named owner, or by being ruled invalid with a reason.
 
-Note what this rule actually is: at an average of exactly 10.00, a single sub-10 score blocks. It is a **unanimity gate**, not an average. That is deliberate, and it has a useful property — it cannot be diluted by uninvolved agents handing out easy 10s, which is the usual way averaged review scores decay.
+### Risk classification
 
-### Not applicable
+**Every change is classified before review, and the classification decides the panel.** `@change-risk-assessor` produces it — predicted at item intake, and authoritatively from the actual diff when the PR opens. The tier is recorded on the PR as `risk:low`, `risk:medium`, or `risk:high`.
 
-An agent whose quality attribute a diff does not touch returns **N/A** and is excluded from the average.
+**High is mandatory, not a judgement call, when the diff touches any of:** a safety path (access classification, stop-position selection, routing exclusions, the time ceiling, or the constants feeding them) · database schema or DDL · migrations · the authentication or plan-retrieval surface · a breaking change to a public API · an architecture with no precedent in this repository.
 
-It does not award a courtesy 10. A documentation change has no meaningful scalability dimension, and an agent that scores 10 because it found nothing to examine has recorded a pass it never performed. That distinction matters later, when the question is who actually approved something.
+Everything else is medium or low on the assessor's factors — surface area, data-integrity impact, external integrations, performance-sensitive paths, concurrency, backwards compatibility, test coverage, diff size, novelty. A documentation typo fix is low without being assessed.
 
-N/A also means not every agent needs to run on every change.
+### Selection
 
-### Round cap
+**The registry governs who is convened.** `review-board-dispatch § The reviewer registry` holds one row per reviewer — domain, activate-when, never-when, invalidated-by — and a reviewer with no matching row does not run. Activation criteria are explicit for every reviewer; *a PR exists* is not one of them.
 
-After **8 revision rounds** without reaching 10.00, the item **escalates to the repository owner** rather than cycling further.
+**Convene the smallest sufficient panel.** Before invoking a reviewer, the question is whether it has a reasonable chance of changing the outcome. If not, not invoking it is the correct decision rather than a corner cut.
 
-Unanimity plus deliberately exacting critics can deadlock, with a fix for one reviewer's objection creating another's. This is not hypothetical: during the review of the product concept — since split into `SPECIFICATION.md` and its companions — a first pass produced 13 findings, and the round of fixes addressing them introduced **three of the four blockers** found by the second pass. The cap keeps work moving when convergence stalls.
+Two floors are not subject to selection:
+
+- **`@validation-agent` runs on every PR**, last and alone. It is machine evidence, and machine evidence is worthless if it depends on someone first deciding it was relevant.
+- **`@safety-sentinel` runs on every diff touching a safety path**, at every risk tier, never softened by a budget. A safety path does not become less dangerous because the diff is small.
+
+### Verdicts
+
+Each convened reviewer returns **`pass`**, **`revise`**, or **`blocker`**, with a confidence and severity-tagged findings. The schema is in the `agent-handoffs` skill; the evidence obligations are in `review-board-dispatch`.
+
+- **Enumerate or certify.** A `revise` or `blocker` with no concrete finding is invalid and goes back — it is an impression where a verdict was asked for. So is a `pass` that mentions an actionable problem without filing it: the problem is a finding with an owner, or it is informational and says so.
+- **Evidence or the verdict does not count.** A review that did not inspect the actual code or diff is invalid on its face. The full obligation — the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block — is in `review-board-dispatch § A reviewer does not accept a claim it could check`, and it is the standard, not a formality.
+- **N/A is not a courtesy pass.** A convened reviewer that finds its lane genuinely untouched returns `N/A`. It does not pass. An agent that passes because it found nothing to examine has recorded an approval it never performed, and that matters later, when the question is who actually approved something.
+
+### Findings and their owners
+
+**Every actionable finding resolves into exactly one of `required_change`, `accepted_risk`, or `invalid_finding`, and each carries a named owner.**
+
+There is no *approved with suggestions*. A suggestion nobody owns is how a real defect leaves the room dressed as politeness. If something should actually change, it is a `required_change`. If it should not change now, it is an `accepted_risk` recorded with its owner, or an informational observation explicitly marked non-actionable.
+
+`invalid_finding` is a real outcome and must state why — a reviewer out of lane, a misread of the diff, a claim the artifact contradicts. Ruling it invalid without a reason is the judge substituting its own opinion for a reviewer's.
+
+### The merge decision
+
+The judge decides on **risk and confidence together**:
+
+| | High confidence | Low confidence |
+|---|---|---|
+| **Low risk** | Merge | Request only the missing evidence |
+| **Medium risk** | Merge if no blocker | Targeted follow-up on the weak point |
+| **High risk** | Merge only if every mandatory high-tier reviewer passes | Targeted deeper review |
+
+In all cases: **zero unresolved `required_change`** among the convened reviewers, machine evidence green, and the traceability chain intact.
+
+**The answer to uncertainty is never "run everybody again."** `@confidence-assessor` names the specific weak point — a shallow review, a conflict, an unexplained finding — and follow-up is one reviewer and one question.
+
+### Revision, and what stays valid
+
+A remand produces a **revision packet**, not a restart: the required changes with their owners and scope, and the list of reviewers to re-run afterwards. `@worker-manager` activates only the specialist that owns each finding.
+
+**After a patch, only reviewers whose domain intersects the new diff re-run.** Previous verdicts remain valid otherwise, and are carried forward marked with the SHA they were issued against. A documentation-only revision does not invalidate security, data integrity, or performance; a schema revision may invalidate data integrity, backend correctness, and performance, and almost certainly does not invalidate accessibility.
+
+**The judge keeps a review ledger** as a structured comment on the PR — reviewer, verdict, confidence, diff SHA reviewed, domain — updated every cycle. The ledger is what makes carried-forward validity checkable by someone who was not there, which is the same reason the red-demonstration rule prefers evidence to sequence.
+
+### Convergence and budgets
+
+**3 autonomous revision cycles normally; 5 for a high-risk PR.**
+
+Each cycle records unresolved findings, newly introduced findings, findings resolved, diff size, and the movement in risk and confidence. That is what *converging* means here, and it is a determination the judge makes rather than an assumption it holds.
+
+**Before exceeding the budget, the judge must determine why convergence failed.** Conflicting requirement · unstable architecture · faulty reviewer · overly broad implementation · reviewer disagreement · ambiguous acceptance criteria · an implementation that keeps reintroducing regressions. Solve the cause; repeating the loop is not a plan.
+
+**8 rounds remains the absolute ceiling**, and reaching it escalates to the repository owner with the full cycle history. It is kept because deliberately exacting critics can deadlock, with a fix for one reviewer's objection creating another's, and that is not hypothetical on this repository: during the review of the product concept — since split into `SPECIFICATION.md` and its companions — a first pass produced 13 findings, and the round of fixes addressing them introduced **three of the four blockers** found by the second pass. Under the budgets above, reaching the ceiling is now itself a reportable failure rather than a normal ending.
+
+### Root cause
+
+**Every finding is classified by root cause:** implementation · requirement · architecture · design · test · infrastructure.
+
+A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
 
 ## Review identity
 
@@ -100,8 +157,16 @@ Every review comment is signed:
 
 ## Escalation and human judgement
 
-Two categories should always reach a human rather than being settled by agent consensus:
+**Human escalation is an exceptional path, and it is the same path everywhere.** Ordinary engineering uncertainty is decided, not escalated: where several solutions are valid, prefer compliance with the specification, then architecture, then design, then existing codebase patterns, then lower complexity, smaller blast radius, easier reversibility, stronger testability, maintainability, and least surprising behaviour. Record the decision instead of asking.
+
+A question reaches the human only when one of these holds: **product intent is undefined** and the source documents cannot distinguish between materially different behaviours; **two product documents conflict**; the choice is a **business tradeoff** requiring knowledge not in the repository, requirements, or architecture; the decision is **irreversible or high-impact** — a destructive migration, a major architectural replacement, a substantial scope increase, an externally visible breaking change; or **risk exceeds autonomous authority** and the change cannot be made safe within established project constraints.
+
+Every escalation carries a precise question, why the artifacts cannot answer it, the options, a **recommended option**, and the impact. A question without a recommendation is work handed back.
+
+Two categories always reach a human rather than being settled by agent consensus, regardless of verdicts:
 
 **Requirements marked as human-verified.** Where the verification method says judgement is required, agents can confirm that a thing was built but not that it was built *well*. Whether a route recommendation is genuinely good is the product's real quality bar and is not machine-checkable.
 
 **Changes touching safety rules or accessibility classification.** `SPECIFICATION.md` separates safety requirements the data can enforce from those it cannot, and is explicit that a rule the system cannot verify is not a safeguard. Changes in that area carry consequences beyond code quality and warrant a human decision.
+
+On both, a clean board is a **recommendation to the human**, not an approval.
