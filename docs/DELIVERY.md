@@ -35,12 +35,19 @@ Consequently `SPECIFICATION.md` and `Requirements/` block the board. `DESIGN.md`
 | What is true about the requirements | `@requirements-engineer`, authored by `@requirements-fr` / `@requirements-nfr`, corpus curated by `@requirements-librarian` |
 | What the work items **are** — Epics and stories, the *nodes* | `@requirements-story-organizer` |
 | What must precede what — the persistent dependency *edges* | `@backlog-dependency-planner` |
-| Which items are **ready**, and board truth | `@scrum-master` |
-| Which ready item **runs next**, and merge order | `@project-coordinator` |
+| Which Backlog items are **eligible to enter Ready** now, and board truth | `@scrum-master` |
+| Which **Ready item runs next**, and merge order | `@project-coordinator` |
 | Which specialists **implement** it | `@worker-manager` |
-| Whether it is **shippable** | `@pr-judge` |
+| Which reviewers are convened, and whether it is **shippable** | `@pr-judge` |
+| Which owner must act next, and the human channel | `@engineering-lead` |
 
 The three middle rows are the ones that merge if nobody watches, and they are why the table exists: decomposition creates the nodes, the planner owns the edges, readiness is a third question asked of both. An agent answering two of them has answered one of them without review — which is how a backlog acquires ordering nobody verified and cannot later distinguish from ordering that was.
+
+**Rows 4 and 5 are the second pair that merges**, and the split is exact: *eligible for Ready?* is `@scrum-master`'s; *which Ready item runs next?* is `@project-coordinator`'s. Promotion order within the WIP limit belongs to the first; runtime execution order belongs to the second. `@engineering-lead` orchestrates all of them and reconstructs none of them.
+
+### The architecture is stable
+
+**Ratified by ADR-0001 and hardened by `agent-org-directive-4.md § 33`: this organization is now stable, and further organizational change is driven by observed operational evidence rather than by hypothetical optimization.** The evidence that justifies a change is the kind you can point at from a real run — repeated unnecessary invocations, routing failures, recurrent missing dependencies, review blind spots, excessive escalation, context pressure, measurable duplicate-reviewer cost, or a defect attributable to missing ownership. No metrics platform is owed for this rule; the judge's existing review accounting is the first place to look. Absent such evidence, the correct action on the organization is to run it.
 
 ## Proof that a test can fail
 
@@ -221,7 +228,7 @@ next_cycle_justification:
 
 **Every finding is classified by root cause:** implementation · requirement · architecture · design · test · infrastructure · dependency · planning.
 
-A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. A **`dependency` or `planning`** defect — work that failed because it ran in the wrong structural order, a consumer built before the contract it consumes — routes to `@backlog-dependency-planner`, which owns the backlog graph that order came from. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
+A requirement defect routes back to `@requirements-engineer`. An architectural contradiction routes to the ADR process. A **`dependency` or `planning`** defect — work that failed because it ran in the wrong structural order, a consumer built before the contract it consumes — routes to `@backlog-dependency-planner`, which owns the backlog graph that order came from. Where the faulty artifact is instead **the story cut itself** — a story that cannot be built as written, partial or overlapping coverage of the requirements it claims, an acceptance criterion that decomposition should have split — it routes to `@requirements-story-organizer`, which owns the nodes; correcting an edge around a badly cut node leaves the node wrong. **Repeatedly patching code around an upstream defect is forbidden** — it is how a broken requirement becomes permanent, expensive, and invisible. Correct the highest faulty artifact and let the change propagate down.
 
 ## Execution shapes
 

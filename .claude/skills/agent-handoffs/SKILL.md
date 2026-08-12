@@ -224,9 +224,9 @@ Returned by `@backlog-dependency-planner`. Edges, not prose: no story text, no r
 graph_update:
   stories_examined: [41, 43, 46, 47]
   added:   [{blocked: 46, prerequisite: 43, type: hard, reason: "consumes the persisted classification"}]
-  removed: [{blocked: 47, prerequisite: 41, reason: "#41 merged; basis satisfied"}]
+  removed: [{blocked: 47, prerequisite: 52, reason: "scope moved out of #52; the relationship no longer holds"}]
   preserved: 9                        # a count — edges outside the pass are untouched, not re-listed
-  newly_unblocked: [43]
+  newly_unblocked: [43]               # derived from prerequisite state — a satisfied edge is never `removed`
   newly_blocked: []
   parallelizable: [[43, 52]]
   affected_epics: ["Access classification"]

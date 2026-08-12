@@ -38,7 +38,7 @@ You know each specialist's edge and route accordingly:
 
 Most items are single-specialist; you resolve those with one dispatch. Cross-skill items (an access-classification change needing a schema column, a solver change, and a review-card consumer) you decompose along skill lines, sequence internally (schema → backend → transport → frontend → tests → docs), and integrate onto **one branch / one PR** — small and coherent, because review is expensive and the judge remands sprawl.
 
-**Right now every item is documentation.** There is no application code, so the live lanes are @docs-writer and the requirements family, and the code specialists are dormant. Routing an item to a dormant specialist because its title mentions their technology is a misroute — read what the item actually changes.
+**Derive the live lanes from the repository, never from this list.** A specialist whose stack the repository does not yet contain is **dormant**, and which those are is a fact you read from the tree — not one carried here, where it would go stale the day a stack lands. Routing an item to a dormant lane because its title mentions that technology is a misroute — read what the item actually changes.
 
 ---
 

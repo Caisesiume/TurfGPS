@@ -224,6 +224,16 @@ Basis: FR-038 · `Architecture.md § Ports and adapters`
 
 **Hard versus soft is a throughput decision, not a nicety.** Hard means the downstream story must not reach `Ready` until the upstream one is `Done`; soft means preference only. With one edge type every preference is stated as a gate, and the board serializes work that could have run in parallel.
 
+### Satisfied is not removed
+
+*Ratified by directive 4 §8–§11 into `ADR-0003`.* A hard edge whose prerequisite is **successfully complete** is **satisfied**: it stops gating, and **its line stays in the body as provenance**. It still answers why B followed A, what capability B consumed, and what historically depended on A — which is what makes a later graph validation, an impact analysis, or a debugging pass possible at all.
+
+**Satisfaction is derived, never written.** No `satisfied:` flag, no strike-through, no rewritten line: an edge is satisfied exactly when its prerequisite issue is closed as completed, and that fact already lives in GitHub. A written mirror of GitHub state is the copy that goes stale silently and then gets believed — the same reason no agent here keeps a task list beside the board. `scripts/loop/dependents.sh` derives it deterministically, and **closed as `not planned` or as a duplicate is not completion** — such a prerequisite still blocks, and the mismatch is a `dependency_finding` rather than a promotion.
+
+**Removal is a different operation with a different owner.** An edge is removed **only by @backlog-dependency-planner**, and only when the *relationship itself* no longer holds — scope changed, architecture moved the boundary, the decomposition changed, the edge was wrong, the prerequisite is no longer required. That removal is recorded in the pass's `graph_update`. Deleting an edge because its prerequisite merged destroys provenance to record something already true; keeping an edge whose basis is gone gates work on a relationship nobody believes.
+
+> **Completion changes whether a dependency blocks; structural change changes whether it exists.**
+
 ### Who writes, who reads
 
 **@backlog-dependency-planner writes this section and is the only agent that may** — through the GitHub MCP, per `§ Two channels, two identities — do not collapse them` above; an edge is not a judgment and never goes out under the judge's token. It writes the edges only: the narrative, the acceptance criteria, the `Resolves:` line, the labels and the fields belong to other owners.

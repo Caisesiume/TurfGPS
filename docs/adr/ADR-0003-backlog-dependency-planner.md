@@ -124,3 +124,27 @@ In `pr-judge.md § Phase 8` and `DELIVERY.md § Root cause`. Work that failed be
 - **Immediacy.** Dependency reasoning now happens at graph-change time, so a graph event that nobody routes leaves stale edges in place until the next one. The failure mode moves from *expensive and current* to *cheap and possibly stale*.
 
 **Reversibility: high.** The representation is unchanged issue-body text that predates this record, the new agent is one file, the script is one file that can simply stop being called, and restoring the scrum-master's Phase 3 block is a revert of a deletion. Nothing here migrates data.
+
+## Amendment — 2026-08-13 (Owner Directive 4)
+
+*Source: `docs/adr/agent-org-directive-4.md` §8–§16. Three clarifications to the decisions above; no agent added, no ownership moved, nothing reopened.*
+
+### A1 — The story-batch continuation is dispatched by the RE, not relayed through the lead
+
+*Amends P3 and P9. Context: directive-4 §14–§16.* The route as built woke `@engineering-lead` after every story batch **solely to relay `required_agents: [backlog-dependency-planner]`** — a hop with no decision in it, which §14 says to remove. So `@requirements-engineer` now dispatches the planner **directly and one-shot** once `@requirements-story-organizer` returns, carrying the batch's story numbers and the organizer's `dependency_hints` as references.
+
+Three guards keep this from becoming a general cross-domain dispatch pattern, and all three are stated in both agents' files: **the RE does not own edges** — it triggers the pass and never writes a `## Dependencies` section; **the planner is not an RE sub-agent** — it is outside the pool of five, dispatched and finished, never managed or re-tasked; and **the RE may trigger it only on graph events arising from its own requirements or story changes.** Every other graph event — a `dependency_finding`, an architecture decision moving a boundary, a suspected graph defect — remains `@engineering-lead`'s dispatch under P9. **One shot, no ping-pong** (§16): the planner's findings return in its envelope and are corrected at the highest faulty layer, never answered with a second dispatch.
+
+The planner therefore has exactly **two dispatchers**, and its Activation contract names both.
+
+### A2 — Satisfied and removed are different operations
+
+*Extends P2 and P4. Context: directive-4 §8–§11, ratified into `turfgps-board-ops § Satisfied is not removed`, which is the one home for the rule.*
+
+A hard edge whose prerequisite is **successfully complete** is **satisfied**: it stops gating and **its line stays in the body as provenance** — why B followed A, what B consumed, what historically depended on A. **Satisfaction is derived, never written**: no `satisfied:` flag, because a written mirror of GitHub Status is the second source of truth that goes stale silently (§11). An edge is **removed** only by the planner, and only when the *relationship itself* no longer holds — scope change, architecture change, changed decomposition, a wrong edge — recorded in that pass's `graph_update`.
+
+**Completion changes whether a dependency blocks; structural change changes whether it exists.**
+
+### A3 — `dependents.sh` distinguishes completed from merely closed
+
+*Corrects P6. Context: directive-4 §12–§13.* The script treated **any** `CLOSED` blocker as satisfying, so a prerequisite closed as **not planned** — work that never happened — read as done and could free a dependent for `Ready`. It now reads `state,stateReason`: satisfied **iff** `CLOSED` with stateReason `COMPLETED`, or with no stateReason at all (a legacy plain close). `NOT_PLANNED`, `DUPLICATE`, and any unrecognized closed reason **still block** and print on a `not_completed:` line with their reason, so `@scrum-master` files a `dependency_finding` instead of promoting a story onto dead work. The ambiguous case still fails toward *blocked*, as it did for an unreadable blocker.
