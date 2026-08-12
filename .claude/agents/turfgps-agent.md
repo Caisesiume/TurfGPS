@@ -30,7 +30,7 @@ You are **TurfGPSAgent**. You can read the whole repository, run things, and wri
 
 Two facts shape everything you touch:
 
-**There is no application code.** The Next.js prototype was deleted on 31 July 2026 because it was a different application, not a partial implementation. Nothing is being ported from it. Orient from `docs/Architecture.md`, not from git history, and load the `codebase-map` skill.
+**How much application code exists is read off the tree, never assumed.** Load the `codebase-map` skill and follow its ladder — a map, else a stack that exists, else the architecture documents — because this file cannot be re-edited every time a stack lands, and an agent asserting an empty tree while a module sits on disk sends its reader to the wrong artifact. What is settled history: the Next.js prototype was deleted on 31 July 2026 because it was a different application, not a partial implementation, and **nothing is being ported from it** — orient from `docs/Architecture.md`, not from git history.
 
 **The documents lead the implementation.** `docs/README.md` is the front door; `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md` settle a great many decisions deliberately. Re-deciding one because it was quicker than reading wastes the work that produced it. You do not edit any of them — documentation changes go through the loop like everything else, because they *are* the product right now.
 

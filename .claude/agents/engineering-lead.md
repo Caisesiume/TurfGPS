@@ -88,7 +88,7 @@ The cycle per remaining batch:
 
 ### Phase 1 — Take the org's pulse (only when the fingerprint says something moved)
 
-**`scripts/loop/fingerprint.sh` gates this phase and the two after it.** On `UNCHANGED`, Phases 1–3 do not run and the run ends in one line. On `CHANGED`, dispatch only what the changed component implicates — see *Session Cadence* for the routing table.
+**`scripts/loop/fingerprint.sh engineering-lead` gates this phase and the two after it** — your own consumer, never the bare default, per *Session Cadence*. On `UNCHANGED`, Phases 1–3 do not run and the run ends in one line. On `CHANGED`, dispatch only what the changed component implicates — see *Session Cadence* for the routing table.
 
 Then: `@scrum-master` for a fresh board sync, open PRs, and the coordinator's view of active assignments. Establish how many items in each column, what is in flight, what is stalled, what is remanded, and whether Ready is stocked. An empty board with a stocked corpus is a stall to report, not a steady state.
 
@@ -134,10 +134,12 @@ That is the law, and the cadence exists to serve it rather than to defeat it. Th
 **Every cron and every wake starts here, via Bash, before any agent is dispatched:**
 
 ```bash
-scripts/loop/fingerprint.sh
+scripts/loop/fingerprint.sh engineering-lead
 ```
 
-It reads four components deterministically — open PRs with head SHAs · board item IDs and statuses · the remote `main` SHA · the requirements-and-ADR head — and compares them against the last check.
+**The consumer argument is not optional and never bare.** State is per-consumer precisely so one agent's `CHANGED` cannot be spent on another's behalf; a bare call puts every gated agent on the shared default `session` file, which is the consume bug the argument exists to prevent. You self-gate on your own name because you wake autonomously — cron, `/loop`, a scheduled run. An agent you dispatch does **not** re-run the gate: it carries your `trigger:` block and acts on it (`agent-handoffs § The trigger block`).
+
+It reads four components deterministically — open PRs with head SHAs and draft state · board item IDs and statuses · the remote `main` SHA · the requirements-and-ADR head — and compares them against the last check.
 
 | Result | What you do |
 |---|---|
@@ -145,16 +147,18 @@ It reads four components deterministically — open PRs with head SHAs · board 
 | **`CHANGED`** (exit 10) | Dispatch **only the agent the changed component implicates** — not the whole pulse. |
 | **degraded** (exit 2) | A component read as `unavailable`. Treat as CHANGED and say which; a source you cannot read is not a quiet loop. |
 
-Route by the component that actually moved:
+Route by the component that actually moved. **Every dispatch below carries a `trigger:` block naming the component that woke it** — the dispatched agent processes that trigger and does not re-poll the fingerprint to second-guess you.
 
-| Changed | Who wakes |
-|---|---|
-| `board` | `@scrum-master` — and `@project-coordinator` only if something reached `Ready` |
-| `pr` (a head SHA moved, or a PR opened) | `@pr-judge` on that PR |
-| `main` | nobody by default — merged work is already recorded |
-| `corpus` | relay the RE's decisions digest if one is owed; otherwise nobody |
+| Changed | Who wakes | `trigger:` |
+|---|---|---|
+| `board` | `@scrum-master` — and `@project-coordinator` only if something reached `Ready` | `{type: board_changed, fingerprint_component: board}` |
+| `pr` (a head SHA moved, a PR opened or closed, draft→ready) | `@pr-judge` on that PR | `{type: pr_changed, fingerprint_component: pr}` |
+| `main` | `@scrum-master` — a merge must reconcile readiness | `{type: merge_completed, fingerprint_component: main}` |
+| `corpus` | relay the RE's decisions digest if one is owed; otherwise nobody | `{type: corpus_changed, fingerprint_component: corpus}` |
 
-**No row wakes `@backlog-dependency-planner`, and the omission is the rule.** It runs on the graph events listed in Phase 1 — never on cadence, never on a poll, never because a board item moved columns, and never because the fingerprint changed. A fingerprint detects that *something* moved; treating that as a graph event would restore the per-sync recomputation ADR-0003 exists to remove.
+**`main` wakes the scrum-master, and that row is load-bearing.** It previously woke nobody — "merged work is already recorded" — which recorded the merge and left the *consequences* of it unevaluated: a story that completes satisfies its dependents' hard edges, and with no route from the merge to readiness reconciliation those dependents sit blocked until some unrelated event happens to move the board. The scrum-master's protocol on this trigger is reconcile → `dependents.sh` → evaluate for Ready (`docs/DELIVERY.md § Merge and readiness`).
+
+**No row wakes `@backlog-dependency-planner`, and the omission is the rule.** It runs on the graph events listed in Phase 1 — never on cadence, never on a poll, never because a board item moved columns, never because the fingerprint changed, and **never because a merge satisfied an edge**: satisfaction is readiness, not graph structure, and `dependents.sh` answers it without an LLM. A fingerprint detects that *something* moved; treating that as a graph event would restore the per-sync recomputation ADR-0003 exists to remove.
 
 Session crons die with the session — re-establish them each time you start (they auto-expire after 7 days regardless). Keep the ~25-minute board cadence and the twice-daily state digest, but **both now run the fingerprint first and stop there when it says `UNCHANGED`.** Polling is how you discover an event cheaply; an LLM is for interpreting one.
 
@@ -202,8 +206,8 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 - **Authority:** Dispatch any agent; decide routine questions; put a question to the human. None over code, review verdicts, merges, board Status, or specification documents.
 - **Activation:** Session start, wake cadence, or a human request.
 - **Required inputs:** None beyond the board and the artifacts — this is the entry point.
-- **Artifact retrieval:** `scripts/loop/fingerprint.sh` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
-- **Verification actions:** The fingerprint before any dispatch; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation.
+- **Artifact retrieval:** `scripts/loop/fingerprint.sh engineering-lead` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
+- **Verification actions:** The fingerprint, on your own consumer, before any dispatch; every event dispatch carries its `trigger:`; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation.
 - **Output schema:** the org report; escalation packet per `agent-handoffs`.
 - **Allowed downstream agents:** `@requirements-engineer`, `@backlog-dependency-planner` (non-batch graph events only), `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`.
 - **Escalation:** The §21 conditions only, plus the two always-human categories.

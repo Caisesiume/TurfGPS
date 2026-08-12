@@ -7,7 +7,7 @@ description: The single source of truth for running TurfGPS's local quality gate
 
 **All gates green BEFORE a PR exists.** The bench reviews quality; the gates prove the work merely holds together. Do not spend the bench on what a gate could have caught.
 
-The repository is currently documentation-only, so the documentation gates below are the live ones. The code gates are written now so they are not invented under pressure later, and they activate the moment their stack exists.
+**Which gates are live is derived from the tree, not asserted here.** The documentation gates are always live. **A stack's gates activate the moment its manifest exists** — `service/go.mod` turns the backend gates on, the frontend manifest (`web/package.json`) turns the frontend gates on — so the code gates below are written now to be found rather than invented under pressure, and no edit to this file is needed to enable them. Check before you report: a gate you skipped because a document said the stack was dormant is an unrun gate reported as inapplicable.
 
 ---
 
@@ -35,11 +35,11 @@ The documentation set depends on three mechanical properties. Each has been brok
 
 ## Code gates
 
-**Dormant** until the stacks exist.
+**Each block is live exactly when its manifest exists** — `service/go.mod` for the backend, `web/package.json` for the frontend — and dormant only until then. Neither waits on an edit to this file.
 
 ### Backend (Go)
 
-Required on every PR with Go changes, per `Architecture.md § D1`.
+Live once `service/go.mod` exists. Required on every PR with Go changes, per `Architecture.md § D1`.
 
 **Every command below runs from `service/`**, where `Architecture.md § D8` puts the Go module — never from the repository root.
 
@@ -58,7 +58,7 @@ The race detector is not optional on this codebase. `Architecture.md § D1` chos
 
 ### Frontend (Vite + React)
 
-Required on every PR touching the client, per `Architecture.md § D2`.
+Live once the client's manifest (`web/package.json`) exists. Required on every PR touching the client, per `Architecture.md § D2`.
 
 **Every command below runs from `web/`**, where `Architecture.md § D8` puts the client.
 

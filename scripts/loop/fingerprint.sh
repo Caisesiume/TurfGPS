@@ -35,23 +35,40 @@ degraded_components=""
 # fingerprint that cannot see the board is worse than no fingerprint, because it
 # reports change on every run and trains its reader to ignore it.
 
-# 1. Open PRs — number, head SHA, updated_at. A head SHA moving is the event.
-pr="$("$GH" pr list --state open --json number,headRefOid,updatedAt \
+# 1. Open PRs — number, head SHA, draft state. These three ARE the events the loop
+#    reacts to: a head SHA moving, a PR entering or leaving the open list, and
+#    draft→ready. `updatedAt` was here and is deliberately gone — a comment, a
+#    label, or any bot touching the PR bumps it, waking @pr-judge to re-read a diff
+#    that did not move. Nothing else about a PR is consumed by the workflow, so
+#    nothing else belongs in the fingerprint.
+pr="$("$GH" pr list --state open --json number,headRefOid,isDraft \
       --jq 'sort_by(.number)' 2>/dev/null)"
 [ -n "$pr" ] || { pr="unavailable"; degraded=1; degraded_components="$degraded_components pr"; }
 
 # 2. Board items — id and status only. Scoped per §45: the loop reacts to status,
-#    not to card bodies, so the fingerprint must not carry them.
-board="$("$GH" project item-list 3 --owner Caisesiume --format json \
+#    not to card bodies, so the fingerprint must not carry them. `--limit` is
+#    explicit and generous: the default page is 30 and this board already carries
+#    37+ items, so an implicit limit truncates the board and silently fingerprints
+#    a prefix of it — items past the cut could change status forever unnoticed.
+board="$("$GH" project item-list 3 --owner Caisesiume --limit 200 --format json \
          --jq '[.items[] | {id, status}] | sort_by(.id)' 2>/dev/null)"
 [ -n "$board" ] || { board="unavailable"; degraded=1; degraded_components="$degraded_components board"; }
 
-# 3. Trunk — the remote ref, not the local one: a stale local main is not an event.
-main="$(git ls-remote origin refs/heads/main 2>/dev/null | cut -f1)"
+# 3+4. Trunk and corpus, both from the SAME fetched remote ref. The local checkout
+#      is not a source of truth here: main came from the remote while corpus came
+#      from local history, so a stale checkout reported a moved `main` with an
+#      unmoved `corpus` and the requirements/ADR change that actually landed woke
+#      nobody. One fetch, then both reads against origin/main. `-C "$ROOT"` because
+#      the corpus pathspec is relative and this may be invoked from anywhere.
+#      A fetch that fails leaves BOTH reads answerable from a stale tracking ref,
+#      which would read as a quiet loop — so a failed fetch degrades explicitly.
+git -C "$ROOT" fetch origin main --quiet 2>/dev/null \
+  || { degraded=1; degraded_components="$degraded_components remote-fetch"; }
+
+main="$(git -C "$ROOT" rev-parse --verify --quiet origin/main 2>/dev/null)"
 [ -n "$main" ] || { main="unavailable"; degraded=1; degraded_components="$degraded_components main"; }
 
-# 4. Corpus and ADR head — what is true about requirements and ratified decisions.
-corpus="$(git log -1 --format=%H -- docs/Requirements docs/adr 2>/dev/null)"
+corpus="$(git -C "$ROOT" log -1 --format=%H origin/main -- docs/Requirements docs/adr 2>/dev/null)"
 [ -n "$corpus" ] || { corpus="unavailable"; degraded=1; degraded_components="$degraded_components corpus"; }
 
 new="$(printf 'pr:%s\nboard:%s\nmain:%s\ncorpus:%s\n' "$pr" "$board" "$main" "$corpus")"
@@ -81,7 +98,7 @@ else
     fi
   done
 fi
-[ "$degraded" -eq 0 ] || echo "  degraded:${degraded_components} — read as unavailable; do not read this as quiet"
+[ "$degraded" -eq 0 ] || echo "  degraded:${degraded_components} — unreadable or stale; do not read this as quiet"
 
 # `printf '%s\n'`, not '%s': command substitution stripped $new's trailing newline,
 # and without it the last component and the digest share a line — which reads as a

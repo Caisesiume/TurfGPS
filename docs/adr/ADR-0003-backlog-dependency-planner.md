@@ -114,7 +114,7 @@ In `pr-judge.md § Phase 8` and `DELIVERY.md § Root cause`. Work that failed be
 
 **What this obliges:**
 
-- **One more agent in the chain between stories and Ready.** A story batch is not schedulable until the planner has run over it. That gap is visible by design — the placeholder says so on the issue — but a batch filed while nobody dispatches the planner sits with no edges at all, and the scrum-master will read that as *unblocked* and promote it.
+- **One more agent in the chain between stories and Ready.** A story batch is not schedulable until the planner has run over it. That gap is visible by design — the placeholder says so on the issue — but a batch filed while nobody dispatches the planner sits with no edges at all, and the scrum-master will read that as *unblocked* and promote it. **— Superseded, 2026-08-13.** That was the historical consequence before the Directive-4 amendment; the pending placeholder is now an **explicit blocking state**, so an unplanned batch does not promote (`turfgps-board-ops § The dependency representation`). The obligation the bullet describes is unchanged — the continuation is still mandatory — but the failure mode is now a *stall*, which is visible, rather than a *false promotion*, which was not.
 - **A third load-bearing shell script.** `dependents.sh` parses issue bodies, so a story that writes `Blocked by` in unexpected shape is invisible to it. It fails toward *blocked* rather than *eligible* in every ambiguous case, which is the safe direction but will hold work when the grammar drifts.
 - **Two grammars on the board for a while.** The grandfather clause means 59 sections in the old shape coexist with the new one until events touch them. Both are readable; only the new one carries a type.
 
@@ -148,3 +148,15 @@ A hard edge whose prerequisite is **successfully complete** is **satisfied**: it
 ### A3 — `dependents.sh` distinguishes completed from merely closed
 
 *Corrects P6. Context: directive-4 §12–§13.* The script treated **any** `CLOSED` blocker as satisfying, so a prerequisite closed as **not planned** — work that never happened — read as done and could free a dependent for `Ready`. It now reads `state,stateReason`: satisfied **iff** `CLOSED` with stateReason `COMPLETED`, or with no stateReason at all (a legacy plain close). `NOT_PLANNED`, `DUPLICATE`, and any unrecognized closed reason **still block** and print on a `not_completed:` line with their reason, so `@scrum-master` files a `dependency_finding` instead of promoting a story onto dead work. The ambiguous case still fails toward *blocked*, as it did for an unreadable blocker.
+
+## Amendment — 2026-08-13 (runtime hardening)
+
+*Source: the Owner's runtime-hardening directive, which is deliberately not filed as a separate document — its clarifications are recorded in the existing ADRs. One clarification; no agent added, no ownership moved, nothing reopened.*
+
+### A4 — Dispatch authority over the planner is exactly two agents, and reporting is not dispatching
+
+*Consolidates P9 and A1, which stated the rule correctly, against three agent files that contradicted it.* The planner's dispatchers are **`@engineering-lead`** — every graph event — and **`@requirements-engineer`** — its own story batches, and only those (A1's three guards are unchanged). Nobody else wakes it.
+
+`@pr-judge` and `@worker-manager` read as though they did: the judge routed `dependency`/`planning`-root-cause findings "to `@backlog-dependency-planner`" and listed it downstream, and the manager "carried a `dependency_finding` up to" it. Both now **classify and report upward**, and `@engineering-lead` dispatches. The distinction is the point: **a finding is evidence, a dispatch is a decision about whether the graph should be re-reasoned now**, and a planner with four dispatchers is one that runs on every reporter's estimate of its own urgency — the per-event discipline this record exists to hold. Root-cause classification is untouched and remains load-bearing: without a correctly named `dependency` or `planning` root cause, there is nothing for the lead to route.
+
+Neither agent lost anything it owned. `agent-handoffs § Dependency findings and graph updates` states the same routing in the schema's own home.

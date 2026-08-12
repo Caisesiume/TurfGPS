@@ -173,3 +173,19 @@ This wave lands on **PR #61's branch, `refactor/agent-org-v2`** — one constitu
 - **The summarizer's smoothing.** Four verdicts read directly by the judge is four voices rather than one, and the judge now does that reconciliation itself.
 
 **Reversibility: high.** The registry is a table, the thresholds are numbers, the scripts are two files that can simply stop being called, and the finding vocabulary is five words. If defect escape rises, the ledger records which lanes were closed and by what — which is the reason the accounting footer counts lanes closed by preflight separately from reviewers carried.
+
+## Amendment — 2026-08-13 (runtime hardening)
+
+*Source: the Owner's runtime-hardening directive, deliberately not filed as a separate document — its clarifications are recorded in the existing ADRs. Corrections to O6 as built; the decision is unchanged.*
+
+### O6.1 — The consumer argument is mandatory, and a dispatched agent does not re-gate
+
+Per-consumer state existed from the start; **every call site omitted the argument**, so all four gated agents shared the default `session` file and the first to read it consumed the signal for the rest — precisely the bug the argument was added to prevent. The rule now has two halves and both are stated wherever the gate appears: an agent waking **autonomously** self-gates on `fingerprint.sh <its-own-agent-name>`; an agent dispatched with an explicit **`trigger:` block** (`agent-handoffs § The trigger block`) processes that trigger and does **not** re-run the gate, because an event detector whose dispatch is rejected by its own already-consumed signal detects nothing. Isolation is now asserted mechanically by `scripts/loop/tests/fingerprint-isolation.sh`.
+
+### O6.2 — Three component corrections
+
+O6's component list stands; what each component *reads* was wrong in ways that either woke agents for nothing or hid change from them.
+
+- **`pr` fingerprints `number,headRefOid,isDraft`** — `updatedAt` is gone. A comment, a label, or any bot bumped it and woke @pr-judge on an unmoved diff. What remains are the events the loop reacts to: a head SHA moving, list membership changing, and draft→ready.
+- **`board` passes an explicit `--limit 200`.** `gh project item-list` defaults to 30 against a 37+-item board, so the fingerprint covered a *prefix* of it — items past the cut could change status forever without registering.
+- **`main` and `corpus` both derive from `origin/main` after one `git fetch`.** `main` came from the remote while `corpus` came from local history, so on a stale checkout a requirements or ADR change that had landed remotely read as no change at all. A failed fetch degrades explicitly rather than answering from a stale tracking ref, because an unreachable remote must never read as a quiet loop.

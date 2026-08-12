@@ -88,7 +88,7 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
 
 *§45.* **A full board dump is never context.** Ask for the items a pass will act on and project only the fields it reads: `item-list` takes `--limit` and `--jq`, and the filtering happens in `gh`'s built-in jq engine before anything reaches a context window. Standalone `jq` is not installed on this machine — piping to it fails.
 
-**Run `scripts/loop/fingerprint.sh` before any board read.** It reports the board component `UNCHANGED` or `CHANGED` deterministically (exit `0`/`10`, `2` degraded), and an unchanged board is a reason not to read the board at all.
+**Run `scripts/loop/fingerprint.sh <your-own-agent-name>` before any board read you initiate.** It reports the board component `UNCHANGED` or `CHANGED` deterministically (exit `0`/`10`, `2` degraded), and an unchanged board is a reason not to read the board at all. **Never call it bare** — the argument names your consumer, and every caller that omits it shares one state file, so the first reader spends the change for all of them. A read you were *dispatched* to perform is already gated by the `trigger:` block you carry (`agent-handoffs § The trigger block`): process that, do not re-poll.
 
 Four statuses matter to a routine pass: **`Ready`** (promotable), **`In progress`** (WIP), **`Ordered Revision`** (preempts everything), and anything labelled **`awaiting-human`** (paused). The rest is history, and history is retrieved when a question needs it.
 

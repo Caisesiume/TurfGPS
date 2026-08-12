@@ -182,6 +182,10 @@ No lane requires subjective perfection, and none is entitled to it. A PR passes 
 
 **Stopping is part of correctness here, not a concession to budget.** A judge that keeps going when the five conditions are met is not being careful — it is failing to make the decision it exists to make.
 
+### Merge and readiness
+
+**A completed merge that can satisfy a downstream dependency must reliably cause readiness reconciliation** — the route is deterministic and has exactly one shape: the fingerprint's `main` component wakes `@engineering-lead`, which dispatches `@scrum-master` on `trigger: {type: merge_completed}`, which reconciles the merged items to Done, runs `scripts/loop/dependents.sh` per completed story, and evaluates the `eligible:` list for Ready. It never wakes `@backlog-dependency-planner`: satisfaction is not a graph event.
+
 ### Revision, and what stays valid
 
 A remand produces a **revision packet**, not a restart: the required changes with their owners and scope, and the list of reviewers to re-run afterwards. `@worker-manager` activates only the specialist that owns each finding.
