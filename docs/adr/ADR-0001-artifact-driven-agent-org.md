@@ -1,6 +1,7 @@
 # ADR-0001 — Artifact-driven agent organization
 
-**Status:** accepted — 2026-08-10
+**Status:** accepted — 2026-08-10 · **architecture stable — 2026-08-13**
+**Stability note (2026-08-13, Owner Directive 4 — `docs/adr/agent-org-directive-4.md`):** the organization ratified here is **stable as of this date**. Directive 4 added no agent, collapsed no seat, and reopened no decision below; it hardened the *wording* of the orchestration contracts so that no agent's Role, Authority, Focus, or Contract claims a decision another agent owns. Subsequent organizational change is **evidence-driven** — the maintenance rule is in `docs/DELIVERY.md § The architecture is stable`, and it cites this record. Per directive 4 §26 there is no ADR-0004: nothing genuinely new was decided.
 **Source:** `docs/adr/agent-org-directive.md`, the Owner's directive, kept verbatim. Where that file and this one differ on a repository-specific adaptation, **this record is the ratified form** and the directive is the unaltered order it adapts. Section references below (`§N`) point at the directive.
 
 ## Context

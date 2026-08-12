@@ -31,3 +31,4 @@ State the cost as well as the benefit. A record that lists only advantages is ad
 | `ADR-0002-token-efficiency.md` | Token efficiency of the agent organization — the audited leaks and the fourteen ratified optimizations |
 | `agent-org-directive-3.md` | Not an ADR — the Owner's third directive of 2026-08-10, kept verbatim as the source order ADR-0003 adapts |
 | `ADR-0003-backlog-dependency-planner.md` | A dedicated owner for the persistent Epic/story dependency graph — the edges leave `@scrum-master`, which now consumes them |
+| `agent-org-directive-4.md` | Not an ADR — the Owner's fourth and final directive of 2026-08-10, kept verbatim. Ratified **into** ADR-0001 (stability rule) and ADR-0003 (amendments A1–A3); per its own §26 no ADR-0004 exists |

@@ -14,6 +14,14 @@
 # edge never blocks readiness, so counting one would manufacture a blocker and
 # hold work the board never intended to hold.
 #
+# SATISFIED MEANS SUCCESSFULLY COMPLETE, not merely closed (directive-4 §13). A
+# blocker is satisfied iff it is CLOSED with stateReason COMPLETED — or with no
+# stateReason at all, which is how a legacy plain close reads. Closed as
+# NOT_PLANNED or DUPLICATE is work that never happened: it STILL BLOCKS and is
+# printed with its reason, so @scrum-master files a `dependency_finding` instead
+# of promoting a story onto dead work. Any other closed reason blocks too — the
+# ambiguous case fails toward blocked, always.
+#
 # A blocker whose state cannot be read counts as STILL BLOCKING and is reported
 # on its own line. An unreadable prerequisite must never be able to read as a
 # satisfied one — the same rule fingerprint.sh applies to an unreadable component.
@@ -64,34 +72,52 @@ if [ -z "$deps" ]; then
   exit 0
 fi
 
-seen=""            # memo: |<issue>=<STATE>| — one API call per distinct blocker
+seen=""            # memo: |<issue>=<VERDICT>| — one API call per distinct blocker
+# DONE is the only satisfying verdict. Everything else blocks.
 state_of() {
   case "$seen" in
-    *"|$1=OPEN|"*)    echo OPEN ;    return ;;
-    *"|$1=CLOSED|"*)  echo CLOSED ;  return ;;
-    *"|$1=UNKNOWN|"*) echo UNKNOWN ; return ;;
+    *"|$1=OPEN|"*)          echo OPEN ;          return ;;
+    *"|$1=DONE|"*)          echo DONE ;          return ;;
+    *"|$1=NOT_PLANNED|"*)   echo NOT_PLANNED ;   return ;;
+    *"|$1=DUPLICATE|"*)     echo DUPLICATE ;     return ;;
+    *"|$1=NOT_COMPLETED|"*) echo NOT_COMPLETED ; return ;;
+    *"|$1=UNKNOWN|"*)       echo UNKNOWN ;       return ;;
   esac
-  s="$("$GH" issue view "$1" --json state --jq .state 2>/dev/null)"
-  case "$s" in OPEN|CLOSED) : ;; *) s=UNKNOWN ;; esac
+  raw="$("$GH" issue view "$1" --json state,stateReason \
+         --jq '.state + " " + (.stateReason // "")' 2>/dev/null)"
+  case "$raw" in *' '*) st="${raw%% *}"; rs="${raw#* }" ;; *) st=""; rs="" ;; esac
+  case "$st|$rs" in
+    OPEN\|*)                        s=OPEN ;;
+    CLOSED\|COMPLETED|CLOSED\|)     s=DONE ;;          # completed, or a legacy plain close
+    CLOSED\|NOT_PLANNED)            s=NOT_PLANNED ;;
+    CLOSED\|DUPLICATE)              s=DUPLICATE ;;
+    CLOSED\|*)                      s=NOT_COMPLETED ;; # an unrecognized reason blocks too
+    *)                              s=UNKNOWN ;;
+  esac
   seen="$seen|$1=$s|"
   echo "$s"
 }
 
-eligible=""; blocked_lines=""; unreadable=""
+eligible=""; blocked_lines=""; unreadable=""; not_completed=""
 while IFS=' ' read -r issue blockers; do
   [ -n "$issue" ] || continue
   remaining=""
   for b in $(printf '%s' "$blockers" | tr ',' ' '); do
     st="$(state_of "$b")"
-    [ "$st" = "CLOSED" ] && continue
-    remaining="$remaining #$b"
-    [ "$st" = "UNKNOWN" ] && unreadable="$unreadable #$b"
+    [ "$st" = "DONE" ] && continue
+    [ -n "$remaining" ] && remaining="$remaining, "
+    remaining="$remaining#$b $(printf '%s' "$st" | tr 'A-Z' 'a-z')"
+    case "$st" in
+      UNKNOWN) unreadable="$unreadable #$b" ;;
+      OPEN)    : ;;
+      *)       not_completed="$not_completed #$b($st)" ;;
+    esac
   done
   if [ -z "$remaining" ]; then
     eligible="$eligible #$issue"
   else
     blocked_lines="$blocked_lines
-  #$issue (open: $(printf '%s' "$remaining" | sed 's/^ //; s/ /, /g'))"
+  #$issue (blockers: $remaining)"
   fi
 done <<EOF
 $deps
@@ -113,6 +139,7 @@ else
   printf '%s\n' "$blocked_lines" | sed '/^$/d' | head -12
   [ "$total" -gt 12 ] && printf '  … %s more — read the board\n' "$((total - 12))"
 fi
+[ -n "$not_completed" ] && printf 'not_completed:%s — closed without completing; still blocking, file a dependency_finding\n' "$not_completed"
 [ -z "$unreadable" ] && exit 0
 printf 'unreadable:%s — counted as still blocking\n' "$unreadable"
 exit 0
