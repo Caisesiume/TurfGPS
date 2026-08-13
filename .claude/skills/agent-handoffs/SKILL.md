@@ -63,6 +63,19 @@ human_escalation: false
 
 `summary` is one or two sentences of *outcome*. `confidence` is a number you would defend, not a courtesy 0.9.
 
+### The trigger block
+
+A dispatch made because something *moved* carries why, so the receiver never has to re-detect it:
+
+```yaml
+trigger:
+  type: merge_completed          # board_changed | pr_changed | corpus_changed | merge_completed | explicit_request
+  source: engineering-lead
+  fingerprint_component: main    # or `explicit_sync: true` when a human or an agent asked directly
+```
+
+**An explicitly dispatched agent knows why it was invoked and does not re-poll to second-guess its parent.** The fingerprint's state is per-consumer and already consumed by the dispatcher; re-running the generic gate would let the very signal that caused the dispatch reject it. Self-gating on `scripts/loop/fingerprint.sh <your-own-agent-name>` is for waking *autonomously* — cron, `/loop`, a scheduled run — and the argument is never omitted, because the bare default puts every caller on one shared state file.
+
 ## Payload schemas
 
 ### Worker completion
@@ -205,7 +218,7 @@ The orchestrator that dispatched you routes **one** targeted request, and the an
 
 ### Dependency finding
 
-Returned by `@scrum-master`, an implementation specialist, `@worker-manager`, or `@pr-judge` when the graph looks wrong from where they stand. It **always routes to `@backlog-dependency-planner`**, and the reporter edits no edge: a graph repaired in passing by four agents is a graph with no owner, and the repair nobody reviewed is the one that survives.
+Returned by `@scrum-master`, an implementation specialist, `@worker-manager`, or `@pr-judge` when the graph looks wrong from where they stand. It **always ends at `@backlog-dependency-planner` — and always reaches it via the orchestration path**: the reporter puts the finding in its envelope, `@engineering-lead` dispatches the planner. Dispatch authority over the planner is exactly two agents (`ADR-0003 § P9`, amended): `@engineering-lead` for every graph event, and `@requirements-engineer` for its own story batches, which it continues directly because relaying a mandatory pipeline step through an orchestrator adds a hop with no decision in it. Reporting a finding is not dispatching, and **the reporter edits no edge**: a graph repaired in passing by four agents is a graph with no owner, and the repair nobody reviewed is the one that survives.
 
 ```yaml
 dependency_finding:
