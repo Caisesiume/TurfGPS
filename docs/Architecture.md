@@ -807,7 +807,7 @@ And finally, this is a design and not a migration. **The DDL is written next, an
 
 Sections this document owes independently of the content moved into it: **failure handling**, **observability**, and **security architecture**.
 
-The **deployment model** left this list on 14 August 2026, having been handed to `DEPLOYMENT.md` as this section always said it would be. That document now exists and carries it: the runtime target, the single-host shape *§ Runtime topology* above requires be accounted for, and where the deployment configuration lives. What it still owes — host sizing and the pipeline among it — is listed in *DEPLOYMENT.md § Still owed by this document* and is owed there rather than here.
+The **deployment model** left this list on 14 August 2026, having been handed to `DEPLOYMENT.md` as this section always said it would be. That document now exists and carries it: the runtime target, where the deployment configuration lives, and how it accounts for the statefulness *§ Runtime topology* above requires it account for. What it still owes — host sizing and the pipeline among it — is listed in *DEPLOYMENT.md § Still owed by this document* and is owed there rather than here.
 
 The **schema** left this list on 6 August 2026, and only for the two tables *§ The schema* proposes — the synced zone table and the plan store behind `PlanStore`. The **OSM-derived feature tables** of *§ D4* are still owed and sit deliberately outside that section: they carry the enforceable exclusions in access classification, which makes them a safety surface owed its own design and its own review rather than an appendix to this one. What else that section leaves open is listed in *§ What this section does not cover*.
 
