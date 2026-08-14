@@ -1,0 +1,22 @@
+# Line endings for the build and gate files.
+#
+# On a machine with core.autocrlf=true a plain checkout rewrites these to CRLF,
+# and each one breaks on the platform it is built for:
+#
+#   Makefile        GNU make hands every recipe line to sh with the trailing CR
+#                   still attached, and a backslash continuation followed by CR
+#                   does not continue — so a multi-line recipe fails in a way
+#                   that reads as a shell syntax error, not as a checkout.
+#   Dockerfile      every RUN carries a trailing CR into the shell it runs in.
+#   .dockerignore   a pattern with a trailing CR matches nothing, silently.
+#
+# None of these is edited to break: the checkout does it, so the diff is empty
+# and the file that fails is one nobody touched. `service/.gitattributes` pins
+# the module's Go files against the same failure, for the same reason.
+#
+# These patterns carry no slash, so they match at any depth — the root Makefile
+# and service/Dockerfile alike.
+
+Makefile      text eol=lf
+Dockerfile    text eol=lf
+.dockerignore text eol=lf
