@@ -36,7 +36,7 @@ Acceptance:   metric — the access confidence recorded for a zone's access
               `CalculationSpecification.md § Flat-distance fallback` — with
               the confidence levels compared being the deployment's own rather
               than a scale this record fixes
-Status:       draft
+Status:       to-build
 Depends-on:   FR-081
 Volatility:   settled — the two evidence enumerations under
               `SPECIFICATION.md § Terrain confidence` are stated flatly, carry

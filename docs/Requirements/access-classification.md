@@ -23,7 +23,7 @@ Acceptance:   given a candidate promoted to full evaluation, when its access
               given a candidate for which the data available establishes no
               class, when its access classification completes, then it carries
               uncertain or excluded rather than no class at all
-Status:       draft
+Status:       to-build
 Depends-on:   FR-064
 Volatility:   settled — the source says at least two broad access types and
               the Owner closed the set at four on 7 August 2026, so what this
@@ -57,8 +57,8 @@ Resolved-by:  —
 Statement:    The system shall decide which access validation a candidate must
               pass from whether its coordinate lies within the direct-access
               tolerance defined under
-              `CalculationSpecification.md § Direct-access tolerance` of a
-              valid stopping position on a drivable way.
+              `CalculationSpecification.md § Direct-access tolerance` of an
+              established stopping position on a drivable way.
 Category:     Access classification
 Source:       SPECIFICATION.md § Directly road-accessible zones
 Priority:     MUST
@@ -67,16 +67,16 @@ Verification: test — a candidate inside the tolerance is checked for level
               produce a walkable path or an elevation profile, and a candidate
               outside it is required to produce both
 Acceptance:   given a candidate whose coordinate lies within the direct-access
-              tolerance of a valid stopping position on a drivable way, when
-              its access is validated, then it is checked for level
+              tolerance of an established stopping position on a drivable way,
+              when its access is validated, then it is checked for level
               compatibility and intervening barriers and is not required to
               produce a connected walkable path or an elevation profile
               given a candidate whose coordinate lies beyond that tolerance
-              from every valid stopping position, when its access is
+              from every established stopping position, when its access is
               validated, then it is required to produce a connected walkable
               path and an obtainable elevation profile
-Status:       draft
-Depends-on:   FR-067
+Status:       to-build
+Depends-on:   FR-067; FR-092
 Volatility:   proposed-constant — the direct-access tolerance under
               `CalculationSpecification.md § Direct-access tolerance` is a
               proposed default, argued from a nominal figure
@@ -96,6 +96,13 @@ Rationale:    The cited calculation section states outright that the constant
               split alone: what the direct branch must find is FR-070's and
               FR-089's, what happens when it does not is FR-071's and
               FR-072's, and what the walking branch must find is FR-076's. The
+              position the tolerance is measured from is an established one,
+              as `SPECIFICATION.md § What establishes a stopping position`
+              defines establishment; valid was a third spelling of that
+              predicate and is dropped rather than defined, because a
+              tolerance measured from a position nothing constrains is
+              measured from whatever drivable way lies nearest the coordinate,
+              and the identification of the position itself is FR-092's. The
               tolerance is cited and never quoted, so the record stands at
               whatever value a deployment enforces — and that the value may be
               tightened and never loosened is FR-069's.
@@ -132,7 +139,7 @@ Acceptance:   given a candidate within the direct-access tolerance whose
               relationship to the stopping position cannot be resolved from
               the data, when its access is classified, then this rule does not
               route it to the park-and-walk branch
-Status:       draft
+Status:       to-build
 Depends-on:   FR-068; FR-070; FR-072; FR-092
 Volatility:   proposed-constant — which candidates can reach this branch at
               all is decided by the direct-access tolerance under
@@ -196,7 +203,7 @@ Acceptance:   given a candidate within the direct-access tolerance whose
               given a candidate whose level relationship to the stopping
               position is resolved and compatible, when its access is
               classified, then this rule does not make it uncertain
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-070; FR-092
 Volatility:   settled — the downgrade on ambiguous evidence is stated outright
               by the cited section and rests on no figure
@@ -246,7 +253,7 @@ Acceptance:   given a candidate whose coordinate lies away from the nearest
               routed path terminating at the nearest mapped position to the
               coordinate does not on its own establish that the zone is
               reached
-Status:       draft
+Status:       to-build
 Depends-on:   FR-020; FR-074
 Volatility:   settled — the coordinate is the only position established to lie
               inside a zone, and `Architecture.md § Zone geometry` records
@@ -294,7 +301,7 @@ Acceptance:   given a candidate whose only identified connection between a
               given a candidate for which a connection avoiding such a way
               exists, when its access is classified, then that connection is
               the access path and this rule excludes nothing
-Status:       draft
+Status:       to-build
 Depends-on:   FR-074
 Volatility:   open-question — the access and restriction attributes this
               record reads are the OSM-derived feature data
@@ -347,7 +354,7 @@ Acceptance:   given two candidate zones between which no connected, usable
               given two candidate zones whose coordinates lie close together,
               when stops are formed, then their separation alone does not
               establish that one stop can serve both
-Status:       draft
+Status:       to-build
 Depends-on:   FR-021; FR-074
 Volatility:   settled — the rule is stated outright by the cited section and
               rests on no figure and on nothing any document lists as open
@@ -391,7 +398,7 @@ Acceptance:   given a candidate for which an access estimate is produced, when
               profile, when its access classification completes, then an
               access estimate carrying a confidence level has been produced
               for it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067
 Volatility:   open-question — no scale for access confidence exists:
               `CalculationSpecification.md` carries none, and what a level
@@ -448,34 +455,36 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall classify a candidate whose access estimate
-              carries low confidence as uncertain or excluded rather than as
-              directly road-accessible or park-and-walk.
+              carries low confidence as uncertain rather than as directly
+              road-accessible, as park-and-walk, or as excluded on that
+              confidence.
 Category:     Access classification
-Source:       SPECIFICATION.md § Terrain confidence
+Source:       SPECIFICATION.md § Terrain confidence;
+              SPECIFICATION.md § What establishes a stopping position
 Priority:     MUST
 Verification: test — a candidate whose access estimate rests on any one of the
               lower-confidence inputs enumerated under
               `SPECIFICATION.md § Terrain confidence` is classified uncertain
-              rather than park-and-walk, including one resting on missing
-              barrier information alone, and one resting on that section's
-              high-confidence evidence throughout is not made uncertain by
-              this rule
+              rather than park-and-walk and is not excluded on that
+              confidence, including one resting on missing barrier information
+              alone, and one resting on that section's high-confidence
+              evidence throughout is not made uncertain by this rule
 Acceptance:   given a candidate whose access estimate rests on any of the
               lower-confidence inputs enumerated under
               `SPECIFICATION.md § Terrain confidence`, when its access is
-              classified, then it is classified uncertain or excluded and not
-              directly road-accessible or park-and-walk
+              classified, then it is classified uncertain and not directly
+              road-accessible, park-and-walk, or excluded on that confidence
               given a candidate whose access estimate rests on missing barrier
               information alone, every other input behind it being of the
               high-confidence kind that section enumerates, when its access is
-              classified, then it is classified uncertain or excluded and not
-              directly road-accessible or park-and-walk
+              classified, then it is classified uncertain and not directly
+              road-accessible, park-and-walk, or excluded on that confidence
               given a candidate whose access estimate rests on a mapped
               stopping position, a connected pedestrian path, a complete
               elevation profile, known road and path levels and no identified
               barrier, when its access is classified, then this rule does not
               make it uncertain
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-081
 Volatility:   open-question — what counts as low confidence rests on the
               enumeration under `SPECIFICATION.md § Terrain confidence`
@@ -496,25 +505,34 @@ Rationale:    The cited section sends zones with low-confidence access out of
               the same rule from the data's side: where what is available is
               insufficient to establish safe access, the zone is excluded or
               clearly classified uncertain rather than treated as a normal
-              recommendation. The criteria are written against the inputs that
-              section enumerates rather than against a confidence figure,
-              because no scale exists to write one against and inventing one
-              here would create a constant with no home. That absence is why
-              the antecedent is disjunctive: while no scale exists these
-              criteria are the operative definition of low confidence, so an
-              antecedent conjoining two of the six enumerated inputs would
-              leave the other four lowering confidence in nothing that is ever
-              tested — missing barrier information most damagingly, being the
-              same evidence class FR-070 tests on the direct branch, which is
-              why the second criterion pins the single-item case there. The
-              third criterion is the other side and keeps the widening from
-              making the record unsatisfiable. Distinct from FR-083, whose
-              antecedent is mechanical — which inputs the pricing actually
-              consumed — where this one is a reading of the evidence behind
-              the estimate: a system can route every fallback-priced candidate
-              correctly and still call an incomplete elevation sample
-              confident. What an uncertain classification then means for the
-              search is FR-084's.
+              recommendation. That section left the choice between the two
+              open and
+              `SPECIFICATION.md § What establishes a stopping position`
+              decides it: a position which is not established is uncertain,
+              and uncertain is not excluded, so this record classifies and
+              never excludes. Exclusion stays with the enforceable exclusions,
+              which bind the candidate independently of this record and are
+              FR-075's, FR-076's and FR-089's, and that independence is why
+              the criteria refuse exclusion on the confidence rather than in
+              general. The criteria are written against the inputs
+              `SPECIFICATION.md § Terrain confidence` enumerates rather than
+              against a confidence figure, because no scale exists to write
+              one against and inventing one here would create a constant with
+              no home. That absence is why the antecedent is disjunctive:
+              while no scale exists these criteria are the operative
+              definition of low confidence, so an antecedent conjoining two of
+              the six enumerated inputs would leave the other four lowering
+              confidence in nothing that is ever tested — missing barrier
+              information most damagingly, being the same evidence class
+              FR-070 tests on the direct branch, which is why the second
+              criterion pins the single-item case there. The third criterion
+              is the other side and keeps the widening from making the record
+              unsatisfiable. Distinct from FR-083, whose antecedent is
+              mechanical — which inputs the pricing actually consumed — where
+              this one is a reading of the evidence behind the estimate: a
+              system can route every fallback-priced candidate correctly and
+              still call an incomplete elevation sample confident. What an
+              uncertain classification then means for the search is FR-084's.
 Resolved-by:  —
 ```
 
@@ -548,7 +566,7 @@ Acceptance:   given a candidate for which a routed walkable path was
               recommendation, when its stops are examined, then no
               park-and-walk stop among them was priced without an obtained
               elevation profile
-Status:       draft
+Status:       to-build
 Depends-on:   FR-074; FR-082
 Volatility:   settled — the flowchart under
               `CalculationSpecification.md § Stop time` makes a connected path
@@ -618,7 +636,7 @@ Acceptance:   given two identical journeys whose corridors differ only in that
               given an uncertain candidate, when alternatives are scored and
               ranked, then it carries no score and contributes to no
               alternative's value
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-082
 Volatility:   settled — the exclusion from the cost model is stated absolutely
               by the sections defining the class, and it does not move with
@@ -655,17 +673,18 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall classify a zone as accessible only where it has
-              identified a connection between a legal stopping position and
-              the zone's coordinate.
+              identified a connection between a stopping position established
+              under `SPECIFICATION.md § What establishes a stopping position`
+              and the zone's coordinate.
 Category:     Access classification
 Source:       SPECIFICATION.md § Accessibility principle
 Priority:     MUST
-Verification: test — a candidate for which no connection between a legal
-              stopping position and its coordinate has been identified is not
-              classified accessible, and neither is one lying within a
-              configured radius of a road or a parking location with no such
-              connection identified
-Acceptance:   given a candidate for which no connection between a legal
+Verification: test — a candidate for which no connection between an
+              established stopping position and its coordinate has been
+              identified is not classified accessible, and neither is one
+              lying within a configured radius of a road or a parking location
+              with no such connection identified
+Acceptance:   given a candidate for which no connection between an established
               stopping position and the zone's coordinate has been identified,
               when its access is classified, then it is not classified
               directly road-accessible or park-and-walk
@@ -674,7 +693,7 @@ Acceptance:   given a candidate for which no connection between a legal
               connection has been identified, when its access is classified,
               then it is not classified directly road-accessible or
               park-and-walk
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-092
 Volatility:   settled — the principle is stated as governing its whole section
               and as taking precedence over any narrower statement in it, and
@@ -691,56 +710,73 @@ Rationale:    The cited section states that a zone is accessible only where
               efficient connection between a legal stopping position and the
               zone's coordinate, and that this principle governs the whole of
               its section and takes precedence over any narrower statement in
-              it. What this record carries is the identification: safe is
-              carried by FR-070, FR-075, FR-076 and FR-077, and sufficiently
-              efficient by FR-080 together with the comparison FR-011 owns, so
-              nothing here restates either and no part of the expression that
-              section sets out is transcribed into a criterion — a record
-              reproducing it would give that model a second home. The second
-              criterion is the section's own prohibition, that a zone is not
-              accessible merely because its centre lies within a configured
-              radius of a road or parking location, and it is the branch this
-              record fires on.
+              it. Legal is dropped rather than defined, and establishment is
+              the qualifier the statement carries instead:
+              `SPECIFICATION.md § What establishes a stopping position` names
+              the legal stopping location of the cited principle among the
+              spellings it governs, and states outright that establishment
+              does not establish that stopping is lawful at the moment of
+              arrival, so a criterion testing lawfulness would oblige a
+              finding the data cannot support, while legal read as not marked
+              restricted is unknown upgraded to permitted by defaulting — the
+              failure that definition refuses by name. The obligation does not
+              move with the qualifier: what changes is that the antecedent
+              becomes decidable, and which positions may play the role the
+              connection starts from is FR-092's. What this record carries is
+              the identification: safe is carried by FR-070, FR-075, FR-076
+              and FR-077, and sufficiently efficient by FR-080 together with
+              the comparison FR-011 owns, so nothing here restates either and
+              no part of the expression that section sets out is transcribed
+              into a criterion — a record reproducing it would give that model
+              a second home. The second criterion is the section's own
+              prohibition, that a zone is not accessible merely because its
+              centre lies within a configured radius of a road or parking
+              location, and it is the branch this record fires on.
 Resolved-by:  —
 ```
 
 ## FR-092 — Identify a stopping position rather than manufacture one
 
 ```
-Statement:    The system shall identify a stopping position for every
-              candidate it classifies as directly road-accessible or
-              park-and-walk, and shall not treat the position on a drivable
-              way nearest the zone's coordinate as one on that nearness alone.
+Statement:    The system shall identify a stopping position established under
+              `SPECIFICATION.md § What establishes a stopping position` for
+              every candidate it classifies as directly road-accessible or
+              park-and-walk.
 Category:     Access classification
 Source:       SPECIFICATION.md § Direct road-access validation;
-              SPECIFICATION.md § Access-path validation
+              SPECIFICATION.md § Access-path validation;
+              SPECIFICATION.md § What establishes a stopping position
 Priority:     MUST
-Verification: test — a confidently classified candidate carries an identified
-              stopping position, a candidate offered only the nearest drivable
-              position to its coordinate with nothing establishing that a
-              vehicle can stop there is not confidently classified, and one
-              for which no position can be identified is not either
+Verification: test — a confidently classified candidate carries a stopping
+              position identified before any check about its stop was
+              evaluated, a candidate offered only the nearest drivable
+              position to its coordinate with no stopping feature identified
+              there is not confidently classified, and one for which no
+              stopping position can be identified is classified uncertain
+              rather than excluded
 Acceptance:   given a candidate classified directly road-accessible or
-              park-and-walk, when its access classification completes, then a
-              stopping position has been identified for it and is recorded
-              with the classification
+              park-and-walk, when its access classification completes, then
+              the classification carries a stopping position that was
+              identified before any check about the stop was evaluated
               given a candidate whose only offered position is the position on
-              a drivable way nearest its coordinate, with nothing further
-              establishing that a vehicle can be stopped there, when its
-              access is classified, then that position does not establish a
-              stopping position and the candidate is not classified directly
-              road-accessible or park-and-walk
+              a drivable way nearest its coordinate and at which the data
+              carries no stopping feature, when its access is classified, then
+              that position does not establish a stopping position and the
+              candidate is not classified directly road-accessible or
+              park-and-walk
               given a candidate for which no stopping position can be
-              identified, when its access is classified, then it is classified
-              uncertain or excluded rather than priced from a position the
-              system constructed for it
-Status:       draft
-Depends-on:   FR-067; FR-068
-Volatility:   open-question — the parking areas, stopping restrictions and
-              access attributes an identification reads are the OSM-derived
-              feature data `Architecture.md § D4` decides the store holds, and
-              `Architecture.md § Still owed by this document` records those
-              tables as owed, undesigned and unreviewed rather than built
+              identified and which no enforceable exclusion removes, when its
+              access is classified, then it is classified uncertain rather
+              than excluded or priced from a position the system constructed
+              for it
+Status:       to-build
+Depends-on:   FR-067
+Volatility:   open-question — the cited definition names the kinds of feature
+              that establish a position and leaves their identifying
+              attributes to the OSM-derived feature tables
+              `Architecture.md § D4` decides the store holds, which
+              `Architecture.md § Still owed by this document` records as owed,
+              undesigned and unreviewed rather than built
 Risk:         A snapped coordinate is a stopping position the system invented,
               and one is available for every zone in the extract, so a
               classifier built on snapping never runs short of them. It
@@ -752,20 +788,52 @@ Risk:         A snapped coordinate is a stopping position the system invented,
               rim as readily as for a car park. Nothing downstream can see it,
               because the position is a real place on a real way and every
               figure computed from it is plausible.
-Rationale:    The cited direct-access section requires evidence that the
-              vehicle can stop at a valid location from which the zone can
+Rationale:    The obligation is positive by design. Stated as a prohibition on
+              manufactured positions it reaches only the manufactures someone
+              thought of, and the cited definition refuses four of them; the
+              enumeration form always has one more member in it, which is the
+              form FR-083 was re-keyed away from. The nearest point on a
+              drivable way is kept as the second criterion because it is the
+              manufacture an implementation reaches for first, not because it
+              is the rule. The direct-access section requires evidence that
+              the vehicle can stop at a valid location from which the zone can
               actually be captured, and the access-path section measures the
               walkable route from the proposed stopping position: both name
               the object and neither obliges its identification, which is why
               it appears in the corpus only inside FR-006's exception clause
-              while eight records in this batch pivot on it. Not FR-085's:
-              that record obliges a connection between a legal stopping
-              position and the coordinate, and with nothing constraining what
-              may play that role a snapped edge point satisfies it through a
-              trivial connection. What may be concluded about a position's
-              legality is bounded by
+              while eight records in this batch pivot on it. The first
+              criterion binds the ordering, because identification obliged
+              only at completion is satisfied by an implementation that
+              evaluates every check against a nearest-way proxy and identifies
+              the real position afterwards; FR-070's rationale carries why
+              that proxy fails and it is not repeated here. The third
+              criterion sends the candidate to uncertain and not to exclusion,
+              on the cited definition's own rule that a position which is not
+              established is uncertain and that uncertain is not excluded; the
+              exclusions bind the position independently of any feature and
+              are FR-075's, FR-076's and FR-089's. Its guard is the cited
+              section's own, whose uncertain arm resolves the candidate where
+              no exclusion applies, and it is kept rather than dropped so that
+              an exclusion binding on a ground independent of the position
+              still removes the candidate. None of the three reaches the
+              absence of a position itself: each presupposes an identified
+              position, or a connection identified from one, and FR-076's
+              first criterion carries that presupposition rather than leaving
+              it to be read in — left to be read in, it is met by any
+              candidate for which no position was identified at all, since
+              there is certainly no connected route from a position that does
+              not exist, and the guard then returns this criterion's own case
+              to the exclusion it was written to survive. Not FR-085's: that
+              record obliges the identification of a connection between a
+              stopping position and the coordinate, this one the
+              identification of the position that connection starts from, and
+              a system can identify a connection from a position it
+              manufactured. What may be concluded about a position's legality
+              is bounded by
               `SPECIFICATION.md § Requirements the data cannot verify` and is
-              not claimed here — this record obliges identification and
+              not claimed here — the cited definition states outright that
+              establishment does not establish that stopping is lawful at the
+              moment of arrival, this record obliges identification and
               refuses manufacture, and whether an identified position is one a
               driver can really use is the judged standard NFR-007 carries.
               That the road the position sits on must itself be admissible is

@@ -145,6 +145,7 @@ This is **the identifier rule above reaching the token's other half**, which is 
 - `docs/Requirements/access-classification.md` — born token-form
 - `docs/Requirements/candidate-identification.md` — born token-form
 - `docs/Requirements/classification-correctness.md` — born token-form
+- `docs/Requirements/cost-and-time-composition.md` — migrated
 - `docs/Requirements/coverage-and-data-quality.md` — born token-form
 - `docs/Requirements/journey-initialization.md` — born token-form
 - `docs/Requirements/multi-leg-budget-allocation.md` — born token-form
