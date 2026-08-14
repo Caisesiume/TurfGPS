@@ -81,7 +81,7 @@ Re-enter genesis only if the Owner explicitly declares the picture stale. A thin
 **Authoring continues in parallel with implementation**, on the Owner's ratified sequencing: work starts on the layer the architecture determines while later batches are still being written, because a layer the architecture already fixes cannot be invalidated by a requirement not yet authored.
 
 The cycle per remaining batch:
-1. Commission `@requirements-engineer` over the approved documents, **in batches by source section**.
+1. Commission `@requirements-engineer` over the approved documents. It batches by coupled cluster and returns the cluster's ambiguities before authoring anything; the discipline and its reasons are `requirements-engineer § Mode A`. What you check is that each batch reports its size and, where it ran over the cap, why the cluster held — no signature gates a batch any more, so that report is what tells you a batch was read rather than counted.
 2. Receive its **decisions digest** and relay it to the Owner as information — no answer required, and no batch waits on one.
 3. Front only its **§21 escalations** as questions, each with its recommendation.
 4. The RE records the `to-build` transition itself; `@requirements-story-organizer` cuts the batch's Epics and stories onto the board, and **the RE dispatches `@backlog-dependency-planner` over that batch itself** — a story batch is mandatory pipeline continuation, not a decision routed through you.

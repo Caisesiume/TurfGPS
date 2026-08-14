@@ -47,6 +47,14 @@ A name the API answers for and does not recognise is a **rejection**: the user h
 
 A validation call that cannot complete — a timeout, a server error, a rate-limit response — is **not** a rejection. The system does not know whether the name is good. After a retry, the user may proceed provisionally: the name is stored unvalidated, the default takeover time under *Default when rank is unknown* in `CalculationSpecification.md` applies, and validation is retried on the first search. Treating an outage as a bad username would lock out a correct user because a third party is down.
 
+**Step two: attribute ranking.** The user orders all eleven attributes from 1 to 11 by dragging them, per *Attribute preference* in `SPECIFICATION.md`.
+
+The list is **pre-ordered by rarity** — `Summit` first through `Holy` last, following the *Attribute rarity* table in `SPECIFICATION.md` — so an untouched list is already a valid ranking. Nobody is required to make eleven decisions before their first search; the ordering is there to be adjusted, not constructed from nothing. This also answers the cold-start problem noted under *Why attributes matter: unique zones and medals* in `SPECIFICATION.md`, without waiting for the medal-derived feature.
+
+**Only when both steps are complete does the planner open.**
+
+Both values are stored locally, in a cookie or local storage, and persist across visits. There are no accounts — see *No accounts* in `SPECIFICATION.md` — so this is per-device, and a user on a new device repeats the wizard. Both must remain editable afterwards; preferences change, and a ranking set once should not be permanent.
+
 ### Never gate stored plans on the wizard
 
 A returning user with stored values **must be able to open existing plans while the Turf API is unavailable.**
@@ -56,14 +64,6 @@ This follows directly from the persistence requirement under *Route persistence*
 Nothing about a stored route depends on the Turf API. The roads and zones are geography and remain valid, as established under *Stored routes go stale* in `SPECIFICATION.md`. Only the volatile overlay — ownership indicators, refreshed points — is unavailable, and its absence is a degraded display, not a reason to withhold the plan.
 
 The gate exists to stop someone *planning* without the data that makes a plan good. It must not stop someone *reading* a plan they already made.
-
-**Step two: attribute ranking.** The user orders all eleven attributes from 1 to 11 by dragging them, per *Attribute preference* in `SPECIFICATION.md`.
-
-The list is **pre-ordered by rarity** — `Summit` first through `Holy` last, following the *Attribute rarity* table in `SPECIFICATION.md` — so an untouched list is already a valid ranking. Nobody is required to make eleven decisions before their first search; the ordering is there to be adjusted, not constructed from nothing. This also answers the cold-start problem noted under *Why attributes matter: unique zones and medals* in `SPECIFICATION.md`, without waiting for the medal-derived feature.
-
-**Only when both steps are complete does the planner open.**
-
-Both values are stored locally, in a cookie or local storage, and persist across visits. There are no accounts — see *No accounts* in `SPECIFICATION.md` — so this is per-device, and a user on a new device repeats the wizard. Both must remain editable afterwards; preferences change, and a ranking set once should not be permanent.
 
 ---
 

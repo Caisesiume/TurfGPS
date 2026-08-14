@@ -187,3 +187,605 @@ Rationale:    This restates neither FR-045's prohibition nor FR-047's
               binds how the alternative is presented rather than refusing it.
 Resolved-by:  #56
 ```
+
+## FR-061 — Test the stated limit and the ceiling against the whole additional time
+
+```
+Statement:    The system shall test a journey alternative against the
+              additional-time limit the user stated and against the absolute
+              ceiling derived from it using the alternative's total additional
+              time relative to the fastest conventional route, comprising both
+              its general-route deviation and the time its Turf stops add,
+              composed per
+              `CalculationSpecification.md § Additional journey time`.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § General route alternatives;
+              SPECIFICATION.md § User time constraints
+Priority:     MUST
+Verification: test — an alternative whose Turf stops alone fall within the
+              stated limit, but which is built on a general road route slower
+              than the fastest conventional one by enough to carry the pair
+              past it, is not treated as within that limit, and the same pair
+              carried past the ceiling is not treated as within the ceiling
+Acceptance:   given a journey alternative whose Turf stop time alone is within
+              the limit the user stated and whose general-route deviation and
+              Turf stop time together exceed it, when it is tested against
+              that limit, then it is not treated as being within it
+              given a journey alternative whose Turf stop time alone is within
+              the absolute ceiling and whose general-route deviation and Turf
+              stop time together exceed it, when it is tested against that
+              ceiling, then it is not treated as being within it
+              given a journey alternative built on the fastest conventional
+              route, when it is tested against either of them, then the
+              quantity tested is its Turf stop time alone
+              given two journey alternatives carrying equal Turf stop time,
+              one built on the fastest conventional route and one on a slower
+              general road route, when each is tested against that limit, then
+              the one on the slower route is measured as the more costly
+Status:       draft
+Depends-on:   FR-008; FR-038; FR-044
+Volatility:   settled — the quantity and the baseline it is measured against
+              were ruled by the Owner on 7 August 2026; the ceiling it also
+              tests is derived from a proposed multiplier under
+              `CalculationSpecification.md § The absolute additional-time ceiling`,
+              and this record binds the quantity rather than that figure
+Risk:         The general-route deviation is the larger of the two terms on
+              any journey where the roads genuinely differ, so a limit tested
+              against the Turf half alone understates the promise by the
+              biggest number in it: a route half an hour longer by road is
+              offered as costing the minutes its stops took. The ceiling is
+              derived from the same stated limit under FR-044 and is enforced
+              by FR-045 against whatever quantity its implementer reads, so
+              the understatement propagates into the one check that may never
+              be wrong, and every check still reports compliance.
+Rationale:    Three readings of the quantity are available and two of them
+              survive a single criterion: the limit measured against the Turf
+              half alone, against the general-route deviation alone, and
+              against the sum. The first, third and fourth criteria close
+              them. The second criterion carries the ceiling, and it is here
+              because FR-045 forbids offering an alternative whose additional
+              time exceeds the ceiling while nothing in the corpus composes
+              that quantity — leaving its implementer two figures to choose
+              from, of which the Turf half is the one FR-062 obliges the
+              system to retain separately. This stays one record rather than
+              two on FR-053's precedent: one composed sum tested against two
+              limits is one obligation, not a second. FR-045 is signed and is
+              not amended here; this record fixes the quantity it tests,
+              exactly as FR-044 fixes the base its ceiling is derived from.
+              This record does not touch what FR-008 measures — the Turf
+              figure stays per alternative against the general road route it
+              is built on, which is the baseline that keeps two Turf
+              strategies on one road comparable — and the amendment recording
+              that on FR-008 is `@requirements-engineer`'s. FR-053 fixes the
+              same quantity across a journey's legs and this record fixes what
+              enters it on each leg; neither states the other. The arithmetic
+              has one home and is cited, per `docs/README.md § Conventions`.
+Resolved-by:  —
+```
+
+## FR-069 — Reject a direct-access tolerance above the permitted value
+
+```
+Statement:    The system shall reject a configuration that sets the
+              direct-access tolerance above the value stated under
+              `CalculationSpecification.md § Direct-access tolerance`.
+Category:     Safety exclusions
+Source:       CalculationSpecification.md § Direct-access tolerance
+Priority:     MUST
+Verification: test — a configuration setting the tolerance above the stated
+              value is refused and no journey is planned under it, while one
+              setting it below is accepted and the tighter tolerance is the
+              one enforced
+Acceptance:   given a configuration setting the direct-access tolerance above
+              the value stated under
+              `CalculationSpecification.md § Direct-access tolerance`, when
+              the system starts, then the configuration is refused and no
+              journey is planned under it
+              given a configuration setting that tolerance below the stated
+              value, when the system starts, then the configuration is
+              accepted and the tolerance enforced is the one it sets
+Status:       draft
+Depends-on:   FR-068
+Volatility:   proposed-constant — the stated value is a proposed default the
+              cited section marks as worth checking early against real
+              captures, so the point this record enforces at is expected to
+              move; the direction it may be configured in is not
+Risk:         Raising this constant mis-prices nothing, which is why it looks
+              harmless in a configuration diff: it enlarges the set of zones
+              handed to a driver as capturable from the seat with no
+              walk-safety gate ever entered. Every access check still passes,
+              because the checks that would have failed are precisely the ones
+              a raised tolerance skips.
+Rationale:    The cited section names this an enforcement constant whose
+              strict direction is downward, and
+              `CalculationSpecification.md § Conventions` states what that
+              means: a deployment may tighten it and may never loosen it, and
+              the documented value is the limit of what is permitted rather
+              than a midpoint to tune around. `Source` is the calculation
+              section because that is where this obligation is created,
+              exactly as FR-046 records for the ceiling multiplier; the model
+              the constant serves is
+              `SPECIFICATION.md § Directly road-accessible zones`'s and is
+              cited by FR-068 for it. Refusal rather than silent clamping
+              follows the reasoning FR-046 records: a clamp runs the
+              deployment its operator did not configure and hides the
+              misconfiguration behind correct behaviour. The second criterion
+              is what keeps this record from hardening a proposed default into
+              a fixed figure.
+Resolved-by:  —
+```
+
+## FR-070 — Require compatible levels and no barrier for direct road access
+
+```
+Statement:    The system shall classify a zone as directly road-accessible
+              only where the stopping position and the zone are established to
+              be at compatible levels with no intervening barrier between
+              them.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Direct road-access validation
+Priority:     MUST
+Verification: test — a zone above a road that passes beneath it, a zone
+              beneath a bridge carrying the road, and a zone separated from
+              the road by a retaining wall are each not classified directly
+              road-accessible, while a zone established to be at a compatible
+              level with nothing between is not refused by this check
+Acceptance:   given a candidate whose bridge, tunnel or layer data indicates
+              that the stopping position and the zone do not meet, when its
+              access is classified, then it is not classified directly
+              road-accessible
+              given a candidate for which the data records a barrier between
+              the stopping position and the zone, when its access is
+              classified, then it is not classified directly road-accessible
+              given a candidate established to be at a level compatible with
+              the stopping position with no barrier recorded between them,
+              when its access is classified, then this check does not refuse
+              it the direct class
+Status:       draft
+Depends-on:   FR-068; FR-092
+Volatility:   open-question — the bridge, tunnel, layer and barrier attributes
+              this record tests are the OSM-derived feature data
+              `Architecture.md § D4` decides the store holds, and
+              `Architecture.md § Still owed by this document` records those
+              tables as owed, undesigned and unreviewed rather than built
+Risk:         This class tells a driver they can take the zone without leaving
+              the car. Wrong by a level, it directs them to stop on a road
+              that passes under or over the zone entirely, at a place where
+              the capture cannot happen and where stopping was justified only
+              by the capture. The two-dimensional test that produces this
+              failure is the obvious implementation and looks correct on a
+              map.
+Rationale:    This is one of the exclusions under
+              `SPECIFICATION.md § Enforceable exclusions`, which states the
+              prohibition and points here for its content, so the record is
+              sourced where that content lives. The position tested is the
+              candidate's stopping position — the one FR-092 obliges be
+              identified — and not whatever way lies nearest its coordinate,
+              which is why `Depends-on` names that record. A bridge and its
+              approach are two ways carrying different `layer` values, and
+              both can lie within the direct-access tolerance of one
+              coordinate, so a check evaluated against a position other than
+              the one the car will stop at can pass on the approach while the
+              car stops on the bridge. It is not FR-071's: that record governs
+              where a candidate goes when this check fails, and a system that
+              never runs the check fails this record while never firing that
+              one. The third criterion states this record's own bound — the
+              remaining condition on the direct class is the road-class and
+              speed-limit exclusions under
+              `SPECIFICATION.md § Enforceable exclusions`, which FR-089
+              carries for both branches and this record does not — so it
+              cannot be read as the whole test for the class.
+Resolved-by:  —
+```
+
+## FR-076 — Exclude an absent, disconnected, or implausibly steep access path
+
+```
+Statement:    The system shall exclude a candidate zone whose access path is
+              absent, disconnected, or steeper than the configured
+              implausible-gradient threshold recorded as owed under
+              `CalculationSpecification.md § Enforcement constants that do not yet exist`,
+              which is a distinct value from the maximum acceptable path
+              gradient the user configures under
+              `SPECIFICATION.md § User-configurable terrain tolerance` and is
+              never relaxed by it.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Elevation and feasibility rules
+Priority:     MUST
+Verification: test — a candidate for which no connected walking route can be
+              identified is excluded rather than priced by any estimate, one
+              whose path carries a section steeper than the configured
+              threshold is excluded whatever the zone carries, and one so
+              excluded stays excluded when the user's maximum acceptable path
+              gradient is set less strict than that threshold
+Acceptance:   given a candidate for which no connected walking route between a
+              stopping position and the zone's coordinate can be identified,
+              when its access is classified, then it is excluded and is not
+              priced by a straight-line estimate
+              given a candidate whose identified access path carries a section
+              steeper than the configured implausible-gradient threshold, when
+              its access is classified, then it is excluded
+              given the same candidate and a maximum acceptable path gradient
+              the user configured less strict than that threshold, when its
+              access is classified, then it is still excluded and the user's
+              setting does not admit it
+              given a candidate excluded under this rule which carries the
+              attribute the user ranked highest, when journey alternatives are
+              produced, then no alternative includes it
+Status:       draft
+Depends-on:   FR-067; FR-074; FR-092
+Volatility:   open-question — the implausible-gradient threshold has no value
+              in any document and is recorded as an owed enforcement constant
+              under
+              `CalculationSpecification.md § Enforcement constants that do not yet exist`,
+              which also records that it may need to be per elevation
+              provider, so the shape of the constant and not only its value is
+              unsettled
+Risk:         This is the exclusion standing between a recommendation and a
+              driver climbing an embankment or a quarry edge at the roadside,
+              and it is the one the data supports least:
+              `Architecture.md § D6` records that a global thirty-metre model
+              cannot resolve a retaining wall, which is narrower than one
+              cell. Enforced against an optimistic threshold the system
+              recommends the stop with full confidence and the failure is not
+              a bad estimate but a fall. Enforced against none while the value
+              is owed, the steep limb of this record is dead for every
+              candidate while every test written for it still passes on the
+              other two — the state FR-091 refuses.
+Rationale:    The cited section lists the conditions on which a candidate is
+              excluded or strongly penalized, and
+              `SPECIFICATION.md § Enforceable exclusions` makes three of them
+              hard rules — absent, disconnected, implausibly steep — which is
+              why this record obliges exclusion and authors no penalty: no
+              penalty scale exists, and a hard rule stated as a penalty is one
+              that can be outbid. The threshold is cited to the section that
+              owns it rather than to
+              `SPECIFICATION.md § Enforceable exclusions`, which names the
+              exclusion qualitatively and states no threshold at all; an
+              implementer following a citation to a phrase writes the
+              unexplained literal
+              `CalculationSpecification.md § Conventions` forbids. The
+              statement separates that threshold from the user's maximum
+              acceptable path gradient under
+              `SPECIFICATION.md § User-configurable terrain tolerance` because
+              nothing else in the corpus does, and wiring the two together is
+              the obvious implementation: it reads as respecting the user
+              while relaxing the exclusion exactly where the user asked for
+              more tolerance. That the user's setting may tighten the
+              effective limit is permitted by that tolerance section and is
+              obliged nowhere, on the ground FR-080 records for the
+              walking-distance bound. The statement binds the system to read
+              the configured threshold and enforce it rather than to any
+              figure, which is the only correct shape while the value is owed,
+              per `safety-path-checklist § The proposal boundary`; that it may
+              not be enforced against no value at all is FR-091's. The
+              remaining conditions in that list are covered rather than
+              dropped: an approach across unmapped terrain reaches the
+              fallback and FR-083, an insufficiently confident estimate is
+              FR-082's, and a cliff or wall the data shows is what makes the
+              path disconnected. The fourth criterion is the branch this
+              record ever fires on, on FR-045's precedent — an excluded
+              candidate nobody wanted needs no rule.
+Resolved-by:  —
+```
+
+## FR-077 — Let no zone's value admit an unsafe or infeasible access route
+
+```
+Statement:    The system shall not admit a candidate whose access route is
+              classified as unsafe, illegal, or physically infeasible on the
+              grounds of the Turf value the zone carries or of the terrain
+              tolerance the user configured.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Elevation and feasibility rules;
+              SPECIFICATION.md § User-configurable terrain tolerance
+Priority:     MUST
+Verification: test — a candidate excluded on access grounds stays excluded
+              when it carries the user's highest-ranked attribute, stays
+              excluded when the user's terrain tolerance is configured
+              generously enough to admit its walk, and stays excluded when the
+              user's maximum acceptable path gradient is configured generously
+              enough to admit its climb
+Acceptance:   given a candidate whose access route is classified unsafe,
+              illegal, or physically infeasible and which carries the
+              attribute the user ranked highest, when journey alternatives are
+              produced, then no alternative includes it
+              given the same candidate and a terrain tolerance the user
+              configured generously enough to admit its walking distance and
+              its elevation gain, when journey alternatives are produced, then
+              no alternative includes it
+              given a candidate whose access path carries a section steeper
+              than the configured implausible-gradient threshold and a maximum
+              acceptable path gradient the user configured generously enough
+              to admit that path, when journey alternatives are produced, then
+              no alternative includes it
+Status:       draft
+Depends-on:   FR-076
+Volatility:   settled — the record rests on the precedence of an access
+              classification over value and over a user setting, which both
+              cited sections state and neither leaves open; the threshold its
+              third criterion fires against is owed, per FR-076, which moves
+              how often that criterion fires rather than whether the record
+              holds
+Risk:         The pressure is structural rather than occasional:
+              `SPECIFICATION.md § The weighting is extreme` makes attribute
+              weights steep enough that the optimizer will spend everything it
+              has to reach one zone, so the case where value argues against an
+              access classification is the ordinary case at the top of the
+              ranking rather than an edge. A tolerance setting is the second
+              route to the same place, and it arrives looking like the user's
+              own choice.
+Rationale:    Both cited sections state the same precedence from opposite
+              sides — a highly valued attribute may justify additional walking
+              time or elevation gain but must not override an access route
+              classified unsafe, illegal or physically infeasible, and the
+              terrain settings influence which feasible zones are recommended
+              without permitting unsafe or inaccessible ones — so this is one
+              obligation with two grounds rather than two records. It is
+              FR-045's shape one level down: that record refuses value as a
+              reason to exceed the ceiling, this one refuses value as a reason
+              to cross an access classification, and
+              `SPECIFICATION.md § Requirements the data cannot verify` states
+              the general form, that safety is a constraint on the search
+              space and never a term in the objective. The third criterion is
+              in the gradient dimension because the second is not, and the gap
+              matters: nothing outside FR-076's statement says the enforcement
+              threshold and the user's maximum acceptable path gradient are
+              different objects, so an implementation computing physically
+              infeasible from the user's setting would leave this record an
+              antecedent that never fires — a criterion that can never fail,
+              which is the one kind the corpus rejects. Its antecedent is
+              FR-076's threshold precisely because that quantity does not move
+              with the user's setting.
+Resolved-by:  —
+```
+
+## FR-089 — Propose no stop on a road the exclusions refuse
+
+```
+Statement:    The system shall propose no stopping position on a road the
+              road-class and speed-limit exclusions under
+              `SPECIFICATION.md § Enforceable exclusions` do not admit as a
+              stopping place.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              SPECIFICATION.md § Directly road-accessible zones
+Priority:     MUST
+Verification: test — a candidate whose stopping position is on a motorway or a
+              motorway link reaches neither confident class, a zone off a
+              rural road posted above the maximum and reachable by a mapped
+              track is not offered as a park-and-walk stop from a position on
+              that carriageway, a candidate within the direct-access tolerance
+              refused on this ground is evaluated on the park-and-walk branch
+              rather than excluded, and one whose stopping position is on an
+              admitted road is refused neither class by this check
+Acceptance:   given a park-and-walk candidate whose identified stopping
+              position is on a road the road-class and speed-limit exclusions
+              under `SPECIFICATION.md § Enforceable exclusions` do not admit
+              as a stopping place, when its access is classified, then that
+              position is not proposed for it and it is not classified
+              park-and-walk on that position
+              given a candidate within the direct-access tolerance whose
+              identified stopping position is on such a road, when its access
+              is classified, then it is not classified directly
+              road-accessible and is evaluated on the park-and-walk branch
+              rather than excluded on that finding
+              given a candidate whose identified stopping position is on a
+              road those exclusions admit as a stopping place, when its access
+              is classified, then this check refuses it neither confident
+              class
+Status:       draft
+Depends-on:   FR-068; FR-092
+Volatility:   proposed-constant — the maximum speed limit for a stopping road
+              under
+              `CalculationSpecification.md § The maximum speed limit for a stopping road`
+              is a proposed default with no origin, so which roads this record
+              refuses moves with it even though the refusal itself does not
+Risk:         A confident class tells a driver to stop, and this record is the
+              only thing on either access path that asks what road they are
+              being told to stop on. On the direct path a zone six metres from
+              a drivable edge, at a compatible level with nothing between,
+              reaches the class on a derestricted autobahn — the outcome
+              `SPECIFICATION.md § An unknown speed limit fails the check`
+              names as the single worst one the exclusion exists to prevent.
+              On the walking path the same hole is quieter and no less
+              reachable: a rural trunk road posted above the maximum, a zone
+              forty metres off it, a mapped track between them, and every
+              remaining gate passes — the output is a confident park-and-walk
+              stop requiring the driver to stop on that carriageway and stand
+              on its verge. In both cases every check the classifier ran
+              reports a pass, because the check that would have failed was
+              never written.
+Rationale:    The obligation is on the stop and not on a class, because that
+              is where the cited section puts it: no stop may be proposed on
+              such a road, on either branch. `Architecture.md § D3` reads the
+              same way from the other side, naming the edge attributes the
+              routing engine returns as what that section must test against
+              when validating a stopping position. An earlier form of this
+              record gated the direct class alone, and what that left is
+              FR-068's other branch — a candidate beyond the direct-access
+              tolerance goes to the walking evaluation with nothing there
+              asking what road its stopping position sits on. Binding the
+              position covers both branches in one record, because FR-092
+              obliges an identified stopping position for both confident
+              classes and this record refuses a class of road for whichever
+              branch produced it. Where a refusal sends the candidate is
+              stated rather than left for an implementer to pick, and the
+              cited section supplies the answer: a nearby rest area, service
+              road, parking area or exit may still make the zone accessible
+              while the high-speed carriageway itself never is, so what is
+              refused is the position and not the zone. On the direct branch
+              that is a downgrade to the park-and-walk branch, FR-071's shape
+              on an antecedent that record does not reach, its own being a
+              level or barrier finding. The composition is not a way round
+              this record: a candidate downgraded here meets it again on the
+              walking branch, where a stopping position on the same
+              carriageway is refused by the first criterion, and where no
+              admissible position is identified at all FR-092's third
+              criterion carries the destination. This record exists because
+              FR-067 obliges every classified candidate into exactly one of
+              four classes while FR-070's third criterion affirmatively
+              declines to refuse the direct class on any other ground, which
+              completed a path to a confident class around the gap it fills.
+              What establishes a speed limit, what a road carrying more than
+              one does, and that no lookup table may resolve a jurisdictional
+              value are stated under
+              `SPECIFICATION.md § Enforceable exclusions` and are owed to the
+              batch scoped there, so none of it is restated in a criterion
+              here and the criteria refer the decision to that section rather
+              than making it. The constant those attributes are compared
+              against has one home and is never quoted here, and that it may
+              not be configured upward is FR-090's.
+Resolved-by:  —
+```
+
+## FR-090 — Reject a maximum stopping speed above the permitted value
+
+```
+Statement:    The system shall reject a configuration that sets the maximum
+              speed limit for a stopping road above the value stated under
+              `CalculationSpecification.md § The maximum speed limit for a stopping road`.
+Category:     Safety exclusions
+Source:       CalculationSpecification.md § The maximum speed limit for a stopping road
+Priority:     MUST
+Verification: test — a configuration setting the maximum above the stated
+              value is refused and no journey is planned under it, while one
+              setting it below is accepted and the lower maximum is the one
+              enforced
+Acceptance:   given a configuration setting the maximum speed limit for a
+              stopping road above the value stated under
+              `CalculationSpecification.md § The maximum speed limit for a stopping road`,
+              when the system starts, then the configuration is refused and no
+              journey is planned under it
+              given a configuration setting that maximum below the stated
+              value, when the system starts, then the configuration is
+              accepted and the maximum enforced is the one it sets
+Status:       draft
+Depends-on:   FR-089
+Volatility:   proposed-constant — the stated value is a proposed default by
+              default, carrying no origin, no measurement and no cited source,
+              so the point this record enforces at is expected to move; the
+              direction it may be configured in is not
+Risk:         Raising this constant admits roads the cost model prices nothing
+              for. The roadside rows under
+              `CalculationSpecification.md § Proposed placeholder timings` run
+              only as far as the exclusion does, so a raised maximum puts
+              stopping places into the model with nothing calibrated or even
+              guessed for stopping on them, and the driver is sent to the
+              verge of a carriageway faster than any road the timings were
+              written for. The pressure to raise it is structural rather than
+              occasional — the market holding the second-largest national
+              share of the zone corpus is one whose rural network the
+              exclusion removes — so it arrives as a coverage argument with a
+              one-line configuration edit behind it, and every exclusion check
+              still passes afterwards.
+Rationale:    `CalculationSpecification.md § Conventions` names the maximum
+              speed limit for a stopping road an enforcement constant and
+              states what that means: a deployment may tighten it and may
+              never loosen it, and the documented value is the limit of what
+              is permitted rather than a midpoint to tune around. The section
+              owning the constant states that its strict direction is downward
+              and gives the reason. `Source` is that calculation section
+              because that is where this obligation is created, on FR-046's
+              and FR-069's precedent; the exclusion the constant serves is
+              `SPECIFICATION.md § Enforceable exclusions`'s and is gated by
+              FR-089 for it. Refusal rather than silent clamping follows the
+              reasoning FR-046 records: a clamp runs the deployment its
+              operator did not configure and hides the misconfiguration behind
+              correct behaviour. The second criterion is what keeps this
+              record from hardening a proposed default into a fixed figure. No
+              figure is quoted anywhere here, and
+              `SPECIFICATION.md § The United Kingdom is a park-and-walk market`
+              is deliberately absent from `Source`: it measures the
+              consequence of the constant against the zone corpus and states
+              outright that it is not a source for the constant itself.
+Resolved-by:  —
+```
+
+## FR-091 — Plan no journey while an owed enforcement constant is unconfigured
+
+```
+Statement:    The system shall refuse to plan a journey while any enforcement
+              constant recorded as owed under
+              `CalculationSpecification.md § Enforcement constants that do not yet exist`
+              has no configured value.
+Category:     Safety exclusions
+Source:       CalculationSpecification.md § Enforcement constants that do not yet exist
+Priority:     MUST
+Verification: test — a configuration carrying no value for a constant that
+              section records as owed is refused and no journey is planned
+              under it, one carrying a value for some of them and none for the
+              rest is refused likewise, and one carrying a value for every
+              constant it records as owed is accepted and no journey is
+              refused on this ground
+Acceptance:   given a configuration carrying no value for a constant recorded
+              as owed under
+              `CalculationSpecification.md § Enforcement constants that do not yet exist`,
+              when the system starts, then the configuration is refused and no
+              journey is planned under it
+              given a configuration carrying a value for some of the constants
+              that section records as owed and no value for the rest, when the
+              system starts, then the configuration is refused and no journey
+              is planned under it
+              given a configuration carrying a value for every constant that
+              section records as owed, when the system starts, then the
+              configuration is accepted and no journey is refused on this
+              ground
+Status:       draft
+Depends-on:   FR-076
+Volatility:   open-question — neither constant the cited section records as
+              owed has a value in any document, and that section records that
+              the implausible-gradient threshold may need to be per elevation
+              provider, so for that one the shape of the constant and not only
+              its value is unsettled
+Risk:         Unset, a constant of this class is not a check that fails but a
+              check that silently never runs. The implausible-gradient
+              threshold is the sharper case: the comparison it feeds is false
+              for every candidate, so the steep limb of FR-076 never fires and
+              a quarry-rim candidate carrying a fragment of mapped path
+              reaches park-and-walk while every test written for FR-076 still
+              passes on its absent and disconnected limbs — on the one
+              exclusion whose failure is a fall rather than a bad estimate.
+              The conservative upper bound for an uncertain stop fails the
+              other way and just as quietly: the cited section makes it the
+              only sensor the absolute ceiling has for an uncertain stop, so
+              computed optimistically the ceiling check passes, FR-045's
+              refusal never fires, and a user accepts a zone that commits them
+              past the limit they stated. Every other enforcement constant in
+              the set has a record refusing a loosened value; these are the
+              ones with no value at all, and
+              `CalculationSpecification.md § Conventions` forbids the
+              alternative an implementer reaches for, a literal authored on
+              the spot with no origin.
+Rationale:    The cited section records these constants as required for the
+              system to behave as specified, states that they have no value
+              anywhere, and gives the reason for recording them: the first
+              implementer to need one cannot author it silently, as the
+              unexplained literal `CalculationSpecification.md § Conventions`
+              forbids. This record is that prohibition made enforceable. The
+              antecedent is the class that section records rather than one
+              member of it — an earlier form of this record covered the
+              gradient threshold alone, which left the second constant free
+              and would have gone stale the day a third was added. It is the
+              only shape available for any member: a value cannot be defaulted
+              here, because a default is the literal that section forbids and
+              this lane may not pick one, and it cannot be left out, because
+              omission is the dead limb FR-076's own `Risk` names. Refusal at
+              start rather than a quiet downgrade follows the reasoning FR-046
+              records for a clamp — the quiet path runs a deployment its
+              operator did not configure and hides the misconfiguration behind
+              plausible behaviour, which for the gradient threshold means a
+              coverage loss indistinguishable from thin map data. `Depends-on`
+              names FR-076 alone because it is the only consuming record that
+              exists: what consumes the conservative upper bound is owed to
+              the batch scoped to
+              `SPECIFICATION.md § Reconciling this with the absolute ceiling`,
+              and binding the class rather than the instance is exactly what
+              lets this refusal stand before that record is written. That the
+              system is blocked until the constants are authored is the intent
+              and not a side effect; authoring either value is owed to the
+              batch that owns it, and this record states what may not happen
+              meanwhile. Neither value nor shape is quoted, since neither
+              exists.
+Resolved-by:  —
+```

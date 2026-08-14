@@ -176,15 +176,16 @@ Source:       SPECIFICATION.md § User time constraints;
               DESIGN.md § Required and optional inputs
 Priority:     MUST
 Verification: test — the additional-time limit carries no value when the
-              planner opens, on a device where no journey has been planned and
-              on one where a journey has already been planned against a limit
-              the user entered
-Acceptance:   given a device on which no journey has been planned, when the
-              planner opens, then the additional-time limit carries no value
-              given a device on which a journey has been planned against a
-              limit the user entered, when the planner opens again, then the
-              additional-time limit carries no value
-Status:       draft
+              planner opens, on a device where no limit from an earlier
+              session is available and on one where such a limit is available,
+              whatever its provenance
+Acceptance:   given a device on which no additional-time limit from an earlier
+              session is available, whatever its provenance, when the planner
+              opens, then the additional-time limit carries no value
+              given a device on which an additional-time limit from an earlier
+              session is available, whatever its provenance, when the planner
+              opens again, then the additional-time limit carries no value
+Status:       to-build
 Depends-on:   FR-038
 Risk:         A pre-filled field is the assumption the section forbids,
               wearing the user's own consent. The value is on the screen, the
@@ -221,7 +222,25 @@ Rationale:    The Owner ruled on 6 August 2026 that a pre-filled default is
               the ruling literally: a limit restored from an earlier session
               was entered for a different journey, and the allowance is a
               property of the journey being planned rather than of the device.
-Resolved-by:  —
+              That reading names one source, and the Owner widened it on 7
+              August 2026: no value is present when the journey begins,
+              whatever its provenance. The criterion carries that universal
+              rather than an enumeration, because a named provenance reads as
+              a scope — an engineer holding a limit the system stored rather
+              than the user finds the obligation silent on it, and the
+              population default returns with a more personal-looking source.
+              Both criteria sit on retention rather than planning history, so
+              the pair covers every device state; a never-used device has
+              nothing available. What the record does not reach is a stored
+              plan being reopened. A stored route keeps the classifications
+              and costs behind it, per `SPECIFICATION.md § Route persistence`,
+              so the limit it was approved against belongs to that journey and
+              travels with it; reopening one is
+              `DESIGN.md § Returning to a stored plan` rather than the planner
+              opening, and `DESIGN.md § Never gate stored plans on the wizard`
+              draws that line itself. That is scope and not an obligation:
+              nothing here says what a reopened plan shows.
+Resolved-by:  #60
 ```
 
 ## FR-056 — Refuse an additional-time limit that is not positive
@@ -242,7 +261,7 @@ Acceptance:   given a request in which the user has entered an additional-time
               given that same request, when the user attempts to start
               planning, then the system supplies no additional-time limit of
               its own in place of the value refused
-Status:       draft
+Status:       to-build
 Depends-on:   FR-038
 Risk:         Every quantity in the allowance model is derived from the stated
               limit, per `SPECIFICATION.md § User time constraints`, so a
@@ -280,7 +299,7 @@ Rationale:    The Owner ruled on 6 August 2026 that a limit of zero or less is
               by a system that plans against a limit of its own choosing. What
               the interface says when it refuses is not authored here and no
               document states it.
-Resolved-by:  —
+Resolved-by:  #58
 ```
 
 ## FR-057 — Impose no maximum admissible additional-time limit
@@ -303,7 +322,7 @@ Acceptance:   given an additional-time limit above the high end of the
               given a further limit several times that one, when the user
               starts planning, then planning runs and the limit in force
               equals the value entered
-Status:       draft
+Status:       to-build
 Depends-on:   FR-040
 Rationale:    The Owner ruled on 6 August 2026 that no maximum is imposed.
               FR-040 does not already carry this: it obliges admission within
@@ -329,5 +348,5 @@ Rationale:    The Owner ruled on 6 August 2026 that no maximum is imposed.
               FR-041's precedent: nothing becomes unbuildable without this
               record, which forbids an addition rather than obliging a
               capability, and it binds whenever the input is built.
-Resolved-by:  —
+Resolved-by:  #59
 ```

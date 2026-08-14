@@ -34,27 +34,26 @@ Risk:         Count maximization is the failure mode this product exists to
               success.
 Rationale:    The statement forbids excluding an alternative *for its count*,
               not counting zones at all — the Zones objective under
-              *Optimization objectives* in `SPECIFICATION.md` legitimately
-              values zone count, and there the extra zones carry the value
-              this comparison already weighs. The source's word is "blindly".
-              The statement verb is `should`, following the source's "should
-              not blindly maximize"; the priority is separate and high. The
+              `SPECIFICATION.md § Optimization objectives` legitimately values
+              zone count, and there the extra zones carry the value this
+              comparison already weighs. The source's word is "blindly". The
+              statement verb is `should`, following the source's "should not
+              blindly maximize"; the priority is separate and high. The
               source's converse — a valuable zone that is still a poor
               recommendation because reaching it costs too much — is
               deliberately not authored here: stated generally it would oblige
               a strict ordering by value against cost, which the deliberately
               varied alternatives under
-              *Recommended journey alternatives* in `SPECIFICATION.md` do not
+              `SPECIFICATION.md § Recommended journey alternatives` do not
               follow, and the bound on what costs too much is owned by
-              *User time constraints* in the same document. That the
-              obligation is on the offered *set* and never on presentation
-              order is the Owner's ruling of 1 August 2026, and it follows
-              from the same place: the source's concern is that the
-              fewer-but-better alternative be dropped in favour of the count,
-              while an ordering reading would make those deliberately varied
-              alternatives — one of them a stretch offered with worse value
-              against cost — a violation of this record rather than the
-              feature they are.
+              `SPECIFICATION.md § User time constraints`. That the obligation
+              is on the offered *set* and never on presentation order is the
+              Owner's ruling of 1 August 2026, and it follows from the same
+              place: the source's concern is that the fewer-but-better
+              alternative be dropped in favour of the count, while an ordering
+              reading would make those deliberately varied alternatives — one
+              of them a stretch offered with worse value against cost — a
+              violation of this record rather than the feature they are.
 Resolved-by:  #10
 ```
 
@@ -88,8 +87,8 @@ Risk:         A single global trade-off makes the tool useless to precisely
               the output reveals that the balance was never theirs.
 Rationale:    The source's "must" is the strongest obligation in the section.
               What the user may state, and how a ranking becomes a weight, are
-              owned by *Attribute preference* in `SPECIFICATION.md` and
-              *Proposed rank-to-weight curve* in `CalculationSpecification.md`;
+              owned by `SPECIFICATION.md § Attribute preference` and
+              `CalculationSpecification.md § Proposed rank-to-weight curve`;
               this record obliges the optimizer to consume those preferences,
               not to collect them. The criteria assert non-identity rather
               than which alternative wins: that mapping is a proposal, not a

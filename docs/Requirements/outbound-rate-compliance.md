@@ -9,8 +9,8 @@ Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Stor
 ```
 Statement:    The system shall issue no more requests to a Turf API resource
               than the rate limits under
-              *Data sources and constraints* in `Architecture.md` and
-              *Retrieving zones* in the same document permit, counting every
+              `Architecture.md § Data sources and constraints` and
+              `Architecture.md § Retrieving zones` permit, counting every
               solve session and the scheduled zone sync together.
 Category:     Outbound rate compliance
 Source:       Architecture.md § Data sources and constraints;

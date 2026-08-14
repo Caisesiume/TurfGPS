@@ -47,7 +47,7 @@ cd ../TurfGPS-wt/<item-slug>-docs   # ALL work here; after merge: git worktree r
 ```
 Write the docs. Prefer precision over volume. Date time-sensitive facts and convert relative dates to absolute. Record review verdicts verbatim in completion reports. For inline comments, add "why" and delete redundant "what." Never document an aspiration as a fact.
 
-**4 — Gates.** Run the **documentation gates** per `local-gates § Documentation gates` — citations resolve and are one token, no model is stated twice, every mermaid diagram parses. **These are the live gates and they are yours**, so run them in full and report which parts of gate 1 you ran: no runner exists, the citation gate has a cheap form that is not yet licensed on any file, and an unstated gate reads as an unrun one. If the item touched inline comments in Go, also run the **backend gates** per `local-gates § Backend (Go)` — a comment edit still has to compile. Check too that code snippets match real signatures, nothing contradicts `Architecture.md`, and markdown renders.
+**4 — Gates.** Run the **documentation gates** per `local-gates § Documentation gates`, which holds what each gate checks and which parts of gate 1 reach which files; the cheap pattern form is licensed **per file** by the converted-file list in `docs/README.md § Conventions`, read at the moment you run the gate rather than assumed for the run. **These are the live gates and they are yours**, so run them in full and report them in the form `local-gates § The law` requires — for gate 1, the parts you ran and the files and method you ran them over — because that law counts an unstated gate as an unrun one. What the gates check is deliberately not enumerated here: an enumeration in this file would freeze the gate at whatever it checked on the day the line was written, and tell you to skip whatever it has since grown. If the item touched inline comments in Go, also run the **backend gates** per `local-gates § Backend (Go)` — a comment edit still has to compile, and the skill holds the directory it compiles in. Check too that code snippets match real signatures, nothing contradicts `Architecture.md`, and markdown renders.
 
 **5 — PR.** Board-item link · criteria + evidence · files + rationale · safety paths touched (usually none for pure docs — say so) · how you verified each claim against the code · gate results. Move to **In review**.
 
@@ -68,7 +68,7 @@ status: completed
 issue: 33
 changes: [stopping-position section rewritten against the ratified rulings, two citations repaired]
 files_changed: [docs/Architecture.md, docs/Requirements/INDEX.md]
-tests: {status: passed, commands: ["documentation gates: citations, model-singularity, mermaid"]}
+tests: {status: passed, commands: ["documentation gates — the lines `local-gates § The law` requires, verbatim"]}
 risks: [none_known]
 requires_review: [documentation, correctness]
 confidence: 0.93
