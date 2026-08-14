@@ -20,13 +20,15 @@ Citations in this file take the code span, per `docs/README.md § Conventions`, 
 
 The process is started once, at boot or on deploy, and serves every request for the lifetime of that process. It is not started per request, per connection, or per invocation.
 
-**This is forced rather than preferred, and three separate places force it.** `Architecture.md § D1` rules out any serverless deployment target regardless of language, because the candidate set, access classifications and computed costs must survive the initial solve. `NFR-004` in `docs/Requirements/runtime-and-deployment-shape.md` states the same exclusion as a `MUST`, admitting no target that ends the process between requests. And `Architecture.md § Runtime topology` records that the service is stateful and long-lived, that solve sessions live inside it, and that this document must account for that.
+**This is forced rather than preferred, and three separate places force it.** `Architecture.md § D1` rules out any serverless deployment target regardless of language, because the candidate set, access classifications and computed costs must survive the initial solve. `docs/Requirements/runtime-and-deployment-shape.md § NFR-004` states the same exclusion as a `MUST`, admitting no target that ends the process between requests. And `Architecture.md § Runtime topology` records that the service is stateful and long-lived, that solve sessions live inside it, and that this document must account for that.
 
 **The model accounts for it by not scaling out at all.** `Architecture.md § Runtime topology` states the constraint precisely: this is not a scale-out-behind-a-load-balancer design *without deliberate session affinity*. The first release therefore runs **one instance of the service on one host**, which is the only arrangement under which the constraint cannot be violated, and it is also the least complex. Two instances behind a round-robin proxy would send a user's second request to a process holding none of their solve state — a failure that returns a plausible answer computed from scratch, so it surfaces as latency rather than as an error. Session affinity is the price of a second instance, and nothing in the first release requires one.
 
 **Supervision is systemd, and the choice is nearly forced too.** The unit is what makes the process long-lived across a crash and across a reboot, and it is the artefact an inspector reads to confirm that. No orchestrator is introduced: a single stateful process with no scale-out story has nothing for one to schedule.
 
-**The target specifies no language runtime, and that property is bought rather than assumed.** `NFR-003` obliges the build to produce one self-contained executable that runs on a clean host with no installed language runtime and no application server, and its `Risk` names this document as the beneficiary — a single binary is what lets a deployment model avoid specifying a runtime environment at all. The model spends nothing of that: deploying the service is copying one file and restarting one unit. **The exception is named under `§ What the linkage question costs this model` below rather than left to be discovered.**
+**The choice is reversible, and what a substitute must provide is the test.** Another supervisor, or a container runtime with a restart policy, is admissible if it gives the same three properties — surviving the request, surviving a crash, surviving a reboot — and the same single-instance story. Nothing above depends on a feature peculiar to systemd.
+
+**What the host must carry for the service to start is deliberately not decided here.** `§ What this document does not decide` says why, and `deploy/provisioning/` below is the seam it will be written into.
 
 ### Where the deployment configuration lives
 
@@ -34,15 +36,16 @@ The process is started once, at boot or on deploy, and serves every request for 
 
 This follows the reasoning of `Architecture.md § D8` rather than inventing a second layout convention: that decision put each deployable in its own directory and declined a module at the root, on the argument that the repository's structure is what a reader infers first. The deployment configuration is not part of the service's Go module and not part of the client's build; it is a third thing, and it takes a peer directory for the same reason the other two do.
 
-**The directory does not exist yet.** It is created by the first deployment work — `#25`, per that item's own note that it produces the configuration against this model once the model names the target. What that work owes is the following, and this list is what `NFR-004`'s second acceptance criterion inspects:
+**The directory does not exist yet, and this document does not create it.** It is created by the first deployment work — #25, per that item's own note that it produces the configuration against this model once the model names the target. What that work owes is:
 
 | Artefact | What it establishes |
 |---|---|
 | `deploy/turfgps.service` | The service's systemd unit — a long-lived process, restarted on failure, never per request. **This is the file `NFR-004`'s second criterion is satisfied against.** |
-| `deploy/turfgps-sync.service` and `.timer` | The zone sync, scheduled off any request path |
-| `deploy/turfgps-plan-sweep.service` and `.timer` | The plan retention sweep |
 | `deploy/proxy/` | The reverse proxy configuration — TLS termination, the static client, and the route to the service |
-| `deploy/README.md` | Apply order, and what must be true of the host before the first apply |
+| `deploy/provisioning/` | What must be true of the host before the first apply — the seam `§ What this document does not decide` leaves open |
+| `deploy/README.md` | Apply order |
+
+The two scheduled duties under `§ Operational duties` — the zone sync and the plan retention sweep — need units of their own **only if they are packaged separately from the service**, which `§ Open questions owned by this document` records as undecided. Neither bears on the criterion above.
 
 **The unit file is the artefact and the target is what it names.** `NFR-004`'s criterion asks that the deployment configuration name a target keeping the process running between requests; a systemd service unit answers that on its face, in a form a reviewer can inspect without running anything. That is the whole reason the criterion was written against an artefact rather than against a claim.
 
@@ -55,7 +58,7 @@ Four units, deployed independently, on one host:
 | The service | `service/` | One executable plus one systemd unit |
 | The client | `web/` | A directory of static files, served by the reverse proxy |
 | The data plane | — | PostgreSQL with PostGIS, and Valhalla with its tiles, per `Architecture.md § D4` and `Architecture.md § D3` |
-| The elevation surface | — | DEM rasters on the host's filesystem, per `Architecture.md § D6` |
+| The elevation surface | — | Elevation data, held wherever `Architecture.md § D6` settles it — that decision is open, and this document does not anticipate it |
 
 **The client is deployed independently of the service, and that independence is a requirement rather than a convenience.** `NFR-005` obliges the client to be built to files a static file host can serve with no application code executing on the server, and its `Rationale` names this document as what would otherwise have to reconstruct that separation. The reverse proxy serves the built files directly and executes no application code to do so. Publishing a new client is replacing a directory; it needs no service restart, and a service deploy needs no client rebuild.
 
@@ -69,12 +72,12 @@ Four units, deployed independently, on one host:
 flowchart TD
     U["Browser — React SPA"]
     RP["Reverse proxy on the host<br/>TLS · static client files · /api route"]
-    SVC["turfgps service — one Go binary<br/>systemd unit, long-lived<br/>solve sessions held in process"]
+    SVC["turfgps service — one executable<br/>systemd unit, long-lived<br/>solve sessions held in process"]
     SYNC["Zone sync — systemd timer"]
     SWEEP["Plan retention sweep — systemd timer"]
     PG[("PostgreSQL + PostGIS<br/>zones · OSM features · plans")]
     VAL["Valhalla — car + foot, one tile set"]
-    DEM[("DEM rasters — elevation")]
+    DEM[("Elevation data")]
     T(["Turf API v5 — external"])
 
     U -- "HTTPS" --> RP
@@ -99,7 +102,7 @@ Everything above the external Turf API sits on **one host**. That is the deploym
 
 **Linux on x86-64, on a distribution carrying systemd and current PostGIS and Valhalla packages.** A recent Debian or Ubuntu LTS release satisfies both and is the proposed default, per the convention in `docs/README.md § Conventions` that a numeric or concrete default is a position to argue against rather than a measured result.
 
-**The service constrains this the least of anything deployed.** A Go binary cross-compiles to the target from any development platform and carries no runtime with it, so the operating system is chosen for what the *data plane* needs — PostGIS versions, Valhalla builds, and the tooling that produces the tiles — not for what the service needs. `Architecture.md § What is unproven` records that the PostGIS version is not chosen anywhere and that one of its queries is silently wrong below the version its own item 3 names; **choosing the host distribution is one of the two places that version actually gets decided**, and this document should not be read as having decided it.
+**The operating system is chosen for what the *data plane* needs** — PostGIS versions, Valhalla builds, and the tooling that produces the tiles — because those are what actually constrain the choice. `Architecture.md § What is unproven` records that the PostGIS version is not chosen anywhere and that one of its queries is silently wrong below the version its own item 3 names; **choosing the host distribution is one of the two places that version actually gets decided**, and this document should not be read as having decided it.
 
 ### Sizing
 
@@ -135,15 +138,14 @@ Stored plans are unaffected either way. `Architecture.md § Runtime topology` es
 
 ---
 
-## What the linkage question costs this model
+## What this document does not decide
 
-**`Architecture.md § D6` is unsettled in a way that reaches this document, and the reach is not obvious from D6 itself.**
+Naming these is the point: a reader who expects one of them here should learn it from this list rather than from its absence.
 
-D6 proposes sampling elevation rasters via `godal`, **accepting a cgo dependency**, with a no-cgo alternative in PostGIS raster. That is written as a question about bulk-sampling throughput and toolchain purity. It is also a question about what the deployment model above can promise, because a cgo build links the service against system libraries on the host — and the clean-host property that `NFR-003` obliges, and that this model spends nothing of, is precisely the property at stake.
-
-**Neither branch breaks anything written above; they differ in what the host must carry.** The no-cgo branch leaves the service a single file copied onto a host holding nothing for it. The `godal` branch leaves the service a single file that will not start unless the matching GDAL libraries are present, which makes the host's package set part of the deployment contract and makes the host distribution harder to change afterwards.
-
-**This is recorded rather than decided.** `NFR-003` is deliberately silent about linkage, on the stated ground that a record demanding a statically linked binary would settle D6 from the wrong side — and a deployment model demanding one would settle it from the wrong side too. What belongs here is the cost, so that whoever measures D6 measures it with the deployment consequence in view rather than as a throughput question alone.
+* **What the host must carry for the service to start, beyond the kernel.** `Architecture.md § D6` is an open proposal whose resolution changes that answer, and closing it from the deployment side would be the same error, in the opposite direction, that `docs/Requirements/runtime-and-deployment-shape.md § NFR-003` refuses to commit from the build side — that record is deliberately silent on the point and says why. **The model above holds either way**, which is what makes leaving it open cost nothing here: host provisioning is a named seam, `deploy/provisioning/` is where it is written, and nothing above describes the executable as anything other than the file the build produces. Whoever settles D6 writes that seam; a deployment document that pre-empted it would be settling a measurement by prose.
+* **Failure handling, observability, and the security architecture.** All three are owed by `Architecture.md § Still owed by this document`, and a deployment document that invented them would be writing architecture sections in the wrong file.
+* **The OSM-derived feature tables**, owed by the same section, and deliberately a safety surface with its own design and its own review.
+* **Solve-session residency**, and with it the true cost of a restart, per `§ What a restart costs` above.
 
 ---
 
