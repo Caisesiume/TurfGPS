@@ -98,7 +98,7 @@ Do not close these silently. Each document carries its own *Open questions* sect
 - **The uncertain-bucket share is unknown.** If it is 5% of rural candidates the design works as written; at 60% the review flow becomes mostly reserve-pool negotiation and the product feels different.
 - **Self-hosting versus metered APIs at global scope** — the largest cost risk in the project, owned by `Architecture.md`. The provider-adapter pattern makes the choice replaceable, not answered.
 - **The lifetime of an unconfirmed route**, owned by `SPECIFICATION.md`, with its architectural half — solve-session lifetime and residency — owned by `Architecture.md`. They must be answered together.
-- **The 10-metre direct-access tolerance** is a proposal, and an enforcement constant whose strict direction is downward. It separates two validation regimes, not two cost models: inside it a candidate is checked for levels and barriers only, and skips walk-safety validation entirely. Worth validating early, per `CalculationSpecification.md § Direct-access tolerance`.
+- **The 10-metre direct-access tolerance** is a proposal, and an enforcement constant whose strict direction is downward. It separates two validation regimes, not two cost models: inside it a candidate skips walk-safety validation entirely. It exempts a candidate from nothing outside that pair of branches — the road-class and speed-limit exclusions and the requirement that a stopping position be established still bind. Worth validating early, per `CalculationSpecification.md § Direct-access tolerance`.
 
 ## 8. Do not
 
