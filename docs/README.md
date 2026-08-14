@@ -57,16 +57,17 @@ Architecture Decision Records — the durable home for consequential engineering
 
 ## Current state
 
-As of 4 August 2026 the set is in this shape, less one document that does not yet exist.
+As of 14 August 2026 every document named in `§ The documents` above exists.
 
 `Concept.md` held the authoritative product definition at roughly 1,670 lines, having grown past its purpose because formulas, thresholds, integration facts, and interaction flow had nowhere else to live. It was **split** on 31 July 2026, as a move operation rather than an authoring one, into `SPECIFICATION.md`, `CalculationSpecification.md`, `Architecture.md`, and `DESIGN.md`. It no longer exists; it survives in git history.
 
 - **`SPECIFICATION.md`** is the source of truth for intent. The repository contains none of the system as code, so the documents lead the implementation, not the other way round.
 - **`CalculationSpecification.md`** is complete for the first release, less a domain glossary it still owes.
-- **`Architecture.md`** carries binding technology decisions and the Turf API facts. It still owes failure handling, observability, security, and schema.
+- **`Architecture.md`** carries binding technology decisions and the Turf API facts. What it still owes is listed in `Architecture.md § Still owed by this document` and is deliberately not restated here: this line read *failure handling, observability, security, and schema* for the eight days between the schema leaving that list on 6 August 2026 and this repair, which is the drift `§ Conventions` below exists to prevent and which an uncited restatement hides from every grep that would have caught a citation.
 - **`DESIGN.md`** carries the full interaction flow. It still owes the visual layer.
 - **`adr/`** exists as of 10 August 2026. `ADR-0001` governs the delivery and review model, and `DELIVERY.md` was rewritten under it the same day.
-- **`Requirements/`** exists and is being authored — on 4 August 2026 its records were filed across ten categories, with the live count in its own `INDEX.md`. It is **no longer the bottleneck** for the project board described in `DELIVERY.md`: its signed-off records have been cut into Epics and stories, and the board is stocked. Authoring continues alongside the work the board now carries, still far short of the volume anticipated in `§ Requirements/` above. **`DEPLOYMENT.md`** does not exist yet.
+- **`Requirements/`** exists and is being authored — on 4 August 2026 its records were filed across ten categories, with the live count in its own `INDEX.md`. It is **no longer the bottleneck** for the project board described in `DELIVERY.md`: its signed-off records have been cut into Epics and stories, and the board is stocked. Authoring continues alongside the work the board now carries, still far short of the volume anticipated in `§ Requirements/` above.
+- **`DEPLOYMENT.md`** exists as of 14 August 2026. It carries the deployment model `Architecture.md § Still owed by this document` had owed it — the runtime target, the single-host shape, and where the deployment configuration lives. What it still owes is listed in `DEPLOYMENT.md § Still owed by this document` and, for the same reason as the `Architecture.md` line above, is not enumerated here.
 
 Each document ends with what it still owes and the open questions it owns. Those are the shortest route to what is unfinished.
 
