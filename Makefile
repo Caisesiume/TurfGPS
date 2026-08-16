@@ -20,10 +20,25 @@
 # defined once and used everywhere; a recipe that invokes the Go toolchain
 # without it is a defect on sight, however green it reports.
 #
-# `make gates` prints the report line `local-gates` law 1 requires, including
-# the directory, and prints it only after all five have actually passed. The
-# line is produced by the run rather than typed afterwards, because a report
-# naming no directory is not evidence that anything was compiled.
+# `make gates` prints the report line `local-gates` law 1 requires. It carries
+# the directory because a report naming no directory is not evidence that
+# anything was compiled — the subject of everything above.
+#
+# Every other field is derived from what its gate actually did: all five run,
+# each one's exit status decides its own field, and the target exits nonzero
+# when any of them failed. A failure renders, and so does a partial result.
+#
+# That derivation is stated here because the first cut of this recipe was two
+# unconditional echoes of a fixed literal, and review measured what it cost:
+# exactly one renderable value, ever — the line could not print `test: FAIL`
+# on a run that was red, nor a nonzero lint count, nor anything partial. This
+# repository has twice recorded an instrument that reported success having
+# measured nothing, and a typed report line is that same shape.
+#
+# `lint` is the honest exception. golangci-lint's issue count is not parsed,
+# so a failure renders `lint: FAIL` rather than a number nothing counted; the
+# `0` on the passing side is its exit status, which it earns by reporting no
+# issues. A field this recipe cannot derive is one it must not invent.
 # ---------------------------------------------------------------------------
 #
 # CGO_ENABLED is not set anywhere in this file, and must not be added. See the
@@ -50,21 +65,46 @@ help:
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
 	@echo '  make test    go test -race -count=1 ./...  (needs a C compiler)'
-	@echo '  make build   one executable, into ./$(BIN_DIR)/'
+	@echo '  make build   all of $(GO_DIR)/cmd/..., into ./$(BIN_DIR)/'
 	@echo '  make image   container image $(IMAGE), context $(GO_DIR)/'
 	@echo '  make clean   remove ./$(BIN_DIR)/'
 
-# The five backend gates of `local-gates`, in its order. The report line runs
-# only if every one of them succeeded.
-gates: fmt vet lint test build
-	@echo ''
-	@echo 'dir: $(GO_DIR) | fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS'
+# The five backend gates of `local-gates`, in its order.
+#
+# They are invoked here rather than declared as prerequisites of this target.
+# A prerequisite that fails aborts make before the recipe body ever runs, so
+# the report line would be reachable only on the one path where every field
+# reads as a pass — which is exactly how it came to have no way of describing
+# a failure. Invoking them keeps each command in its own target, where the
+# working directory is, and still lets this recipe see what each one returned.
+#
+# All five run even after one fails, so the line describes the whole run and
+# not just its first casualty. The exit status is the run's, not the echo's.
+gates:
+	@rc=0; \
+	if $(MAKE) --no-print-directory fmt;   then r_fmt='clean';     else r_fmt='FAIL';   rc=1; fi; \
+	if $(MAKE) --no-print-directory vet;   then r_vet='PASS';      else r_vet='FAIL';   rc=1; fi; \
+	if $(MAKE) --no-print-directory lint;  then r_lint='0';        else r_lint='FAIL';  rc=1; fi; \
+	if $(MAKE) --no-print-directory test;  then r_test='PASS';     else r_test='FAIL';  rc=1; fi; \
+	if $(MAKE) --no-print-directory build; then r_build='SUCCESS'; else r_build='FAIL'; rc=1; fi; \
+	echo ''; \
+	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
+	exit $$rc
 
 # gofmt -l lists unformatted files and still exits 0, so a recipe that merely
 # calls it passes whatever it finds. The output is the result and has to be
 # tested, not just displayed.
+#
+# The directory change is a checked step of its own, ahead of the capture.
+# Chained as `cd $(GO_DIR) && unformatted=$$(gofmt -l .);` it short-circuited:
+# a failed cd skipped the assignment, the variable stayed empty, the emptiness
+# test read that as nothing to report, and the recipe printed `fmt: clean` and
+# exited 0 — clean, having examined nothing. Note this is still one shell and
+# so still holds the directory: what make discards between recipe lines is a
+# bare `cd` on a line of its own, and every line below is a continuation.
 fmt:
-	@cd $(GO_DIR) && unformatted=$$(gofmt -l .); \
+	@cd $(GO_DIR) || { echo 'fmt: FAIL — cannot enter $(GO_DIR)/'; exit 1; }; \
+	unformatted=$$(gofmt -l .); \
 	if [ -n "$$unformatted" ]; then \
 		echo 'fmt: NOT clean. gofmt -l names:'; \
 		echo "$$unformatted"; \
@@ -96,8 +136,16 @@ test:
 # -o writes to $(BIN_DIR)/ at the repository root, which .gitignore covers.
 # `go build ./...` would instead drop the binary beside its package, where the
 # extensionless Linux name is not ignored and rides along in the next commit.
+#
+# The pattern is ./cmd/... and not ./cmd/turfgps, matching `local-gates` and
+# the build this story's own AC1 test runs. Named singly, this gate compiles
+# the one command it was told about and exits 0 over a second one it never
+# looked at — the case `build_test.go` exists to catch, which a gate blind to
+# it would let through with a green line. -o names the directory rather than
+# the file so the pattern can resolve to more than one command; go then takes
+# each executable's name from its own package directory.
 build:
-	cd $(GO_DIR) && go build -trimpath -o ../$(BIN_DIR)/turfgps ./cmd/turfgps
+	cd $(GO_DIR) && go build -trimpath -o ../$(BIN_DIR)/ ./cmd/...
 
 # The context is $(GO_DIR)/, not the root — the same directory discipline the
 # Go recipes carry, expressed the way docker takes it.
