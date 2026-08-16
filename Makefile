@@ -134,8 +134,16 @@ test:
 	cd $(GO_DIR) && go test -race -count=1 ./...
 
 # -o writes to $(BIN_DIR)/ at the repository root, which .gitignore covers.
-# `go build ./...` would instead drop the binary beside its package, where the
-# extensionless Linux name is not ignored and rides along in the next commit.
+#
+# Without it, go build puts the executable in the WORKING directory — $(GO_DIR)/
+# here, where the recipe runs — and never in the package directory; where the
+# pattern matches more than one command, it compiles them and writes nothing at
+# all. Both measured. So without -o the destination is whatever directory the
+# recipe stands in, or nowhere; -o is what makes it a decision.
+#
+# That is the reason: where the file lands. The ignore coverage above is true
+# but is not the argument — this comment argued from it until this story added
+# the very rule it called missing, in the same diff, and it went false with it.
 #
 # The pattern is ./cmd/... and not ./cmd/turfgps, matching `local-gates` and
 # the build this story's own AC1 test runs. Named singly, this gate compiles

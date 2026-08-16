@@ -49,10 +49,12 @@ WORKDIR /src
 # dependency and buys nothing before it.
 COPY . .
 
-# -o writes outside the module tree on purpose. `go build ./...` drops the
-# binary into the package directory, under the /src tree copied in above. /out
-# holds the executable alone, at the one fixed path the runtime stage below
-# copies from.
+# -o writes outside the module tree on purpose. Without it, go build puts the
+# executable in the WORKING directory — /src here — and not in the package
+# directory, so it would land inside the source tree copied in above. Measured;
+# the package-directory reading is the plausible one and it is wrong. /out holds
+# the executable alone, at the one fixed path the runtime stage below copies
+# from.
 #
 # -trimpath keeps absolute build paths out of the artefact, so the same source
 # yields the same binary regardless of which directory it was checked out into.
