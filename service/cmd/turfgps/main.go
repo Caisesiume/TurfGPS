@@ -28,6 +28,28 @@ const (
 	// readHeaderTimeout bounds how long a client may take to send its request
 	// headers, so an idle connection cannot hold a server goroutine open.
 	readHeaderTimeout = 10 * time.Second
+
+	// readTimeout bounds the request as a whole, headers and body together.
+	// readHeaderTimeout above stops applying once the headers are in, so
+	// without this a client may send a well-formed header block and then
+	// trickle a body for as long as it likes.
+	readTimeout = 30 * time.Second
+
+	// writeTimeout bounds the response. Go arms the write deadline as soon as
+	// the request headers have been read, so this budget covers reading the
+	// body and running the handler as well as writing the reply — which is why
+	// it sits above readTimeout rather than beside it. A handler that
+	// legitimately needs longer extends its own deadline through
+	// http.ResponseController; raising this ceiling for one slow route would
+	// relax it for every route.
+	writeTimeout = 60 * time.Second
+
+	// idleTimeout bounds how long a kept-alive connection may wait between
+	// requests. Go falls back on readTimeout when this is unset, which is the
+	// wrong budget for it: a connection waiting to be reused is not a slow
+	// client, and closing healthy connections every 30 seconds would cost a
+	// handshake per client per half-minute for nothing.
+	idleTimeout = 120 * time.Second
 )
 
 func main() {
@@ -55,7 +77,13 @@ func serve(ctx context.Context, ln net.Listener) error {
 		_, _ = w.Write([]byte("TurfGPS service\n"))
 	})
 
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: readHeaderTimeout}
+	srv := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+	}
 
 	served := make(chan error, 1)
 	go func() { served <- srv.Serve(ln) }()
