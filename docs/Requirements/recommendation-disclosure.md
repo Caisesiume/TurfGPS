@@ -140,7 +140,7 @@ Acceptance:   given a journey for which the system recorded that the promotion
               candidate zones were examined
               given a journey for which no such binding was recorded, when its
               recommendations are presented, then no such statement is made
-Status:       draft
+Status:       to-build
 Depends-on:   FR-065
 Volatility:   proposed-constant — the disclosure fires against the promotion
               cap under
@@ -187,7 +187,7 @@ Acceptance:   given a recommended stop whose access estimate rests on an
               stopping position, a connected pedestrian path and a complete
               elevation profile, when the recommendation is presented, then no
               such statement is made for it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-081
 Volatility:   open-question — what counts as material rests on the enumeration
               under `SPECIFICATION.md § Terrain confidence` standing as a

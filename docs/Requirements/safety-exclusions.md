@@ -222,7 +222,7 @@ Acceptance:   given a journey alternative whose Turf stop time alone is within
               one built on the fastest conventional route and one on a slower
               general road route, when each is tested against that limit, then
               the one on the slower route is measured as the more costly
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-038; FR-044
 Volatility:   settled — the quantity and the baseline it is measured against
               were ruled by the Owner on 7 August 2026; the ceiling it also
@@ -284,7 +284,7 @@ Acceptance:   given a configuration setting the direct-access tolerance above
               given a configuration setting that tolerance below the stated
               value, when the system starts, then the configuration is
               accepted and the tolerance enforced is the one it sets
-Status:       draft
+Status:       to-build
 Depends-on:   FR-068
 Volatility:   proposed-constant — the stated value is a proposed default the
               cited section marks as worth checking early against real
@@ -341,7 +341,7 @@ Acceptance:   given a candidate whose bridge, tunnel or layer data indicates
               the stopping position with no barrier recorded between them,
               when its access is classified, then this check does not refuse
               it the direct class
-Status:       draft
+Status:       to-build
 Depends-on:   FR-068; FR-092
 Volatility:   open-question — the bridge, tunnel, layer and barrier attributes
               this record tests are the OSM-derived feature data
@@ -369,9 +369,11 @@ Rationale:    This is one of the exclusions under
               car stops on the bridge. It is not FR-071's: that record governs
               where a candidate goes when this check fails, and a system that
               never runs the check fails this record while never firing that
-              one. The third criterion states this record's own bound — the
-              remaining condition on the direct class is the road-class and
-              speed-limit exclusions under
+              one. The third criterion states this record's own bound and not
+              the class's: what it declines to refuse on is the level and
+              barrier evidence this record tests, and every other condition on
+              the direct class stands where that condition is written —
+              among them the road-class and speed-limit exclusions under
               `SPECIFICATION.md § Enforceable exclusions`, which FR-089
               carries for both branches and this record does not — so it
               cannot be read as the whole test for the class.
@@ -392,16 +394,18 @@ Statement:    The system shall exclude a candidate zone whose access path is
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Elevation and feasibility rules
 Priority:     MUST
-Verification: test — a candidate for which no connected walking route can be
+Verification: test — a candidate with an identified stopping position from
+              which no connected walking route to the zone's coordinate can be
               identified is excluded rather than priced by any estimate, one
               whose path carries a section steeper than the configured
               threshold is excluded whatever the zone carries, and one so
               excluded stays excluded when the user's maximum acceptable path
               gradient is set less strict than that threshold
-Acceptance:   given a candidate for which no connected walking route between a
-              stopping position and the zone's coordinate can be identified,
-              when its access is classified, then it is excluded and is not
-              priced by a straight-line estimate
+Acceptance:   given a candidate for which a stopping position has been
+              identified and for which no connected walking route between that
+              position and the zone's coordinate can be identified, when its
+              access is classified, then it is excluded and is not priced by a
+              straight-line estimate
               given a candidate whose identified access path carries a section
               steeper than the configured implausible-gradient threshold, when
               its access is classified, then it is excluded
@@ -412,7 +416,7 @@ Acceptance:   given a candidate for which no connected walking route between a
               given a candidate excluded under this rule which carries the
               attribute the user ranked highest, when journey alternatives are
               produced, then no alternative includes it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-074; FR-092
 Volatility:   open-question — the implausible-gradient threshold has no value
               in any document and is recorded as an owed enforcement constant
@@ -463,7 +467,20 @@ Rationale:    The cited section lists the conditions on which a candidate is
               dropped: an approach across unmapped terrain reaches the
               fallback and FR-083, an insufficiently confident estimate is
               FR-082's, and a cliff or wall the data shows is what makes the
-              path disconnected. The fourth criterion is the branch this
+              path disconnected. The first criterion presupposes an identified
+              stopping position and cannot fire without one. Read without that
+              presupposition it is satisfied vacuously wherever no position
+              was identified at all — there is certainly no connected route
+              from a position that does not exist — so this record would
+              exclude the case
+              `SPECIFICATION.md § What establishes a stopping position` sends
+              to uncertain, and would do it through the very guard FR-092's
+              third criterion rests on. Narrowing the antecedent gives up no
+              exclusion and costs no safety: absent, disconnected and
+              implausibly steep each bind exactly as before once a position
+              exists, and the no-position case lands in uncertain, which
+              FR-084 keeps out of the cost model and the ranking so that no
+              walk is priced for it. The fourth criterion is the branch this
               record ever fires on, on FR-045's precedent — an excluded
               candidate nobody wanted needs no rule.
 Resolved-by:  —
@@ -499,7 +516,7 @@ Acceptance:   given a candidate whose access route is classified unsafe,
               acceptable path gradient the user configured generously enough
               to admit that path, when journey alternatives are produced, then
               no alternative includes it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-076
 Volatility:   settled — the record rests on the precedence of an access
               classification over value and over a user setting, which both
@@ -574,7 +591,7 @@ Acceptance:   given a park-and-walk candidate whose identified stopping
               road those exclusions admit as a stopping place, when its access
               is classified, then this check refuses it neither confident
               class
-Status:       draft
+Status:       to-build
 Depends-on:   FR-068; FR-092
 Volatility:   proposed-constant — the maximum speed limit for a stopping road
               under
@@ -660,7 +677,7 @@ Acceptance:   given a configuration setting the maximum speed limit for a
               given a configuration setting that maximum below the stated
               value, when the system starts, then the configuration is
               accepted and the maximum enforced is the one it sets
-Status:       draft
+Status:       to-build
 Depends-on:   FR-089
 Volatility:   proposed-constant — the stated value is a proposed default by
               default, carrying no origin, no measurement and no cited source,
@@ -731,7 +748,7 @@ Acceptance:   given a configuration carrying no value for a constant recorded
               section records as owed, when the system starts, then the
               configuration is accepted and no journey is refused on this
               ground
-Status:       draft
+Status:       to-build
 Depends-on:   FR-076
 Volatility:   open-question — neither constant the cited section records as
               owed has a value in any document, and that section records that

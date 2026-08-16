@@ -26,7 +26,7 @@ Acceptance:   given a candidate lying a short distance from the route line but
               given the same candidate, when its detour cost is obtained, then
               the cost is not derived from its distance to the route line,
               from a radius, or from any other straight-line measure
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-064; FR-092
 Volatility:   settled — the rule is stated absolutely by the cited section and
               by `safety-path-checklist § Non-negotiables`, and rests on no
@@ -75,7 +75,7 @@ Acceptance:   given a candidate evaluated on two journeys that pass it in
               given a candidate already evaluated on an earlier journey, when
               it is evaluated on a later one, then its detour cost is obtained
               for the later journey rather than taken from the earlier
-Status:       draft
+Status:       to-build
 Depends-on:   FR-086
 Volatility:   settled — the direction-dependence is stated as a consequence of
               routing by the cited section and again by

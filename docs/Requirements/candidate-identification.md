@@ -29,7 +29,7 @@ Acceptance:   given a zone lying further from a route alternative than the
               narrower than the one derived for the smaller, and both lie
               between the floor and the cap stated under
               `CalculationSpecification.md § Bounding the candidate set`
-Status:       draft
+Status:       to-build
 Depends-on:   FR-023; FR-038
 Volatility:   proposed-constant — the corridor half-width, its floor and its
               cap under
@@ -76,7 +76,7 @@ Acceptance:   given a corridor set holding more zones than the cap, when
               with a corridor set holding more zones than the cap, when
               candidates are promoted, then the cap bounds each route
               alternative's promoted set rather than their total
-Status:       draft
+Status:       to-build
 Depends-on:   FR-063
 Volatility:   proposed-constant — the promotion cap under
               `CalculationSpecification.md § Bounding the candidate set` is a
@@ -123,7 +123,7 @@ Acceptance:   given a route alternative whose corridor set holds more
               given a route alternative whose corridor set holds no more
               qualifying zones than the cap admits, when candidates are
               promoted, then no such binding is recorded for it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-064
 Volatility:   proposed-constant — the record fires against the promotion cap
               under
@@ -173,7 +173,7 @@ Acceptance:   given a park-and-walk candidate whose walking distance exceeds
               is the better under the comparison of value against cost, when
               candidates are selected, then it is not passed over in favour of
               the shorter walk
-Status:       draft
+Status:       to-build
 Depends-on:   FR-011; FR-074
 Volatility:   settled — the maximum is a value the user supplies rather than a
               constant, so no proposal moves this record; that a limit may
