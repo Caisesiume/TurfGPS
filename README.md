@@ -8,7 +8,7 @@ It is not a zone map, and it is not a navigation app. It is an optimizer with an
 
 ## Status
 
-**Pre-implementation.** The documentation leads the code.
+**Implementation has started, and the documentation still leads it by nearly everything.** As of 16 August 2026 the repository holds one Go service, at `service/`: a single command, `cmd/turfgps`, that serves HTTP, answers one route with its own name, and drains what is in flight when it is signalled to stop. None of the product described below is in it yet — no zones, no routing, no optimizer, no client.
 
 The repository previously held an unrelated Next.js zone-map prototype. It was removed on 31 July 2026, once the product definition made clear it was not a partial implementation of this system but a different application. Nothing is being ported from it; it remains in git history.
 
