@@ -33,7 +33,13 @@
 # a newer builder yields a binary the older runtime cannot load — a failure
 # that appears only at start-up, in the image, after a clean build. bookworm
 # here; base-debian12 is bookworm.
-FROM golang:1.26-bookworm AS build
+#
+# The digest is what makes that pairing hold. Both tags move: a rebuild months
+# apart can pick up a newer builder while the runtime stands still, and the
+# mismatch above is exactly what that produces. The tag is kept beside the
+# digest because it is the readable half, but the digest is what resolves. When
+# either FROM is re-pinned, the other is checked for the same Debian release.
+FROM golang:1.26-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS build
 
 WORKDIR /src
 
@@ -68,7 +74,10 @@ RUN go build -trimpath -o /out/turfgps ./cmd/turfgps
 # If D6 is settled toward godal, this base is where that lands: a cgo binary
 # needing GDAL would need a base carrying it. Choosing a base with a libc keeps
 # both of D6's outcomes reachable; choosing scratch would have closed one now.
-FROM gcr.io/distroless/base-debian12:nonroot
+#
+# Pinned by digest, and paired with the builder's release — read the note above
+# the builder stage before moving either.
+FROM gcr.io/distroless/base-debian12:nonroot@sha256:b12529fbbd0bb15eea8905f69d83148679e0b4d7d434c8808100792029b1caae
 
 # Exactly one file enters this stage. That is AC1's threshold and it is
 # checkable by reading this file: one COPY, one path, no second artefact and
