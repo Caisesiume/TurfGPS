@@ -6,7 +6,7 @@ This document owns *how the system is run* — the runtime target, the host it r
 
 Citations in this file take the code span, per `docs/README.md § Conventions`, which puts every file outside the four narrative documents in the working-document class.
 
-**Status: the deployment model is written; the rest of this document is not.** The model below discharges the item `Architecture.md § Still owed by this document` handed here, and nothing more. Hosting options with price and complexity comparisons, pipeline and CI detail, and the wider operational direction that `docs/README.md § The documents` asks of this file are listed under `§ Still owed by this document`.
+**Status, 16 August 2026: the deployment model is written; the rest of this document is not.** The model below discharges the item `Architecture.md § Still owed by this document` handed here, and nothing more. Hosting options with price and complexity comparisons, pipeline and CI detail, and the wider operational direction that `docs/README.md § The documents` asks of this file are listed under `§ Still owed by this document`.
 
 **Nothing described here has been deployed, and none of the configuration named below exists on disk.** The repository holds no `service/`, no `web/`, and no `deploy/` as this is written. This document is a design, in the same sense `Architecture.md` is one — it is read as *what the deployment will be*, not as a record of a running system.
 
@@ -36,33 +36,48 @@ The process is started once, at boot or on deploy, and serves every request for 
 
 This follows the reasoning of `Architecture.md § D8` rather than inventing a second layout convention: that decision put each deployable in its own directory and declined a module at the root, on the argument that the repository's structure is what a reader infers first. The deployment configuration is not part of the service's Go module and not part of the client's build; it is a third thing, and it takes a peer directory for the same reason the other two do.
 
-**The directory does not exist yet, and this document does not create it.** It is created by the first deployment work — #25, per that item's own note that it produces the configuration against this model once the model names the target. What that work owes is:
+**The directory does not exist yet, and this document does not create it.** It is created by the first deployment work — #25, per #37's note that if writing the model does not naturally produce the configuration, #25 produces it against the model once the model names the target. What that work owes is:
 
 | Artefact | What it establishes |
 |---|---|
-| `deploy/turfgps.service` | The service's systemd unit — a long-lived process, restarted on failure, never per request. **This is the file `NFR-004`'s second criterion is satisfied against.** |
-| `deploy/proxy/` | The reverse proxy configuration — TLS termination, the static client, and the route to the service |
-| `deploy/provisioning/` | What must be true of the host before the first apply — the seam `§ What this document does not decide` leaves open |
+| `deploy/turfgps.service` | The service's systemd unit — a long-lived process, restarted on failure, never per request. **This is the file `docs/Requirements/runtime-and-deployment-shape.md § NFR-004`'s second criterion is satisfied against.** |
+| `deploy/proxy/` | The reverse proxy configuration — TLS termination, the static client, the route to the service, and the two plan-code constraints below that only it can satisfy |
+| `deploy/provisioning/` | What must be true of the host before the first apply — the seam `§ What this document does not decide` leaves open, and the exposure invariant of `§ What is deployed` |
 | `deploy/README.md` | Apply order |
 
-The two scheduled duties under `§ Operational duties` — the zone sync and the plan retention sweep — need units of their own **only if they are packaged separately from the service**, which `§ Open questions owned by this document` records as undecided. Neither bears on the criterion above.
+The zone sync and the plan retention sweep under `§ Operational duties` need units of their own **only if they are packaged separately from the service**, which `§ Open questions owned by this document` records as undecided for both. Neither bears on the criterion above.
 
-**The unit file is the artefact and the target is what it names.** `NFR-004`'s criterion asks that the deployment configuration name a target keeping the process running between requests; a systemd service unit answers that on its face, in a form a reviewer can inspect without running anything. That is the whole reason the criterion was written against an artefact rather than against a claim.
+**The unit file is the artefact and the target is what it names.** `docs/Requirements/runtime-and-deployment-shape.md § NFR-004`'s criterion asks that the deployment configuration name a target keeping the process running between requests; a systemd service unit answers that on its face, in a form a reviewer can inspect without running anything. That is the whole reason the criterion was written against an artefact rather than against a claim.
+
+**No secret material of any kind lives under `deploy/`, or anywhere else in this repository.** A database URL, a provider key, or the proxy's TLS private key written into an `Environment=` line is a credential committed to version control, and the unit above is precisely the file that invites one. **The unit therefore references an out-of-repo source** — systemd offers `EnvironmentFile=` and `LoadCredential=` for exactly this — and `deploy/` carries the reference and never the value. Which of those mechanisms is used, and where the material comes from, is still owed and is listed under `§ Still owed by this document`; the boundary above is not, and it binds whatever answer that work gives.
+
+**Two constraints bind `deploy/proxy/`, and both exist because of the plan code.** `Architecture.md § Personal data` records that the code is a plan's only credential and that the object behind it holds a coordinate that is frequently the user's home.
+
+**No host log may record a plan code — not the proxy's, not the service's.** The code travels in the request line, and stock nginx, Caddy and Apache all log the full request target by default. An access log is not something a deployment adds; it is something a deployment must deliberately constrain, so deferring observability to `Architecture.md § Still owed by this document` does not defer this. The proxy configuration #25 writes must satisfy it on its face.
+
+**The proxy must preserve the caller's address.** It forwards over loopback, so unless it passes the caller through, every request reaches the service from the local interface and no per-caller distinction survives the hop. `Architecture.md § Personal data` names rate limiting on the plan lookup as part of the answer to a short code being an enumeration target, and no throttle can be written against a single indistinguishable caller. That makes the proxy a **candidate enforcement point** for that throttle — it is the one component that still knows who is asking — though where it is enforced is not settled here.
 
 ### What is deployed
 
-Four units, deployed independently, on one host:
+Five units, deployed independently, on one host:
 
 | Unit | Built from | Deployed as |
 |---|---|---|
 | The service | `service/` | One executable plus one systemd unit |
 | The client | `web/` | A directory of static files, served by the reverse proxy |
+| The reverse proxy | — | The host's proxy package, configured from `deploy/proxy/` |
 | The data plane | — | PostgreSQL with PostGIS, and Valhalla with its tiles, per `Architecture.md § D4` and `Architecture.md § D3` |
 | The elevation surface | — | Elevation data, held wherever `Architecture.md § D6` settles it — that decision is open, and this document does not anticipate it |
 
+**The proxy is counted even though nothing in this repository builds it**, because three of the five rows share that property and deploying it is a deliberate act with configuration of its own. What decides a row is whether the unit has to be put on the host and kept correct there, not whether a build produces it.
+
+**The tile set and the elevation data are built once for the first release and are not refreshed on a schedule.** Both derive from the extract of `Architecture.md § D5`, and rebuilding them is a deliberate act — new extract, rebuild, swap — rather than a timer. OSM data ages, so a refresh eventually becomes a recurring duty with a cadence and a swap procedure; **this document names it and does not invent either**, for the same reason `§ Sizing` states no figure.
+
 **The client is deployed independently of the service, and that independence is a requirement rather than a convenience.** `docs/Requirements/runtime-and-deployment-shape.md § NFR-005` obliges the client to be built to files a static file host can serve with no application code executing on the server, and its `Rationale` names this document as what would otherwise have to reconstruct that separation. The reverse proxy serves the built files directly and executes no application code to do so. Publishing a new client is replacing a directory; it needs no service restart, and a service deploy needs no client rebuild.
 
-**The reverse proxy is the only component facing the network.** It terminates TLS, serves the client's static files, and forwards the service's HTTP API over the loopback interface. The service therefore does not need to be reachable from outside the host at all.
+**The reverse proxy is the only component that may face the network, and that is an obligation rather than an observation.** It terminates TLS, serves the client's static files, and forwards the service's HTTP API over the loopback interface. The service, PostgreSQL and Valhalla bind loopback only and are unreachable from outside the host.
+
+**`deploy/provisioning/` owns enforcing that invariant**, because no component enforces it on the others' behalf and at least one will violate it if left alone. Valhalla's HTTP daemon does not bind loopback on its own, so an unconstrained host publishes a routing engine — and through it the tile set — to the internet. The invariant is therefore checked against the host's listening sockets, which is a fact about the host, rather than inferred from the proxy's configuration, which is a fact about only one component.
 
 ---
 
@@ -73,8 +88,8 @@ flowchart TD
     U["Browser — React SPA"]
     RP["Reverse proxy on the host<br/>TLS · static client files · /api route"]
     SVC["turfgps service — one executable<br/>systemd unit, long-lived<br/>solve sessions held in process"]
-    SYNC["Zone sync — systemd timer"]
-    SWEEP["Plan retention sweep — systemd timer"]
+    SYNC["Zone sync — scheduled, packaging open"]
+    SWEEP["Plan retention sweep — scheduled, packaging open"]
     PG[("PostgreSQL + PostGIS<br/>zones · OSM features · plans")]
     VAL["Valhalla — car + foot, one tile set"]
     DEM[("Elevation data")]
@@ -108,21 +123,25 @@ Everything above the external Turf API sits on **one host**. That is the deploym
 
 **No sizing figure is stated here, because none has been measured and an invented one would be worse than the gap.**
 
-What is known is bounded and small on one surface and unknown on the others. `Architecture.md § Volume` measures the zone table, states its figures there, and establishes that it needs no partitioning for years; it also names stored plans as the surface where volume could actually hurt, over a range it says is wide because the per-candidate size is invented rather than measured. **Nothing anywhere measures what the extract of `Architecture.md § D5` costs as Valhalla tiles or as DEM rasters**, and those are likely to be the largest things on the disk. Sizing the host is owed work, listed below.
+What is known is bounded and small on one surface and unknown on the others. `Architecture.md § Volume` measures the zone table, states its figures there, and establishes that it needs no partitioning for years; it also names stored plans as the surface where volume could actually hurt, over a range it says is wide because the per-candidate size is invented rather than measured. **Nothing anywhere measures what the extract of `Architecture.md § D5` costs as Valhalla tiles or as elevation data**, and those are likely to be the largest things on the disk. Sizing the host is owed work, listed below.
 
 ---
 
 ## Operational duties
 
-Three things must run on a schedule, and each of them exists because a section elsewhere requires it.
+Four things must run on a schedule. Three exist because a section elsewhere requires them; the fourth exists because this document put TLS on the proxy.
 
 **The zone sync, and its rate limit is the binding constraint.** `Architecture.md § Runtime topology` records the zone endpoint as rate-limited — that section states the interval and this one does not restate it — and requires the sync to be a scheduled worker that is never on a request path. The deployment consequence is a timer rather than anything in the service's request handling.
 
 **A restart must not breach that limit, and this is the operational trap worth naming.** If the sync ever runs on start-up, then a host rebooting, or a service crash-looping under a systemd `Restart=` policy, issues that request far more often than the interval allows — against an external API, from a single-tenant deployment that is easy to identify. The schedule must therefore be held by the timer and by the last-successful-sync time in the database, never by process lifetime.
 
-**The plan retention sweep.** `Architecture.md § Persistence and cross-device transfer` obliges stored plans to expire, and `Architecture.md § The plan table` states the single predicate the sweep runs and the column grant that makes the ceiling unforgettable. The schema makes the bound unbypassable; **it does not delete anything by itself**, so a scheduled task is what actually discharges the retention obligation. That task holds personal data in its blast radius — `Architecture.md § Personal data` records that a plan carries a coordinate that is frequently the user's home — so a sweep that silently stops running is a privacy failure rather than a housekeeping one, and it is the first thing observability should cover when observability is written.
+**The plan retention sweep.** `Architecture.md § Persistence and cross-device transfer` obliges stored plans to expire, and `Architecture.md § The plan table` states the single predicate the sweep runs and the `CHECK` constraint that makes the ceiling unforgettable. The schema makes the bound unbypassable; **it does not delete anything by itself**, so a scheduled task is what actually discharges the retention obligation. That task holds personal data in its blast radius — `Architecture.md § Personal data` records that a plan carries a coordinate that is frequently the user's home — so a sweep that silently stops running is a privacy failure rather than a housekeeping one, and it is the first thing observability should cover when observability is written.
 
-**Backup and restore are owed and are not designed here.** `Architecture.md § What this section does not cover` explicitly leaves backup, restore and retention of the database itself outside the schema design, and this document does not close it by assertion.
+**Daily is the proposed sweep cadence**, per the convention in `docs/README.md § Conventions` that a concrete default is a position to argue against rather than a measured result. The period is what decides how long an expired plan outlives its own expiry, and it is judged against the two clocks `Architecture.md § The plan table` states — which this document cites rather than repeats. Both are measured in months, so a day of overhang is immaterial to either guarantee and cheap to run. Hourly buys nothing anyone could observe; weekly is long enough to be worth arguing about, which is the argument this default exists to invite.
+
+**TLS certificate renewal, and it is the one duty this document creates rather than inherits.** `§ What is deployed` makes the reverse proxy the sole ingress and gives it TLS termination, so an expired certificate is a total outage of the only network-facing component — arriving roughly ninety days after the first deploy on the automated issuers a single host would use, which is late enough that nobody is expecting it. Renewal must be automatic and monitored, and **the renewal hook must reload the proxy**: a renewed certificate sitting on disk that the running proxy has not re-read fails in exactly the way an expired one does. `deploy/proxy/` owns it.
+
+**Backup and restore are owed and are not designed here.** `Architecture.md § What this section does not cover` explicitly leaves backup, restore and retention of the database itself outside the schema design, and this document does not close it by assertion. What it does state, because the sweep above is void without it, is the obligation that design inherits — see `§ Still owed by this document`.
 
 ---
 
@@ -156,8 +175,8 @@ The deployment model above is written. These are not, and each is owed by `docs/
 - **Hosting options with price and complexity comparisons.** The model names a shape — one Linux host — and does not name a provider, a tier, or a cost. This is the section `Architecture.md § The cost consequence` will need when the self-hosting-versus-metered question is answered, and it cannot be written before the sizing below.
 - **Host sizing**, which needs the two measurements nothing in the repository has taken: the on-disk size of the Valhalla tile set and the elevation data built over the extract of `Architecture.md § D5`, and the memory Valhalla needs to serve that tile set.
 - **Pipeline and CI detail.** Two checks are already specified elsewhere and must be run by whatever pipeline is built — the set-equality test over the live catalogue in `Architecture.md § The two absences, and the test that keeps them absent`, and the three-assertion coordinate guard in `Architecture.md § Geometry, SRID, and the coordinate guard`, both against a migrated copy. `local-gates § When these activate` records that the first Go or frontend PR owes a root `Makefile` as the canonical gate runner, and `Architecture.md § D8` records that every CI job invoking the Go toolchain must set its working directory explicitly or pass vacuously. **The pipeline that runs all of this is not designed here.**
-- **Backup, restore, and database retention**, left open by `Architecture.md § What this section does not cover`.
-- **Secrets handling** — the database credential and any provider key. Nothing in the repository states where these come from, and the model above deliberately does not invent an answer.
+- **Backup, restore, and database retention**, left open by `Architecture.md § What this section does not cover`. **That design carries the plan-retention obligation with it, and this is the constraint it must be written against**: a backup is a second copy of the plan table, so a backup set held longer than the plans themselves voids the retention guarantees `Architecture.md § The plan table` states. Deleting a row while a restorable copy of it survives is not deletion. Either backup retention is bounded by those same two clocks, or the restore path re-applies the sweep before the restored data is reachable.
+- **Secrets handling** — the database credential, any provider key, and the reverse proxy's TLS private key. Nothing in the repository states where these come from, and the model above deliberately does not invent an answer. What it does settle is the boundary: `§ Where the deployment configuration lives` puts none of them in this repository, and that binds whatever mechanism this work chooses.
 - **The upgrade and rollback procedure**, which cannot be finished before the restart question above is settled.
 
 ---
@@ -165,5 +184,6 @@ The deployment model above is written. These are not, and each is owed by `docs/
 ## Open questions owned by this document
 
 * **How the zone sync is packaged.** `Architecture.md § Runtime topology` shows the sync as a component distinct from the service, and `Architecture.md § D1` writes both in Go, but nothing states whether it ships as a second executable driven by a timer or as a scheduled goroutine inside the service process. Both satisfy the topology; they differ in what `deploy/` contains and in whether the sync survives the service being stopped. The rate-limit trap above applies to either.
+* **How the plan retention sweep is packaged**, which is the same question with a consequence the zone sync's does not carry. The two options are the same — an independent timer, or a scheduled goroutine inside the service — but `§ Operational duties` records that a sweep which silently stops running is a privacy failure rather than a housekeeping one. **As a goroutine the sweep does not survive the service dying**, so a service crash-looping under its `Restart=` policy stops enforcing retention while every signal a reader would check reports a process being restarted as designed. As an independent timer it keeps running against the database, and fails where it can be seen. That asymmetry is the argument that should decide it. It is registered rather than decided here because both scheduled duties should be packaged the same way, and the sync's question is genuinely open.
 * **Whether the first release is single-host permanently or provisionally.** The model above is single-host because the service holds session state and nothing requires a second instance. What would change that is load nobody has measured, and the answer is coupled to the residency question `Architecture.md § Open questions owned by this document` owns.
 * **The target host distribution and its PostGIS version.** Proposed above as a recent Debian or Ubuntu LTS; the PostGIS version this implies is one that `Architecture.md § What is unproven` says Q2's correctness depends on, and it should be confirmed against that requirement rather than inherited from a package default.

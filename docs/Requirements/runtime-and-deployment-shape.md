@@ -28,13 +28,13 @@ Status:       to-build
 Depends-on:   none
 Risk:         A single binary is one of the three properties
               `Architecture.md § D1` chose Go for, and it is the one that lets
-              the deployment model — still owed under
-              `Architecture.md § Still owed by this document` — avoid
+              the deployment model — written on 14 August 2026, and leaving the
+              host open under
+              `DEPLOYMENT.md § What this document does not decide` — avoid
               specifying a runtime environment at all. A build that needs an
               installed runtime or a tree of side files spends that property
-              before the deployment model is written, and reclaiming it later
-              means changing how the service is built rather than how it is
-              deployed.
+              the model now rests on, and reclaiming it later means changing
+              how the service is built rather than how it is deployed.
 Rationale:    The obligation is the property the decision buys, not the
               decision itself: a record obliging the backend to be written in
               Go would restate a decision `Architecture.md` already states as
@@ -68,10 +68,9 @@ Acceptance:   the service's entry point holds a server that listens for the
               start-up rather than per request, and holds no per-invocation
               handler entry point, in the service's main package
               the deployment configuration names a target that keeps the
-              service process running between requests, wherever the
-              deployment model still owed under
-              `Architecture.md § Still owed by this document` comes to define
-              it
+              service process running between requests, as the deployment
+              model defines it in
+              `DEPLOYMENT.md § Where the deployment configuration lives`
 Status:       to-build
 Depends-on:   none
 Risk:         A per-invocation target discards the candidate set, the access
@@ -91,8 +90,10 @@ Rationale:    The requirement here is the exclusion, not the retention. What
               `Architecture.md § D1` draws in its own right — that the process
               outlives the request — so that the first skeleton is not written
               against a shape that has to be undone. The second criterion is
-              deliberately unsatisfiable today and names why: the artefact it
-              examines arrives with the owed deployment model.
+              deliberately unsatisfiable today and names why: the deployment
+              model in
+              `DEPLOYMENT.md § Where the deployment configuration lives` names
+              the artefact it examines and does not create it.
 Resolved-by:  #25
 ```
 
@@ -129,8 +130,8 @@ Rationale:    The obligation is the property, not the toolchain: a record
               could not fail a check run against the artefact, while what the
               build emits and what serving it requires are both checkable on
               the first build. This is also what keeps the client deployable
-              independently of the service, which the deployment model still
-              owed under `Architecture.md § Still owed by this document` would
-              otherwise have to reconstruct.
+              independently of the service, which the deployment model in
+              `DEPLOYMENT.md § What is deployed` would otherwise have had to
+              reconstruct.
 Resolved-by:  #26
 ```
