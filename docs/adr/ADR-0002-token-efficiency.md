@@ -189,3 +189,31 @@ O6's component list stands; what each component *reads* was wrong in ways that e
 - **`pr` fingerprints `number,headRefOid,isDraft`** — `updatedAt` is gone. A comment, a label, or any bot bumped it and woke @pr-judge on an unmoved diff. What remains are the events the loop reacts to: a head SHA moving, list membership changing, and draft→ready.
 - **`board` passes an explicit `--limit 200`.** `gh project item-list` defaults to 30 against a 37+-item board, so the fingerprint covered a *prefix* of it — items past the cut could change status forever without registering.
 - **`main` and `corpus` both derive from `origin/main` after one `git fetch`.** `main` came from the remote while `corpus` came from local history, so on a stale checkout a requirements or ADR change that had landed remotely read as no change at all. A failed fetch degrades explicitly rather than answering from a stale tracking ref, because an unreachable remote must never read as a quiet loop.
+
+## Amendment — 2026-08-16 (first live loop cycle)
+
+*Source: the Owner's runtime-findings directive, recorded in the existing ADRs rather than filed separately. Three defects **observed** in the loop's first live cycle. O1–O14 stand unchanged: two of these are costs the wave did not anticipate, and the third is the first piece of the counter-evidence this wave asked for by name.*
+
+### O15 — Confirm a panel is not already running before couriering a reviewer into it
+
+*Observed once, and it was the orchestrator's own defect: `@engineering-lead` dispatched a second `@docs-reviewer` into a panel already convened, producing duplicate verdicts.*
+
+`@engineering-lead` holds the Agent tool a judge may lack, so it will sometimes courier a reviewer on the judge's behalf. That does not make it the convener — **the panel is `@pr-judge`'s and the ledger is its record** — so before couriering it reads the ledger and the judge's envelope to establish whether the lane is already convened, already carried, or closed by the preflight. Two rows for one lane at one SHA is not coverage: it is a duplicate the judge must reconcile, and it inflates the accounting footer in the direction that looks like thoroughness.
+
+**A duplicate dispatch is a bloat signal to record, not to absorb.** The graph-bloat list in `engineering-lead.md § Phase 2` now names it, and names the lead as its usual owner. A bloat register that only ever indicts the judge is one the orchestrator has quietly exempted itself from.
+
+### O16 — A gate command is `@validation-agent`'s, and a reviewer's lapse is noted rather than fatal
+
+*Observed once. A `@docs-reviewer` ran gate commands, exceeding its dispatch.*
+
+The audit above already recorded that reviewers do not re-run the machine suite (§25/§26, in the already-solved table). What was missing was the **positive instruction for a reviewer that needs a measurement**: it asks for it — a finding naming `@validation-agent` as owner, or the claim listed under `ACCEPTED ON TRUST` with that owner — rather than taking it. A reviewer's own read-only instrument is untouched and stays licensed by `local-gates § When these activate`.
+
+**The judge's disposition is recorded alongside it, because the risk here runs both ways.** In the observed case the tree verified clean and the measurements proved load-bearing, and the judge **noted the lapse rather than invalidating the verdict** — which is correct, and is now written down so the next judge does not over-correct into discarding one. The validity table asks whether a verdict is *evidenced*; discarding one whose evidence held buys nothing and costs a full re-review. **A tree that moved remains the separate and fatal failure.** In `review-board-dispatch § Read-only is not the whole of the boundary`.
+
+### O17 — A document that decides a boundary is not docs-only
+
+*Observed once, and it is precisely the counter-evidence this wave's Consequences named as the thing to watch: "a genuinely relevant reviewer can now be missed by a row that does not quite match."*
+
+`@linus-security-critic`'s row read `Never when: docs-only.` A judge crossed it deliberately on **PR #67**, recorded why on the PR, and the reviewer returned **two high findings on paths to stored personal data**. The row is amended: **a docs change that decides an exposure boundary, a trust boundary, or what an infrastructure item will build against is not docs-only.** The exclusion survives for what it was written for — a typo, a heading, a rewording that settles nothing — and the test is what the document *decides*, not what it is named. In `review-board-dispatch § The reviewer registry`.
+
+**This widens a row O2 narrowed, on the evidence O2 asked for, and it is not a reversal of the wave.** `docs_only` remains an exact deterministic fact about file extensions and O6's §50 guard is untouched. What it stops being is an automatic answer about the **security lane** — which was never a file-extension question, and which §50 already reserved for the assessor and the judge on exactly this reasoning.

@@ -23,6 +23,14 @@ git -C <tree> status --porcelain | diff /tmp/pre_board_status.txt - && echo TREE
 ```
 If the tree changed, the board run is **invalid**: restore, identify the mutating reviewer, re-run.
 
+### Read-only is not the whole of the boundary
+
+**Running a gate is `@validation-agent`'s.** The gates in `local-gates` are machine evidence; they run **last and alone**, on every PR, so that nothing races them and one agent owns the result the PR body reports. A reviewer that runs them anyway has not broken read-only — a green `go test` leaves nothing in the tree — but it has produced a second, unattributed measurement of the thing the ledger records under another name, and paid again for the execution selective review exists to avoid (`agent-handoffs § What the obligation reaches`).
+
+**A reviewer needing a measurement asks for it rather than taking it:** file the gap as a finding naming `@validation-agent` as its owner, or list the claim under `ACCEPTED ON TRUST` with that owner. Both are already the evidence law's prescribed moves. What stays licensed is a reviewer's **own instrument** — `govulncheck` and `gitleaks` for the security lane, a grep, a heading list, anything read-only that *is* the review rather than a re-run of the suite. `local-gates § When these activate` draws that line and this clause does not redraw it.
+
+**The judge's disposition, stated so the next judge does not over-correct.** A reviewer that ran a gate has **exceeded its dispatch**, and that is noted on the PR and in the ledger. It has not, by that act alone, invalidated its verdict. Where the tree verified clean and the measurement proved load-bearing, **the verdict stands and the lapse is recorded** — `pr-judge.md § Phase 5` asks whether a verdict is *evidenced*, and a verdict whose evidence held is not improved by discarding it. Discard it where the **tree moved**, which is the clause above and a different failure. Observed once, on a `@docs-reviewer`, and disposed of exactly this way.
+
 ## Sequencing
 
 1. Convened critics run **parallel within a board**; boards may run in parallel with each other.
@@ -55,13 +63,15 @@ It classifies every changed file by domain and returns counts, `docs_only`, `lan
 | no `*.go` files in the diff | `@go-quality-critic`, `@go-structure-critic`, `@go-architecture-critic` are **closed** |
 | no frontend files | `@ux-reviewer`, `@design-reviewer`, `@ui-engineer` are **closed** |
 | no schema files | the schema and migration lane is **closed** |
-| `docs_only: true` | the registry's auto-low row applies — **no `@change-risk-assessor` run** |
+| `docs_only: true` | **not a close on its own.** The assessor's auto-low exemption is narrower than `docs_only` and its test is semantic — apply the row in `§ The reviewer registry`, and assess anything that row does not exempt |
 | PR is a draft | **stop.** No panel convenes on a draft |
 | head SHA unchanged since the last ledger entry | **full carry.** Nothing re-reviews; update the ledger and stop |
 
 **The §50 guard, and it is not negotiable:** *deterministic checks close lanes only where the file-domain mapping is exact; anything semantic — safety paths above all — stays with `@change-risk-assessor` and `@pr-judge`.*
 
 That guard is why the script only ever **closes** a lane and never opens one, and why `safety_path_candidates` prints `hint_only: sentinel activation is semantic` next to itself. A file list can prove a Go critic has nothing to read. It cannot prove a safety rule was not changed, because a safety rule can be changed by a constant in a file no hard-coded list has heard of — and the cost of those two errors is not remotely symmetric.
+
+**The docs row is the one place a deterministic fact stops short of its consequence.** `docs_only` is exact and is a statement about file extensions; whether a docs diff is a typo, a formatting change, or a link fix is a judgement about what it *does*, and that exemption belongs to the assessor — stated in its registry row below and in its own contract, which is why this table applies that row instead of carrying a third copy of it. **PR #67 is the evidence:** `docs_only: true` across three Markdown files, and the authoritative PR-open assessment came back `medium / 0.54` naming `security` as a required lane. The observed behaviour already followed the assessor's row; it was this table that was wrong, and §50 had reserved the semantic half for the assessor and the judge before the case arose. Narrowed 16 August 2026 — `docs/adr/ADR-0002-token-efficiency.md § O17`.
 
 ## Selection law
 
@@ -104,7 +114,7 @@ One row per reviewer. `Invalidated by` is what re-runs it after a revision; anyt
 | `@linus-quality-critic` | backend correctness, bluntly | Behavioural backend/Go change at medium+ tier, or correctness flagged | Docs-only; pure formatting | Any further behavioural change to the same code |
 | `@linus-structure-critic` | code structure and layout | Go diff at high tier, or structure flagged | Docs-only; config-only | File moves, splits, or signature changes |
 | `@linus-architecture-critic` | module boundaries, ports/adapters, concurrency design | Cross-boundary change | Change confined inside one package's internals | Any boundary, port, adapter, or concurrency-design change |
-| `@linus-security-critic` | security surface | Auth, input validation, spatial queries, stored personal data, plan retrieval, secrets, external requests, data-touching migrations | Pure styling; docs-only | Any change to a listed surface |
+| `@linus-security-critic` | security surface | Auth, input validation, spatial queries, stored personal data, plan retrieval, secrets, external requests, data-touching migrations — **including a document that decides one of them** | Pure styling; docs-only **that decides no exposure boundary, no trust boundary, and nothing an infrastructure item will build against** | Any change to a listed surface |
 | `@go-quality-critic` | idiomatic Go | Go diff with behavioural or interface change: new/changed exported identifiers, error-handling or context-propagation changes, concurrency primitives, or non-trivial implementation logic (roughly 40+ changed Go lines); or the risk assessment requests the correctness lane | Rename-, move-, comment-, or formatting-only Go diffs; docs-only | Further change to the functions or packages it reviewed, or a new exported API, error-path, or concurrency change elsewhere |
 | `@go-structure-critic` | package and file organization | Packages or files added or moved | Edits confined to the existing file set | Further adds, moves, or renames |
 | `@go-architecture-critic` | Go interfaces and boundaries | Interface or boundary change | Leaf implementation-only change behind a stable interface | Further interface or boundary change |
@@ -126,6 +136,8 @@ One row per reviewer. `Invalidated by` is what re-runs it after a revision; anyt
 **State the effect plainly, because it is the point rather than a side effect:** the Go board has three members and the Linus board has four, so **neither can ever meet the count condition**. Their summarizers are now conflict-triggered only. That is not an oversight to be corrected by lowering the number — it is what happens when a threshold is set by what synthesis actually costs rather than by what the historical architecture happened to do.
 
 **@ui-engineer also has an architect half** — commissioned by @worker-manager during implementation, which is not board convening; its registry row covers only the reviewer half. The omission is deliberate.
+
+**`docs-only` is a statement about file extensions, not about consequence — and the security row now says so.** A document can decide an exposure boundary, a trust boundary, or the thing an infrastructure item will be built against, and a diff doing any of those has moved the security surface without changing a line of code. **PR #67 is the evidence, and is why the row was widened rather than argued:** a judge crossed the old flat `docs-only` exclusion deliberately, recorded why on the PR, and `@linus-security-critic` returned **two high findings on paths to stored personal data**. The exclusion still holds for what it was written for — a typo, a heading, a rewording that settles nothing — and the test is what the document *decides*, not what it is named. Amended 16 August 2026 on that evidence; `docs/adr/ADR-0002-token-efficiency.md § O17` records it.
 
 ### Mandatory sets by risk tier
 
