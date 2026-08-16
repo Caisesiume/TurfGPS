@@ -221,3 +221,54 @@ Affects:        FR-076, FR-092. FR-085 and FR-075 carry the same
                 presupposes an identified connection and so fails rather than
                 fires.
 ```
+
+## RD-008 — Must a record oblige the Turf adapter FR-019 inspects, or must FR-019 stop naming it?
+
+```
+Date:           2026-08-15
+Question:       FR-019 verifies by inspection of "the Turf API adapter" and
+                the configuration supplying its base path.
+                `Architecture.md § Ports and adapters` declares a `TurfClient`
+                port, and no record in this corpus obliges it — or any other
+                of that section's six ports — into existence. Raised as DEP-01
+                by `@backlog-dependency-planner` against #18. Does a new
+                record oblige the port, or does FR-019 re-key onto the first
+                story that constructs a Turf request?
+Interpretation: Neither. The defect is in FR-019's own Verification and
+                Acceptance, and it is repaired there: both re-key from the
+                named artefact onto the class of paths that construct a Turf
+                API request, identified by what they do rather than by what
+                they are called. The Statement does not move, and Depends-on
+                stays none — the obligation is over every request the system
+                makes, presupposes no other record, and binds whatever the
+                code is organized into. Obliging the port is deferred as a
+                debt whose home is the batch scoped to
+                `Architecture.md § Ports and adapters`, which decides all six
+                together; whether `TurfClient` needs a record at all is that
+                batch's to weigh, since the section argues from adding a
+                country's dataset and Turf has no second provider. Coverage
+                meanwhile is by reference and not by silence: the repaired
+                record binds every path constructing a Turf request, so none
+                escapes the version constraint whether or not the code sits
+                behind a port.
+Rung:           1 — explicit specification, for the repair.
+                `Architecture.md § API version` keys its obligation to the
+                requests the system issues and names no artefact at all, so a
+                verification keyed to an artefact verifies something the
+                source does not oblige. 6 — established repository
+                conventions, for the deferral: this corpus records an
+                obligation arising in an unswept section as a debt with its
+                home named rather than authoring one paragraph of a section a
+                later batch owns, which is RD-005's ground. Rung 2 was checked
+                and does not decide it — that section ratifies the port, which
+                is what makes this a deferral rather than a refusal, but a
+                section ratifying a shape is not a record obliging one, per
+                the Owner's ruling of 3 August 2026 that scaffolding carries
+                no traceability exception. Rung 4 corroborates and was not
+                sufficient alone: NFR-001's ruled repair is this exact shape,
+                a criterion keyed to an artefact that need not exist reporting
+                green while measuring nothing.
+Affects:        FR-019. The debt list in `README.md`. By reference #18 and the
+                three edges naming it as a blocker — #20, #21 and #28 — which
+                rest on a premise this entry makes false.
+```

@@ -13,16 +13,29 @@ Statement:    The system shall issue every request it makes to the Turf API
 Category:     Turf data integration
 Source:       Architecture.md § API version
 Priority:     MUST
-Verification: inspection — the Turf adapter's configured base path and every
-              request path it constructs name the current API version, on
-              fallback and error paths as well as the primary ones
-Acceptance:   the Turf API adapter and its configuration name exactly one API
-              version, and that version is the one recorded as current under
-              `Architecture.md § API version`; a reader confirms this in the
-              adapter's request-construction code and in the configuration
-              that supplies its base path
+Verification: inspection — the code paths that construct a Turf API request,
+              and any configuration they draw a base path from, name between
+              them exactly one API version, and it is the one recorded as
+              current; every such path is examined, the fallback and error
+              paths as well as the primary ones
+Acceptance:   the code paths that construct a Turf API request, identified by
+              what they construct rather than by what they are called,
+              together with any configuration they draw a base path from, name
+              exactly one API version between them, and it is the version
+              recorded as current; the fallback and error paths are in that
+              class and no path in it is exempt; a reader confirms this by
+              enumerating the class from every point at which the system
+              issues a Turf API request, reading each path's request
+              construction and the configuration it draws on, and confirms in
+              `Architecture.md § API version` which version is current
 Status:       to-build
 Depends-on:   none
+Volatility:   settled — the version is cited rather than named, so a version
+              bump moves the cited document and not this record, and the
+              criteria are keyed to what a path constructs rather than to any
+              component, so a decision about how the code is organized does
+              not move them either; gained on the opportunistic transition,
+              this record's first edit since the field existed
 Risk:         The preceding version is deprecated, so a call path built on it
               works until the day it is withdrawn and then fails for every
               user at once, with no local change to point at. Worse than the
@@ -33,9 +46,16 @@ Risk:         The preceding version is deprecated, so a call path built on it
 Rationale:    Verification is inspection rather than test because the property
               must hold on every path that can construct a request, including
               the fallback and error paths a suite is least likely to
-              exercise, and because a single configured version is what makes
-              it checkable at all. The version is cited rather than named so
-              that this record does not become a second home for it.
+              exercise, and because a single version across all of them is
+              what makes it checkable at all. The version is cited rather than
+              named so that this record does not become a second home for it.
+              Both criteria are keyed to what a path does — construct a Turf
+              API request — rather than to any component it sits in, so the
+              single-version property belongs to that class of paths and not
+              to a named artefact's configuration, and the record presupposes
+              no component, which is why `Depends-on` is none. A criterion
+              keyed to an artefact is satisfied vacuously wherever that
+              artefact is absent, reporting green while measuring nothing.
 Resolved-by:  #18
 ```
 
