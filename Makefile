@@ -91,9 +91,19 @@ gates:
 	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
 	exit $$rc
 
-# gofmt -l lists unformatted files and still exits 0, so a recipe that merely
-# calls it passes whatever it finds. The output is the result and has to be
-# tested, not just displayed.
+# gofmt -l names the files it would reformat and exits 0 whether or not it
+# names any, so the list is the result and has to be tested, not merely
+# displayed. That is true only of a tree gofmt could READ, and the earlier
+# wording of this comment stated it unconditionally, which is the premise the
+# recipe below was built on and the defect it shipped.
+#
+# A file that does not parse is reported on stderr with exit 2 and puts
+# nothing on stdout. Testing the list alone therefore reads a tree gofmt
+# refused as a tree gofmt approved: empty list, `fmt: clean`, exit 0. Both
+# halves are checked here, and the status first, because it decides whether
+# the list means anything — an unreadable tree is not a formatting verdict at
+# all. The status is taken on the same line as the capture, where no command
+# can be inserted between the two to reset it.
 #
 # The directory change is a checked step of its own, ahead of the capture.
 # Chained as `cd $(GO_DIR) && unformatted=$$(gofmt -l .);` it short-circuited:
@@ -102,9 +112,19 @@ gates:
 # exited 0 — clean, having examined nothing. Note this is still one shell and
 # so still holds the directory: what make discards between recipe lines is a
 # bare `cd` on a line of its own, and every line below is a continuation.
+#
+# Three ways to report clean having measured nothing, then — an unenterable
+# directory, an unreadable tree, and an absent gofmt, which is 127 and so is
+# caught by the same status test. One shape, and the one this file exists to
+# refuse. The cd was fixed while its twin two lines away was left standing;
+# checking a status is cheap, and finding out which ones were dropped is not.
 fmt:
 	@cd $(GO_DIR) || { echo 'fmt: FAIL — cannot enter $(GO_DIR)/'; exit 1; }; \
-	unformatted=$$(gofmt -l .); \
+	unformatted=$$(gofmt -l .); gofmt_status=$$?; \
+	if [ $$gofmt_status -ne 0 ]; then \
+		echo "fmt: FAIL — gofmt exited $$gofmt_status without reading the tree"; \
+		exit $$gofmt_status; \
+	fi; \
 	if [ -n "$$unformatted" ]; then \
 		echo 'fmt: NOT clean. gofmt -l names:'; \
 		echo "$$unformatted"; \
