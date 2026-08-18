@@ -176,7 +176,20 @@ func TestImageStartsAndServesFirstRequest(t *testing.T) {
 	// The build context is the module root, which is `service/`, exactly as
 	// `make image` builds it.
 	if out, err := exec.CommandContext(t.Context(), runtime, "build", "--tag", tag, root).CombinedOutput(); err != nil {
-		t.Fatalf("NFR-003 AC1/AC2 FAILED — the image did not build (%s build %s): %v\n%s", runtime, root, err, out)
+		t.Fatalf("NFR-003 AC1/AC2 FAILED, OR A HARNESS FAULT — this run cannot tell which,\n"+
+			"and the runtime's own output below is what separates the two readings.\n\n"+
+			"The image did not build (%s build %s): %v\n%s\n"+
+			"A failure to fetch the base images `service/Dockerfile` pins by digest — a rate-limited\n"+
+			"registry, no network, a proxy, an expired credential — is a missing capability of THIS\n"+
+			"HOST, not a fault in the service. The digest pins make that fetch a mandatory network\n"+
+			"step of every build, so it is the likeliest reading on a fresh runner. On it the image\n"+
+			"was never built, so nothing measured AC2's metric — start-up and the first served\n"+
+			"request in that image — nor either half of AC1's condition this file probes.\n"+
+			"A failure the runtime attributes to the build itself — an instruction exiting non-zero,\n"+
+			"a file missing from the context — is the service's defect, and `service/Dockerfile` is\n"+
+			"where to read it.\n\n"+
+			"Red on either reading: a check that did not run is never a pass.",
+			runtime, root, err, out)
 	}
 	t.Cleanup(func() { runCleanup(runtime, "image", "rm", "--force", tag) })
 
@@ -186,8 +199,16 @@ func TestImageStartsAndServesFirstRequest(t *testing.T) {
 	out, err := exec.CommandContext(t.Context(), runtime,
 		"run", "--detach", "--publish", "127.0.0.1:0:"+containerPort, tag).Output()
 	if err != nil {
-		t.Fatalf("NFR-003 AC2 FAILED — the container did not start from the built image: %v\n%s",
-			err, commandStderr(err))
+		t.Fatalf("NFR-003 AC2 FAILED, OR A HARNESS FAULT — this run cannot tell which, and the\n"+
+			"runtime's own refusal below is what separates the two readings.\n\n"+
+			"The container did not start from the built image (%s run --detach): %v\n%s\n"+
+			"A refusal naming the host rather than the image — no permission to publish a port, the\n"+
+			"address already in use, no network namespace, a runtime daemon that is not running — is\n"+
+			"a missing capability of THIS HOST, not a fault in the service. On that reading no\n"+
+			"container ever ran, so nothing measured AC2's metric: start-up and the first served\n"+
+			"request in that image. A refusal naming the image's entry point is the service's defect.\n\n"+
+			"Red on either reading: a check that did not run is never a pass.",
+			runtime, err, commandStderr(err))
 	}
 
 	container := strings.TrimSpace(string(out))
@@ -451,7 +472,8 @@ func firstServedRequest(t *testing.T, runtime, container, addr string) ([]byte, 
 	for {
 		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+addr+"/", nil)
 		if err != nil {
-			t.Fatalf("building the request: %v", err)
+			t.Fatalf("HARNESS FAULT — this harness could not build a request for %q: %v\nNo request was ever sent, so AC2's metric — the first request served in the image — was not measured by this run.",
+				addr, err)
 		}
 
 		resp, err := client.Do(req)
@@ -469,7 +491,17 @@ func firstServedRequest(t *testing.T, runtime, container, addr string) ([]byte, 
 		lastErr = err
 
 		if time.Now().After(deadline) {
-			t.Fatalf("NFR-003 AC2 FAILED — the service in the image served no request within %s of the container starting.\nlast error: %v\ncontainer logs:\n%s",
+			t.Fatalf("NFR-003 AC2 FAILED, OR A HARNESS FAULT — this run cannot tell which, and the\n"+
+				"container's own logs below are what separate the two readings.\n\n"+
+				"The service in the image served no request within %s of the container starting.\n"+
+				"last error: %v\n"+
+				"Logs showing a service that started and is listening mean the request never reached it —\n"+
+				"a host that cannot dial the port it published, a firewall, a rootless network namespace —\n"+
+				"which is a missing capability of THIS HOST, and on that reading AC2's metric went\n"+
+				"unmeasured rather than unmet. Logs showing a service that never started, or that exited,\n"+
+				"are the service's defect and are AC2 unmet.\n\n"+
+				"Red on either reading: a check that did not run is never a pass.\n"+
+				"container logs:\n%s",
 				startupTimeout, lastErr, containerLogs(runtime, container))
 		}
 
