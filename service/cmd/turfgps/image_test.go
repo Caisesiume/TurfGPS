@@ -45,8 +45,8 @@ package main
 // of it is buffered and discarded unless the package fails or -v is given.
 // Measured on this repository's toolchain, go1.26.2, on 15 August 2026.
 //
-// The gate in `local-gates` runs `go test -race -count=1 ./...`, which is not
-// verbose. So a t.Skip here would reduce the entire evidence for AC2 to the
+// The `Makefile`'s test target runs `go test -race -count=1 ./...`, which is
+// not verbose. So a t.Skip here would reduce the entire evidence for AC2 to the
 // word `ok` — character-for-character what a run that built the image, started
 // the container and served a request prints. A criterion whose absence of
 // verification is indistinguishable from its verification is asserted, not
