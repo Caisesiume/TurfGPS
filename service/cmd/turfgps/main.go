@@ -22,7 +22,22 @@ const (
 
 	// shutdownTimeout bounds the drain of in-flight requests once the process
 	// has been asked to stop. It stays well inside a container runtime's usual
-	// grace period, which kills the process outright when that period expires.
+	// grace period, which kills the process outright when that period expires —
+	// and that grace, not writeTimeout below, is what bounds it. The two answer
+	// different questions: writeTimeout is how long one request may take, this
+	// is how long the process may take to disappear before its supervisor stops
+	// waiting, so neither derives from the other. A drain matching writeTimeout
+	// would promise time no runtime lets it serve: it outlives even the
+	// stopGrace the image harness signals with, so the runtime would kill the
+	// process mid-drain — the same request lost, and lost at the runtime's
+	// discretion rather than through the service's own error path.
+	//
+	// The cost is deliberate and it falls on the handler: a request still
+	// running when this expires is severed. A solve streamed over tens of
+	// seconds, per `Architecture.md § Response time and progressive results`,
+	// sits inside writeTimeout and far outside this budget, so what carries one
+	// across a restart is a client that can resume — raising this alone only
+	// moves the loss to the runtime's kill.
 	shutdownTimeout = 5 * time.Second
 
 	// readHeaderTimeout bounds how long a client may take to send its request
@@ -41,7 +56,10 @@ const (
 	// it sits above readTimeout rather than beside it. A handler that
 	// legitimately needs longer extends its own deadline through
 	// http.ResponseController; raising this ceiling for one slow route would
-	// relax it for every route.
+	// relax it for every route. It is not a survival guarantee either:
+	// shutdownTimeout above is far shorter and answers to the runtime rather
+	// than to this budget, so a request still running when the process is asked
+	// to stop is severed well before this bound.
 	writeTimeout = 60 * time.Second
 
 	// idleTimeout bounds how long a kept-alive connection may wait between
