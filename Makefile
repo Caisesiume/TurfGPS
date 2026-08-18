@@ -9,10 +9,18 @@
 # THE ONE THING THIS FILE EXISTS TO GET RIGHT
 #
 # `Architecture.md § D8` puts the Go module in `service/` and leaves no module
-# at the repository root. Every Go command therefore resolves against nothing
-# when it is run from the root: it finds no Go files rather than no faults,
-# exits zero, and prints precisely what a clean module prints. All five gates
-# pass over an empty tree, character-for-character identical to a clean run.
+# at the repository root. Every Go command therefore resolves against the
+# directory it is run from, and that directory — not the tree — is what decides
+# what a gate measured.
+#
+# Measured from this root, four of the five are loud: vet, lint and build each
+# fail to resolve a module, and test fails on the absent-cgo host reason that is
+# identical from either directory, so on this host it discriminates nothing.
+# Only gofmt exits 0, and its output is identical to a clean run — not because
+# it read nothing, but because it walks the filesystem instead of resolving a
+# module, and every Go file in this repository sits inside the module
+# directory. It reads the same tree by accident of layout, and reads more the
+# moment a .go file lands outside it.
 #
 # So every recipe below carries its own directory, on the same line as the
 # command it guards. make runs each recipe line in a fresh shell, so a bare
@@ -61,7 +69,7 @@ help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
 	@echo ''
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
-	@echo '  make fmt     gofmt -l . — fails when it names a file'
+	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
 	@echo '  make test    go test -race -count=1 ./...  (needs a C compiler)'
