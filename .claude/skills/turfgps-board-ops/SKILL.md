@@ -256,8 +256,8 @@ The native issue-dependency API is live and readable here — `gh api repos/Cais
 
 ## Traceability law
 
-**Source document § section → requirement code (`FR-*`/`NFR-*`) → story `#N` → commit message references `#N` → PR links the story.** The judge remands broken traceability before convening the bench.
+**Source document § section → requirement code (`FR-*`/`NFR-*`) → story `#N` → commit message references `#N` → PR links the work item.** The judge remands broken traceability before convening the bench.
 
-**The last two links bind every work item; the first three are the story chain.** A `Task` stays out of the requirements half — that is `§ Labels`, and its three exemptions there are exhaustive — but its commits still reference its own `#N` and its PR still links it. So the test a judge applies to a Task-driven PR is the tail of this chain, not its absence.
+**The last two links bind every work item; the first three are the story chain.** A `Task` stays out of the requirements half — that is `§ Labels` — but its commits still reference its own `#N` and its PR still links it. So the test a judge applies to a Task-driven PR is the tail of this chain, not its absence.
 
 Note the first link differs from a single-specification project: TurfGPS's requirements draw on **four** upstream documents, and a citation names the document as well as the section — `SPECIFICATION.md § Enforceable exclusions`, `CalculationSpecification.md § Proposed placeholder timings`, `Architecture.md § Retrieving zones`, `DESIGN.md § Replacement and escalating scope`. A citation naming only a section is ambiguous and is a librarian finding.

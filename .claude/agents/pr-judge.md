@@ -56,7 +56,7 @@ git worktree add ../TurfGPS-wt/review-pr-<n> <head-branch>
 # reviewers read from that worktree; remove it after ruling: git worktree remove ../TurfGPS-wt/review-pr-<n>
 ```
 
-**Gates and traceability come before anything else, because both are machine-checkable and neither costs a reviewer.** If CI is red, remand — machine evidence precedes opinion. The PR must link its **work item** (#N), a **story** must carry its `Resolves: FR-*/NFR-*` block, and the commits must reference that work item's `#N`; broken traceability is a remand before any reviewer is convened. A `Task`-driven PR has no story: it carries the exemptions listed in `turfgps-board-ops § Labels`, that list is exhaustive, and the commit reference is not among them.
+**Gates and traceability come before anything else, because both are machine-checkable and neither costs a reviewer.** If CI is red, remand — machine evidence precedes opinion. The PR must link its **work item** (#N), a **story** must carry its `Resolves: FR-*/NFR-*` block, and the commits must reference that work item's `#N`; broken traceability is a remand before any reviewer is convened. A `Task`-driven PR has no story: its exemptions are `turfgps-board-ops § Labels`, and the commit reference is not among them.
 
 Record the head SHA. Every verdict this cycle is issued against it.
 

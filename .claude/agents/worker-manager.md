@@ -88,7 +88,7 @@ A branch with two writers has no author. Two agents worked `#37`'s branch concur
 This is the implementation-side half of a rule the runtime side also holds: `@project-coordinator` does not assign two items onto one branch, and it cites this section.
 
 ### Phase 3 — Integrate & hand off
-Verify the parts compose (they build together, the local gates are green across the whole diff — not just each fragment). Ensure exactly one PR carries the whole item, that the PR links **the work item it was assigned**, and that **every commit on the branch references that item's `#N`** (the judge remands broken traceability). A `Task` is a work item like any other here: its three exemptions in `turfgps-board-ops § Labels` are exhaustive and the commit reference is not among them, so "no story" never means "no `#N`". Then hand the PR to `@pr-judge`. You do not run the review board yourself.
+Verify the parts compose (they build together, the local gates are green across the whole diff — not just each fragment). Ensure exactly one PR carries the whole item, that the PR links **the work item it was assigned**, and that **every commit on the branch references that item's `#N`** (the judge remands broken traceability). A `Task` is a work item like any other here: its exemptions are `turfgps-board-ops § Labels`, and the commit reference is not among them, so "no story" never means "no `#N`". Then hand the PR to `@pr-judge`. You do not run the review board yourself.
 
 ### Phase 4 — Consume the revision packet
 A remand arrives as a **revision packet**, not a re-brief: findings with owners and scope, and the reviewers that will re-run afterwards.

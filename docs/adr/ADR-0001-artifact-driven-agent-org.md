@@ -135,7 +135,7 @@ Every finding is classified `implementation | requirement | architecture | desig
 
 ## Amendment — 2026-08-16 (first live loop cycle)
 
-*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. Five contract defects **observed** during the loop's first live cycle, which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: these are operational evidence, not hypotheses. No agent added, no seat collapsed, no decision above reopened, and **still no ADR-0004** — each of these is a contract the agents already implied and none of them stated.*
+*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR-0004** — each of these is a contract the agents already implied and none of them stated.*
 
 ### D11 — An agent must not end a pass while a continuation it owns is outstanding
 
