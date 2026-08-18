@@ -143,7 +143,7 @@ Every finding is classified `implementation | requirement | architecture | desig
 
 Dispatching creates an obligation that outlives the dispatch. An agent that dispatches therefore ends its pass in exactly one of two ways: it **awaits its children**, or it **persists their output to a durable artifact and names in its envelope what remains owed and to whom**. Holding the work only in the pass's own context is neither.
 
-Stated once, in `agent-handoffs § An outstanding continuation is not left behind` — it binds every dispatching agent, and none of them should have to open another agent's file to find it. `requirements-engineer.md § Mode A` cites it at the continuation that has actually been dropped.
+Stated once, in `agent-handoffs § An outstanding continuation is not left behind` — it binds every dispatching agent, and none of them should have to open another agent's file to find it. `requirements-engineer § Mode A` cites it at the continuation that has actually been dropped.
 
 **This is a durability rule, not a scheduling one.** The failure is invisible by construction — nothing anywhere records that a step was owed — which is why the obligation is discharged into an artifact rather than trusted to a process staying alive long enough.
 
@@ -159,7 +159,7 @@ Stated once, in `agent-handoffs § An outstanding continuation is not left behin
 
 *Observed once and **handled correctly by the agent that hit it**: one `@pr-judge` process had no dispatch capability and stopped at Phase 4 with a durable resume point rather than fabricating a panel. Another instance convened normally, so the capability is not something a judge may assume about itself.*
 
-A judge without the means to convene has selected a panel and heard none of it, and ruling anyway would enter a merge decision under a signature that reviewed the diff itself. It **stops, rules nothing, and emits a resume packet** — head SHA, the selected panel with its reasons, the lanes the preflight closed, and what must not be convened — so Phases 0–3, the expensive half, are not paid for twice. In `pr-judge.md § When the panel cannot be convened`.
+A judge without the means to convene has selected a panel and heard none of it, and ruling anyway would enter a merge decision under a signature that reviewed the diff itself. It first asks `@engineering-lead` to courier the dispatch, and where that too is unavailable it **stops, rules nothing, and emits a resume packet** carrying what is expensive to re-derive — the head SHA, the selected panel with its reasons, and what must not be convened — so Phases 0–3, the expensive half, are not paid for twice. The preflight's closed lanes are deliberately not in it: a script re-runs, and a cache of its output can go stale in a way the script cannot. In `pr-judge § When the panel cannot be convened`.
 
 **Recorded because it was improvised well, not because it went wrong.** A behaviour that exists only in the instance that invented it is a behaviour the next process does not have.
 
@@ -167,7 +167,7 @@ A judge without the means to convene has selected a panel and heard none of it, 
 
 *Observed once. `@engineering-lead` filed issue `#108` through the API and set no board Status; the issue existed, and every board query returned a board without it.*
 
-An item with no `Status` is not at the head of the chain — it is outside the chain: invisible to every filtered view, and unsequenceable by the agent who would otherwise promote it. **Creating a work item is not finished until that item is on the board with a Status**, and an agent that cannot set it routes the step to `@scrum-master` in its envelope, naming the issue. In `turfgps-board-ops § Status`, whose rule was already correct but read as binding only `@requirements-story-organizer`; it is now written for every filing agent, through every channel.
+An item with no `Status` is not at the head of the chain — it is outside the chain: invisible to every filtered view, and unsequenceable by the agent who would otherwise promote it. The rule and its `@scrum-master` fallback are in `turfgps-board-ops § Status`, whose text was already correct but read as binding only `@requirements-story-organizer`; **it is now written for every filing agent, through every channel**, which is the whole of what this amendment changed.
 
 ### D15 — Commits reference a `Task`, and its three exemptions are exhaustive
 

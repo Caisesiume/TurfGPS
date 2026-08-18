@@ -95,19 +95,22 @@ Do not paste the diff or the requirements into a dispatch. The reviewer opens th
 
 **Convening capability is not guaranteed, and a judge that cannot convene rules nothing.** A process without the means to dispatch has selected a panel and heard none of it; ruling anyway would enter a merge decision under a signature that reviewed the diff itself, which is the one thing this seat may never do. Reading the diff and calling it a panel is worse than stopping, because the ledger cannot tell the difference afterwards.
 
-**Stop at this phase, rule nothing, and emit a resume packet** so the next judge resumes rather than redoing the selection — Phases 0–3 are the expensive half and their outputs are still valid against the same head SHA:
+**Try the courier route first.** `@engineering-lead` holds the Agent tool you may lack and will dispatch a reviewer on your behalf — that is `engineering-lead § Before you invoke anything`, which also binds it to confirm the lane is not already convened before it does. Ask, and convene through it. A packet is what you emit when that route is also unavailable, not the first answer to a missing tool.
+
+**Otherwise stop at this phase, rule nothing, and emit a resume packet** so the next judge resumes rather than redoing the selection — Phases 0–3 are the expensive half and their outputs are still valid against the same head SHA:
 
 ```yaml
 resume_packet:
-  pr: 67
-  head_sha: 9f8e7d6
+  pr: <n>
+  head_sha: <sha>
   stopped_at: phase-4-no-dispatch-capability
   panel_selected:
-    - {reviewer: linus-security-critic, reason: "docs decides an exposure boundary — registry row, amended"}
-  lanes_closed: [go-quality, go-structure, ux, design]   # Phase 0, deterministic — do not re-derive
-  must_not_convene: [performance-reviewer]               # assessment: review_not_required
+    - {reviewer: <name>, reason: "<the row and evidence that selected it>"}
+  must_not_convene: [<name>]      # assessment: review_not_required
   carried: []
 ```
+
+**It carries only what is expensive to re-derive.** The selection's reasons, the hard negatives, and what a prior cycle already carried are judgements; the head SHA is what makes all three still true. **Lanes the preflight closed are deliberately not in it** — `scripts/loop/diff-domains.sh` re-derives them in one command against the same head, and a cached copy of a script's output can go stale in a way the script cannot. Cache a judgement; re-run a script.
 
 Post it as a PR comment under `GH_JUDGE_TOKEN` like any other judgment artifact, signed. **The resume packet is binding on the judge that picks it up** at an unchanged head SHA: it does not re-select, and it does not convene anything named under `must_not_convene`. If the head SHA moved, the packet's selection is stale — say so and re-run Phase 0.
 

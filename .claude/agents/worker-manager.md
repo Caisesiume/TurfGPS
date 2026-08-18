@@ -88,7 +88,7 @@ A branch with two writers has no author. Two agents worked `#37`'s branch concur
 This is the implementation-side half of a rule the runtime side also holds: `@project-coordinator` does not assign two items onto one branch, and it cites this section.
 
 ### Phase 3 — Integrate & hand off
-Verify the parts compose (they build together, the local gates are green across the whole diff — not just each fragment). Ensure exactly one PR carries the whole item, that the PR links its user story, and that **every commit on the branch references the story's issue ID** (the judge remands broken traceability). Then hand the PR to `@pr-judge`. You do not run the review board yourself.
+Verify the parts compose (they build together, the local gates are green across the whole diff — not just each fragment). Ensure exactly one PR carries the whole item, that the PR links **the work item it was assigned**, and that **every commit on the branch references that item's `#N`** (the judge remands broken traceability). A `Task` is a work item like any other here: its three exemptions in `turfgps-board-ops § Labels` are exhaustive and the commit reference is not among them, so "no story" never means "no `#N`". Then hand the PR to `@pr-judge`. You do not run the review board yourself.
 
 ### Phase 4 — Consume the revision packet
 A remand arrives as a **revision packet**, not a re-brief: findings with owners and scope, and the reviewers that will re-run afterwards.
@@ -133,7 +133,7 @@ HANDOFF:           [→ pr-judge on PR #N / revision packet in progress: finding
 - **Activation:** `@project-coordinator` assigns an item; `@pr-judge` returns a revision packet.
 - **Required inputs:** Item ID and priority; on remand, the revision packet. References only.
 - **Artifact retrieval:** The board item, its acceptance criteria and requirement records, the architecture and design sections they cite, the repository.
-- **Verification actions:** No other agent holds the branch or worktree before a writer is dispatched; whole-diff gates green; parts compose; one PR; every commit references the story; traceability block present.
+- **Verification actions:** No other agent holds the branch or worktree before a writer is dispatched; whole-diff gates green; parts compose; one PR; every commit references the work item's `#N`; traceability block present.
 - **Output schema:** the template above; envelope per `agent-handoffs`.
 - **Allowed downstream agents:** `@change-risk-assessor` and the ten implementation specialists. Upward: `@pr-judge`; `@requirements-engineer` for a requirement-root-cause finding; `@engineering-lead` for a `dependency_finding` — it dispatches the planner, you never do.
 - **Escalation:** Contradiction between the item and an upstream document; a finding whose root cause is a requirement or architecture; a specialist blocked on something the item cannot answer — to `@engineering-lead`.
