@@ -165,8 +165,8 @@ test:
 # but is not the argument — this comment argued from it until this story added
 # the very rule it called missing, in the same diff, and it went false with it.
 #
-# The pattern is ./cmd/... and not ./cmd/turfgps, matching `local-gates` and
-# the build this story's own AC1 test runs. Named singly, this gate compiles
+# The pattern is ./cmd/... and not ./cmd/turfgps, matching the build this
+# story's own AC1 test runs in `build_test.go`. Named singly, this gate compiles
 # the one command it was told about and exits 0 over a second one it never
 # looked at — the case `build_test.go` exists to catch, which a gate blind to
 # it would let through with a green line. -o names the directory rather than
