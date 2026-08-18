@@ -268,7 +268,6 @@ Rung:           1 — explicit specification, for the repair.
                 sufficient alone: NFR-001's ruled repair is this exact shape,
                 a criterion keyed to an artefact that need not exist reporting
                 green while measuring nothing.
-Affects:        FR-019. The debt list in `README.md`. By reference #18 and the
-                three edges naming it as a blocker — #20, #21 and #28 — which
-                rest on a premise this entry makes false.
+Affects:        FR-019. The `FR-019` repair's debt list in `README.md`. By
+                reference #18, #20, #21 and #28.
 ```

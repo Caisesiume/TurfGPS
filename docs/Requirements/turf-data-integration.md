@@ -55,7 +55,12 @@ Rationale:    Verification is inspection rather than test because the property
               to a named artefact's configuration, and the record presupposes
               no component, which is why `Depends-on` is none. A criterion
               keyed to an artefact is satisfied vacuously wherever that
-              artefact is absent, reporting green while measuring nothing.
+              artefact is absent, reporting green while measuring nothing; the
+              criteria this record now carries fail closed instead, each a
+              cardinality claim over that class — its paths name exactly one
+              version between them — which an empty class falsifies rather
+              than satisfies, since a class naming no version has not named
+              exactly one.
 Resolved-by:  #18
 ```
 
