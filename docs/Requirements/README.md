@@ -394,6 +394,12 @@ Six rest on **rung 1, explicit specification**, which is what a landed section d
 
 **The file held six citations in the superseded form and no seventh in any other shape**, which is recorded because an exhaustive check and an unrun one look identical afterwards. Every asterisk in the file was accounted for — twelve, being the six spans — there is no underscore span, no bare back-reference and no citation split across a line break, and the twelve citations already in the token form all resolve against current headings. The whole of what was superseded there was the six.
 
+**Owed by the `FR-019` repair, and deliberately not authored.** One debt, with its home named, deferred under `RD-008` on 15 August 2026.
+
+- **A record obliging the `TurfClient` port into existence**, owed to the batch scoped to `Architecture.md § Ports and adapters`, which decides all six of that section's ports together; whether `TurfClient` needs a record at all is that batch's to weigh. Coverage meanwhile is by reference and not by silence: the repaired `FR-019` binds every path that constructs a Turf API request, so none escapes the version constraint whether or not the code sits behind a port. Rung 6, on `RD-005`'s ground.
+
+**`turf-data-integration.md` became eligible for the migration on this commit and was declined, on the reasoning the paragraph above records in declining this same file on the sign-off pass.** Only the trigger differs: this commit's other reason is `FR-019`'s content repair under `RD-008`. **The named moment is corrected.** It was first written as the `Resolved-by` write owed once `#18` was re-cut. `#18` has since been re-cut against the repaired record and the story count did not move — `FR-019`'s `Resolved-by` stays `#18` and gains no number, and every other record here already carries its story, so no `Resolved-by` write is owed anywhere in this file and the moment first named cannot arrive. **It is recorded as a class with no scheduled instance**, rather than re-pinned to a likelier-looking occasion: the file converts at the first librarian-only edit to it that moves no count in the ledger above, whenever one arrives, and a deferral pinned to a trigger that cannot fire reads as scheduled while expiring silently.
+
 ## How this folder works
 
 - **IDs are immutable.** Never reused, never renumbered, never recycled after deletion. Whoever issues the next one takes it from the ledger above and nowhere else.
