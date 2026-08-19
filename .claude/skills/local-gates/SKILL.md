@@ -53,18 +53,17 @@ The documentation set depends on three mechanical properties. Each has been brok
 
 Live once `service/go.mod` exists. Required on every PR with Go changes, per `Architecture.md § D1`.
 
-**Every command below runs from `service/`**, where `Architecture.md § D8` puts the Go module — never from the repository root.
+**Run the backend gates through the Makefile, from the repository root**, where the Makefile is.
 
 ```bash
-cd service              # not optional, and not once per session — see the note below
-gofmt -l .              # clean (empty output = pass)
-go vet ./...
-golangci-lint run       # 0 issues
-go test -race -count=1 ./...
-go build ./...
+make gates
 ```
 
-**Run from the repository root, all five of these pass.** Each resolves against the working directory, has nothing to inspect there, exits zero, and prints what a clean tree prints — the board comes back `fmt: clean | vet: PASS | lint: 0 | test: PASS | build: SUCCESS` having read no code at all. `Architecture.md § D8` accepts that false pass as the price of the layout; what it costs *here* is that this one `cd` is the entire defence against it, so do not simplify it away. An agent issuing these one command at a time carries the directory into every one — `cd service && go vet ./...` — because a shell that resets between commands is back at the root by the second line, which is exactly where they all succeed against nothing.
+`gates` runs the five backend gates — `fmt`, `vet`, `lint`, `test`, `build` — and each is a target of its own when only one of them is wanted. **What those targets execute is in the Makefile and is deliberately not repeated here**, for the reason `§ When these activate` below gives.
+
+**The working directory is now the Makefile's job, and that is the single thing it exists to get right.** Run from the repository root, `Architecture.md § D8` leaves no module to resolve — and what that costs is not one uniform silence. Measured from the root, **four of the five are loud**: vet, lint and build each fail to resolve a module, and test fails on the absent-cgo host reason that is identical from either directory, so on this host it discriminates nothing. **Only gofmt is quiet** — exit 0, empty output, indistinguishable from a clean run — **and not because it read nothing**: it walks the filesystem instead of resolving a module, so it reads this tree by accident of layout, every Go file sitting inside the module directory, and it reads more the moment a `.go` file lands outside. The old defence was an agent remembering `cd service` on every command line, and a shell that resets between commands is back at the root by the second one. `§ When these activate` below requires every recipe to carry its own directory, which replaces that memory with a property of the file — so which directory a gate measured is fixed by the recipe rather than by where the command was typed.
+
+**`make gates` prints law 1's code line itself, derived from the run that produced it** — the Makefile's header is where that derivation is argued, and where the one field it cannot derive says so instead of inventing a number. **Paste that line into the PR body rather than composing one:** a composed line is a claim about a run, and this one is the run's own output.
 
 The race detector is not optional on this codebase. `Architecture.md § D1` chose Go specifically for a long-lived stateful service holding many concurrent solve sessions with bounded worker pools over the candidate fan-out — concurrency is the reason the language was picked, so it is the thing most likely to break.
 
@@ -81,15 +80,15 @@ npm run lint    # 0 issues
 npm run test    # all pass
 ```
 
-npm resolves a script against the nearest `package.json`, and there is none at the repository root, so from there these three do not run the client's build, lint, or tests at all. That failure is at least visible, which the Go block's is not — the directory here buys a client that is genuinely checked rather than a report that is merely honest. Both blocks are wrong from the root; only one of them is quiet about it.
+npm resolves a script against the nearest `package.json`, and there is none at the repository root, so from there these three do not run the client's build, lint, or tests at all. That failure is at least loud: npm names a missing script. The Go block is mostly loud from the root too, but not uniformly, and its one quiet gate is quiet for a reason that says nothing about whether the tree was checked — `§ Backend (Go)` above records what each of the five does. This block is wrong from the root and says so, and `cd web` is the whole of its defence until a target covers this stack.
 
 ### When these activate
 
-The first Go or frontend PR should also introduce a **`Makefile` at the repository root** as the canonical gate runner, and this skill then points at the Makefile targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. Until that PR, the commands above are the list.
+**The `Makefile` at the repository root is the canonical gate runner**, introduced by the first Go PR as this section required, and this skill now points at its targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. `§ Frontend (Vite + React)` above still carries its commands, because nothing yet runs them — that block's manifest does not exist, and the Makefile's own header records where its targets will come from when it does.
 
-**"The list" means this block and no other, and that is now enforced by there being no other.** Ten agent files carried these commands inline, every one of them without the working directory, because they were copied before `Architecture.md § D8` existed and nothing pulled them forward when it did — the ten had gone stale in the same commit that made this file correct. They now **name the gate they must pass and cite this skill for how to run it**. An agent file that reproduces the commands is a defect on sight, however correct the copy looks on the day it is written: a second home for the model outlives whoever checked it, and the gates are still owed a Makefile and a `service/` that exists, so the commands will move again. Reproducing them is licensed in exactly one case — a **reviewer quoting the one check it performs itself**, as an instrument of its own review rather than as the gate — and such a file says inline why the copy is there and cites this skill for the rest.
+**The Makefile is the commands' one home, and every other file names the target instead.** Ten agent files carried these commands inline, every one of them without the working directory, because they were copied before `Architecture.md § D8` existed and nothing pulled them forward when it did — the ten had gone stale in the same commit that made this file correct. They now **name the gate they must pass and cite this skill for how to run it**. A file that reproduces a gate command is a defect on sight, however correct the copy looks on the day it is written: a second home for the model outlives whoever checked it, and the commands have moved once already — out of this file, which was their home only for as long as there was no Makefile. Reproducing them is licensed in exactly one case — a **reviewer quoting the one check it performs itself**, as an instrument of its own review rather than as the gate — and such a file says inline why the copy is there and cites this skill for the rest.
 
-The root is the right home for it — `make` has no notion of a module, so the one file can drive both stacks — but **every recipe sets its own working directory**, and a recipe that invokes the Go toolchain without one reintroduces the false pass above with the `cd` no longer visible to notice missing. That is the single thing to get right in that PR: the Makefile's value here is that it encodes each directory once, in the only place that cannot silently be run from somewhere else.
+The root is the right home for it — `make` has no notion of a module, so the one file can drive both stacks — and **every recipe sets its own working directory**, which is a standing requirement on that file rather than a task that was completed once. A recipe that invokes the Go toolchain without one puts that gate back at the root, where `§ Backend (Go)` above records what each of the five actually reports, with the `cd` no longer visible to notice missing. The Makefile's value here is that it encodes each directory once, in the only place that cannot silently be run from somewhere else.
 
 ---
 

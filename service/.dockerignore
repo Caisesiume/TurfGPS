@@ -1,0 +1,21 @@
+# Build-context exclusions for `service/Dockerfile`, whose context is this
+# directory rather than the repository root.
+#
+# The context is small today and none of these match anything committed. They
+# are here for what a working tree accumulates: a build context is copied to
+# the daemon whole, and anything in it can be read by any stage and can end up
+# in a layer. A credential that reaches a layer is published with the image and
+# is not removed by deleting it in a later stage.
+.env
+.env.*
+*.pem
+*.key
+
+# Local build output, if anyone builds into the module rather than out of it.
+bin/
+*.exe
+*.test
+*.out
+
+# Nothing the compiler reads.
+*.md

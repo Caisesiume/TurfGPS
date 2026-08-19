@@ -11,6 +11,13 @@
 *.out
 /vendor/
 
+# The service module's build output. `go build ./cmd/turfgps` from service/
+# writes the executable into that directory, beside the sources; *.exe above
+# covers only the Windows name, so the extensionless Linux and macOS one needs
+# a rule of its own. Anchored and spelled out because a bare `turfgps` would
+# also ignore the command's own source directory.
+/service/turfgps
+
 # Node / frontend
 node_modules/
 /web/dist/

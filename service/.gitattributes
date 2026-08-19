@@ -1,0 +1,7 @@
+# gofmt reports a CRLF-line-ending file as unformatted, so on a machine with
+# core.autocrlf=true a plain checkout of this module turns the first backend
+# gate red on files nobody edited. Pin the module's text files to LF in the
+# working tree, whatever the checking-out machine is configured to do.
+*.go   text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
