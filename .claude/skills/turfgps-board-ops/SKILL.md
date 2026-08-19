@@ -115,11 +115,11 @@ Note the casing exactly: **`In progress`** and **`In review`** are lower-case af
 
 Authority map: Backlog→Ready is the **scrum-master's** alone; workers set `In progress`/`In review` on their own item; the **pr-judge** sets `Ordered Revision`; `Done` requires merge evidence.
 
-**Auto-add lands an item with `Status` empty, not in the entry column, and the filing agent sets `Backlog`.** An item nobody sets is not sitting at the head of the chain above — it is outside the chain entirely: invisible to a Backlog-filtered view, and unsequenceable by the scrum-master who would otherwise be the one to promote it. The party that filed the issue is the party that knows it exists, so it is that agent's to set, in the same pass as the labels and the milestone.
+**Creating a work item is not finished until that item is on the board with a `Status`** — auto-add lands it with `Status` empty, not in the entry column, so **the filing agent sets `Backlog`**, whichever channel it filed through, MCP or CLI or raw API. An item nobody sets is not sitting at the head of the chain above — it is outside the chain entirely: invisible to a Backlog-filtered view, and unsequenceable by the scrum-master who would otherwise be the one to promote it. The party that filed the issue is the party that knows it exists, so it is that agent's to set, in the same pass as the labels and the milestone. **An agent that cannot set it does not simply leave it: it names the issue in its envelope and routes the board step to `@scrum-master`.** Reporting an item as created while it holds no board state, with nothing owed to anyone, files an issue and creates no work.
 
 **Setting `Backlog` is not a promotion, and the authority map above is untouched by it.** It records the column the item is already in rather than moving it out of one; Backlog→Ready remains the scrum-master's alone, and a filing agent that writes `Backlog` has moved nothing and decided nothing about sequence. Same shape as the blocker rule under `§ Priority` below: a field left empty does not read as *not yet decided*, it reads as *sorts nowhere*, and the item is passed over rather than queued.
 
-Applied by `@requirements-story-organizer`, which has been setting it on every filing and reporting that it did so rather than doing it silently. Recorded on 7 August 2026.
+Applied by `@requirements-story-organizer`, which has been setting it on every filing and reporting that it did so rather than doing it silently. Recorded on 7 August 2026. **Widened on 16 August 2026 to every filing agent**, after `@engineering-lead` created issue `#108` through the API and set no Status: the issue existed, and every board query returned a board without it.
 
 `Ordered Revision` exists so a remand is visible as its own column rather than hidden behind a label. An item sitting there **counts against its worker's WIP** — do not promote a replacement item for that worker — and revision preempts any new work.
 
@@ -187,7 +187,7 @@ The first seven exist on the repo; **the three `risk:*` labels must be created b
 
 **Its three differences from a story are exemptions, not omissions.** A `Task` carries **no `Resolves:` line**, because no requirement stands behind it; it **joins no Milestone**, because a Milestone is an Epic and an Epic is a cluster of requirements; and it is **exempt from the coverage audit** that @requirements-story-organizer runs in both directions. That last one is the load-bearing statement: a `Task` carrying no requirement codes is **not a gap in coverage** — it is an item the audit does not range over at all. The audit is already scoped to stories by its own wording, and this records that the scoping is deliberate, so that the next reader tightening the audit does not "fix" it into reporting every `Task` as an uncovered story.
 
-**So a `Task` missing a label, milestone, or `Resolves:` block is not a traceability defect.** That test applies to `User Story` items alone. Applying it to a `Task` manufactures a defect out of a design decision, and the traceability law below is unaffected either way — a `Task` never enters the chain it describes.
+**So a `Task` missing a label, milestone, or `Resolves:` block is not a traceability defect.** That test applies to `User Story` items alone. Applying it to a `Task` manufactures a defect out of a design decision, and the traceability law below is unaffected either way — a `Task` never enters the chain it describes. **Its commits still reference its own `#N`**: the three exemptions above are exhaustive, and what that link buys is attribution — which item this commit was done for — not the requirements-tracing a `Task` stays out of.
 
 Ratified by the Owner on 4 August 2026.
 
@@ -256,6 +256,8 @@ The native issue-dependency API is live and readable here — `gh api repos/Cais
 
 ## Traceability law
 
-**Source document § section → requirement code (`FR-*`/`NFR-*`) → story `#N` → commit message references `#N` → PR links the story.** The judge remands broken traceability before convening the bench.
+**Source document § section → requirement code (`FR-*`/`NFR-*`) → story `#N` → commit message references `#N` → PR links the work item.** The judge remands broken traceability before convening the bench.
+
+**The last two links bind every work item; the first three are the story chain.** A `Task` stays out of the requirements half — that is `§ Labels` — but its commits still reference its own `#N` and its PR still links it. So the test a judge applies to a Task-driven PR is the tail of this chain, not its absence.
 
 Note the first link differs from a single-specification project: TurfGPS's requirements draw on **four** upstream documents, and a citation names the document as well as the section — `SPECIFICATION.md § Enforceable exclusions`, `CalculationSpecification.md § Proposed placeholder timings`, `Architecture.md § Retrieving zones`, `DESIGN.md § Replacement and escalating scope`. A citation naming only a section is ambiguous and is a librarian finding.

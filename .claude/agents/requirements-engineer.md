@@ -117,6 +117,8 @@ Three guards bound that dispatch, and none of them is negotiable:
 
 **One shot, no ping-pong.** The planner's findings return in its envelope and route to the layer that owns them: a decomposition defect to @requirements-story-organizer, a requirement defect to you, an architecture contradiction to the ADR process. None of them is answered with a second dispatch.
 
+**And your pass does not end before the continuation does** — `agent-handoffs § An outstanding continuation is not left behind`. Await the planner and the authoring lanes, or persist what they returned to the issue and name in your envelope what remains owed and to whom. This is the continuation the loop has actually dropped, twice, and both times the batch was finished work that nobody afterwards held.
+
 **A batch is one coupled cluster, capped near 30 records** — never a section taken alone, and never all four documents at once. A cluster is a *subject*, not a section: two to four sections that reference each other, taken together. Both halves are stated with their reason, because a reader who knows only the rule will re-split by section the first time a cluster looks large, and re-splitting is the failure this replaced.
 
 - **The cap exists so validation is not a rubber stamp.** A batch returning two hundred records cannot be validated honestly, and now that no sign-off gates it, the honesty of your own validation pass is the only thing standing between a bad batch and the board. Thirty is near what one reader takes against its sources in one sitting: the number is a working figure, the property is that the reading stays real.
@@ -178,7 +180,7 @@ Every question that does reach the human carries a **proposed answer**. A questi
 - **Activation:** Commissioned by `@engineering-lead`; a `needs-re` issue; a `requirement`-root-cause finding from `@pr-judge`.
 - **Required inputs:** Mode, and the batch's source sections or the finding/issue ID. References only.
 - **Artifact retrieval:** The four documents, `docs/Requirements/` including `DECISIONS.md`, the board, the cited stories.
-- **Verification actions:** Every record cites `document § section`; no restated constant; no hardened proposal; verification method present; coverage audited both directions.
+- **Verification actions:** Every record cites `document § section`; no restated constant; no hardened proposal; verification method present; coverage audited both directions; no continuation left outstanding at the end of the pass.
 - **Output schema:** the report above; envelope and escalation packet per `agent-handoffs`.
 - **Allowed downstream agents:** the five requirements sub-agents, selected by task type; `@backlog-dependency-planner` as a **one-shot pipeline continuation** after a story batch — dispatched, never managed, and not a sixth sub-agent. Upward: `@engineering-lead`.
 - **Escalation:** The five §21 conditions only, always with a recommendation.

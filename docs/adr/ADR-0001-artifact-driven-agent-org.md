@@ -132,3 +132,45 @@ Every finding is classified `implementation | requirement | architecture | desig
 - **A single legible number.** `10.00` was easy to report and easy to check. `zero unresolved required_change` is the honest version of the same statement and is harder to read at a glance; the ledger exists to make it legible again.
 
 **Reversibility:** high. The registry is a table, the budgets are numbers, and the verdict vocabulary is three words. If selective review demonstrably lets defects through, the evidence will be in the ledger — which is the reason the ledger records the SHA each verdict was issued against.
+
+## Amendment — 2026-08-16 (first live loop cycle)
+
+*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR-0004** — each of these is a contract the agents already implied and none of them stated.*
+
+### D11 — An agent must not end a pass while a continuation it owns is outstanding
+
+*Observed twice. `@requirements-engineer` dispatched children in the background and its own process ended before they returned, so the mandatory planner continuation never fired; the second time a finished `FR-019` field block was left with nobody holding it, and survived only because it was parked by hand in a comment on issue `#18`.*
+
+Dispatching creates an obligation that outlives the dispatch. An agent that dispatches therefore ends its pass in exactly one of two ways: it **awaits its children**, or it **persists their output to a durable artifact and names in its envelope what remains owed and to whom**. Holding the work only in the pass's own context is neither.
+
+Stated once, in `agent-handoffs § An outstanding continuation is not left behind` — it binds every dispatching agent, and none of them should have to open another agent's file to find it. `requirements-engineer § Mode A` cites it at the continuation that has actually been dropped.
+
+**This is a durability rule, not a scheduling one.** The failure is invisible by construction — nothing anywhere records that a step was owed — which is why the obligation is discharged into an artifact rather than trusted to a process staying alive long enough.
+
+### D12 — One writer per branch
+
+*Observed once. Two agents worked `#37`'s branch concurrently, and one committed the other's uncommitted edits as its own.*
+
+**Before dispatching a writer, verify that no other agent holds that branch or its worktree.** A branch with two writers has no author: the commit is attributed to the wrong lane, the diff the judge reads is not the diff either agent wrote, and nothing in the history distinguishes that from ordinary work — a traceability defect that passes every traceability check we have.
+
+`worker-manager § One writer per branch` is the home and carries the check. `@project-coordinator` cites it, because assignment is the moment the collision is either created or prevented.
+
+### D13 — A judge that cannot convene rules nothing, and says where it stopped
+
+*Observed once and **handled correctly by the agent that hit it**: one `@pr-judge` process had no dispatch capability and stopped at Phase 4 with a durable resume point rather than fabricating a panel. Another instance convened normally, so the capability is not something a judge may assume about itself.*
+
+A judge without the means to convene has selected a panel and heard none of it, and ruling anyway would enter a merge decision under a signature that reviewed the diff itself. It first asks `@engineering-lead` to courier the dispatch, and where that too is unavailable it **stops, rules nothing, and emits a resume packet** carrying what is expensive to re-derive — the head SHA, the selected panel with its reasons, and what must not be convened — so Phases 0–3, the expensive half, are not paid for twice. The preflight's closed lanes are deliberately not in it: a script re-runs, and a cache of its output can go stale in a way the script cannot. In `pr-judge § When the panel cannot be convened`.
+
+**Recorded because it was improvised well, not because it went wrong.** A behaviour that exists only in the instance that invented it is a behaviour the next process does not have.
+
+### D14 — Creating a work item includes putting it on the board
+
+*Observed once. `@engineering-lead` filed issue `#108` through the API and set no board Status; the issue existed, and every board query returned a board without it.*
+
+An item with no `Status` is not at the head of the chain — it is outside the chain: invisible to every filtered view, and unsequenceable by the agent who would otherwise promote it. The rule and its `@scrum-master` fallback are in `turfgps-board-ops § Status`, whose text was already correct but read as binding only `@requirements-story-organizer`; **it is now written for every filing agent, through every channel**, which is the whole of what this amendment changed.
+
+### D15 — Commits reference a `Task`, and its three exemptions are exhaustive
+
+*Ruled rather than observed. `turfgps-board-ops § Labels` enumerated three `Task` exemptions and separately said a `Task` "never enters the chain it describes", which left the commit link genuinely ambiguous to a reader applying both sentences.*
+
+**They must.** A `Task`'s commits reference its own `#N`. That link buys **attribution** — which item this commit was done for — and not requirements-tracing, which is the chain a `Task` legitimately stays out of. The three exemptions (`Resolves:`, Milestone, the coverage audit) are the complete list, and no fourth is inferred from the chain sentence. One sentence, in `turfgps-board-ops § Labels`.
