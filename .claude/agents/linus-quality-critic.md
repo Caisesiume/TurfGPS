@@ -95,7 +95,7 @@ Then run the one check the gate cannot run for you:
 cd "$(git rev-parse --show-toplevel)/service"   # the module, not the repo root
 go test ./... -run <relevant> -count=1
 ```
-**This is inline because it is your instrument, not the gate.** The gate runs the whole suite and reports green; you are asking a narrower question — does the test that *should* exercise this change actually exercise it, and does it still pass when run alone rather than carried by the suite's shared state. Naming the relevant test is the entire content of the check, so it cannot be delegated to a command list. The `cd` matters here for the same reason it matters there: run from the repository root, `-run` selects from no packages and passes.
+**This is inline because it is your instrument, not the gate.** The gate runs the whole suite and reports green; you are asking a narrower question — does the test that *should* exercise this change actually exercise it, and does it still pass when run alone rather than carried by the suite's shared state. Naming the relevant test is the entire content of the check, so it cannot be delegated to a command list. The `cd` matters here for the same reason it matters there: the module is not at the repository root, per `Architecture.md § D8`, so from there `-run` selects from none of this repository's packages — the directory, not the pattern, decides which tests were available to be selected at all.
 
 ---
 

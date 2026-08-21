@@ -42,7 +42,7 @@ Every item below is decided by a command or by a deterministic inspection. Nothi
 
 Run the **backend gates** — format, vet, lint, tests, build — per `local-gates § Backend (Go)`. The skill holds the commands and, critically, the directory they run from; take them from there every time rather than from memory.
 
-**This step used to `cd` to the repository root, and that was the exact wrong place.** The Go module lives in `service/`, per `Architecture.md § D8`, so from the root every one of these commands resolves against nothing, exits zero, and prints what a clean tree prints. You are the agent that fails worst under that: your verdict is blocking, so a vacuous pass here does not merely mislead a reader — it marks a task done. **Report the directory you ran in**, and treat any gate result reaching you without one as unrun rather than as green.
+**This step used to `cd` to the repository root, and that was the exact wrong place.** The Go module lives in `service/`, per `Architecture.md § D8`, so the directory these commands ran in is what decides which tree they measured, and the root is not this service — `local-gates § Backend (Go)` records what each gate reports from there. You are the agent that fails worst under that: your verdict is blocking, so a result whose directory nobody can name does not merely mislead a reader — it marks a task done. **Report the directory you ran in**, and treat any gate result reaching you without one as unrun rather than as green.
 
 **2. Error and warning detection — read the gate output, do not re-derive it**
 
