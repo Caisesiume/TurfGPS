@@ -291,45 +291,93 @@ Question:       `DEPLOYMENT.md`, in the section stating where the deployment
 Interpretation: #25 only inspects; `DEPLOYMENT.md` overstates it, and #37's
                 note is where the overstatement originates. NFR-004 is the
                 whole of that story's traceability, and it obliges an
-                exclusion — no deployment target that ends the process
-                between requests — rather than an artefact. Three of its
-                fields place the artefact's arrival elsewhere: `Verification`
-                reads *once one exists*, the second criterion reads *wherever
-                the deployment model ... comes to define it*, and `Rationale`
+                exclusion — no deployment target that ends the process between
+                requests — rather than an artefact. Three of its fields place
+                the artefact's arrival elsewhere: `Verification` reads *once
+                one exists*, the second criterion reads *wherever the
+                deployment model ... comes to define it*, and `Rationale`
                 states outright that the artefact it examines arrives with the
                 owed deployment model. An inspection criterion in artefact /
                 property / location form names what a reader confirms; it does
                 not oblige the artefact into being. The authoring node
                 therefore does not exist, and it is deliberately not filed
-                here: its Done-when would be defined by that same section
-                of `DEPLOYMENT.md`, unmerged on PR #67, and it would be
+                here: its Done-when would be defined by that same section of
+                `DEPLOYMENT.md`, unmerged on PR #67, and it would be
                 constrained by #109's security architecture section,
-                unwritten. Recorded instead as
-                a debt with its home named. #25 and #37 are repaired to state
-                this; the sentence in `DEPLOYMENT.md` is PR #67's to revise,
-                and no upstream document is edited here.
-Rung:           4 — existing requirements, decisive. NFR-004's own
-                `Verification`, second criterion and `Rationale` each place
-                the artefact with the owed deployment model, and a record
-                signed to-build is the corpus's settled statement of its own
-                scope. 1 — explicit specification, forecloses the alternative:
+                unwritten. Recorded instead as a debt with its home named. #25
+                and #37 are repaired to state this. Two claims sit in
+                `DEPLOYMENT.md § Where the deployment configuration lives` and
+                this ruling condemns one of them. The authoring attribution
+                falls: that the `deploy/` directory is created by the first
+                deployment work and that work is #25, and that the proxy
+                configuration is one #25 writes. The referent identification
+                stands, and is endorsed here rather than merely left alone:
+                naming `deploy/turfgps.service` as the file NFR-004's second
+                criterion is satisfied against is that criterion operating as
+                written, because the criterion defers to wherever the owed
+                deployment model comes to define the deployment configuration.
+                Revising the first is PR #67's, on its own PLAN-01-A; the
+                second is not #67's to delete. No upstream document is edited
+                here.
+Rung:           1 — explicit specification, and it cannot decide alone.
                 `Architecture.md § Still owed by this document` owes the
-                deployment model handed to `DEPLOYMENT.md`, and
+                deployment model handed to `DEPLOYMENT.md`, so nothing
+                upstream obliges the four artefacts into existence or assigns
+                authoring of them to a story. That forecloses the enlarged
+                scope without settling the narrower one: an upstream silence
+                about who authors an artefact does not by itself state what a
+                story does, and what #25 does is settled by the record #25
+                resolves. 4 — existing requirements, decisive on that.
+                NFR-004's own `Verification`, second criterion and `Rationale`
+                each place the artefact with the owed deployment model, and a
+                record signed to-build is the corpus's settled statement of
+                its own scope. 6 — established repository conventions, twice:
                 `docs/README.md § DEPLOYMENT.md` defines that document as
-                operational detail and direction, so nothing upstream obliges
-                the four artefacts into existence or assigns authoring of them
-                to a story. 6 — established repository conventions, for the
-                deferral, on RD-008's ground. Rung 7 was checked and agrees
-                rather than deciding, the conservative reading being the
-                narrower scope. Corroborated structurally, and not sufficient
-                alone: three of the four artefacts carry security obligations
-                NFR-004 is silent on, so a story authoring them would close
-                against a requirement that cannot fail on any of them — the
-                defect shape RD-008 ruled, a criterion keyed to an artefact
-                reporting green while measuring nothing.
-Affects:        NFR-004, which is unrepaired and stands as written: its
-                deferral is keyed to a class of artefact rather than to a
-                named one, which is what distinguishes it from the FR-019
-                defect and is why no criterion moves. The debt list in
-                `README.md`. By reference #25, #37, #109 and PR #67.
+                operational detail and direction rather than as one of the
+                four approved specification documents, so the document map
+                corroborates at this rung and never at rung 1; and the
+                deferral of the authoring node rests here, on RD-008's ground.
+                Rung 7 was checked and agrees rather than deciding, the
+                conservative reading being the narrower scope. Corroborated
+                structurally, and not sufficient alone: three of the four
+                artefacts carry security obligations NFR-004 is silent on.
+                `deploy/turfgps.service` falls under the boundary that no
+                secret material lives under `deploy/`, stated in
+                `DEPLOYMENT.md § Where the deployment configuration lives`,
+                and is the file an `Environment=` line would commit a database
+                URL or the proxy's TLS private key into. `deploy/proxy/`
+                carries TLS termination, the constraint that no host log
+                record a plan code, and the caller-address preservation
+                without which a per-caller throttle cannot be written.
+                `deploy/provisioning/` carries the exposure invariant. The
+                fourth, `deploy/README.md`, carries apply order and no such
+                obligation. The unit file is the strongest instance and not
+                merely the gravest, because NFR-004's second criterion is
+                keyed to that exact artefact: it asks only that the
+                configuration name a target keeping the process running, so it
+                reports green on a unit whose `Environment=` line carries the
+                credential. A story authoring the three would close against a
+                requirement that cannot fail on any of them — the defect shape
+                RD-008 ruled, a criterion keyed to an artefact reporting green
+                while measuring nothing.
+Affects:        NFR-004, which is unrepaired and stands as written, on three
+                grounds and none of them namedness. That axis does not
+                separate it from the FR-019 defect, whose old criterion was
+                keyed to *the Turf API adapter* — the same definite singular,
+                naming no file — and RD-008's predicate turns on the
+                artefact's possible absence, which rung 1 above establishes
+                for this artefact too. What separates them is this. Its second
+                criterion fails closed where FR-019's failed open: it asks
+                that a configuration be read and a target be named in it, so
+                an absent artefact yields no evidence and no green, where
+                FR-019's single criterion had nothing to examine and passed
+                vacuously. Its first criterion gives the exclusion independent
+                coverage, binding an entry point and a session registry in a
+                main package that exists and is obliged to, where FR-019
+                carried no second criterion at all. And there is no coverage
+                escape: absent a deployment configuration there is no
+                deployment, so the obligation has no instance to miss, where a
+                path constructing a Turf request existed whether or not
+                anything was called an adapter. The debt list in `README.md`.
+                By reference #25, #37, #109 and PR #67.
 ```
