@@ -341,8 +341,9 @@ Rung:           1 — explicit specification, and it cannot decide alone.
                 structurally, and not sufficient alone: three of the four
                 artefacts carry security obligations NFR-004 is silent on.
                 `deploy/turfgps.service` falls under the boundary that no
-                secret material lives under `deploy/`, stated in that same
-                section, and is the file an `Environment=` line would commit a
+                secret material lives under `deploy/`, stated in the section
+                of `DEPLOYMENT.md` naming where the deployment configuration
+                lives, and is the file an `Environment=` line would commit a
                 database URL or the proxy's TLS private key into.
                 `deploy/proxy/` carries TLS termination, the constraint that
                 no host log record a plan code, and the caller-address
