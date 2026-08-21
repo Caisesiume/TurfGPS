@@ -304,20 +304,20 @@ Interpretation: #25 only inspects; `DEPLOYMENT.md` overstates it, and #37's
                 `DEPLOYMENT.md`, unmerged on PR #67, and it would be
                 constrained by #109's security architecture section,
                 unwritten. Recorded instead as a debt with its home named. #25
-                and #37 are repaired to state this. Two claims sit in
-                `DEPLOYMENT.md § Where the deployment configuration lives` and
-                this ruling condemns one of them. The authoring attribution
-                falls: that the `deploy/` directory is created by the first
-                deployment work and that work is #25, and that the proxy
-                configuration is one #25 writes. The referent identification
-                stands, and is endorsed here rather than merely left alone:
-                naming `deploy/turfgps.service` as the file NFR-004's second
-                criterion is satisfied against is that criterion operating as
-                written, because the criterion defers to wherever the owed
-                deployment model comes to define the deployment configuration.
-                Revising the first is PR #67's, on its own PLAN-01-A; the
-                second is not #67's to delete. No upstream document is edited
-                here.
+                and #37 are repaired to state this. Two claims sit in the
+                section of `DEPLOYMENT.md` stating where the deployment
+                configuration lives, and this ruling condemns one of them. The
+                authoring attribution falls: that the `deploy/` directory is
+                created by the first deployment work and that work is #25, and
+                that the proxy configuration is one #25 writes. The referent
+                identification stands, and is endorsed here rather than merely
+                left alone: naming `deploy/turfgps.service` as the file
+                NFR-004's second criterion is satisfied against is that
+                criterion operating as written, because the criterion defers
+                to wherever the owed deployment model comes to define the
+                deployment configuration. Revising the first is PR #67's, on
+                its own PLAN-01-A; the second is not #67's to delete. No
+                upstream document is edited here.
 Rung:           1 — explicit specification, and it cannot decide alone.
                 `Architecture.md § Still owed by this document` owes the
                 deployment model handed to `DEPLOYMENT.md`, so nothing
@@ -341,24 +341,23 @@ Rung:           1 — explicit specification, and it cannot decide alone.
                 structurally, and not sufficient alone: three of the four
                 artefacts carry security obligations NFR-004 is silent on.
                 `deploy/turfgps.service` falls under the boundary that no
-                secret material lives under `deploy/`, stated in
-                `DEPLOYMENT.md § Where the deployment configuration lives`,
-                and is the file an `Environment=` line would commit a database
-                URL or the proxy's TLS private key into. `deploy/proxy/`
-                carries TLS termination, the constraint that no host log
-                record a plan code, and the caller-address preservation
-                without which a per-caller throttle cannot be written.
-                `deploy/provisioning/` carries the exposure invariant. The
-                fourth, `deploy/README.md`, carries apply order and no such
-                obligation. The unit file is the strongest instance and not
-                merely the gravest, because NFR-004's second criterion is
-                keyed to that exact artefact: it asks only that the
-                configuration name a target keeping the process running, so it
-                reports green on a unit whose `Environment=` line carries the
-                credential. A story authoring the three would close against a
-                requirement that cannot fail on any of them — the defect shape
-                RD-008 ruled, a criterion keyed to an artefact reporting green
-                while measuring nothing.
+                secret material lives under `deploy/`, stated in that same
+                section, and is the file an `Environment=` line would commit a
+                database URL or the proxy's TLS private key into.
+                `deploy/proxy/` carries TLS termination, the constraint that
+                no host log record a plan code, and the caller-address
+                preservation without which a per-caller throttle cannot be
+                written. `deploy/provisioning/` carries the exposure
+                invariant. The fourth, `deploy/README.md`, carries apply order
+                and no such obligation. The unit file is the strongest
+                instance and not merely the gravest, because NFR-004's second
+                criterion is keyed to that exact artefact: it asks only that
+                the configuration name a target keeping the process running,
+                so it reports green on a unit whose `Environment=` line
+                carries the credential. A story authoring the three would
+                close against a requirement that cannot fail on any of them —
+                the defect shape RD-008 ruled, a criterion keyed to an
+                artefact reporting green while measuring nothing.
 Affects:        NFR-004, which is unrepaired and stands as written, on three
                 grounds and none of them namedness. That axis does not
                 separate it from the FR-019 defect, whose old criterion was
