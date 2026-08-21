@@ -280,10 +280,9 @@ Question:       `DEPLOYMENT.md`, in the section stating where the deployment
                 configuration lives, assigns #25 four artefacts — a systemd
                 unit, a proxy configuration carrying TLS termination, a
                 provisioning directory and a README — and calls the first of
-                them the file NFR-004's second criterion is satisfied
-                against. #25 scopes
-                itself to inspecting a configuration and states that no work
-                inside it can produce one. Raised as PLAN-01-A by
+                them the file NFR-004's second criterion is satisfied against.
+                #25 scopes itself to inspecting a configuration and states
+                that no work inside it can produce one. Raised as PLAN-01-A by
                 `@backlog-dependency-planner` against #25 and corroborated by
                 two documentation reviewers on PR #67, where the attribution
                 was additionally traced to #37's note rather than to #25's
