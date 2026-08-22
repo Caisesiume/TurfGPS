@@ -356,14 +356,17 @@ Rung:           1 — explicit specification, and it cannot decide alone.
                 written. `deploy/provisioning/` carries the exposure
                 invariant. The fourth, `deploy/README.md`, carries apply order
                 and no such obligation. The unit file is the strongest
-                instance and not merely the gravest, because NFR-004's second
-                criterion is keyed to that exact artefact: it asks only that
-                the configuration name a target keeping the process running,
-                so it reports green on a unit whose `Environment=` line
-                carries the credential. A story authoring the three would
-                close against a requirement that cannot fail on any of them —
-                the defect shape RD-008 ruled, a criterion keyed to an
-                artefact reporting green while measuring nothing.
+                instance and not merely the gravest. NFR-004's second
+                criterion names no file: it defers to the deployment
+                configuration, which `DEPLOYMENT.md`'s standing referent
+                identification resolves to this artefact. Through that
+                identification the criterion asks only that the configuration
+                name a target keeping the process running, so it reports green
+                on a unit whose `Environment=` line carries the credential. A
+                story authoring the three would close against a requirement
+                that cannot fail on any of them — the defect shape RD-008
+                ruled, a criterion keyed to an artefact reporting green while
+                measuring nothing.
 Affects:        NFR-004, which is unrepaired and stands as written, on three
                 grounds and none of them namedness. That axis does not
                 separate it from the FR-019 defect, whose old criterion was
