@@ -4,8 +4,12 @@
 # #118 DoD 4 asks for a check that FAILS on a fourteenth restatement. A check
 # can only be held to that if its recall is a number someone other than its
 # author can recompute, so this corpus exists to make it one. It is the whole
-# of the evidence behind the three numbers in that script's header, and if the
-# numbers and this file ever disagree, this file is the one that ran.
+# of the evidence behind the recall rows in that script's header — and since
+# cycle 3 that is enforced rather than said: the last block of this file reads
+# those rows back and fails when one of them is not the number this run just
+# measured. "If they ever disagree, this file is the one that ran" used to be
+# an instruction to a reader, which is what a second statement of a number
+# always degrades into. It is now a check.
 #
 # THE CORPUS IS THE HISTORY. Every sentence in the `pre` fixture is quoted
 # verbatim from the pre-repair tree at 6fbf7de, and every sentence in the
@@ -38,6 +42,12 @@
 # to the checker in order to move it: move a held-out wording into `pre` only
 # when the tree actually acquires it.
 #
+# THE HEADER CHECK AT THE END DOES NOT CHANGE THAT, and the distinction is the
+# whole reason it is written the way it is. It asserts that the checker's
+# header REPEATS this number, never that the number holds any value. Adding a
+# phrase to move it still only moves it, in both places; what is no longer
+# possible is moving it in one.
+#
 # Hermetic: throwaway git repositories under mktemp, fixture files as the only
 # input, no network, no repository state, nothing written outside TMP.
 # Usage: scripts/gates/tests/d8-root-run-claims-recall.sh    Exit: 0 all pass · 1 any failure
@@ -45,7 +55,14 @@
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$DIR/../d8-root-run-claims.sh"
-TMP="$(mktemp -d)"
+# `mktemp -d` is guarded because this file's own promise is that nothing is
+# written outside TMP, and only `set -u` is in force — no `set -e`. Unguarded, a
+# failing mktemp leaves TMP empty and every `mkdir -p "$TMP/$1"` below becomes
+# `mkdir -p /pre` at the filesystem root, while the EXIT trap becomes
+# `rm -rf ""`. The trap is armed only once TMP is known good.
+TMP="$(mktemp -d)" || TMP=''
+[ -n "$TMP" ] && [ -d "$TMP" ] || {
+  printf 'FAIL  mktemp -d gave no usable directory; refusing to run rather than write outside one\n'; exit 1; }
 trap 'rm -rf "$TMP"' EXIT
 
 [ -f "$SCRIPT" ] || { printf 'FAIL  the checker is not at %s\n' "$SCRIPT"; exit 1; }
@@ -54,7 +71,17 @@ fails=0
 OUT=''; RC=0
 
 mkrepo() { mkdir -p "$TMP/$1"; git -C "$TMP/$1" init -q; }
-run()    { OUT="$(cd "$TMP/$1" && bash "${2:-$SCRIPT}" 2>&1)"; RC=$?; }
+
+# A FAILED `cd` MUST NOT ARRIVE AS THE CHECKER'S OWN rc. `cd` returns 1, and 1
+# is exactly what the `pre` and `edge` fixtures assert — so a fixture directory
+# that could not be entered used to read as the expected result, on the two
+# assertions that carry the most weight in this file. rc 99 is outside the
+# checker's range (0, 1, 2) and OUT says which fixture.
+run() { # run <fixture> [checker]
+  OUT="$(cd "$TMP/$1" 2>/dev/null || { printf 'could not enter the fixture directory %s\n' "$TMP/$1"; exit 99; }
+         bash "${2:-$SCRIPT}" 2>&1)"
+  RC=$?
+}
 
 pass() { printf 'PASS  %s\n' "$1"; }
 bad()  { printf 'FAIL  %s — %s\n' "$1" "$2"; fails=$((fails + 1)); }
@@ -68,6 +95,64 @@ check_has() { # check_has <label> <substring>
 }
 check_lacks() { # check_lacks <label> <substring>
   case "$OUT" in *"$2"*) bad "$1" "output must not contain: $2" ;; *) pass "$1" ;; esac
+}
+
+# ---------------------------------------------------------------------------
+# THE NINE HISTORICAL SITES REGISTER THEMSELVES WHERE THEY ARE ASSERTED, so the
+# in-sample recall rows in the checker's header can be checked against what
+# this run measured instead of being kept by hand. They were kept by hand until
+# cycle 3, and it drifted exactly as a second statement does: measured at
+# 43ee942, adding one OUTCOME alternative moved the held-out count printed at
+# the bottom of this file to `1 of 4` while the header row still read
+# `0 OF 4 CAUGHT`, and all 37 assertions of the day passed.
+#
+# THIS NINE IS: the 8 dependent sites at 6fbf7de plus `Makefile:16-23` at
+# c8088fa^. It is NOT the nine FIXTURE 1 asserts a flag COUNT over, which swaps
+# the Makefile for the synthetic `Architecture.md` dependent-section case. Two
+# disjoint nines; each is named where it is asserted.
+#
+# Part 1's verdict is per FILE, not per sentence, so a site counts as caught by
+# part 1 when part 1 named the file it lives in.
+sites_total=0; p1_caught=0; p2_caught=0
+site_seen() { # site_seen <file>
+  sites_total=$((sites_total + 1))
+  case "$OUT" in *"cites no home: $1"*) p1_caught=$((p1_caught + 1)) ;; esac
+}
+site_flags() { # site_flags <label> <file> <substring> — part 2 MUST flag this site
+  site_seen "$2"
+  case "$OUT" in
+    *"$3"*) p2_caught=$((p2_caught + 1)); pass "$1" ;;
+    *)      bad "$1" "output does not contain: $3" ;;
+  esac
+}
+site_misses() { # site_misses <label> <file> <substring> — part 2 does NOT flag it
+  site_seen "$2"
+  case "$OUT" in
+    *"$3"*) p2_caught=$((p2_caught + 1))
+            bad "$1" "the measured miss is no longer a miss — intended or not, the header's in-sample row moves with it" ;;
+    *)      pass "$1" ;;
+  esac
+}
+
+# The same nine in repaired form, counted the same way and printing nothing:
+# that no repair is flagged is asserted collectively per fixture, and these
+# calls exist only so the header's third row is a measured number too.
+repaired_total=0; repaired_flagged=0
+repaired() { # repaired <file>
+  repaired_total=$((repaired_total + 1))
+  case "$OUT" in *"restates the retracted root-run outcome: $1"*) repaired_flagged=$((repaired_flagged + 1)) ;; esac
+}
+
+# The checker's header is read back and checked for AGREEMENT with the numbers
+# above — never for a value. A row that disagrees is a failure whichever of the
+# two moved; the fix is to make the header state what was measured, never to
+# make the measurement state what the header wants.
+header_states() { # header_states <label> <row-key> <expected-text>
+  local row
+  row="$(grep -iF -m1 -- "$2" "$SCRIPT")"
+  if [ -z "$row" ]; then bad "$1" "the checker has no header row carrying: $2"; return; fi
+  if printf '%s' "$row" | grep -qiF -- "$3"; then pass "$1"
+  else bad "$1" "this run measured '$3'; the header row reads:$(printf '%s' "$row" | sed 's/^#//')"; fi
 }
 
 # ---------------------------------------------------------------------------
@@ -171,24 +256,33 @@ MD
 
 run pre
 check_rc   "pre · the eight restatements fail the build"                    1
-check_has  "pre · site 1  go-quality-critic:41  (the phrase list's miss)"   "vacuous pass one level further down"
-check_has  "pre · site 2  go-quality-critic:48"                             "inspects zero files"
-check_has  "pre · site 3  linus-quality-critic:98"                          "selects from no packages"
-check_has  "pre · site 4  linus-security-critic:104"                        "reports no vulnerabilities"
-check_has  "pre · site 5  progressive-results-specialist:59"                "passes against nothing"
-check_has  "pre · site 6  validation-agent:45"                              "prints what a clean tree prints"
-check_has  "pre · site 7  agent-handoffs:306"                               "print exactly what a clean module prints"
-check_has  "pre · site 8  local-gates:97  (home file, dependent section)"   "character-for-character the five passes"
+site_flags "pre · site 1  go-quality-critic:41  (the phrase list's miss)"   .claude/agents/go-quality-critic.md              "vacuous pass one level further down"
+site_flags "pre · site 2  go-quality-critic:48"                             .claude/agents/go-quality-critic.md              "inspects zero files"
+site_flags "pre · site 3  linus-quality-critic:98"                          .claude/agents/linus-quality-critic.md           "selects from no packages"
+site_flags "pre · site 4  linus-security-critic:104"                        .claude/agents/linus-security-critic.md          "reports no vulnerabilities"
+site_flags "pre · site 5  progressive-results-specialist:59"                .claude/agents/progressive-results-specialist.md "passes against nothing"
+site_flags "pre · site 6  validation-agent:45"                              .claude/agents/validation-agent.md               "prints what a clean tree prints"
+site_flags "pre · site 7  agent-handoffs:306"                               .claude/skills/agent-handoffs/SKILL.md           "print exactly what a clean module prints"
+site_flags "pre · site 8  local-gates:97  (home file, dependent section)"   .claude/skills/local-gates/SKILL.md              "character-for-character the five passes"
 check_has  "pre · a dependent section of a home file is still checked"      "docs/Architecture.md"
 check_lacks "pre · a home section states the model and is not flagged"      "which is this section's own claim to make"
-check_has  "pre · part 1 catches none of them; part 2 catches all nine"     "part 1: 0 · part 2: 9 flagged"
+# THIS FIXTURE'S NINE IS NOT THE HEADER'S NINE, and the two sit adjacent enough
+# to be read as one. Here it is the 8 dependent sites above plus the synthetic
+# `Architecture.md` dependent-section case immediately below them — and it
+# EXCLUDES the Makefile, which has its own fixture in FIXTURE 5. All nine flag,
+# which is why the count asserted is 9 rather than the header's 8. The header's
+# nine swaps the synthetic case for `Makefile:16-23`, the one part 2 misses;
+# that is the whole of the difference between `9 flagged` here and `8 OF 9` there.
+check_has  "pre · part 1 catches none of this fixture's nine; part 2 flags all nine" \
+                                                                           "part 1: 0 · part 2: 9 flagged"
 
 # ---------------------------------------------------------------------------
 # FIXTURE 2 — `post`: the same eight sites as repaired at 71d629f, plus the
 # retraction record. Must go green, and must say out loud what it suppressed.
 # ---------------------------------------------------------------------------
 mkrepo post
-mkdir -p "$TMP/post/.claude/agents" "$TMP/post/.claude/skills/agent-handoffs"
+mkdir -p "$TMP/post/.claude/agents" "$TMP/post/.claude/skills/agent-handoffs" \
+         "$TMP/post/.claude/skills/local-gates"
 
 cat > "$TMP/post/.claude/agents/go-quality-critic.md" <<'MD'
 ```powershell
@@ -227,11 +321,48 @@ cat > "$TMP/post/.claude/skills/agent-handoffs/SKILL.md" <<'MD'
 - **The gates whose report could not say where they ran.** `Architecture.md § D8` puts the Go module in `service/`, and gofmt is the quiet one. The gate block carried no working directory, and neither did the report line it prescribed — so a reported result was identical whether the commands had been run over the module or over a root that holds none, and no reader could tell which. **The mechanism first recorded here — all five commands passing vacuously over an empty root — was itself measured false and retracted on 22 August 2026; `Architecture.md § D8` carries the retraction and `local-gates § Backend (Go)` the measurement.**
 MD
 
+# SITE 8's MUST-NOT-FLAG HALF, quoted from `local-gates/SKILL.md:97` at
+# 71d629f. It was asserted in the `pre` direction only until cycle 3, and it is
+# the site that motivates the subtlest rule in the checker: the home exemption
+# is per SECTION, so `The law` below is read while `Backend (Go)` above it is
+# not. Its repair therefore has to pass through part 2 rather than around it,
+# and nothing said so. The `Backend (Go)` heading is not padding — without it
+# the home section does not resolve and the checker exits 2.
+cat > "$TMP/post/.claude/skills/local-gates/SKILL.md" <<'MD'
+### Backend (Go)
+
+**Run the backend gates through the Makefile, from the repository root**, where the Makefile is.
+
+## The law
+
+1. **The code line names its directory** for exactly the same reason: the directory a Go command ran in is what decides which tree it measured, per `Architecture.md § D8`, and `§ Backend (Go)` above records what each of the five reports from the wrong one — so a report that omits where it ran is not evidence that anything was compiled.
+MD
+
 run post
-check_rc    "post · the eight repairs pass the build"                     0
+check_rc    "post · the eight repaired dependents pass the build"         0
 check_lacks "post · no repair is flagged as a restatement"                "part 2 · restates"
 check_has   "post · the retraction record is exempted, and printed"       "exempt · "
 check_has   "post · the suppression is counted where a reader sees it"    "part 2: 0 flagged, 1 exempted"
+# Reach, for the same reason FIXTURE 5 asserts it: a clean summary names no
+# file, so the read count is the only line proving site 8's repair went THROUGH
+# part 2 rather than around it as a home file. This fixture read 5 before the
+# repair above was added and reads 6 with it — measured, not assumed. (The
+# seventh corpus file, `validation-agent.md`, carries no file-level directory
+# word in its repaired form and never reaches the surface; that is why 6 and
+# not 7.)
+check_has   "post · site 8's repair was read, not skipped as a home file" "part 2 read 6 file(s)"
+
+# The eight repaired dependents, registered for the header's third row; the
+# ninth repaired site is the Makefile's, in FIXTURE 5. Sites 1 and 2 share a
+# file and are two sites, so that file is registered twice.
+repaired .claude/agents/go-quality-critic.md
+repaired .claude/agents/go-quality-critic.md
+repaired .claude/agents/linus-quality-critic.md
+repaired .claude/agents/linus-security-critic.md
+repaired .claude/agents/progressive-results-specialist.md
+repaired .claude/agents/validation-agent.md
+repaired .claude/skills/agent-handoffs/SKILL.md
+repaired .claude/skills/local-gates/SKILL.md
 
 # ---------------------------------------------------------------------------
 # FIXTURE 3 — `edge`: the sweep's own failure modes, each of which reported
@@ -290,6 +421,46 @@ printf 'This document mentions no toolchain and no directory.\n' > "$TMP/nosurfa
 run nosurface
 check_rc    "no surface · nothing reached a part, so it is exit 2"    2
 check_lacks "no surface · ... and never says clean"                   "clean ·"
+
+# A CORPUS FILE THAT IS NOT TEXT — both shapes, because at 43ee942 they failed
+# in two different places, and each fixture below is one of them. What each
+# printed then, and why one guard reaches both, is argued once at the guard
+# itself, in the checker's sweep loop; what a reader will find there is that a
+# NUL-bearing file was counted in `part 2 read N` without its lines ever being
+# read. These two pin it.
+#
+# The first is that file: a REAL restatement plus one NUL byte, which grep
+# answers with `Binary file X matches` and no line number.
+mkrepo nulbyte
+printf 'Per `Architecture.md \302\247 D8`, go vet run from the repository root passes against nothing.\n\0' \
+  > "$TMP/nulbyte/doc.md"
+run nulbyte
+check_rc    "not text · a NUL byte in a corpus file is 'cannot run'"  2
+check_has   "not text · ... and the file is named, with the cause"    "holds a NUL byte"
+check_lacks "not text · ... and it never reports a clean tree"        "clean ·"
+
+# The second is the UTF-16LE form of the same sentence — what PowerShell 5.1's
+# `>` produces on this Windows-first repository — which failed EARLIER and more
+# quietly, at the surface filter rather than in part 2. It is written byte for
+# byte rather than through iconv, which this corpus does not otherwise depend
+# on. `ok.md` is here so the drop under test cannot be mistaken for the
+# empty-surface exit 2: without a file that does reach the surface, this
+# fixture would go green for the wrong reason.
+mkrepo utf16
+printf 'Per `Architecture.md \302\247 D8`, go vet resolves against the directory it is run from; the repository root is not this service.\n' \
+  > "$TMP/utf16/ok.md"
+: > "$TMP/utf16/psh.md"
+u16='go vet run from the repository root passes against nothing.'
+u16i=0
+while [ "$u16i" -lt "${#u16}" ]; do
+  printf '%s\0' "${u16:$u16i:1}" >> "$TMP/utf16/psh.md"
+  u16i=$((u16i + 1))
+done
+run utf16
+check_rc    "not text · a UTF-16 file is 'cannot run', not a silent drop"  2
+check_has   "not text · ... and it is named rather than skipped"          "psh.md"
+check_has   "not text · ... and the message says what wrote it"           "PowerShell"
+check_lacks "not text · ... and it never reports a clean tree"            "clean ·"
 
 # A control byte inside one alternative: it compiles, matches nothing, and
 # disables that alternative in silence. This file has shipped that byte once.
@@ -360,6 +531,7 @@ MD
 run mk-post
 check_rc   "mk-post · the anchored citation is not condemned"   0
 check_has  "mk-post · ... and part 2 opened the Makefile to say so" "part 2 read 1 file(s)"
+repaired Makefile   # the ninth repaired site
 
 # The thirteenth site is `Makefile:16-23` at c8088fa^ — the per-gate
 # restatement, and the lines the checker header names as the one it misses.
@@ -402,8 +574,10 @@ vet:
 	cd service && go vet ./...
 MD
 run mk-pre
-check_rc   "mk-pre · MEASURED MISS - the thirteenth site does not flag"  0
-check_has  "mk-pre · ... and it is a miss inside reach, not outside it"  "part 2 read 1 file(s)"
+check_rc    "mk-pre · MEASURED MISS - the thirteenth site does not flag"  0
+site_misses "mk-pre · ... and the miss is the ninth site of the header's nine" \
+            Makefile "restates the retracted root-run outcome: Makefile"
+check_has   "mk-pre · ... and it is a miss inside reach, not outside it"  "part 2 read 1 file(s)"
 
 printf '\nthe thirteenth site (Makefile, c8088fa^) is in reach and NOT caught.\nFIXTURE 5 carries why; the checker header carries what the only variant\ncatching it costs.\n'
 
@@ -442,6 +616,34 @@ try_held "sees a directory, not a module" \
 
 printf '\nheld-out wordings caught: %s of %s%s\n' "$held_caught" "$held_total" "$held_missed"
 printf 'in-sample recall over the nine historical sites is asserted above, the\nninth as a miss; this number is not asserted.\n'
+
+# ---------------------------------------------------------------------------
+# THE CHECKER'S HEADER, CHECKED AGAINST THIS RUN — for AGREEMENT, never for a
+# value. Those four rows were a hand-kept second statement of everything above,
+# which is the gate-2 duplication shape #118 exists to collapse, sitting inside
+# the instrument built to enforce it. Measured: one added OUTCOME alternative
+# moved `held-out wordings caught` to 1 of 4 while the header row still read
+# `0 OF 4 CAUGHT`, all 37 assertions passed and nothing failed.
+#
+# WHAT IS ASSERTED IS ONLY THAT THE ROW REPEATS THE NUMBER, so nothing here
+# makes held-out recall a target: it stays printed rather than asserted at a
+# value, and adding a phrase to the checker to move it still only makes the
+# number move. What is now impossible is moving it and leaving the header
+# saying otherwise.
+#
+# A failure here is fixed by making the header state what was measured. It is
+# never fixed by making the measurement state what the header wants.
+# ---------------------------------------------------------------------------
+header_states "header · part 1's in-sample row states this run's count" \
+  'part 1, exit status'                        "$p1_caught of $sites_total sites"
+header_states "header · part 2's in-sample row states this run's count" \
+  'part 2, exit status'                        "$p2_caught of $sites_total sites"
+header_states "header · the repaired row states this run's denominator" \
+  'repaired sites, which must NOT flag'        "the $repaired_total repaired sites"
+header_states "header · the repaired row states this run's count" \
+  'repaired sites, which must NOT flag'        "$repaired_flagged of $repaired_total flagged"
+header_states "header · the held-out row states the number just printed" \
+  'held-out wordings, invented for the corpus' "$held_caught of $held_total caught"
 
 [ "$fails" -eq 0 ] || { printf '\n%s check(s) failed\n' "$fails"; exit 1; }
 printf '\nall passed\n'
