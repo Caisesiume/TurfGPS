@@ -101,7 +101,7 @@ gitleaks detect || true  # if available — secret scan
 ```
 **These are inline because neither is a gate.** `govulncheck` and `gitleaks` are absent from `local-gates` by design — supply-chain and secret scanning are this bench's job, not a precondition for opening a PR — so citing the skill for them would cite a file that does not have them.
 
-**The two directories differ, and that is not a slip.** `govulncheck` is a Go tool: it resolves against the module and, run from the root, finds no packages and reports no vulnerabilities — the same silent pass the Go gate has, arriving in a security review, which is where it costs most. `gitleaks` is the opposite: a secret committed to a CI config, a stray `.env`, or a fixture lives *outside* the module, so scanning only `service/` would miss the paths secrets most often reach the repository by. One tool needs the narrowest scope that is real, the other the widest.
+**The two directories differ, and that is not a slip.** `govulncheck` is a Go tool: it resolves against the module, and there is none at the repository root, per `Architecture.md § D8`, so a run from there scans none of this service's dependencies. **Report the directory with the result**, because `govulncheck: clean` is a claim about whichever module the command resolved, and in a security review a claim about the wrong tree is where it costs most. `gitleaks` is the opposite: a secret committed to a CI config, a stray `.env`, or a fixture lives *outside* the module, so scanning only `service/` would miss the paths secrets most often reach the repository by. One tool needs the narrowest scope that is real, the other the widest.
 
 ---
 

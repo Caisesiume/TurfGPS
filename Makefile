@@ -13,14 +13,13 @@
 # directory it is run from, and that directory — not the tree — is what decides
 # what a gate measured.
 #
-# Measured from this root, four of the five are loud: vet, lint and build each
-# fail to resolve a module, and test fails on the absent-cgo host reason that is
-# identical from either directory, so on this host it discriminates nothing.
-# Only gofmt exits 0, and its output is identical to a clean run — not because
-# it read nothing, but because it walks the filesystem instead of resolving a
-# module, and every Go file in this repository sits inside the module
-# directory. It reads the same tree by accident of layout, and reads more the
-# moment a .go file lands outside it.
+# What each of the five reports from that wrong directory is NOT restated here.
+# `local-gates § Backend (Go)` is its one home and carries it per gate, with
+# the host and the date the measurement was taken on — including which gates
+# are loud without being discriminating, which is the half a recipe can get
+# wrong. A paragraph of it here would be one more statement of the model #118
+# exists to collapse, in this file's own words, going stale on the next
+# measurement with no diff here to notice.
 #
 # So every recipe below carries its own directory, on the same line as the
 # command it guards. make runs each recipe line in a fresh shell, so a bare
@@ -63,12 +62,13 @@ BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates fmt vet lint test build image clean
+.PHONY: help gates d8-claims fmt vet lint test build image clean
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
 	@echo ''
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
+	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
@@ -98,6 +98,33 @@ gates:
 	echo ''; \
 	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
 	exit $$rc
+
+# `local-gates § Documentation gates` gate 2, for the one fact this repository
+# has already had restated thirteen times: what a Go command does when it is
+# run from a root holding no module. It is ONE duplication class inside that
+# gate and not the documentation gates, whose every other part is still run by
+# hand, as that section says — and this target's name says so rather than
+# implying a coverage it does not have.
+#
+# It is deliberately NOT part of `gates` above. That target's whole output is
+# the backend report line `local-gates` law 1 prescribes, whose every field is
+# derived from one of the five Go gates; a documentation result inside it would
+# be a field nothing in that line can describe.
+#
+# The recall corpus runs FIRST and make stops if it fails, so this target
+# cannot report a verdict from an instrument whose recall was not just
+# demonstrated. That ordering is the point of the target, not a convenience:
+# the checker's phrase lists are what decide its verdict, and a broken list
+# used to be indistinguishable from a clean tree.
+#
+# Neither line carries a directory, and that is not the omission the header
+# above condemns: neither invokes the Go toolchain, and each script resolves
+# its own root — the checker from `git rev-parse --show-toplevel`, the corpus
+# from its own path — so where this recipe stands cannot change what either
+# one measured.
+d8-claims:
+	@bash scripts/gates/tests/d8-root-run-claims-recall.sh
+	@bash scripts/gates/d8-root-run-claims.sh
 
 # gofmt -l names the files it would reformat and exits 0 whether or not it
 # names any, so the list is the result and has to be tested, not merely

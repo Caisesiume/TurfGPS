@@ -38,14 +38,14 @@ Run these checks on the modified files under `service/`, which is where the Go m
 
 **1. Tooling Baseline**
 
-Format, vet, lint, and build are the author's gates, and their commands live in `local-gates § Backend (Go)`. **Confirm them; do not retype them.** The PR body must carry the directory they ran in — a report without one is not evidence that anything was compiled, and re-running the list yourself from the wrong place reproduces the same vacuous pass one level further down. Where you do re-run them, take the commands from the skill so you are running today's list.
+Format, vet, lint, and build are the author's gates, and their commands live in `local-gates § Backend (Go)`. **Confirm them; do not retype them.** The PR body must carry the directory they ran in — a report without one is not evidence that anything was compiled, and re-running the list yourself from the wrong place measures the wrong tree one level further down, per `Architecture.md § D8`. Where you do re-run them, take the commands from the skill so you are running today's list.
 
 Then run the instrument the gate does not have:
 ```powershell
 cd "$(git rev-parse --show-toplevel)/service"   # the module, not the repo root
 staticcheck ./...              # if installed
 ```
-**This is inline because `staticcheck` is not a gate.** The gate's linter is `golangci-lint`; `staticcheck` is a deeper analysis you run as a critic, and it catches a class — unused results, impossible conditions, misused stdlib contracts — that a passing gate says nothing about. Its `cd` is load-bearing for the same reason every Go command's is: the module is not at the repository root, per `Architecture.md § D8`, so run from there it inspects zero files and reports zero faults, which is indistinguishable from clean. **Report the directory you ran it in.**
+**This is inline because `staticcheck` is not a gate.** The gate's linter is `golangci-lint`; `staticcheck` is a deeper analysis you run as a critic, and it catches a class — unused results, impossible conditions, misused stdlib contracts — that a passing gate says nothing about. Its `cd` is load-bearing for the same reason every Go command's is: the module is not at the repository root, per `Architecture.md § D8`, so run from there it inspects none of this repository's code. **Report the directory you ran it in** — a `staticcheck: clean` line is a claim about whichever tree the command resolved, and only the directory says which one that was.
 
 **2. Error Handling**
 - Every returned `error` is checked
