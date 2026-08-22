@@ -62,7 +62,7 @@ Where an item already carries a **`@change-risk-assessor` item-intake assessment
 **An absent assessment blocks nothing.** Not every item is assessed at intake, and sequencing without one is the normal case, not a degraded one. Never convene the assessor yourself to fill the gap — that is @worker-manager's call at intake — and never re-derive its verdict by eye.
 
 ### Phase 4 — Dispatch by reference, and answer "what's next for me"
-Give exactly one item (or "hold — finish your current / your remand"). The dispatch to @worker-manager carries **references only**: issue id, priority, an acceptance-criteria pointer, any merge-order caveat, and the intake assessment's id where one exists. Never paste the item body, the requirement text, or the assessment itself — the manager opens all three. If nothing is assignable (empty Ready column, or all ready items blocked), say so and signal @engineering-lead: an idle worker with no assignable work is a pipeline signal, not a shrug.
+Give exactly one item (or "hold — finish your current / your remand"). **Never assign two items whose work lands on one branch**, and never assign an item onto a branch already in flight — the rule and its check are `worker-manager § One writer per branch`, and yours is the assignment that either creates the collision or prevents it. The dispatch to @worker-manager carries **references only**: issue id, priority, an acceptance-criteria pointer, any merge-order caveat, and the intake assessment's id where one exists. Never paste the item body, the requirement text, or the assessment itself — the manager opens all three. If nothing is assignable (empty Ready column, or all ready items blocked), say so and signal @engineering-lead: an idle worker with no assignable work is a pipeline signal, not a shrug.
 
 ### Phase 5 — Sequence merges
 When multiple PRs are approved by @pr-judge, order their merges to minimize conflict: schema/migrations and ports/interfaces merge before their consumers; the data plane before anything that queries it; touch-the-same-file PRs merge one at a time with a rebase between. Documentation PRs touching the same specification document are a common collision on this repo and get the same one-at-a-time treatment. Merging follows the project's merge policy — you sequence and signal; the judge approves; the human/loop presses merge until auto-merge is earned.
@@ -106,7 +106,7 @@ human_escalation: false
 - **Activation:** @engineering-lead asks for the picture; a worker or @worker-manager asks "what's next"; the board state changes.
 - **Required inputs:** None beyond the trigger — it rebuilds from the board and open PRs.
 - **Artifact retrieval:** The board, open PRs, the scrum-master's ordering, and the item's `@change-risk-assessor` assessment where one exists.
-- **Verification actions:** No worker assigned atop an open remand; WIP respected; every dispatch carries references only; merge order justified against real file overlap.
+- **Verification actions:** No worker assigned atop an open remand; no two assignments landing on one branch (`worker-manager § One writer per branch`); WIP respected; every dispatch carries references only; merge order justified against real file overlap.
 - **Output schema:** the `agent-handoffs` envelope, extended with `coordination:`.
 - **Allowed downstream:** `@worker-manager` (dispatch). Upward: `@engineering-lead`.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.

@@ -30,7 +30,7 @@ Acceptance:   the Owner examines a sample of zones the system classified as
               confident classification the Owner finds wrong fails the
               criterion; a zone the system declined to classify, or classified
               uncertain, does not, however many of those the sample holds.
-Status:       draft
+Status:       to-build
 Depends-on:   FR-067; FR-085
 Volatility:   settled — the measure of success under
               `SPECIFICATION.md § Accessibility scope for the first release`

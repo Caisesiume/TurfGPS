@@ -212,6 +212,26 @@ needs_domain_decision:
 
 The orchestrator that dispatched you routes **one** targeted request, and the answer becomes an artifact or a recorded decision — an ADR, a `DECISIONS.md` entry, an amended requirement — so the next agent retrieves it rather than asking again. **Agents never chat**: a back-and-forth costs a full execution per turn and leaves nothing behind that anyone can retrieve.
 
+## An outstanding continuation is not left behind
+
+*Ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md § D11`, on two observations in the first live loop cycle. Binds every agent that dispatches; the dispatchers cite this section rather than restating it.*
+
+**An agent must not end a pass while a continuation it owns is outstanding.** Dispatching a child creates an obligation that outlives the dispatch, and a parent whose process ends before its children return takes the obligation with it: the mandatory next step never fires, and finished work is left with nobody holding it.
+
+A dispatching agent therefore has exactly two honest endings:
+
+- **Await the children** and continue the pass, or
+- **Persist their output to a durable artifact** — the issue, the PR, the corpus file — and name in its envelope **what remains owed and to whom**.
+
+```yaml
+continuation_owed:
+  to: backlog-dependency-planner
+  for: "the story batch just filed"
+  persisted: "issue #18 comment — the finished FR-019 field block"
+```
+
+Ending with the work held only in the pass's own context is neither. The second ending is not the lesser one: an agent that cannot await its children still discharges the obligation by making the state retrievable and the debt explicit — the same artifact-over-conversation principle this skill applies to every other handoff. **A pass that ends silently with a continuation outstanding is a defect in that pass**, not an accident of scheduling, and it is invisible by construction: nothing anywhere records that a step was owed.
+
 ## Dependency findings and graph updates
 
 *ADR-0003 § P7. The persisted grammar both schemas refer to is `turfgps-board-ops § The dependency representation`, and is not restated here.*
@@ -283,7 +303,7 @@ ACCEPTED ON TRUST:
 Both of these were found by an agent that checked a premise it had been handed, and neither was found by the pass meant to find it.
 
 - **The board agent that could not see the board.** Its own definition told it an empty board was "a complete and correct run" and to stop; the board held **37 items**. That instruction was reachable on every run, and the run that reached it would have reported an empty backlog and recorded itself as complete. Found 4 August 2026 while sweeping citation delimiters — `c091046`.
-- **The gates that could pass having read nothing.** `Architecture.md § D8` puts the Go module in `service/`. The gate block carried no working directory, so from the repository root all five commands resolve against nothing, exit zero, and print exactly what a clean module prints — and the prescribed report line was character-for-character what that vacuous run produces. Eleven agent files and the PR-body template carried the same directory-less copy, so the path ran unbroken from command to report line. Closed before any PR in this repository existed to carry it; the instrument, not a reviewer, was the thing that would have lied. Found 5 August 2026 because a layout decision recorded its own cost honestly — `d6a7e3e`, `1928a28`.
+- **The gates whose report could not say where they ran.** `Architecture.md § D8` puts the Go module in `service/`. The gate block carried no working directory, and neither did the report line it then prescribed — that form had no field for one, so no line written in it could name the tree it measured, whatever the commands had actually done. Whether the underlying results differed at all varies by gate, and `local-gates § Backend (Go)` is where that is measured; the form could carry none of it either way. `local-gates § The law` now requires that field. Eleven agent files and the PR-body template carried the same directory-less copy, so the path ran unbroken from command to report line. Closed before any PR in this repository existed to carry it; the instrument, not a reviewer, was the thing that would have lied. Found 5 August 2026 because a layout decision recorded its own cost honestly — `d6a7e3e`, `1928a28`. **The mechanism first recorded here — all five commands passing vacuously over an empty root — was itself measured false and retracted on 22 August 2026; `Architecture.md § D8` carries the retraction and `local-gates § Backend (Go)` the measurement. The incident stands and so does the law it justifies**: the report still could not say where it ran, and the quiet gate is quiet from the wrong directory for a reason that says nothing about what it read.
 
 Neither is something a reviewer catches by reading attentively. Both were **instruments reporting success**, and the only thing that separated the report from the truth was an agent running the thing itself.
 

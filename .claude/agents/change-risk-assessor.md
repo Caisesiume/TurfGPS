@@ -61,7 +61,7 @@ Files and components affected · architectural surface area · security relevanc
 
 Size is a weak signal and is the one most likely to mislead you: the damage a change can do is a property of where it lands, not how much of it there is.
 
-**Docs-only typo, formatting, or link fixes are `low` without assessment.** Do not run. Saying so costs less than the run.
+**One exemption makes a diff `low` without assessment**, and it is your registry row's `Never when` in `review-board-dispatch § The reviewer registry` — read the cell, do not carry a second copy of it here. Where it applies: do not run, and say so. Saying so costs less than the run. Note that it is **narrower than `docs_only`** and its test is semantic, so a docs diff outside it is assessed like any other.
 
 ## What you return
 
@@ -118,7 +118,7 @@ The intake prediction **is allowed to be wrong** — that is what predicting an 
 - **Allowed downstream agents:** None. You call nobody.
 - **Escalation:** None. You cannot be blocked — an unreadable diff is `high` with `mandated_high_by: [novel_architecture]` and a one-line reason.
 - **Handoff limit:** The YAML block. Typically under 150 tokens.
-- **Must NOT run when:** The change is a docs-only typo, formatting, or link fix — that is `low` by rule.
+- **Must NOT run when:** The diff falls inside your registry row's `Never when` in `review-board-dispatch § The reviewer registry` — that is `low` by rule.
 
 ---
 

@@ -10,8 +10,7 @@ Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Stor
 Statement:    The system shall measure a journey alternative's cost as the
               additional time that alternative takes compared with the
               corresponding journey without Turf stops, computed as defined
-              under
-              *Additional journey time* in `CalculationSpecification.md`.
+              under `CalculationSpecification.md § Additional journey time`.
 Category:     Cost and time composition
 Source:       SPECIFICATION.md § The journey as an optimization problem
 Priority:     MUST
@@ -43,7 +42,7 @@ Rationale:    The section states what cost is measured against; the arithmetic
               has one home and is cited, not restated. That citation also
               fixes which journey is "corresponding" — it is stated per route
               alternative, against the general route the alternative is built
-              on, per *General route alternatives* in `SPECIFICATION.md`. What
+              on, per `SPECIFICATION.md § General route alternatives`. What
               this figure is not is the quantity the user's stated limit
               tests. The Owner ruled on 7 August 2026 that the limit bounds an
               alternative's total additional time against the fastest
@@ -62,7 +61,7 @@ Resolved-by:  #7
 
 ```
 Statement:    The system shall include a stop's time, as defined under
-              *Stop time* in `CalculationSpecification.md`, in a journey
+              `CalculationSpecification.md § Stop time`, in a journey
               alternative's additional time even where capturing that zone
               changes no driving time.
 Category:     Cost and time composition
@@ -105,7 +104,7 @@ Resolved-by:  #8
 ```
 Statement:    The system shall not use the `blocktime` value returned for a
               player as a component of stop time, as composed under
-              *Stop time* in `CalculationSpecification.md`.
+              `CalculationSpecification.md § Stop time`.
 Category:     Cost and time composition
 Source:       Architecture.md § Player data
 Priority:     MUST
@@ -127,10 +126,10 @@ Risk:         `blocktime` is the only duration the player endpoint returns, it
               substitution and nothing about it flags the mistake.
               Substituted, it replaces a per-stop duration with one whose
               documented range, per
-              *Zone lock time* in `CalculationSpecification.md`, is far above
-              any takeover time, so every stop cost, every ceiling check and
-              every ranking moves in the same direction at once, with no
-              symptom beyond the tool advising against stops it should be
+              `CalculationSpecification.md § Zone lock time`, is far above any
+              takeover time, so every stop cost, every ceiling check and every
+              ranking moves in the same direction at once, with no symptom
+              beyond the tool advising against stops it should be
               recommending.
 Rationale:    The second criterion exists because the first can be satisfied
               by an implementation that reintroduces the same quantity without
@@ -139,7 +138,7 @@ Rationale:    The second criterion exists because the first can be satisfied
               prohibition binds, which is how stop time is composed. That the
               field is out of scope for the first release altogether, and the
               invariant that exclusion rests on, are stated under
-              *Zone lock time* in `CalculationSpecification.md` and are not
+              `CalculationSpecification.md § Zone lock time` and are not
               authored here.
 Resolved-by:  #32
 ```
@@ -167,7 +166,7 @@ Acceptance:   given a journey alternative built on a general road route slower
               route, when its cost is composed, then its general-route
               deviation is zero and its total additional time is its Turf stop
               time
-Status:       draft
+Status:       to-build
 Depends-on:   FR-008; FR-061
 Volatility:   settled — the record obliges two quantities to stay distinct and
               states neither of them, so nothing proposed or open moves it
@@ -218,7 +217,7 @@ Acceptance:   given a park-and-walk candidate for which a routed walkable path
               straight-line estimate under
               `CalculationSpecification.md § Flat-distance fallback` is what
               prices it
-Status:       draft
+Status:       to-build
 Depends-on:   FR-009; FR-068; FR-092
 Volatility:   settled — the record names which inputs the computation takes
               and asserts an ordering over them, so it survives every figure
@@ -271,7 +270,7 @@ Acceptance:   given a stop from which two zones are taken on one walking
               including it adds its takeover time and no further walking
               given a stop serving a single zone, when it is priced, then it
               is priced as a walking route to that zone's coordinate and back
-Status:       draft
+Status:       to-build
 Depends-on:   FR-009; FR-078
 Volatility:   settled — the record states the shape of the cited model, over a
               set rather than per zone, and carries none of the timings that
@@ -336,7 +335,7 @@ Acceptance:   given a stop whose driving cost and whose walking cost are both
               network, when the stop is priced, then the walking cost is
               measured from the point the driving model resolved and not from
               the point the pedestrian model would
-Status:       draft
+Status:       to-build
 Depends-on:   FR-074; FR-086; FR-092
 Volatility:   settled — `Architecture.md § D3` is decided and states the
               failure this record prevents as its reason for refusing split

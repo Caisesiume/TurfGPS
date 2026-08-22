@@ -64,7 +64,7 @@ Acceptance:   given a journey whose required locations are connected by more
               given the general road routes produced for such a journey, when
               they are compared, then no two of them traverse the same roads
               between those locations
-Status:       draft
+Status:       to-build
 Depends-on:   FR-001
 Volatility:   settled — the obligation is a count and a non-identity, and
               rests on no figure and on nothing any document lists as open
@@ -109,7 +109,7 @@ Acceptance:   the Owner reviews the general road routes produced for each of a
               route is a different way of making the drive rather than a
               variation of another; a set whose routes the Owner can separate
               only by a short local difference fails
-Status:       draft
+Status:       to-build
 Depends-on:   FR-058
 Volatility:   settled — nothing this record rests on is proposed or open, and
               the quantity it lacks is a distinctness bar, whose absence is
@@ -158,7 +158,7 @@ Acceptance:   given a journey for which more than one general road route has
               given the same journey, when journey alternatives are produced,
               then the fastest conventional route is among the general road
               routes they are built on
-Status:       draft
+Status:       to-build
 Depends-on:   FR-058
 Volatility:   settled — the record states a residue that survives whatever
               scoring model is one day authored for general road routes, and

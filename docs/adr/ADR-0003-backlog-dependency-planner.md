@@ -160,3 +160,17 @@ A hard edge whose prerequisite is **successfully complete** is **satisfied**: it
 `@pr-judge` and `@worker-manager` read as though they did: the judge routed `dependency`/`planning`-root-cause findings "to `@backlog-dependency-planner`" and listed it downstream, and the manager "carried a `dependency_finding` up to" it. Both now **classify and report upward**, and `@engineering-lead` dispatches. The distinction is the point: **a finding is evidence, a dispatch is a decision about whether the graph should be re-reasoned now**, and a planner with four dispatchers is one that runs on every reporter's estimate of its own urgency — the per-event discipline this record exists to hold. Root-cause classification is untouched and remains load-bearing: without a correctly named `dependency` or `planning` root cause, there is nothing for the lead to route.
 
 Neither agent lost anything it owned. `agent-handoffs § Dependency findings and graph updates` states the same routing in the schema's own home.
+
+## Amendment — 2026-08-16 (first live loop cycle)
+
+*Source: the Owner's runtime-findings directive. One observation; no rule of this record changes.*
+
+### A5 — The mandatory continuation is the one the loop actually dropped
+
+*Concerns P3, P9, and A1. Recorded here because the failure landed on this record's pipeline, while the rule that closes it is general and lives in ADR-0001.*
+
+A1 made `@requirements-engineer` the direct dispatcher of `@backlog-dependency-planner` after a story batch, on the reasoning that a mandatory pipeline step should not be relayed through an orchestrator. **Twice in the first live cycle the RE's process ended before its background children returned, so that continuation never fired** — once leaving a finished `FR-019` field block held by nobody.
+
+**Nothing about A1 is wrong, and this is not a reason to restore the hop.** Relaying the dispatch through `@engineering-lead` would have added the decision-free hop A1 removed without making the continuation any more durable: the same process would still have ended, and the relay would have died with it. The missing rule was general — an agent must not end a pass while a continuation it owns is outstanding — and is recorded as **`ADR-0001 § D11`**, with its home in `agent-handoffs § An outstanding continuation is not left behind` and its citation at `requirements-engineer § Mode A`.
+
+The consequence this record already anticipated holds, and the incidents sharpen it. An unplanned batch **stalls** rather than promoting falsely, because the `_Pending @backlog-dependency-planner._` placeholder is an explicit blocking state (`turfgps-board-ops § The dependency representation`), and that stall is what made both incidents visible at all. **A visible stall still ships nothing**, which is the half D11 closes.
