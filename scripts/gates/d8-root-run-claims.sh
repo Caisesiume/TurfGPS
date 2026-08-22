@@ -90,6 +90,24 @@
 #   the 9 repaired sites, which must NOT flag ... 0 of 9 flagged
 #   held-out wordings, invented for the corpus .. 0 OF 4 CAUGHT
 #
+# THOSE FOUR ROWS ARE ASSERTED BY THAT CORPUS, FOR AGREEMENT WITH WHAT IT JUST
+# MEASURED — never for a value. They were a hand-kept second statement of it
+# until cycle 3, which is the duplication shape #118 exists to collapse,
+# reproduced inside the instrument built to enforce it: adding one OUTCOME
+# alternative moved the corpus's held-out count to `1 of 4` while the last row
+# still read `0 OF 4 CAUGHT`, every assertion passed and nothing failed. The
+# corpus now reads these four rows and goes red when a number here is not the
+# number it just measured. The held-out row stays PRINTED rather than asserted
+# at a value — what is asserted is only that this row repeats it — so it still
+# cannot be tuned to a target, only kept honest.
+#
+# THE NINE IN THE FIRST THREE ROWS IS: the 8 dependent sites at 6fbf7de, plus
+# `Makefile:16-23` at c8088fa^, the thirteenth restatement and the one part 2
+# misses. IT IS NOT the nine the recall corpus asserts a flag count over in its
+# FIXTURE 1 — that one is the same 8 dependents plus a synthetic
+# `Architecture.md` dependent-section case, and it EXCLUDES the Makefile. Two
+# disjoint nines, and each is now named where it is printed or asserted.
+#
 # The 9 are the historical class, so that recall is IN-SAMPLE: it says this
 # check catches the shape it was built from, and not all of that. The site it
 # misses is the ninth, the Makefile's own — see below. The last line is the
@@ -145,7 +163,9 @@
 #        1  at least one does; each is printed with the sentence
 #        2  could not run — not a git repository, an empty corpus, nothing on
 #           the surface, no file reaching part 2, an unlocatable home section,
-#           or a phrase list that does not compile. Never reported as clean.
+#           a corpus file that is not text (a NUL byte, which is also every
+#           UTF-16 file), or a phrase list that does not compile. Never
+#           reported as clean.
 
 set -uo pipefail
 
@@ -330,6 +350,32 @@ printf '%s' "$CANARY" | grep -qiE -- "$OUTCOME"  || { echo "d8-root-run-claims: 
 # drops the backslash, turning the literal into a group — so `Backend \(Go\)`
 # silently stops matching `### Backend (Go)`. Measured, from the guard below
 # firing. `[(]` is the same character to both dialects.
+#
+# EVERY ROW BELOW OWES A FIXTURE, IN BOTH DIRECTIONS, AND SAYS WHICH ONE.
+# A row is the strongest suppression this checker has — it exempts a whole
+# heading range from part 2 — which makes it the widest-blast-radius edit in
+# the file, and it is guarded by nothing while the phrase lists are guarded in
+# both directions. Measured at 43ee942: a row was added and the recall corpus
+# still printed `37/37 all passed`. What each row owes, in
+# `scripts/gates/tests/d8-root-run-claims-recall.sh`:
+#
+#   docs/Architecture.md
+#       FIXTURE 1, both directions — a sentence inside the D8 section states
+#       the model and must NOT flag, while a dependent section of the same
+#       file must.
+#   .claude/skills/local-gates/SKILL.md
+#       FIXTURE 1 site 8 — the dependent `The law` section still flags — and
+#       FIXTURE 2, where its repair must not, plus FIXTURE 4 `renamed` for the
+#       heading that no longer resolves.
+#   Makefile
+#       FIXTURE 5, both directions — mk-pre and mk-post, each verbatim, each
+#       asserting reach rather than only a verdict.
+#
+# A NEW ROW BRINGS ITS OWN PAIR BEFORE IT IS ADDED HERE. The next one is named
+# in #118 DoD 2: PR #67 lands `docs/DEPLOYMENT.md`, whose `:198` restates this
+# very model. Nothing mechanically enforces the obligation yet — a corpus check
+# enumerating these rows and failing on one carrying no fixture is `FW-23`, and
+# is deliberately not built here.
 home_pattern() { # home_pattern <path>; prints the heading regex, or returns 1
   case "$1" in
     docs/Architecture.md)                printf '%s' '^#+[[:space:]]+D8([[:space:]]|$)' ;;
@@ -380,6 +426,41 @@ exempt=0    # sentences suppressed as retraction records, each printed above
 while IFS= read -r -d '' f; do
   corpus=$((corpus + 1))
 
+  # A CORPUS FILE THAT IS NOT TEXT IS `cannot run`, NEVER PART OF A VERDICT.
+  # The invariant this restores: a file counted in `part 2 read N` had its
+  # lines read. Both ways that was false were measured on this script as it
+  # stood at 43ee942, by construction rather than by reading.
+  #
+  #   An .md holding a real restatement and ONE NUL BYTE printed
+  #   `clean · corpus 1 · surface 1 · part 2 read 1 file(s) · part 2: 0
+  #   flagged`, exit 0, nothing on stderr. grep answers `Binary file X
+  #   matches` with no line number; the guard in part 2 correctly refused that
+  #   answer and the file was then discarded in silence while still counted as
+  #   read — a clean summary with no error at all, which is strictly worse than
+  #   the shape that guard's own comment says it refuses.
+  #
+  #   The UTF-16LE form of the same sentence — what PowerShell 5.1's `>` writes
+  #   on this Windows-first repository — never reached that guard. Its bytes are
+  #   `g\0o\0 \0v\0e\0t\0`, which matches no alternative in any list here, so it
+  #   was dropped at the surface filter below, uncounted and unnamed, and the
+  #   run printed clean over it.
+  #
+  # ONE TEST COVERS BOTH, because UTF-16 of ASCII prose is NUL-bearing by
+  # construction, and it has to sit HERE, ahead of the surface filter, or the
+  # second case is gone before it is reached.
+  #
+  # `read -d ''` is the same construct this file already reads `git ls-files -z`
+  # with, below: the delimiter is NUL, so it returns 0 only when it found one
+  # before EOF. It costs no fork, which matters at 98 files — measured on this
+  # tree, the checker runs 7.7s with it against 6.0s without, where the obvious
+  # `tr -d '\000' | cmp -s - "$f"` cost 10.3s. It also sidesteps that form's
+  # trap: `cmp` needs `--` before the operand, because the recall corpus carries
+  # a fixture named `-i.md` and `cmp - -i.md` reads it as `--ignore-initial`.
+  if IFS= read -r -d '' _ < "$f"; then
+    printf 'd8-root-run-claims: cannot run — %s holds a NUL byte, so its lines cannot be read as text; a UTF-16 file, which is what PowerShell 5.1 writes with `>`, reads exactly like this. Re-save it as UTF-8.\n' "$f" >&2
+    exit 2
+  fi
+
   grep -qiE -- "$TOOLCHAIN" "$f" || continue
   grep -qiE -- "$DIRECTORY" "$f" || continue
   surface=$((surface + 1))
@@ -412,10 +493,21 @@ while IFS= read -r -d '' f; do
   # grep, so one regex dialect decides every verdict in this file.
   while IFS= read -r numbered; do
     n="${numbered%%:*}"; text="${numbered#*:}"
-    # grep answers "Binary file X matches" without a line number; taking that
-    # as one would put an error on stderr and a clean summary on stdout, which
-    # is the shape this file refuses everywhere else.
-    case "$n" in ''|*[!0-9]*) continue ;; esac
+    # `-a` on the pre-filter below is what makes the invariant hold on grep's
+    # behaviour rather than depend on it: with it, lines come back numbered
+    # whatever grep decides about the file's bytes. GNU grep 3.0 on this host
+    # calls a file binary only on a NUL, which the corpus guard above already
+    # refuses — but that policy is a property of the grep version and the
+    # locale, not of this file, so this guard stays as the last resort.
+    # It now EXITS rather than `continue`s. Continuing was the defect: it took
+    # grep's `Binary file X matches`, which carries no line number, dropped the
+    # file, and left it counted in `part 2 read N` — an error on stderr and a
+    # clean summary on stdout is the shape the old comment here said it
+    # refused, and silence with a clean summary is worse than that shape.
+    case "$n" in ''|*[!0-9]*)
+      printf 'd8-root-run-claims: cannot run — grep returned a line without a number for %s, so this sweep cannot read it: %s\n' "$f" "$numbered" >&2
+      exit 2 ;;
+    esac
     [ "$n" -ge "$hstart" ] && [ "$n" -le "$hend" ] && continue
     while IFS= read -r s; do
       printf '%s' "$s" | grep -qiE -- "$OUTCOME"  || continue
@@ -430,7 +522,7 @@ while IFS= read -r -d '' f; do
       printf '    %s\n' "$s"
       part2=$((part2 + 1))
     done < <(printf '%s\n' "$text" | awk '{ n = split($0, a, /[.!?] +/); for (i = 1; i <= n; i++) print a[i] }')
-  done < <(grep -niE -- "$OUTCOME" "$f")
+  done < <(grep -naiE -- "$OUTCOME" "$f")
 done < <(git ls-files -z -co --exclude-standard --deduplicate -- '*.md' 'Makefile')
 
 # The other half of the same rule: "the check ran and found nothing" and "the
