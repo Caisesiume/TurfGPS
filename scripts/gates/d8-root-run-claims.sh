@@ -127,19 +127,52 @@
 # into reach in cycle 2 was necessary and was not sufficient: the sweep opens it
 # now and still returns clean over that paragraph. The cause was measured and it
 # is NOT the hard wrapping — unwrapped into single lines, the verdict does not
-# change. The sentence carrying the retracted outcome ("its output is identical
-# to a clean run ... not because it read nothing") names no directory at all;
-# the location sits two sentences earlier, at "Measured from this root". Part 2
-# requires both in ONE sentence.
+# change.
 #
-# Dropping that requirement is the only variant that catches it, and the cost
-# was measured on the repaired tree at b651862: 5 sentences flagged, not one of
-# them a restatement — `Makefile:118`, `Makefile:137`, `validation-agent.md:69`,
-# `local-gates/SKILL.md:104`, `docs/Architecture.md:558`. Two are this file's
-# certified repair; `validation-agent.md:69` is the exact false positive the
-# per-sentence rule was introduced to remove. The ceiling here is the same one
-# the vocabulary has: a check that condemns the fix is worse than a narrow one.
-# Both halves are asserted by the corpus, the miss included.
+# TWO BLOCKERS, NOT ONE, AND EACH ALONE IS ENOUGH. Until cycle 3 this paragraph
+# named a single cause — that the location cue sat two sentences from the
+# outcome and part 2 requires both in ONE sentence — and that was false in the
+# costly direction: it pointed the next maintainer at a lever that on its own
+# does nothing. Re-measured against `git show c8088fa^:Makefile`:
+#
+#   1. THE RANGE CARRIES NO RECOGNISED LOCATION TOKEN AT ALL. `LOCATION` matches
+#      nothing in lines 16-23 — zero hits for the assembled regex, and zero for
+#      every one of its alternatives probed singly. "Measured from this root"
+#      reads like the cue and is not one: the list carries `from the root`, and
+#      `from this root` appears in no alternative. The nearest recognised
+#      location word is `at the repository root` at `Makefile:12`, four lines
+#      ABOVE the range — that is what puts the file on the surface, which is why
+#      this miss happens after the file is opened rather than before.
+#   2. The outcome and that non-token also sit in different sentences.
+#
+# SO NEITHER LEVER WORKS ALONE, and this was probed rather than reasoned:
+# collapsing the whole paragraph into one sentence flags 0; adding
+# `from this root` to `LOCATION_ALTS` flags 0; doing BOTH flags 1.
+#
+# THE ABSENCE OF `from this root` IS DELIBERATE AS OF CYCLE 3, AND WAS NOT
+# BEFORE. Nothing here recorded it as an exclusion, and the sentence removed
+# above treated the phrase as already recognised, which is what an oversight
+# looks like rather than a design. Its cost was measured before this was
+# written: with it added, output byte-identical to the run without it — 0 new
+# flags, 0 false positives — because `this root` occurs 0 times in the swept
+# corpus at head, this PR having repaired the one wording that used it. So it is
+# free, and it buys nothing: it does not close the miss, and it would put an
+# alternative in a phrase list with no fixture behind it. It stays out, and this
+# paragraph is the record of that choice rather than of the omission it replaces.
+#
+# OF THE CHECKER-SIDE LEVERS, dropping the pairing conjunct is still the only
+# one that catches it — measured on a site-9-only tree, where it flags
+# `Makefile:19` and `:20`. Because the surface filter already requires a
+# file-level location word, dropping that conjunct pairs at FILE scope rather
+# than at sentence scope, which is how it reaches a paragraph carrying no
+# location token of its own. Its cost was measured on the repaired tree at
+# b651862: 5 sentences flagged, not one of them a restatement — `Makefile:118`,
+# `Makefile:137`, `validation-agent.md:69`, `local-gates/SKILL.md:104`,
+# `docs/Architecture.md:558`. Two are this file's certified repair;
+# `validation-agent.md:69` is the exact false positive the per-sentence rule was
+# introduced to remove. The ceiling here is the same one the vocabulary has: a
+# check that condemns the fix is worse than a narrow one. Both halves are
+# asserted by the corpus, the miss included.
 #
 # THE VOCABULARY CANNOT BE BROADENED TO CLOSE THAT GAP, and this was measured
 # rather than assumed. Widening the outcome list from the vacuous-pass family

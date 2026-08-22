@@ -550,8 +550,10 @@ repaired Makefile   # the ninth repaired site
 # the Makefile's own format walks through it. Why it is missed, and what the
 # only variant catching it costs on the repaired tree, are measured and argued
 # once — in the checker's own header, under THE ONE IN-SAMPLE SITE IT MISSES.
-# The clause a reader will find there is that the sentence carrying the
-# retracted outcome names no directory, and part 2 requires both in one.
+# That header names TWO blockers, each alone sufficient, and this comment does
+# not repeat which: a second copy of the cause here is what went stale last
+# cycle, when the header's single stated cause was relayed as established
+# rather than measured. Read it there.
 #
 # If a later change catches this text, this line fails. That is intended: the
 # recall numbers in that header move with it, and they should not move quietly.
