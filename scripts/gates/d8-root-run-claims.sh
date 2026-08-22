@@ -11,9 +11,10 @@
 # `local-gates § Backend (Go)` (what each gate reports from the wrong
 # directory), and the Makefile (where each recipe's directory is encoded).
 # Everything else CITES one of them. That is the duplication gate,
-# `local-gates § Documentation gates` gate 2. It is not `local-gates § The
-# law` gate 2, which is the stop-and-report rule and was the address this
-# file cited until cycle 2: the heading resolved, and did not hold the claim.
+# `local-gates § Documentation gates` gate 2. It is NOT gate 2 of
+# `local-gates § The law`, which is the stop-and-report rule and was the
+# address this file cited until cycle 2: that heading resolved, and did not
+# hold the claim attributed to it.
 #
 # Run it with `make d8-claims`, which runs the recall corpus FIRST and only
 # then this check. A verdict from an instrument whose recall was not just
