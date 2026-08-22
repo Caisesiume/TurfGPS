@@ -385,6 +385,9 @@ Affects:        NFR-004, which is unrepaired and stands as written, on three
                 escape: absent a deployment configuration there is no
                 deployment, so the obligation has no instance to miss, where a
                 path constructing a Turf request existed whether or not
-                anything was called an adapter. The debt list in `README.md`.
-                By reference #25, #37, #109 and PR #67.
+                anything was called an adapter. The security obligations
+                `Rung` enumerates are a corpus coverage gap, owned by
+                PLAN-01-B on #109, whose Done-when covers all three artefacts
+                and gates #25. The debt list in `README.md`. By reference #25,
+                #37, #109 and PR #67.
 ```
