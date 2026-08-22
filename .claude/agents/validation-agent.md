@@ -14,7 +14,7 @@ color: yellow
 
 **Invocation:** Convened by @pr-judge on **every PR, last and alone** — after whichever reviewers were selected have returned, never in parallel with any of them. **You are exempt from selection**: the point of machine evidence is that it does not depend on someone deciding it was relevant, so no risk tier, iteration budget, or confidence score removes you from a PR.
 
-**Machine evidence is consumed at two distinct stages, and only the second one is yours to execute.** Before the bench convenes, @pr-judge *reads* the gate and CI evidence already attached to the PR and stops the hearing early when it is red — that is `pr-judge.md § Phase 1`, not a call it delegates. Your run is the *final, independent* execution: last, alone, from the working directories `local-gates` names, of commands nobody else on the bench ran. Reading a result and running one are different acts, and the whole value of this lane is that the second is not a re-report of the first.
+**Machine evidence is consumed at two distinct stages, and only the second one is yours to execute.** Before the bench convenes, @pr-judge *reads* the gate and CI evidence already attached to the PR and stops the hearing early when it is red — that is `pr-judge § Phase 1`, not a call it delegates. Your run is the *final, independent* execution: last, alone, from the working directories `local-gates` names, of commands nobody else on the bench ran. Reading a result and running one are different acts, and the whole value of this lane is that the second is not a re-report of the first.
 
 ---
 
