@@ -10,10 +10,10 @@
 # The homes are `Architecture.md § D8` (the layout decision and its cost),
 # `local-gates § Backend (Go)` (what each gate reports from the wrong
 # directory), and the Makefile (where each recipe's directory is encoded).
-# Everything else CITES one of them. That is `local-gates § Documentation
-# gates` gate 2 — the duplication gate. It is not `local-gates § The law`
-# gate 2, which is the stop-and-report rule and was the address this file
-# cited until cycle 2: the heading resolved, and did not hold the claim.
+# Everything else CITES one of them. That is the duplication gate,
+# `local-gates § Documentation gates` gate 2. It is not `local-gates § The
+# law` gate 2, which is the stop-and-report rule and was the address this
+# file cited until cycle 2: the heading resolved, and did not hold the claim.
 #
 # Run it with `make d8-claims`, which runs the recall corpus FIRST and only
 # then this check. A verdict from an instrument whose recall was not just
@@ -65,8 +65,9 @@
 #
 # THE HOME EXEMPTION IS PER SECTION, not per file, for the two markdown homes.
 # A home file can hold a stale DEPENDENT: one of the eight sites was
-# `local-gates` law 1, a dependent of § D8 sitting inside the file that is the
-# home of § Backend (Go). A per-file exemption cannot see that, and did not.
+# `local-gates` law 1, a dependent of `Architecture.md § D8` sitting inside
+# the file that is the home of `local-gates § Backend (Go)`. A per-file
+# exemption cannot see that, and did not.
 # The Makefile's home section is the whole file — it has no headings and every
 # line of it is the directory encoding. A home file whose home section cannot
 # be located is exit 2, never a verdict.

@@ -24,8 +24,9 @@
 #
 # BOTH DIRECTIONS ARE ASSERTED, and the second matters as much as the first: a
 # check that flags the eight restatements is worthless if it also flags the
-# eight repairs, because the repairs are the remedy `local-gates § Documentation
-# gates` gate 2 prescribes. `pre` must go red. `post` must go green.
+# eight repairs, because the repairs are the remedy prescribed by
+# `local-gates § Documentation gates` gate 2. `pre` must go red. `post` must
+# go green.
 #
 # THE HELD-OUT SET IS PRINTED, NOT ASSERTED. Recall over `pre` is in-sample by
 # construction — the vocabulary was drawn from those eight. So the corpus also
@@ -132,10 +133,11 @@ cat > "$TMP/pre/.claude/skills/agent-handoffs/SKILL.md" <<'MD'
 MD
 
 # Site 8 — local-gates/SKILL.md:97, and the reason the home exemption is per
-# SECTION. This file is the home of § Backend (Go); law 1 below it was a
-# DEPENDENT of § D8 living in the same file. A per-file exemption saw a home
-# and skipped the file whole, which is how this site stayed invisible.
-# The sentence inside § Backend (Go) states the model and must NOT be flagged.
+# SECTION. This file is the home of `local-gates § Backend (Go)`; law 1 below
+# it was a DEPENDENT of `Architecture.md § D8` living in the same file. A
+# per-file exemption saw a home and skipped the file whole, which is how this
+# site stayed invisible. The sentence inside the home section states the model
+# and must NOT be flagged.
 cat > "$TMP/pre/.claude/skills/local-gates/SKILL.md" <<'MD'
 ## Code gates
 
@@ -153,8 +155,9 @@ Every command runs from `web/`.
 MD
 
 # Not one of the eight: the same section rule asserted in both directions on
-# the other markdown home. Inside § D8 the model is stated because that is D8's
-# job; the paragraph under a later heading is a dependent and must be flagged.
+# the other markdown home. Inside `Architecture.md § D8` the model is stated
+# because that is D8's job; the paragraph under a later heading is a dependent
+# and must be flagged.
 cat > "$TMP/pre/docs/Architecture.md" <<'MD'
 ### D8 — The Go service in `service/`, as one peer directory among several
 
