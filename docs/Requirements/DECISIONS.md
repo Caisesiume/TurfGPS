@@ -309,15 +309,20 @@ Interpretation: #25 only inspects; `DEPLOYMENT.md` overstates it, and #37's
                 configuration lives, and this ruling condemns one of them. The
                 authoring attribution falls: that the `deploy/` directory is
                 created by the first deployment work and that work is #25, and
-                that the proxy configuration is one #25 writes. The referent
-                identification stands, and is endorsed here rather than merely
-                left alone: naming `deploy/turfgps.service` as the file
-                NFR-004's second criterion is satisfied against is that
-                criterion operating as written, because the criterion defers
-                to wherever the owed deployment model comes to define the
-                deployment configuration. Revising the first is PR #67's, on
-                its own PLAN-01-A; the second is not #67's to delete. No
-                upstream document is edited here.
+                that the proxy configuration is one #25 writes. The proxy
+                attribution shares its sentence with the only clause binding
+                anything to satisfy *no host log may record a plan code*, so
+                it is edited out of that sentence and the sentence is not
+                deleted; the obligation stands, bound to the proxy
+                configuration as before. The referent identification stands,
+                and is endorsed here rather than merely left alone: naming
+                `deploy/turfgps.service` as the file NFR-004's second
+                criterion is satisfied against is that criterion operating as
+                written, because the criterion defers to wherever the owed
+                deployment model comes to define the deployment configuration.
+                Revising the authoring attribution is PR #67's, on its own
+                PLAN-01-A; the referent identification is not #67's to delete.
+                No upstream document is edited here.
 Rung:           1 — explicit specification, and it cannot decide alone.
                 `Architecture.md § Still owed by this document` owes the
                 deployment model handed to `DEPLOYMENT.md`, so nothing
