@@ -101,9 +101,10 @@ gates:
 
 # `local-gates § Documentation gates` gate 2, for the one fact this repository
 # has already had restated thirteen times: what a Go command does when it is
-# run from a root holding no module. It is NOT the documentation gates — those
-# have no runner, as that section says — and this target's name says so rather
-# than implying a coverage it does not have.
+# run from a root holding no module. It is ONE duplication class inside that
+# gate and not the documentation gates, whose every other part is still run by
+# hand, as that section says — and this target's name says so rather than
+# implying a coverage it does not have.
 #
 # It is deliberately NOT part of `gates` above. That target's whole output is
 # the backend report line `local-gates` law 1 prescribes, whose every field is
