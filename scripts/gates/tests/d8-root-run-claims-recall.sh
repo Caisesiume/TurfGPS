@@ -361,7 +361,17 @@ run mk-post
 check_rc   "mk-post · the anchored citation is not condemned"   0
 check_has  "mk-post · ... and part 2 opened the Makefile to say so" "part 2 read 1 file(s)"
 
-# The thirteenth site, quoted from `Makefile:11-23` at c8088fa^.
+# The thirteenth site is `Makefile:16-23` at c8088fa^ — the per-gate
+# restatement, and the lines the checker header names as the one it misses.
+# The specimen below quotes `Makefile:11-23`, and the extra paragraph is not
+# padding: `Makefile:11-15` is the module-path premise that
+# `Architecture.md § D8` makes the Makefile's own legitimate content — the
+# claim behind its `PART1-ONLY` entry — and "repository root" in it is the
+# ONLY file-level directory word either paragraph carries. Quoting 16-23
+# alone was measured: the sweep exits 2, "none carried both a toolchain word
+# and a directory word", and never opens the file. That would turn what is
+# asserted here from an in-reach miss into an out-of-reach one, so the
+# specimen keeps the premise and the site stays 16-23.
 #
 # IT IS NOT CAUGHT, and the miss is asserted rather than left unsaid: the
 # alternative is a corpus going green while the one historical restatement in
