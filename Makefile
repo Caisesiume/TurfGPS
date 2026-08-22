@@ -63,12 +63,13 @@ BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates fmt vet lint test build image clean
+.PHONY: help gates d8-claims fmt vet lint test build image clean
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
 	@echo ''
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
+	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
@@ -98,6 +99,32 @@ gates:
 	echo ''; \
 	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
 	exit $$rc
+
+# `local-gates § Documentation gates` gate 2, for the one fact this repository
+# has already had restated thirteen times: what a Go command does when it is
+# run from a root holding no module. It is NOT the documentation gates — those
+# have no runner, as that section says — and this target's name says so rather
+# than implying a coverage it does not have.
+#
+# It is deliberately NOT part of `gates` above. That target's whole output is
+# the backend report line `local-gates` law 1 prescribes, whose every field is
+# derived from one of the five Go gates; a documentation result inside it would
+# be a field nothing in that line can describe.
+#
+# The recall corpus runs FIRST and make stops if it fails, so this target
+# cannot report a verdict from an instrument whose recall was not just
+# demonstrated. That ordering is the point of the target, not a convenience:
+# the checker's phrase lists are what decide its verdict, and a broken list
+# used to be indistinguishable from a clean tree.
+#
+# Neither line carries a directory, and that is not the omission the header
+# above condemns: neither invokes the Go toolchain, and each script resolves
+# its own root — the checker from `git rev-parse --show-toplevel`, the corpus
+# from its own path — so where this recipe stands cannot change what either
+# one measured.
+d8-claims:
+	@bash scripts/gates/tests/d8-root-run-claims-recall.sh
+	@bash scripts/gates/d8-root-run-claims.sh
 
 # gofmt -l names the files it would reformat and exits 0 whether or not it
 # names any, so the list is the result and has to be tested, not merely
