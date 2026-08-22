@@ -10,11 +10,12 @@
 # THE CORPUS IS THE HISTORY. Every sentence in the `pre` fixture is quoted
 # verbatim from the pre-repair tree at 6fbf7de, and every sentence in the
 # `post` fixture from the repaired tree at 71d629f, each at the path it lives
-# at. `git show 6fbf7de:.claude/agents/go-quality-critic.md` recovers the
+# at. FIXTURE 5 does the same for the Makefile across its own repair,
+# c8088fa. `git show 6fbf7de:.claude/agents/go-quality-critic.md` recovers the
 # paragraph any one of them was cut from. They were not written for this test
 # and they are not paraphrases of the class — they ARE the class.
 #
-# YES, THAT PUTS EIGHT COPIES OF THE RETRACTED MODEL BACK IN THE TREE, and no,
+# YES, THAT PUTS NINE COPIES OF THE RETRACTED MODEL BACK IN THE TREE, and no,
 # it is not the defect recurring. Each one is a quotation under test: it is
 # heredoc input written to a throwaway directory, attributed to the commit it
 # came from, and asserted to be WRONG. A test for a bug contains the bug. The
@@ -256,9 +257,14 @@ cat > "$TMP/edge/docs/mixed.md" <<'MD'
 Per `Architecture.md § D8`, go vet run from the repository root finds no packages and reports success. That claim was measured false and retracted on 22 August 2026.
 MD
 
-# The Makefile is a home and its home section is the whole file.
+# The Makefile is a home of the directory encoding and of nothing part 2
+# matches, so every line of it is read. This case asserted the opposite until
+# cycle 2 — and asserted it over a comment saying "from this root", which is in
+# no phrase list, so the file never reached the surface and the exemption it
+# claimed to prove was never exercised. A vacuous assertion about the one file
+# the sweep skipped whole.
 cat > "$TMP/edge/Makefile" <<'MD'
-# Measured from this root, go vet resolves against nothing and exits zero.
+# Run from the repository root, go vet resolves against nothing and exits zero.
 gates:
 	cd service && go vet ./...
 MD
@@ -268,7 +274,7 @@ check_rc   "edge · a path with a space is opened, not skipped"        1
 check_has  "edge · ... and named"                                     "docs/gate notes.md"
 check_has  "edge · a path beginning with a dash is opened"            "-i.md"
 check_has  "edge · a restatement beside a retraction still flags"     "finds no packages and reports success"
-check_lacks "edge · the Makefile is a home and is not flagged"        "part 2 · restates the retracted root-run outcome: Makefile"
+check_has  "edge · a restatement in the Makefile is read, not skipped" "restates the retracted root-run outcome: Makefile:1"
 
 # ---------------------------------------------------------------------------
 # FIXTURE 4 — the instrument's own failure modes. A checker that cannot run
@@ -316,6 +322,82 @@ check_rc   "renamed · an unlocatable home section is 'cannot run'"    2
 check_has  "renamed · ... and says which file"                        "local-gates/SKILL.md"
 
 # ---------------------------------------------------------------------------
+# FIXTURE 5 — the Makefile, both directions, both verbatim.
+#
+# The two texts below are why the exemption this file used to assert mattered:
+# the thirteenth restatement of the model was at `Makefile:16` until `c8088fa`
+# repaired it, and the anchored citation that replaced it is at `Makefile:16`
+# today. A check exempting the file sees neither. What the Makefile is and is
+# not a home OF is argued once, in the checker's header.
+#
+# Reach is the thing under test here, so `part 2 read 1 file(s)` is asserted in
+# both directions: it is the only line proving the sweep opened the Makefile
+# rather than passing over it. Each fixture is the header block verbatim plus
+# the `vet` recipe, which is what carries the toolchain word.
+# ---------------------------------------------------------------------------
+
+# The repair, quoted from `Makefile:11-22` at b651862. It cites the home and
+# says in a clause what a reader will find there — the remedy
+# `local-gates § Documentation gates` gate 2 prescribes. Extending reach to
+# this file must not condemn it, and this is the assertion that says so.
+mkrepo mk-post
+cat > "$TMP/mk-post/Makefile" <<'MD'
+# `Architecture.md § D8` puts the Go module in `service/` and leaves no module
+# at the repository root. Every Go command therefore resolves against the
+# directory it is run from, and that directory — not the tree — is what decides
+# what a gate measured.
+#
+# What each of the five reports from that wrong directory is NOT restated here.
+# `local-gates § Backend (Go)` is its one home and carries it per gate, with
+# the host and the date the measurement was taken on — including which gates
+# are loud without being discriminating, which is the half a recipe can get
+# wrong. A paragraph of it here would be one more statement of the model #118
+# exists to collapse, in this file's own words, going stale on the next
+# measurement with no diff here to notice.
+vet:
+	cd service && go vet ./...
+MD
+run mk-post
+check_rc   "mk-post · the anchored citation is not condemned"   0
+check_has  "mk-post · ... and part 2 opened the Makefile to say so" "part 2 read 1 file(s)"
+
+# The thirteenth site, quoted from `Makefile:11-23` at c8088fa^.
+#
+# IT IS NOT CAUGHT, and the miss is asserted rather than left unsaid: the
+# alternative is a corpus going green while the one historical restatement in
+# the Makefile's own format walks through it. Why it is missed, and what the
+# only variant catching it costs on the repaired tree, are measured and argued
+# once — in the checker's own header, under THE ONE IN-SAMPLE SITE IT MISSES.
+# The clause a reader will find there is that the sentence carrying the
+# retracted outcome names no directory, and part 2 requires both in one.
+#
+# If a later change catches this text, this line fails. That is intended: the
+# recall numbers in that header move with it, and they should not move quietly.
+mkrepo mk-pre
+cat > "$TMP/mk-pre/Makefile" <<'MD'
+# `Architecture.md § D8` puts the Go module in `service/` and leaves no module
+# at the repository root. Every Go command therefore resolves against the
+# directory it is run from, and that directory — not the tree — is what decides
+# what a gate measured.
+#
+# Measured from this root, four of the five are loud: vet, lint and build each
+# fail to resolve a module, and test fails on the absent-cgo host reason that is
+# identical from either directory, so on this host it discriminates nothing.
+# Only gofmt exits 0, and its output is identical to a clean run — not because
+# it read nothing, but because it walks the filesystem instead of resolving a
+# module, and every Go file in this repository sits inside the module
+# directory. It reads the same tree by accident of layout, and reads more the
+# moment a .go file lands outside it.
+vet:
+	cd service && go vet ./...
+MD
+run mk-pre
+check_rc   "mk-pre · MEASURED MISS - the thirteenth site does not flag"  0
+check_has  "mk-pre · ... and it is a miss inside reach, not outside it"  "part 2 read 1 file(s)"
+
+printf '\nthe thirteenth site (Makefile, c8088fa^) is in reach and NOT caught.\nFIXTURE 5 carries why; the checker header carries what the only variant\ncatching it costs.\n'
+
+# ---------------------------------------------------------------------------
 # HELD OUT — reported, never asserted. See the header: these are wordings
 # invented for this corpus, drawn from none of the thirteen sites. The number
 # below is what this check is worth against a restatement nobody has written
@@ -349,7 +431,7 @@ try_held "sees a directory, not a module" \
   'From the repository root the go command sees a directory rather than a module, and its silence means nothing.'
 
 printf '\nheld-out wordings caught: %s of %s%s\n' "$held_caught" "$held_total" "$held_missed"
-printf 'in-sample recall over the eight historical sites is asserted above; this number is not.\n'
+printf 'in-sample recall over the nine historical sites is asserted above, the\nninth as a miss; this number is not asserted.\n'
 
 [ "$fails" -eq 0 ] || { printf '\n%s check(s) failed\n' "$fails"; exit 1; }
 printf '\nall passed\n'

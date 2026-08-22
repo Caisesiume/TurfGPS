@@ -69,23 +69,31 @@
 # `local-gates` law 1, a dependent of `Architecture.md § D8` sitting inside
 # the file that is the home of `local-gates § Backend (Go)`. A per-file
 # exemption cannot see that, and did not.
-# The Makefile's home section is the whole file — it has no headings and every
-# line of it is the directory encoding. A home file whose home section cannot
-# be located is exit 2, never a verdict.
+# The Makefile is a home of ONE claim — where each recipe's directory is
+# encoded — and of nothing part 2 matches: `Architecture.md § D8` gives what each
+# gate REPORTS from the wrong directory to `local-gates § Backend (Go)` alone.
+# So it is exempt from part 1, a home having nothing to cite itself for, and
+# from no line of part 2. It was `ALL` until cycle 2, which skipped the whole
+# file ahead of BOTH parts — and the thirteenth restatement of this very model
+# was sitting in it, at `Makefile:16`, while this check called the tree clean.
+# The one file the class had most recently occupied was the one file the sweep
+# would not open. A home file whose home section cannot be located is exit 2,
+# never a verdict.
 #
 # MEASURED RECALL, FIRST, BECAUSE IT IS THE UNFLATTERING HALF — and it is now
 # a command rather than a claim:
 #
 #     scripts/gates/tests/d8-root-run-claims-recall.sh
 #
-#   part 1, exit status ......................... 0 of 8 sites
-#   part 2, exit status ......................... 8 of 8 sites
-#   the 8 repaired sites, which must NOT flag ... 0 of 8 flagged
+#   part 1, exit status ......................... 0 of 9 sites
+#   part 2, exit status ......................... 8 OF 9 SITES
+#   the 9 repaired sites, which must NOT flag ... 0 of 9 flagged
 #   held-out wordings, invented for the corpus .. 0 OF 4 CAUGHT
 #
-# The 8 are the historical class, so that recall is IN-SAMPLE: it says this
-# check catches the shape it was built from, and nothing more. The last line is
-# the out-of-sample one and it is the number to believe. Four restatements were
+# The 9 are the historical class, so that recall is IN-SAMPLE: it says this
+# check catches the shape it was built from, and not all of that. The site it
+# misses is the ninth, the Makefile's own — see below. The last line is the
+# out-of-sample one and it is the number to believe. Four restatements were
 # written for the corpus in wordings drawn from none of the thirteen — "compiles
 # nothing and still exits 0", "a green build over an empty tree", "quietly
 # succeeds having examined nothing", "sees a directory rather than a module" —
@@ -93,8 +101,27 @@
 # run and does not assert it, so it stays in view and cannot be tuned away by
 # adding those four phrases here; adding them would only make the number lie.
 #
-# So: this fails on a restatement of the shape the thirteen took, and it will
-# not fail on one phrased in a way nobody here has phrased it yet.
+# So: this fails on most restatements of the shape the thirteen took, and it
+# will not fail on one phrased in a way nobody here has phrased it yet.
+#
+# THE ONE IN-SAMPLE SITE IT MISSES is the Makefile's, `Makefile:16-23` as it
+# stood at c8088fa^ — the thirteenth, and the most recent. Bringing the file
+# into reach in cycle 2 was necessary and was not sufficient: the sweep opens it
+# now and still returns clean over that paragraph. The cause was measured and it
+# is NOT the hard wrapping — unwrapped into single lines, the verdict does not
+# change. The sentence carrying the retracted outcome ("its output is identical
+# to a clean run ... not because it read nothing") names no directory at all;
+# the location sits two sentences earlier, at "Measured from this root". Part 2
+# requires both in ONE sentence.
+#
+# Dropping that requirement is the only variant that catches it, and the cost
+# was measured on the repaired tree at b651862: 5 sentences flagged, not one of
+# them a restatement — `Makefile:118`, `Makefile:137`, `validation-agent.md:69`,
+# `local-gates/SKILL.md:104`, `docs/Architecture.md:558`. Two are this file's
+# certified repair; `validation-agent.md:69` is the exact false positive the
+# per-sentence rule was introduced to remove. The ceiling here is the same one
+# the vocabulary has: a check that condemns the fix is worse than a narrow one.
+# Both halves are asserted by the corpus, the miss included.
 #
 # THE VOCABULARY CANNOT BE BROADENED TO CLOSE THAT GAP, and this was measured
 # rather than assumed. Widening the outcome list from the vacuous-pass family
@@ -292,10 +319,11 @@ CANARY='run from the repository root, -run selects from no packages and passes'
 printf '%s' "$CANARY" | grep -qiE -- "$LOCATION" || { echo "d8-root-run-claims: cannot run — LOCATION no longer matches its canary" >&2; exit 2; }
 printf '%s' "$CANARY" | grep -qiE -- "$OUTCOME"  || { echo "d8-root-run-claims: cannot run — OUTCOME no longer matches its canary"  >&2; exit 2; }
 
-# The homes, and the heading that owns the claim inside each. `ALL` means the
-# whole file is the home section. A home is exempt from part 1 outright —
-# requiring a home to cite itself is meaningless — and exempt from part 2 only
-# within the range that heading owns.
+# The homes, and the heading that owns the claim inside each. `PART1-ONLY` is
+# the Makefile: a home whose one claim is nothing part 2 matches, so it owns no
+# exempt range and every line of it is read. A home is exempt from part 1
+# outright — requiring a home to cite itself is meaningless — and exempt from
+# part 2 only within the range that heading owns.
 #
 # These are read by awk rather than grep, so a literal paren is bracketed and
 # never backslashed: awk takes `\(` as an escape it does not know, warns, and
@@ -306,7 +334,7 @@ home_pattern() { # home_pattern <path>; prints the heading regex, or returns 1
   case "$1" in
     docs/Architecture.md)                printf '%s' '^#+[[:space:]]+D8([[:space:]]|$)' ;;
     .claude/skills/local-gates/SKILL.md) printf '%s' '^#+[[:space:]]+Backend [(]Go[)]' ;;
-    Makefile)                            printf '%s' 'ALL' ;;
+    Makefile)                            printf '%s' 'PART1-ONLY' ;;
     *) return 1 ;;
   esac
 }
@@ -337,7 +365,7 @@ exempt=0    # sentences suppressed as retraction records, each printed above
 # sites were prose or the Makefile, so this is the corpus the class actually
 # occupied — but a fourteenth could land in a comment in `scripts/**/*.sh`,
 # and this sweep would not see it. Adding `*.sh` is not free: it would put the
-# recall corpus, which holds all eight retracted sentences as fixtures, and
+# recall corpus, which holds all nine retracted sentences as fixtures, and
 # this header, which describes the model in order to check it, inside the
 # sweep. The extension is owed work with an exemption to design, not a one-word
 # change to the line below.
@@ -358,14 +386,14 @@ while IFS= read -r -d '' f; do
 
   hstart=0; hend=-1
   if pat="$(home_pattern "$f")"; then
-    if [ "$pat" = 'ALL' ]; then
-      continue
-    fi
-    if ! range="$(home_range "$f" "$pat")"; then
+    if [ "$pat" = 'PART1-ONLY' ]; then
+      :
+    elif ! range="$(home_range "$f" "$pat")"; then
       printf 'd8-root-run-claims: cannot run — the home section of %s no longer resolves; the heading it names was renamed or removed\n' "$f" >&2
       exit 2
+    else
+      hstart="${range%% *}"; hend="${range##* }"
     fi
-    hstart="${range%% *}"; hend="${range##* }"
   else
     # Part 1 applies to non-home files only.
     if ! grep -qE -- "$CITES_HOME" "$f"; then
