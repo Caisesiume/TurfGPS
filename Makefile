@@ -13,14 +13,13 @@
 # directory it is run from, and that directory — not the tree — is what decides
 # what a gate measured.
 #
-# Measured from this root, four of the five are loud: vet, lint and build each
-# fail to resolve a module, and test fails on the absent-cgo host reason that is
-# identical from either directory, so on this host it discriminates nothing.
-# Only gofmt exits 0, and its output is identical to a clean run — not because
-# it read nothing, but because it walks the filesystem instead of resolving a
-# module, and every Go file in this repository sits inside the module
-# directory. It reads the same tree by accident of layout, and reads more the
-# moment a .go file lands outside it.
+# What each of the five reports from that wrong directory is NOT restated here.
+# `local-gates § Backend (Go)` is its one home and carries it per gate, with
+# the host and the date the measurement was taken on — including which gates
+# are loud without being discriminating, which is the half a recipe can get
+# wrong. A paragraph of it here would be one more statement of the model #118
+# exists to collapse, in this file's own words, going stale on the next
+# measurement with no diff here to notice.
 #
 # So every recipe below carries its own directory, on the same line as the
 # command it guards. make runs each recipe line in a fresh shell, so a bare
