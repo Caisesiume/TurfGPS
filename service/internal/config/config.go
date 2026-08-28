@@ -199,14 +199,25 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 // rather than on the first tick. A sync that starts and then fails once per
 // interval against an unparseable URL reports a configuration error in the
 // slowest way available to it.
+//
+// HTTPS IS REQUIRED, AND http IS REFUSED RATHER THAN ACCEPTED ALONGSIDE IT. The
+// two were accepted equally, which made the transport a matter of how the
+// variable happened to be typed. What arrives over it is the corpus that is
+// merged into `zone`, and `zone` is the authoritative geometry every later
+// query resolves against — so an unencrypted fetch is a body any observer on
+// the path may rewrite before it is stored, and nothing downstream would
+// notice: the staging assertions of `Architecture.md § The sync write path`
+// check the staged row count and the coordinate ranges, which a substituted
+// corpus with merely plausible coordinates satisfies. Refusing the scheme here
+// is what keeps that from being a configuration typo's decision to make.
 func validateEndpoint(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
 		return fmt.Errorf("not a URL: %w", err)
 	}
 
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("scheme is %q, want http or https", u.Scheme)
+	if u.Scheme != "https" {
+		return fmt.Errorf("scheme is %q, want https: the zone corpus is merged into the authoritative store, so it is not fetched over a transport that permits it to be rewritten in flight", u.Scheme)
 	}
 
 	if u.Host == "" {

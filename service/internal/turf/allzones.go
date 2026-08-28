@@ -24,6 +24,47 @@ import (
 // full-corpus body arriving under a wrong status does not become a log line.
 const errorBodySnippet = 512
 
+// maxRedirects bounds the redirect chain.
+//
+// IT RESTATES net/http'S OWN DEFAULT DELIBERATELY, and that is the whole reason
+// it exists. A non-nil CheckRedirect REPLACES the default policy rather than
+// adding to it, so a policy that refused the downgrade and returned nil
+// otherwise would silently have removed the hop limit that was already there —
+// trading a downgrade for an unbounded redirect loop against a fetch budget
+// measured in minutes. The number is net/http's, held here so that the policy
+// below is a strengthening of the default and never a hole in it.
+const maxRedirects = 10
+
+// httpsOnly is the client's redirect policy: every hop stays on https, and the
+// chain is finite.
+//
+// net/http's default policy follows a redirect from https to http without
+// comment, so an endpoint configured as https was only as encrypted as whatever
+// answered it — one 302 and the corpus crosses a network this service does not
+// control, in the clear, from a body anyone on the path may have written. What
+// makes that worth refusing outright rather than recording is where the bytes
+// go: they are staged and merged into `zone`, and the staging assertions of
+// `Architecture.md § The sync write path` check the staged row count and the
+// coordinate ranges. A substituted corpus whose coordinates are merely
+// plausible passes every check between the wire and the table, so the transport
+// is the last point at which this is detectable at all.
+//
+// IT FAILS CLOSED. Anything that is not https is refused with one error —
+// http, a scheme this client does not know, or no scheme at all — because the
+// property being demanded is that the hop is known to be encrypted, not that it
+// is known to be plaintext.
+func httpsOnly(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("the all-zones endpoint redirected %d times without answering", len(via))
+	}
+
+	if req.URL.Scheme != "https" {
+		return fmt.Errorf("the all-zones endpoint redirected to scheme %q and the redirect was refused: following it would put the zone corpus on the wire in plaintext, where it can be rewritten before it is merged", req.URL.Scheme)
+	}
+
+	return nil
+}
+
 // Client fetches from the Turf API.
 type Client struct {
 	allZonesURL string
@@ -48,7 +89,7 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 
 	return &Client{
 		allZonesURL: allZonesURL,
-		http:        &http.Client{},
+		http:        &http.Client{CheckRedirect: httpsOnly},
 		maxBytes:    maxBytes,
 	}, nil
 }
@@ -63,7 +104,18 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 // underneath it. It was never a construction option, and its only caller is this
 // package's own test serving the endpoint from an httptest server, which is an
 // argument for keeping it out of the package's API rather than in it.
+//
+// IT INSTALLS THE REDIRECT POLICY ON WHATEVER IT IS GIVEN, overwriting any the
+// caller set. Substituting the whole *http.Client is what makes this seam
+// useful, and it is also what would quietly discard the policy NewClient
+// installed: httptest's own Client carries no CheckRedirect, so a test reaching
+// through here would have been exercising net/http's default — the very policy
+// httpsOnly exists to replace — and a test asserting the downgrade is refused
+// would have been asserting it against a client that no longer refused it.
+// Mutating the argument is the narrower cost, and it is confined to this
+// package's tests because nothing else can call this.
 func (c *Client) setHTTPClient(h *http.Client) {
+	h.CheckRedirect = httpsOnly
 	c.http = h
 }
 

@@ -170,3 +170,113 @@ func TestAnEndpointIsRequired(t *testing.T) {
 		t.Error("a client with no response ceiling was built, want it refused")
 	}
 }
+
+// TestAnHTTPSToHTTPRedirectIsRefused is the abuse case for the transport.
+//
+// net/http's default redirect policy follows https to http without comment, so
+// an endpoint configured as https was only as encrypted as whatever answered
+// it: an origin that has been compromised, hijacked by DNS, or merely
+// misconfigured answers one 302 and the client fetches the corpus in the clear.
+// Nothing downstream would catch it. The staging assertions of
+// `Architecture.md § The sync write path` check the staged row count and the
+// coordinate ranges, so a corpus rewritten in flight to merely plausible
+// coordinates is staged, asserted, merged, and becomes the authoritative
+// geometry every later query resolves against.
+//
+// WHAT THIS ASSERTS IS THAT THE PLAINTEXT BODY NEVER ARRIVES, not merely that an
+// error is returned. An error beside a body that was fetched anyway would leave
+// the bytes one careless caller away from the parse, so the payload the plain
+// server holds is the thing the test looks for and must not find.
+func TestAnHTTPSToHTTPRedirectIsRefused(t *testing.T) {
+	t.Parallel()
+
+	const substituted = `[{"id":1,"latitude":59.0,"longitude":18.0}]`
+
+	reached := make(chan struct{}, 1)
+
+	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case reached <- struct{}{}:
+		default:
+		}
+
+		_, _ = w.Write([]byte(substituted))
+	}))
+	defer plain.Close()
+
+	secure := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, plain.URL, http.StatusFound)
+	}))
+	defer secure.Close()
+
+	body, _, err := clientFor(t, secure, 1<<20).FetchAllZones(t.Context())
+	if err == nil {
+		t.Fatal("the downgrade to http was followed and the response accepted, want the redirect refused")
+	}
+
+	if strings.Contains(string(body), substituted) {
+		t.Errorf("the plaintext body came back with the error: %q. An error beside the bytes still hands them to any caller that reads the body before the error", body)
+	}
+
+	select {
+	case <-reached:
+		t.Error("the plaintext endpoint was contacted, want the redirect refused before the request was made: the corpus must not cross the network in the clear even if the body is then discarded")
+	default:
+	}
+}
+
+// TestTheRedirectPolicyDecides pins the policy's decision table directly,
+// because the end-to-end test above can only demonstrate the refusal and would
+// pass just as well against a policy that refused every redirect — including
+// the ordinary https-to-https one an endpoint uses to normalise a path.
+//
+// The hop limit is here for a reason that is easy to lose: a non-nil
+// CheckRedirect REPLACES net/http's default policy rather than adding to it, so
+// installing one that returned nil for every https hop would have removed the
+// ten-redirect limit that was already in force and answered a downgrade with an
+// unbounded loop.
+func TestTheRedirectPolicyDecides(t *testing.T) {
+	t.Parallel()
+
+	hop := func(t *testing.T, raw string) *http.Request {
+		t.Helper()
+
+		req, err := http.NewRequest(http.MethodGet, raw, nil)
+		if err != nil {
+			t.Fatalf("building the hop %q: %v", raw, err)
+		}
+
+		return req
+	}
+
+	t.Run("an https hop is followed", func(t *testing.T) {
+		t.Parallel()
+
+		if err := httpsOnly(hop(t, "https://example.test/elsewhere"), nil); err != nil {
+			t.Errorf("an https redirect was refused with %v, want it followed: refusing every redirect is not the guarantee this policy exists to give", err)
+		}
+	})
+
+	for name, raw := range map[string]string{
+		"http":           "http://example.test/elsewhere",
+		"an odd scheme":  "gopher://example.test/elsewhere",
+		"a schemeless h": "//example.test/elsewhere",
+	} {
+		t.Run(name+" is refused", func(t *testing.T) {
+			t.Parallel()
+
+			if err := httpsOnly(hop(t, raw), nil); err == nil {
+				t.Errorf("the redirect to %q was followed, want it refused: the policy fails closed on anything not known to be encrypted", raw)
+			}
+		})
+	}
+
+	t.Run("the chain is finite", func(t *testing.T) {
+		t.Parallel()
+
+		via := make([]*http.Request, maxRedirects)
+		if err := httpsOnly(hop(t, "https://example.test/elsewhere"), via); err == nil {
+			t.Errorf("a chain of %d https hops was extended, want it refused: a non-nil CheckRedirect replaces net/http's default limit rather than adding to it, so this policy has to carry the bound itself", maxRedirects)
+		}
+	})
+}

@@ -108,6 +108,15 @@ func TestTheEndpointIsValidatedAtLoad(t *testing.T) {
 		"no scheme":      "example.test/zones",
 		"a bare path":    "/zones",
 		"a wrong scheme": "ftp://example.test/zones",
+
+		// http is the dangerous row of this table rather than the obvious one:
+		// unlike the three above it parses, resolves, and fetches. It was
+		// accepted as readily as https, so the corpus that becomes the
+		// authoritative `zone` geometry crossed the network in the clear
+		// whenever the variable happened to be typed without the s — and every
+		// assertion downstream of the wire accepts a rewritten body whose
+		// coordinates are merely plausible.
+		"plain http": "http://example.test/zones",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
