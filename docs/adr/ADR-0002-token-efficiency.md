@@ -52,7 +52,7 @@ Measured on this repository, on 2026-08-10, before any edit in this wave.
 
 ## Decision
 
-### O1 — The evidence law moves to `agent-handoffs`
+### O1 — The evidence law moved to `agent-handoffs`
 
 *Context: L1, §42's "one authoritative home per shared rule", §43's "load the smallest sufficient instruction set".*
 
@@ -117,7 +117,7 @@ Tool output: success is a one-line confirmation; failure returns the failed comm
 
 *Context: §37, §38.*
 
-`required_change | accepted_risk | invalid_finding | future_work | informational`. **`future_work`** is valid work outside scope: the judge records it as a traceable issue reference, or hands it to `@engineering-lead` to route — **never a revision trigger, never lost.** **`informational`** is recorded and actioned by nobody. In `DELIVERY.md § Findings and their owners`, `review-verdicts § Reviewer verdict`, `pr-judge.md § Phase 8`.
+`required_change | accepted_risk | invalid_finding | future_work | informational`. **`future_work`** is valid work outside scope: the judge records it as a traceable issue reference, or hands it to `@engineering-lead` to route — **never a revision trigger, never lost.** **`informational`** is recorded and actioned by nobody. In `DELIVERY.md § Findings and their owners`, `review-verdicts § Reviewer verdict`, `pr-judge § Phase 8`.
 
 ### O9 — Stopping rule, cycle justification, accounting
 
@@ -226,7 +226,7 @@ O6's component list stands; what each component *reads* was wrong in ways that e
 
 ### O18 — Cycle inflation has a floor
 
-At cycle 3 or later, a new `low`-severity finding in text the previous cycle created resolves to **`future_work` by default**, and an override states what makes that instance different. `medium`+ severity, safety paths, security findings, and false statements of fact are outside it entirely. The law is `DELIVERY.md § The cycle-inflation rule`, which is where it is ratified and where its bounds are settled; `pr-judge § Phase 8` is where it is applied, and this record copies neither.
+At cycle 3 or later, a new `low`-severity finding in text the previous cycle created resolves to **`future_work` by default**, and an override states what makes that instance different. `medium`+ severity, safety paths, security findings, and false statements of fact are outside it entirely. The law is `DELIVERY.md § The cycle-inflation rule`, which is where it is ratified and where its bounds are settled; `pr-judge § Phase 8` is where it is applied.
 
 **Ratified because three records converged without conferring, and they do not all come from the same seat** — PR #67 cycle 2, which is `@linus-security-critic`'s **verdict** persisted under *"no ruling issued"* rather than a judge's ledger (eight new findings, every one attached to prose cycle 1 did not contain), and PR #120 cycle 2's **judge ledger** (four of five new findings created by discharging cycle 1); then PR #110's final ruling, which established mechanism rather than correlation: a **compliant** execution of the revision packet mechanically produced the next finding. That is a loop whose input is its own output, and it stops on the budget rather than on the work.
 
