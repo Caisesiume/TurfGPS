@@ -91,7 +91,7 @@ From @pr-judge you get **references only** — PR number, review-worktree path, 
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: linus-structure
@@ -147,7 +147,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, head SHA, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; the sibling code that establishes how TurfGPS already solves the same problem.
 - **Verification actions:** Open the type definitions rather than inferring them from usage; find every writer of a piece of state before claiming it has no owner; check an existing pattern exists before calling a change inconsistent with it.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A shape defect that follows from an architecture or design decision is filed with that `root_cause` and left to the judge to route — not patched around.
 - **Handoff limit:** ~300 tokens. You may be exhaustive internally; only the conclusions travel.

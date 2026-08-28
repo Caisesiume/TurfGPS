@@ -114,7 +114,8 @@ The intake prediction **is allowed to be wrong** — that is what predicting an 
 - **Required inputs:** Item ID (intake), or PR number with its base and head (PR). Nothing else.
 - **Artifact retrieval:** In PR mode, `scripts/loop/diff-domains.sh <base> <head>` output first, then the diff and the changed files. In intake mode, the item, its acceptance criteria, the requirement records it cites, and the architecture/design sections those name — **no diff tool**. **No skills** — this contract is self-contained.
 - **Verification actions:** In PR mode read the actual changed files; in either mode check each mandated-high trigger explicitly rather than by impression; every output states its `mode:`.
-- **Output schema:** `risk assessment` in `agent-handoffs`.
+- **Output schema:** `risk assessment` in `handoff-payloads`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** Structured YAML only, so the cap should never be approached.
 - **Allowed downstream agents:** None. You call nobody.
 - **Escalation:** None. You cannot be blocked — an unreadable diff is `high` with `mandated_high_by: [novel_architecture]` and a one-line reason.
 - **Handoff limit:** The YAML block. Typically under 150 tokens.

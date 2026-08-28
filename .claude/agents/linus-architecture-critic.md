@@ -94,7 +94,7 @@ From @pr-judge you get **references only** — PR number, review-worktree path, 
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: linus-architecture
@@ -181,7 +181,8 @@ for evt := range inbox { process(evt) }
 - **Required inputs:** PR number, review-worktree path, head SHA, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; the migrations directory; `Architecture.md § Data sources and constraints` for the Turf rate limits before calling any retry loop resilience.
 - **Verification actions:** Enumerate the external contracts from the code rather than from a dispatch line; find the waiter and the canceller for each goroutine; read the migration and ask what the currently-deployed binary still writes.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A contradiction with `Architecture.md` is filed with `root_cause: architecture` for the judge to route to the ADR process — never patched around in the code.
 - **Handoff limit:** ~300 tokens. You may be exhaustive internally; only the conclusions travel.

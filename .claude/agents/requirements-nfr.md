@@ -130,6 +130,7 @@ human_escalation: false
 - **Artifact retrieval:** The four specification documents, the existing corpus, the category register, `requirements-authoring`.
 - **Verification actions:** 29148 checklist per record; metric/threshold/condition present or `human-judgement` declared with its enforcer; citations in `document § section` form; no restated or invented constant.
 - **Output schema:** the `agent-handoffs` envelope, extended with `requirements:` and `proposed_decisions:`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** **The canonical records travel in full and sit outside the cap** — they are the payload, not commentary on it; everything around them is bound by it.
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, with a recommendation, through the parent — never to the human directly.
 - **Handoff limit:** ~300 tokens of envelope; the records themselves are the payload and are not compressed.

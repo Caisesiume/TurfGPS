@@ -73,7 +73,7 @@ For each Backlog candidate, in order: **traceability** (label, Milestone, `Resol
 
 **You do not rebuild the graph.** The architectural ordering — data plane before its consumers, ports before adapters, schema before code, backend before frontend — is reasoned once by @backlog-dependency-planner when the graph changes and persisted as edges (`ADR-0003 § P4`). Re-deriving it every sync was reading the architecture to reproduce an ordering that had not moved since the previous run.
 
-**Never silently repair it, either.** A story whose acceptance criteria plainly consume another story with no persisted edge, or an edge naming a nonexistent or closed-as-invalid issue, is a defect you **report and do not fix**: return a `dependency_finding` (`agent-handoffs § Dependency findings and graph updates`) to @backlog-dependency-planner and act on the graph as it actually stands. An invented edge is an unverified gate nothing downstream can tell apart from a verified one; a deleted edge drops a prerequisite on your own authority.
+**Never silently repair it, either.** A story whose acceptance criteria plainly consume another story with no persisted edge, or an edge naming a nonexistent or closed-as-invalid issue, is a defect you **report and do not fix**: return a `dependency_finding` (`handoff-payloads § Dependency findings and graph updates`) to @backlog-dependency-planner and act on the graph as it actually stands. An invented edge is an unverified gate nothing downstream can tell apart from a verified one; a deleted edge drops a prerequisite on your own authority.
 
 ### Phase 4 — Promote
 Keep the Ready column stocked to the WIP limit (**default: 3 items, revisit as the loop matures**).
@@ -132,6 +132,7 @@ human_escalation: false
 - **Artifact retrieval:** The board via fresh field/option IDs, open PRs and recent merges, the `## Dependencies` section of each candidate, `scripts/loop/dependents.sh` where a merge woke the run, the requirement records the items cite.
 - **Verification actions:** `auth status` before acting; IDs re-read this run; every status change carries a PR number or merge SHA.
 - **Output schema:** the `agent-handoffs` envelope, extended with `board:`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** References and counts; the board holds the detail.
 - **Allowed downstream:** none — it reports; @project-coordinator and @engineering-lead consume. Traceability defects route to @requirements-engineer; `dependency_finding`s route to @backlog-dependency-planner.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens; the board holds the detail.

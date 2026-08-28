@@ -62,7 +62,7 @@ Your operating assumption is that the map data is wrong somewhere, the elevation
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: safety-sentinel
@@ -106,7 +106,8 @@ Non-blocking worries still go in `findings` at their true severity with a `requi
 - **Required inputs:** PR number, review-worktree path, board-item link. References only — a claim about which safety paths were touched is a claim, and you establish it from the diff yourself.
 - **Artifact retrieval:** The `safety-path-checklist` skill; `SPECIFICATION.md § Enforceable exclusions`; the constants from `CalculationSpecification.md`; `Architecture.md § Data sources and constraints` for any Turf assertion.
 - **Verification actions:** Read every constant from its document rather than from this brief or the diff; trace each invariant to the branch that could reach the other side of it.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** **The scenario prose your `Handoff limit` below licenses survives this cap unchanged**: a described unsafe path is what makes the finding checkable, so it is bounded by the path it describes and is the one licensed overrun in this lane.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A blocking finding on a safety rule or accessibility classification is flagged for the human via `@engineering-lead` — `DELIVERY.md`'s always-human categories, and not agent-resolvable.
 - **Handoff limit:** ~300 tokens, and the scenario prose is the one thing worth exceeding it for.

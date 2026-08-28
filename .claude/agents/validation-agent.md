@@ -106,7 +106,7 @@ evidence: |
   ACCEPTED ON TRUST: …
 ```
 
-Findings keep `id`, `severity`, `file:line`, `description`, `required_change`, `root_cause`, and the evidence block from `agent-handoffs § A reviewer does not accept a claim it could check` — but **every one of them names the command that produced it.** A finding you cannot attribute to a gate is a hint.
+Findings keep `id`, `severity`, `file:line`, `description`, `required_change`, `root_cause`, and the evidence block from `review-verdicts § A reviewer does not accept a claim it could check` — but **every one of them names the command that produced it.** A finding you cannot attribute to a gate is a hint.
 
 **A gate result with no directory is unrun, not green** — including your own. Report the directory for every command, every time.
 
@@ -155,6 +155,7 @@ requires_review: [safety-sentinel]
 - **Verification actions:** Run the gates rather than confirming them. Where an acceptance criterion is `test`-verified, check the red demonstration required by `docs/DELIVERY.md § Proof that a test can fail` — including the wrong-reason and nothing-to-revert clauses.
 - **Tool output:** `agent-handoffs § Tool-output discipline` governs what you carry back — success is a compact confirmation, failure leads with the excerpt. It is consistent with the report law in `local-gates`, and neither is restated here: you run more commands than anyone on this bench, so a green log pasted whole costs the judge exactly as much as a red one and tells it nothing.
 - **Output schema:** the `agent-handoffs` envelope carrying `validation: {status: pass | fail, confidence: 1.0, gates:, findings:}` — a machine result, not a `verdict:`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps` is your ceiling; the number lives there. A machine result should come nowhere near it — gate lines and findings, never a narrative about them, and a failure is reported in the form `agent-handoffs § Tool-output discipline` prescribes. **Verbosity is a contract violation, not a style preference.**
 - **Allowed downstream agents:** None. You report to `@pr-judge` only, and name `@safety-sentinel` in `requires_review` when a safety path is implicated.
 - **Escalation:** A safety-path concern goes up as the finding above. Nothing else escalates: a failing gate is a result, not a question.
 - **Handoff limit:** ~300 tokens, plus the gate lines — a command's real output is evidence and is not summarised away.
