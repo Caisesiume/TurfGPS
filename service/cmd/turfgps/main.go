@@ -14,7 +14,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
+	"github.com/Caisesiume/TurfGPS/service/internal/turf"
+	"github.com/Caisesiume/TurfGPS/service/internal/zonestore"
+	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
+	"github.com/Caisesiume/TurfGPS/service/internal/zonesyncstore"
 )
 
 const (
@@ -82,10 +89,108 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := serve(ctx, ln); err != nil {
-		slog.Error("service stopped", "error", err)
+	stopSync, err := startZoneSync(ctx)
+	if err != nil {
+		slog.Error("the zone sync is configured and could not start", "error", err)
 		os.Exit(1)
 	}
+
+	serveErr := serve(ctx, ln)
+
+	// Called explicitly rather than deferred: the exit below skips defers, and
+	// the whole purpose of this call is to let the sync's own shutdown finish.
+	stopSync()
+
+	if serveErr != nil {
+		slog.Error("service stopped", "error", serveErr)
+		os.Exit(1)
+	}
+}
+
+// startZoneSync starts the background job of `FR-022` and returns the function
+// that waits for it to stop.
+//
+// THIS IS THE COMPOSITION ROOT AND THE ONLY PLACE THE SYNC IS WIRED. The ports
+// it satisfies are declared by `internal/zonesync`, and the adapters that
+// satisfy them do not know each other; joining them is this function's whole
+// job, which is why it is the one package the off-request-path invariant permits
+// to import the worker.
+//
+// A SERVICE WITH NO SYNC CONFIGURED STARTS AND SERVES ANYWAY. `NFR-003` measures
+// start-up and a first served request in an image carrying nothing else, and a
+// service that refused to start without a database and an endpoint would spend
+// that property to gain a check the sync's own logging already makes.
+//
+// Nor does it wait for the store to answer. The pool connects lazily and this
+// function does not force it: a database that is down delays the copy's next
+// refresh, and `FR-022` AC2 is precisely the requirement that no such failure
+// reaches a request.
+func startZoneSync(ctx context.Context) (func(), error) {
+	cfg, err := config.LoadZoneSync(os.LookupEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg == nil {
+		slog.Info("no zone sync is configured, so the local zone copy will not be refreshed",
+			"configure", config.EnvDatabaseURL+", "+config.EnvAllZonesURL+" and "+config.EnvInterval)
+
+		return func() {}, nil
+	}
+
+	pool, err := zonestore.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	scheduler, err := newZoneSyncScheduler(cfg, pool)
+	if err != nil {
+		pool.Close()
+
+		return nil, err
+	}
+
+	stopped := make(chan struct{})
+
+	go func() {
+		defer close(stopped)
+
+		if err := scheduler.Run(ctx); err != nil {
+			slog.Error("the zone sync stopped", "error", err)
+		}
+	}()
+
+	slog.Info("the zone sync is running", "interval", cfg.Interval)
+
+	return func() {
+		<-stopped
+
+		pool.Close()
+	}, nil
+}
+
+func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.Scheduler, error) {
+	store, err := zonesyncstore.New(pool, slog.Default())
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := turf.NewClient(cfg.AllZonesURL, cfg.MaxResponseBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return zonesync.NewScheduler(zonesync.Config{
+		Fetch:           client.FetchAllZones,
+		Store:           store,
+		Locker:          store,
+		Logger:          slog.Default().With("component", "zone_sync"),
+		Interval:        cfg.Interval,
+		FetchTimeout:    cfg.FetchTimeout,
+		DatabaseTimeout: cfg.DatabaseTimeout,
+		MergeTimeout:    cfg.MergeTimeout,
+		MinZoneRatio:    cfg.MinZoneRatio,
+	})
 }
 
 // serve runs the HTTP server on ln until ctx is cancelled, then drains
