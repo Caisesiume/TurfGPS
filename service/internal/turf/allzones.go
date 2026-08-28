@@ -11,6 +11,7 @@
 package turf
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -94,7 +95,7 @@ func (c *Client) FetchAllZones(ctx context.Context) ([]byte, int, error) {
 
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := c.read(resp.Body)
+	body, err := c.read(resp.Body, resp.ContentLength)
 	if err != nil {
 		return body, resp.StatusCode, err
 	}
@@ -115,14 +116,41 @@ func (c *Client) FetchAllZones(ctx context.Context) ([]byte, int, error) {
 // exactly the truncated response the staging assertions of `Architecture.md §
 // The sync write path` exist to catch, and manufacturing one here would be this
 // service producing the failure it is defending against.
-func (c *Client) read(r io.Reader) ([]byte, error) {
-	body, err := io.ReadAll(io.LimitReader(r, c.maxBytes+1))
-	if err != nil {
-		return body, fmt.Errorf("reading the all-zones response: %w", err)
+//
+// IT IS SIZED FROM THE RESPONSE RATHER THAN GROWN INTO. io.ReadAll starts at 512
+// bytes and grows by allocating twice the current capacity and copying, holding
+// both for the length of the copy — so reading a body this way peaks at about
+// half as much again as the body, for a body that then stays live through the
+// parse. Content-Length turns that into one allocation. The header is trusted
+// for the size of that allocation and for nothing else: it is ignored unless it
+// falls inside the ceiling, and the LimitReader is what enforces the ceiling, so
+// a header that lies costs a wrongly-sized buffer and cannot raise the bound.
+func (c *Client) read(r io.Reader, contentLength int64) ([]byte, error) {
+	var buf bytes.Buffer
+
+	if contentLength > 0 && contentLength <= c.maxBytes {
+		buf.Grow(int(contentLength) + 1)
 	}
 
+	if _, err := buf.ReadFrom(io.LimitReader(r, c.maxBytes+1)); err != nil {
+		return buf.Bytes(), fmt.Errorf("reading the all-zones response: %w", err)
+	}
+
+	body := buf.Bytes()
+
 	if int64(len(body)) > c.maxBytes {
-		return nil, fmt.Errorf("the all-zones response exceeds the %d byte ceiling and was not read", c.maxBytes)
+		// RETURNED RATHER THAN DISCARDED, because for this one failure the size
+		// IS the cause, and returning nil left `response_bytes` NULL on exactly
+		// the run whose row needed it — an operator reading that row was told a
+		// fetch failed and denied the only figure that says why.
+		//
+		// It is the ceiling plus one, which is what the LimitReader allowed and
+		// all that can be known without reading a body this function has just
+		// refused to hold. On the row it reads as "at or past the ceiling". No
+		// truncated body is handed to a parse by this: the error is non-nil, so
+		// the caller records the size and stops.
+		return body, fmt.Errorf("the all-zones response reached the %d byte ceiling and was refused unread; %d bytes were taken to establish that",
+			c.maxBytes, len(body))
 	}
 
 	return body, nil

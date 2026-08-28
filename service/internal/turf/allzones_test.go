@@ -87,6 +87,16 @@ func TestARefusedRequestCarriesItsStatusAndItsBody(t *testing.T) {
 // to close cleanly — a short response that looks complete, which is exactly the
 // truncated response the staging assertions exist to catch. Manufacturing one
 // would be this service producing the failure it defends against.
+//
+// WHAT CARRIES THAT GUARANTEE IS THE ERROR, and this test asserts it rather than
+// asserting a nil body. The refusal used to return no body at all, which left
+// `response_bytes` NULL on the one run whose failure cause IS its size: the row
+// an operator reads said a fetch failed and withheld the only figure that says
+// why. So the bytes taken to establish the overrun come back, and what stops
+// them reaching a parse is that err is non-nil — the same contract the refused
+// request above already runs on, where the body is returned for exactly this
+// reason. A caller cannot mistake them for an accepted response either: their
+// length is past the ceiling, which no accepted body's ever is.
 func TestAnOversizedResponseIsRefusedAndNotTruncated(t *testing.T) {
 	t.Parallel()
 
@@ -102,8 +112,9 @@ func TestAnOversizedResponseIsRefusedAndNotTruncated(t *testing.T) {
 		t.Fatal("an oversized response was accepted, want it refused")
 	}
 
-	if len(body) != 0 {
-		t.Errorf("the refusal returned %d bytes of body, want none: a truncated body handed on is the failure this refusal exists to prevent", len(body))
+	if int64(len(body)) <= ceiling {
+		t.Errorf("the refusal returned %d bytes, want more than the %d byte ceiling: response_bytes is recorded from this length, and a figure at or under the ceiling would read on the row as a response that fitted",
+			len(body), ceiling)
 	}
 }
 

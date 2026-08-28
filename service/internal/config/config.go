@@ -64,11 +64,26 @@ const (
 	defaultMergeTimeout = 5 * time.Minute
 
 	// defaultMaxResponseBytes caps what one response may put in memory. It is a
-	// guard against a runaway or hostile body rather than a size prediction, and
-	// it sits orders of magnitude above the response `Architecture.md §
-	// Retrieving zones` measured, so a corpus that keeps growing does not trip
-	// it.
-	defaultMaxResponseBytes int64 = 512 << 20
+	// guard against a runaway or hostile body and never a prediction of the
+	// corpus, whose size is measured in `Architecture.md § Retrieving zones` and
+	// is not restated here.
+	//
+	// IT WAS 512 MiB, WHICH IS NOT A CEILING THIS PROCESS SURVIVES, and a
+	// ceiling is only a guard if the process is still running when it is
+	// reached. The body must be held whole while it is parsed and the parse
+	// builds a second representation of the same response beside it, so a
+	// response arriving at that ceiling exhausts the process before anything
+	// refuses it — which takes down the request path the ceiling exists to
+	// protect, the one outcome `FR-022` AC2 forbids, and takes it down in the
+	// least legible way available.
+	//
+	// 128 MiB is this package's own choice in the sense the ratio below is: it
+	// leaves the corpus that section measures a great deal of room to grow, and
+	// it is small enough that a response reaching it is refused by an error
+	// rather than by the kernel. Whether it still clears the corpus is a
+	// question for that section, which is where the figure to compare it against
+	// lives and where it will move.
+	defaultMaxResponseBytes int64 = 128 << 20
 
 	// defaultMinZoneRatio is the floor the staged row count is held to against
 	// the rows already in `zone`, for the first assertion of `Architecture.md §
