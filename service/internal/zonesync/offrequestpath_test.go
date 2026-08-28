@@ -84,11 +84,22 @@ func TestNoRequestPathCanReachTheSyncWorker(t *testing.T) {
 		paths = append(paths, pkg.ImportPath)
 	}
 
-	// The three packages the invariant is stated in terms of must all exist. A
+	// The four packages the invariant is stated in terms of must all exist. A
 	// check whose subject is missing has not passed, it has not run.
-	for _, required := range []string{syncWorker, requestSurface, compositionRoot} {
+	//
+	// syncAdapter is the fourth and was once left out of this list, which made
+	// the write-path leg of the request-surface check below satisfiable by
+	// absence: rename or remove the adapter and slices.Contains is asked
+	// whether the surface imports a package that no longer exists, which it
+	// cannot, so that assertion reported green having measured nothing — the
+	// defect `FR-019`'s Rationale names. The loop over every package does not
+	// cover the case. It catches a renamed adapter only while the adapter still
+	// imports the worker, and the refactor that most plausibly renames it,
+	// extracting the shared types, is the one that stops it importing the
+	// worker.
+	for _, required := range []string{syncWorker, requestSurface, compositionRoot, syncAdapter} {
 		if !slices.Contains(paths, required) {
-			t.Fatalf("%s is not a package of this module, so this check has nothing to measure and is refusing rather than passing: the invariant is stated over the sync worker, the request surface and the composition root, and all three must exist for it to mean anything",
+			t.Fatalf("%s is not a package of this module, so this check has nothing to measure and is refusing rather than passing: the invariant is stated over the sync worker, the request surface, the composition root and the sync's write-path adapter, and all four must exist for it to mean anything",
 				required)
 		}
 	}
