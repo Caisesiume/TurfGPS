@@ -50,36 +50,26 @@ import (
 	"time"
 )
 
-// Outcome is the terminal state of one run, and the value written to
-// `sync_run.outcome`.
+// Outcome is what one run writes to `sync_run.outcome`.
 //
 // The vocabulary's home is `Architecture.md § The sync write path`, which gives
-// each value its meaning, and it is enforced by a CHECK constraint in
-// `migrations/0001_zone_store.sql`. These constants are the binding of that
-// vocabulary into Go and add nothing to it. Every one of them is reachable from
-// this file.
+// each value its meaning and says which of them are terminal, and it is
+// enforced by a CHECK constraint in `migrations/0001_zone_store.sql`. These
+// constants are the binding of that vocabulary into Go and add nothing to it,
+// which is a claim this file has to keep true rather than merely make.
+// Every one of them is reachable from this file.
 type Outcome string
 
+// The whole vocabulary, and nothing about it: the meanings are the section
+// cited on Outcome above. They were restated here once, near-verbatim, which
+// gave them a second home — one that would have gone stale with nothing in this
+// file moving to notice it.
 const (
-	// OutcomeRunning is not terminal. It is what the row carries between the
-	// two writes, so a worker killed between them leaves a row saying a run
-	// started here and died, rather than leaving no row at all.
-	OutcomeRunning Outcome = "running"
-
-	// OutcomeOK is a merge that committed.
-	OutcomeOK Outcome = "ok"
-
-	// OutcomeHTTPError is a response that was unusable — refused, or a body
-	// that would not parse. http_status and response_bytes separate the two.
-	OutcomeHTTPError Outcome = "http_error"
-
-	// OutcomeAssertionFailed is a response the staging assertions rejected.
-	// Nothing was merged.
+	OutcomeRunning         Outcome = "running"
+	OutcomeOK              Outcome = "ok"
+	OutcomeHTTPError       Outcome = "http_error"
 	OutcomeAssertionFailed Outcome = "assertion_failed"
-
-	// OutcomeAborted is anything else, including a database error during the
-	// merge and a run cancelled at shutdown.
-	OutcomeAborted Outcome = "aborted"
+	OutcomeAborted         Outcome = "aborted"
 )
 
 // FetchFunc fetches the complete all-zones response.
