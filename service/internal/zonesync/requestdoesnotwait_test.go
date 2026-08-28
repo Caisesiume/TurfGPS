@@ -40,6 +40,32 @@ import (
 // until this test let the merge go, and this test does not let it go until the
 // request has been answered.
 //
+// WHAT IT MEASURES IS NARROWER THAN THAT LIST, AND THE LIST IS NOT A CLAIM OF
+// COVERAGE. The four mechanisms above are named to show what an import-graph
+// check is blind to. They are not four things this file guards, and reading
+// them as such is the misreading this paragraph exists to close. The
+// arrangement below is entirely in-process: fakes from `fakes_test.go` and a
+// mux built inside the timed section. It holds no zone cache, no readiness
+// channel and NO CONNECTION POOL — so the pool case is not merely unexercised
+// here, it is unreachable, because exhausting a pool requires a pool and these
+// fakes own none.
+//
+// What it does measure is the whole of what the arrangement actually shares: a
+// request answered while a refresh sits inside its merge, over every coupling
+// that exists in this process. Today that set is empty, which is why the test
+// passes; it stops passing on the day a handler takes a lock, a channel or a
+// pooled connection that the merge is also holding. That is a real guard over a
+// growing surface, and it is a different and smaller claim than guarding the
+// four mechanisms named above.
+//
+// THE POOL VERSION IS A SEPARATE TEST AND IS DELIBERATELY NOT WRITTEN HERE. It
+// needs one `pgxpool` genuinely shared between the write side and the read
+// side, with the merge holding connections while a read is served; faked, it
+// would measure the fake and report green over the arrangement it exists to
+// refuse. It is recorded as FW-06 on #20's review record, and it is gated on
+// there being a database to run it against — which
+// `migrations/0001_zone_store.sql` records this repository as not having.
+//
 // It is not `TestTheLockIsNeverHeldTwiceAtOnce`, which watches sync against
 // sync. This is request against sync, and the two questions have no answer in
 // common.
