@@ -13,6 +13,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
 )
 
 const (
@@ -89,14 +91,12 @@ func main() {
 // serve runs the HTTP server on ln until ctx is cancelled, then drains
 // in-flight requests and returns. It takes ownership of ln and closes it.
 func serve(ctx context.Context, ln net.Listener) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("TurfGPS service\n"))
-	})
-
+	// The request surface is a package of its own. `internal/httpapi` says why:
+	// it is the seam `FR-022` AC2 is checked over, and a mux built inline here
+	// would put every future handler inside the one package the invariant has
+	// to permit to reach the sync worker.
 	srv := &http.Server{
-		Handler:           mux,
+		Handler:           httpapi.NewMux(),
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
