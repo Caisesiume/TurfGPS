@@ -346,8 +346,12 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall use, as the waypoint dispatched for each Turf
-              stop of a portion, that stop's stopping position rather than the
-              zone's coordinate.
+              stop of a portion for which a stopping position has been
+              established under
+              `SPECIFICATION.md § What establishes a stopping position`, that
+              stop's stopping position rather than the zone's coordinate, and
+              shall not dispatch the zone's coordinate for a Turf stop for
+              which none has been established.
 Category:     Hand-off and dispatch
 Source:       DESIGN.md § Dispatching stop by stop;
               SPECIFICATION.md § What establishes a stopping position
@@ -355,8 +359,10 @@ Priority:     MUST
 Verification: test — a portion whose Turf stops carry stopping positions
               distinct from their zones' coordinates hands off carrying those
               positions in the intermediate slots and in the destination slot,
-              and the same portion handed off carrying any of those zones'
-              coordinates fails
+              the same portion handed off carrying any of those zones'
+              coordinates fails, and a portion holding a Turf stop for which
+              no stopping position was established hands off that zone's
+              coordinate in no slot
 Acceptance:   given a dispatched portion whose Turf stops each carry a
               stopping position distinct from that zone's coordinate, when the
               portion is handed off, then the waypoint dispatched for each of
@@ -366,6 +372,11 @@ Acceptance:   given a dispatched portion whose Turf stops each carry a
               occupying the target's destination slot, when the portion is
               handed off, then the point dispatched in that slot is that
               stop's stopping position
+              given a dispatched portion holding a Turf stop for which no
+              stopping position has been established under
+              `SPECIFICATION.md § What establishes a stopping position`, when
+              the portion is handed off, then that zone's coordinate is not
+              dispatched as the waypoint for that stop
 Status:       to-build
 Depends-on:   FR-092;
               FR-110
@@ -383,7 +394,12 @@ Risk:         The zone's coordinate is a point nothing in this corpus
               had not. The estimate and the destination disagree, with nothing
               on screen inconsistent with anything else, and the disagreement
               is invisible until arrival, at the roadside, on a product whose
-              whole value is the stops.
+              whole value is the stops. The stop that reaches hand-off with
+              nothing to dispatch is the subclass `DECISIONS.md § RD-002`
+              routes to uncertain rather than to exclusion, and the coordinate
+              is the object an implementer meeting it reaches for, the plan by
+              then already accepted — which is why the refusal is stated here
+              rather than left to follow from the positive limb.
 Rationale:    `DESIGN.md § Dispatching stop by stop` sizes a portion in stops
               and never says what a stop resolves to on the wire; this record
               closes that gap rather than reading it out of that section. What
@@ -398,6 +414,23 @@ Rationale:    `DESIGN.md § Dispatching stop by stop` sizes a portion in stops
               intermediate slots, FR-111 puts a Turf zone in it, and it is the
               slot an implementation reaches for the zone's coordinate in. The
               journey's own origin and final destination are not Turf stops
-              and are untouched here.
+              and are untouched here. The positive limb is scoped to a stop
+              carrying an established stopping position because not every stop
+              reaching hand-off carries one: `DECISIONS.md § RD-002` routes a
+              candidate with no established stopping position to uncertain
+              rather than to exclusion, and
+              `SPECIFICATION.md § Reconciling this with the absolute ceiling`
+              offers an uncertain candidate from the reserve pool to a user
+              who has just rejected something, so an accepted one can reach
+              dispatch with no such position to send. The scoping costs the
+              record nothing it obliged before, since an uncertain stop is not
+              that subclass by being uncertain — FR-082's low-confidence
+              estimate is uncertain with a position established. What is
+              dispatched for that subclass instead is deliberately unauthored,
+              and is owed to the batch scoped to
+              `SPECIFICATION.md § Reconciling this with the absolute ceiling`,
+              where acceptance from the reserve pool is decided; the third
+              criterion carries only the refusal, which is the part statable
+              without deciding it.
 Resolved-by:  —
 ```

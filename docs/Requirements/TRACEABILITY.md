@@ -151,7 +151,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-114` — Leave the stored plan unchanged by a hand-off | — | — |
 | `FR-115` — Offer hand-off only to the target named for the first release | — | — |
 | `FR-116` — Carry a stale-data marking through storage and retrieval | — | — |
-| `FR-117` — Re-evaluate a reopened plan's stops and report an adverse change | — | — |
+| `FR-117` — Re-evaluate a reopened plan's stops and report an adverse or unverifiable outcome | — | — |
 | `FR-118` — Dispatch each Turf stop at its stopping position | — | — |
 | `NFR-008` — Keep the plan code out of every log the service writes | — | — |
 | `NFR-009` — Hold no Turf username in a stored plan | — | — |

@@ -272,7 +272,7 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-107` | Refresh a reopened plan's volatile data after it is on screen | Persistence and staleness | MUST | to-build | test | — |
 | `FR-108` | Tell the user a round has rolled over before they act on the plan | Persistence and staleness | MUST | to-build | test | — |
 | `FR-116` | Carry a stale-data marking through storage and retrieval | Persistence and staleness | MUST | to-build | test | — |
-| `FR-117` | Re-evaluate a reopened plan's stops and report an adverse change | Persistence and staleness | MUST | to-build | test | — |
+| `FR-117` | Re-evaluate a reopened plan's stops and report an adverse or unverifiable outcome | Persistence and staleness | MUST | to-build | test | — |
 
 ## Safety exclusions
 

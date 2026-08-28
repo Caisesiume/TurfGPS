@@ -50,16 +50,16 @@ Rationale:    `DEPLOYMENT.md § Where the deployment configuration lives`
               splits this control in two and says it is where the constraint
               is derived rather than where it is discharged. The proxy half is
               a deployment artefact and is bound to the proxy configuration
-              there; this record takes only the service half, which that
-              section says binds whoever writes the log statements in
-              `service/`, and which no file under `deploy/` can constrain. The
-              method is test rather than inspection deliberately, and the
-              statement is scoped to the process rather than to those
-              statements for the same reason: that section records that the
-              service installs no log handler, so its own output and a
-              dependency's reach the same host log, and both an inspection of
-              the statements written in `service/` and a statement binding
-              only them would pass over the second.
+              there by NFR-015, which carries that half; this record takes
+              only the service half, which that section says binds whoever
+              writes the log statements in `service/`, and which no file under
+              `deploy/` can constrain. The method is test rather than
+              inspection deliberately, and the statement is scoped to the
+              process rather than to those statements for the same reason:
+              that section records that the service installs no log handler,
+              so its own output and a dependency's reach the same host log,
+              and both an inspection of the statements written in `service/`
+              and a statement binding only them would pass over the second.
 Resolved-by:  —
 ```
 

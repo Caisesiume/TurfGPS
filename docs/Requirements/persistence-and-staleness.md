@@ -48,7 +48,8 @@ Rationale:    The record obliges availability and not a mechanism, because
               ranked, and
               `Architecture.md § Persistence and cross-device transfer`
               supplies the ceiling that nothing extends. What the user meets
-              at that ceiling is not authored here:
+              when a stored plan reaches whichever of the two limits NFR-013
+              carries falls first is not authored here:
               `DESIGN.md § Returning to a stored plan` carries it through the
               expired-code path FR-103 obliges, and the deletion itself is
               NFR-014's. Nothing filed obliges the confirmation step that
@@ -329,7 +330,9 @@ Statement:    The system shall make a stored plan's plan code available from
               that stored plan's entry in the list of stored plans on the
               user's request, rather than presenting it with the entry.
 Category:     Persistence and staleness
-Source:       DESIGN.md § Returning to a stored plan
+Source:       DESIGN.md § Returning to a stored plan;
+              Architecture.md § Persistence and cross-device transfer;
+              Architecture.md § Personal data
 Priority:     SHOULD
 Verification: test — each entry in a list of several stored plans offers a way
               to reveal that stored plan's plan code and carries no plan code
@@ -742,47 +745,70 @@ Rationale:    `SPECIFICATION.md § Route persistence` says a stored route keeps
 Resolved-by:  —
 ```
 
-## FR-117 — Re-evaluate a reopened plan's stops and report an adverse change
+## FR-117 — Re-evaluate a reopened plan's stops and report an adverse or unverifiable outcome
 
 ```
 Statement:    The system shall re-evaluate, on each reopening of a stored
               plan, the access classification of the stops that stored plan
               uses and the enforceable exclusions under
-              `SPECIFICATION.md § Enforceable exclusions`, and shall tell the
-              user, offering a re-solve, where that re-evaluation finds a stop
-              no longer accessible or a stop an exclusion now removes.
+              `SPECIFICATION.md § Enforceable exclusions`, shall tell the
+              user, offering a re-solve, where that re-evaluation completes
+              and finds a stop no longer accessible or a stop an exclusion now
+              removes, and shall present the stored plan and tell the user
+              which of its stops it could not re-verify where that
+              re-evaluation cannot complete for one or more of them.
 Category:     Persistence and staleness
 Source:       SPECIFICATION.md § Stored routes go stale;
               SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
-Verification: test — a stored plan reopened after a stop it uses has become
-              inaccessible, and one reopened after an exclusion has come to
-              remove a stop it uses, each carry the telling and the offer of a
-              re-solve; one reopened after a stop has become more accessible
-              or an exclusion on one has lifted carries neither; and a plan
+Verification: test — a stored plan whose re-evaluation completes, reopened
+              after a stop it uses has become inaccessible, and one reopened
+              after an exclusion has come to remove a stop it uses, each carry
+              the telling and the offer of a re-solve; one whose re-evaluation
+              completes for every stop it uses and finds a stop more
+              accessible or an exclusion on one lifted carries neither; a plan
               whose telling the user does not act on is still there,
-              unchanged, afterwards
-Acceptance:   given a stored plan reopened after a stop it uses has become
-              inaccessible, or after an exclusion has come to remove one, when
-              the plan is presented, then the user is told so with it and is
-              offered a re-solve
-              given a stored plan reopened where the re-evaluation finds no
-              stop it uses inaccessible and no exclusion newly removing one,
-              when the plan is presented, then no such telling is presented,
-              including where a stop has become more accessible or an
-              exclusion on one has lifted
-              given that telling, when the user does not take the offered
-              re-solve, then the stored plan stays available to reopen and its
-              zones and their order are unchanged
+              unchanged, afterwards; and one reopened where the re-evaluation
+              cannot complete for one or more of the stops it uses, on each of
+              the two causes `DECISIONS.md § RD-037` names, presents the
+              stored plan carrying a telling that names the stops left
+              unchecked and does not require a re-solve before the plan can be
+              used, both where the re-evaluation completed for that plan's
+              other stops and where it completed for none
+Acceptance:   given a stored plan reopened where the re-evaluation completes
+              and finds a stop it uses no longer accessible, or an exclusion
+              now removing one, when the plan is presented, then the user is
+              told so with it and is offered a re-solve
+              given a stored plan reopened where the re-evaluation completes
+              for every stop it uses and finds none of them inaccessible and
+              no exclusion newly removing one, when the plan is presented,
+              then neither the telling of an adverse change nor the telling of
+              a stop left unchecked is presented, including where a stop has
+              become more accessible or an exclusion on one has lifted
+              given the telling of an adverse change and the re-solve it
+              offers, when the user does not take that re-solve, then the
+              stored plan stays available to reopen and its zones and their
+              order are unchanged
+              given a stored plan reopened where the re-evaluation cannot be
+              completed for one or more of the stops it uses, when the plan is
+              presented, then the stored plan is presented rather than
+              withheld or discarded, the user is told with it that those
+              stops' access classification could not be re-verified, those
+              stops are named, and no re-solve is required before the plan can
+              be used
 Status:       to-build
 Depends-on:   FR-094;
               FR-096;
+              FR-105;
               FR-106
 Volatility:   settled — `DECISIONS.md § RD-027` records the Owner's ruling
               that the change is determinable, that the system must determine
-              it, and that materiality is adverse only, and
-              `SPECIFICATION.md § Stored routes go stale` states the telling
-              it obliges
+              it, and that materiality is adverse only,
+              `DECISIONS.md § RD-037` records the second ruling on the same
+              escalation, that a re-evaluation which cannot complete is
+              reported as unverified rather than passed over, and
+              `SPECIFICATION.md § Stored routes go stale` states the telling a
+              material change obliges
 Risk:         A stop that has become inaccessible since the plan was made is a
               place the driver must not stop, and a stored plan served without
               the re-evaluation sends them there carrying a cost estimate
@@ -792,35 +818,69 @@ Risk:         A stop that has become inaccessible since the plan was made is a
               The exposure also grows with the interval a plan is allowed to
               sit: without this record nothing bounds the age at which a
               retained access classification may still admit a stop, and
-              FR-094 lets that age run to the retention bound NFR-013 sets.
+              FR-094 lets that age run to the retention bound NFR-013 sets. A
+              re-check that could not run is indistinguishable to the driver
+              from one that ran and found nothing — the same screen, and the
+              worse of the two states, since nothing about the plan was
+              re-verified at all. An obligation to stay silent wherever
+              nothing adverse was found is therefore discharged by never
+              running the check, which inverts what
+              `SPECIFICATION.md § Reconciling this with the absolute ceiling`
+              states of a safety check: one that cannot be evaluated fails,
+              and never passes by default.
 Rationale:    One record and not two, because it is one gate reading one
               input: a system that re-evaluates and says nothing has produced
               no observable behaviour at all, so the re-evaluation and what is
-              done with its outcome are two branches of one obligation rather
-              than two obligations. Its scope is the stops the stored plan
-              uses and not the candidate set, and it is a re-check and not a
-              re-solve; `DECISIONS.md § RD-027` fixes both, together with the
-              asymmetry the second criterion carries — a favourable change is
-              a missed opportunity rather than a hazard, and paying the full
-              re-solve cost in both directions would undercut FR-094's reopen
-              guarantee for a reason unrelated to safety. The record tells and
-              never edits, which is FR-106's rule and is why the re-solve is
-              offered rather than performed; when the plan is presented
-              relative to its background refresh is FR-107's.
-              It does not contradict FR-107, and that is worth stating because
-              both records read correctly alone: FR-107 forbids withholding a
+              done with its outcome are branches of one obligation rather than
+              two obligations. Its scope is the stops the stored plan uses and
+              not the candidate set, and it is a re-check and not a re-solve;
+              `DECISIONS.md § RD-027` fixes both, together with the asymmetry
+              the second criterion carries — a favourable change is a missed
+              opportunity rather than a hazard, and paying the full re-solve
+              cost in both directions would undercut FR-094's reopen guarantee
+              for a reason unrelated to safety. The record tells and never
+              edits, which is FR-106's rule and is why the re-solve is offered
+              rather than performed; when the plan is presented relative to
+              its background refresh is FR-107's. The first three criteria are
+              outcomes of a re-evaluation that ran, which is why the first two
+              say so: a criterion predicated on what the re-evaluation found
+              is satisfied vacuously by one that could not look, and the
+              second would then oblige silence in exactly the branch the
+              fourth exists to make speak. FR-076's first criterion carried
+              that shape and was repaired the same way, on its antecedent. The
+              first two say it differently because they quantify differently,
+              and that difference is load-bearing rather than untidy. The
+              first is existential in its finding, so it composes with the
+              fourth on a reopen that completes for some stops and fails for
+              others: both tellings are owed, and an offered re-solve does not
+              collide with one not required. The second is universal, so it
+              says *for every stop* — a partial completion satisfying it would
+              oblige silence about precisely the stops the fourth names, which
+              is the same vacuity at stop scope rather than plan scope, and
+              `DECISIONS.md § RD-037` already names the stops a re-check could
+              not cover rather than the plans. The fourth criterion is
+              separate from the first and is not folded into it, per
+              `DECISIONS.md § RD-037`: the causes differ — an adverse finding
+              against a finding that could not be made — and so do the
+              remedies, an offered re-solve against a decision the driver
+              takes on a plan the system has not re-verified. It does not
+              contradict FR-107, and that is worth stating because both
+              records read correctly alone: FR-107 forbids withholding a
               reopened plan while its **volatile** data refresh is
               outstanding, and that refresh is the Turf API call FR-105
-              obliges a reopen to work without. This re-evaluation reads the
-              zone and map data the system already holds, so it completes
-              without a network call and its telling arrives with the plan —
-              which is the shape FR-108 already carries, for a determination
-              made at reopen and against the same FR-107. No age threshold
-              is stated and none was available to state:
-              `CalculationSpecification.md` holds no bound on how old a
-              retained access classification may be, and a figure standing in
-              for one would have been picked here. The re-evaluation is
-              obliged on every reopening instead, which bounds the same thing
-              without a number.
+              obliges a reopen to work without. This re-evaluation reads zone
+              and map data rather than making that call, which is why the two
+              do not collide — and not because it cannot fail: the data it
+              reads may be unreachable or too stale to be authoritative, which
+              is what makes the fourth branch reachable and why FR-105 is
+              named in `Depends-on`. Both tellings are obliged with the plan
+              rather than after the user has acted on it, which is the shape
+              FR-108 already carries, for a determination made at reopen and
+              against the same FR-107. No age threshold is stated and none was
+              available to state: `CalculationSpecification.md` holds no bound
+              on how old a retained access classification may be, and a figure
+              standing in for one would have been picked here. The
+              re-evaluation is obliged on every reopening instead, which
+              bounds the same thing without a number.
 Resolved-by:  —
 ```

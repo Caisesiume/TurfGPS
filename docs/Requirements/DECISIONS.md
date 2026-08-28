@@ -1505,3 +1505,111 @@ Affects:        FR-101, which carries it in a criterion of its own. FR-100 and
                 never obliges that a presentation of it is served.
                 `SEC-135-09` on PR #135, which it closes.
 ```
+
+## RD-037 — What does a reopened plan's re-check do when it cannot complete?
+
+```
+Date:           2026-08-28
+Decided-by:     the Owner, ratified on PR #135 and relayed by
+                `@engineering-lead`. Two comments carry the two halves of the
+                `SAFE-02` ruling and both are cited because neither is the
+                whole of it: `#issuecomment-5457129534` settled adverse,
+                favourable and unchanged, and `#issuecomment-5457353215`
+                settled this branch. This entry records a ruling made
+                elsewhere; it is not a ladder resolution, and
+                `§ Entry format` states the variant it takes. It is the
+                second entry in this log to carry this field, after RD-027.
+Question:       FR-105 opens a stored plan with a third party down, so the
+                re-evaluation RD-027 obliges on each reopening may be unable
+                to complete — the zone data unreachable, or the copy the
+                system holds too stale to be authoritative. RD-027 settled
+                adverse, favourable and unchanged and does not reach that
+                fourth case. What does the system do when the re-check cannot
+                run? Escalated on 28 August 2026 after `@requirements-fr`
+                declined to invent it; the three-case framing was
+                `@engineering-lead`'s, and the gap was in the framing rather
+                than in the lane's work.
+Interpretation: **The stored plan is presented, the user is told the access
+                classification could not be re-verified, and the stops it
+                could not be re-verified for are named.** The driver then
+                decides whether to drive it. The plan is neither withheld nor
+                discarded. **The telling is distinct from the adverse-change
+                telling** — different cause, different remedy — and the
+                ruling directs that the two are not folded into one
+                criterion. Withholding was refused as contradicting FR-105
+                outright, trading a disclosed risk for a guaranteed outage,
+                a driver at a roadside who cannot open their plan being a
+                worse failure than one told their plan is unverified.
+                Serving it silently was refused as the hazard
+                `@safety-sentinel` blocked this batch over: a driver cannot
+                tell *verified current* from *never checked*, so **unverified
+                is reported as unverified**.
+Rung:           n/a — Owner ruling, and no rung is claimed. The ladder was
+                run as far as it reaches and stopped short.
+                `SPECIFICATION.md § Reconciling this with the absolute ceiling`
+                states at rung 1 that a safety check which cannot be evaluated
+                fails and never passes by default, naming
+                `SPECIFICATION.md § Enforceable exclusions` as the posture's
+                home; that refuses silence, but it does not say what is said
+                instead, and no document states what a driver is told about a
+                classification that could not be re-checked. RD-027's own
+                ladder work is not repeated here.
+Affects:        FR-117, which gains a fourth acceptance criterion for the
+                incompletable re-check and whose second criterion is narrowed
+                to a re-evaluation that completed. Unnarrowed, that criterion
+                obliged **no telling** where the re-evaluation *found*
+                nothing, so a re-check that never ran satisfied both its
+                conjuncts vacuously and the record obliged silence in exactly
+                this branch — the second vacuous-antecedent defect this
+                corpus has recorded, after FR-076's first criterion at batch
+                5, and the first found by a reviewer rather than by the
+                set-level pass. FR-105, which makes the branch reachable and
+                enters FR-117's `Depends-on`. RD-027, whose three branches
+                stand unchanged. `SAFE-05`, `SAFE-06` and `SAFE-07` on
+                PR #135, which it closes.
+```
+
+## RD-038 — Does RD-029's bound mean the absolute limb alone, or both of NFR-013's clocks?
+
+```
+Date:           2026-08-28
+Question:       RD-029 ruled that FR-094's reopen guarantee is bounded by the
+                retention bound NFR-013 sets, and argued it throughout as a
+                *ceiling*. NFR-013 is conjunctive as authored: a rolling limit
+                measured from the most recent retrieval, and an absolute limit
+                measured from creation. Does RD-029's bound therefore mean the
+                absolute limb alone, which is the only one its reasoning
+                names? Raised as `DOC-10` on PR #135 cycle 2 by
+                `@docs-reviewer`.
+Interpretation: **Both limbs, whichever falls first.** RD-029's ruling stands
+                entirely — the reopen guarantee is bounded by the retention
+                bound NFR-013 sets, and FR-094 cites that bound rather than
+                restating either interval. What this entry supersedes is the
+                single statement inside RD-029's `Rung` field that reads the
+                bound as the ceiling its cited section creates: that section
+                states two clocks and says outright that they are
+                independent, and NFR-013 carries both conjunctively with an
+                acceptance criterion measuring each. A stored plan therefore
+                leaves the store on whichever clock expires first, and
+                FR-094's deferral of what the user meets there widens to
+                either. `§ Entry format` forbids repairing an entry in place,
+                so this is the compliant form of that repair, on RD-030's
+                precedent; it is the third supersession this log has
+                recorded, and like RD-030 it supersedes a statement rather
+                than a decision.
+Rung:           2 — architecture constraints, decisive.
+                `Architecture.md § Persistence and cross-device transfer`
+                states both clocks and states that they are independent, so
+                the reading is applied rather than inferred from a
+                consequence. 4 corroborates: NFR-013 is conjunctive as
+                authored and each limb carries its own criterion. 1 was
+                checked and reaches nothing —
+                `SPECIFICATION.md § Route persistence` requires survival past
+                a session and states no bound at all.
+Affects:        RD-029, one statement of which is superseded and whose ruling
+                stands. FR-094, whose `Rationale` now defers what the user
+                meets to whichever clock falls first. NFR-013 and NFR-014,
+                unchanged. FR-096, FR-097, FR-106 and FR-116, which read
+                against RD-029 and are untouched by the widening. `DOC-10` on
+                PR #135, whose record half is FR-094's repair.
+```
