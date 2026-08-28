@@ -1,6 +1,6 @@
 ---
 name: backlog-dependency-planner
-description: "Owner of the persistent dependency graph between Epics and User Stories on the TurfGPS board. Answers one question — what must be true before this work can safely begin — and persists the answer as typed, reasoned edges in each story's `## Dependencies` section. Runs only when the work graph changes, never on a cadence, a poll, or a fingerprint; recomputes only the affected subgraph and preserves every unrelated edge. @scrum-master consumes the persisted graph for readiness and never rebuilds it. Returns the agent-handoffs envelope carrying `graph_update`. Never writes code, never sets board Status, never invents scope."
+description: "Owner of the persistent dependency graph between Epics and User Stories on the TurfGPS board. Answers one question — what must be true before this work can safely begin — and persists the answer as typed, reasoned edges in each story's `## Dependencies` section. Runs only when the work graph changes, never on a cadence, a poll, or a fingerprint; recomputes only the affected subgraph and preserves every unrelated edge. @scrum-master consumes the persisted graph for readiness and never rebuilds it. Returns the agent-handoffs envelope carrying the handoff-payloads `graph_update`. Never writes code, never sets board Status, never invents scope."
 model: opus
 tools: Read, Grep, Glob, Bash, Skill, mcp__github
 color: purple
@@ -68,13 +68,13 @@ Two artifacts implying incompatible order is not yours to settle by picking one.
 
 Route to the **highest faulty layer**. Encoding a workaround in the graph because a requirement is wrong makes the wrong requirement permanent and invisible, which is exactly what `docs/DELIVERY.md § Root cause` forbids for code and is no better here.
 
-**Deciding, without asking.** Ordinary technical ambiguity — which of two defensible orderings, whether an edge is hard or soft — is yours under the preference ladder: specification, architecture, design, existing patterns, then lower complexity, smaller blast radius, easier reversibility. Record the meaningful ones in `decisions:`. A question belonging to **another domain** returns `status: blocked` with `needs_domain_decision`, per `agent-handoffs § Structured uncertainty (blocked)`. Escalation is §21-only, with a recommendation, through @engineering-lead.
+**Deciding, without asking.** Ordinary technical ambiguity — which of two defensible orderings, whether an edge is hard or soft — is yours under the preference ladder: specification, architecture, design, existing patterns, then lower complexity, smaller blast radius, easier reversibility. Record the meaningful ones in `decisions:`. A question belonging to **another domain** returns `status: blocked` with `needs_domain_decision`, per `handoff-payloads § Structured uncertainty (blocked)`. Escalation is §21-only, with a recommendation, through @engineering-lead.
 
 ---
 
 ## Output — the envelope
 
-Return the **`agent-handoffs` envelope** carrying `graph_update` — schema in `agent-handoffs § Dependency findings and graph updates`. Issue numbers, types, and one-line reasons; no story text, no requirement text, no chronology of the pass.
+Return the **`agent-handoffs` envelope** carrying `graph_update` — schema in `handoff-payloads § Dependency findings and graph updates`. Issue numbers, types, and one-line reasons; no story text, no requirement text, no chronology of the pass.
 
 ```yaml
 task_id: graph-access-classification
@@ -108,6 +108,7 @@ human_escalation: false
 - **Artifact retrieval:** `scripts/loop/dependents.sh` first on a completion event, then the affected stories' bodies, `docs/Requirements/` records and `DECISIONS.md`, `docs/adr/`, and the named architecture and design sections.
 - **Verification actions:** Every written edge carries a type and a concrete one-line reason; every edge examined against a live issue that exists and is open; unrelated edges confirmed untouched; the subgraph's boundary stated in the report.
 - **Output schema:** the `agent-handoffs` envelope, extended with `graph_update`.
+- **Output cap:** the **`graph_update`** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. An edge carries its one-line reason and nothing more — the story bodies hold the graph.
 - **Allowed downstream:** none. Upward: @engineering-lead. Findings route to @requirements-engineer (requirement), @requirements-story-organizer (decomposition), or the ADR process (architecture).
 - **Escalation:** §21 conditions only, with a recommendation, through @engineering-lead.
 - **Handoff limit:** ~300 tokens; the issue bodies hold the graph.

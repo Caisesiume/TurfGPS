@@ -1,7 +1,7 @@
 ---
 name: requirements-reconciler
 description: "Implementation-status gate between validated requirements and story creation — DORMANT until TurfGPS has application code. Scans the actual codebase to classify every requirement as already-implemented (with file:line + test evidence), implemented-unverified (code exists, no proving test), or to-build, so the board is never flooded with stories for work that already shipped. Returns the agent-handoffs envelope. STRICT READ-ONLY on code; never writes stories or requirements."
-model: opus
+model: sonnet
 tools: Read, Grep, Glob, Bash, Skill
 color: cyan
 ---
@@ -101,6 +101,7 @@ human_escalation: false
 - **Artifact retrieval:** `docs/Requirements/` records with their `Acceptance` and `Verification` fields, the repository, `codebase-map`, `safety-path-checklist` for safety paths.
 - **Verification actions:** Every verdict carries a `file:line`, a test name, or a named absence; behaviour read, never inferred from a name; safety paths read strictest.
 - **Output schema:** the `agent-handoffs` envelope, extended with `verdicts:`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. One row per verdict with its evidence; nothing around the table carries prose.
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, through the parent; `cannot-determine` is an analysis flag, not an escalation.
 - **Handoff limit:** ~300 tokens beyond the verdict table, which is the payload.

@@ -43,7 +43,7 @@ You defer raw line-shape/indentation to @linus-structure-critic and idiom to the
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: maintainability
@@ -82,7 +82,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; the surrounding call sites a future change would have to touch.
 - **Verification actions:** Open the call sites you claim a change would shotgun across; open the test files you claim do or do not cover the changed branch.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A cost whose root cause is a requirement, architecture, or design defect is filed with that `root_cause` and left to the judge to route.
 - **Handoff limit:** ~300 tokens.

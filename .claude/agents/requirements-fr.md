@@ -114,6 +114,7 @@ human_escalation: false
 - **Artifact retrieval:** The four specification documents, the existing corpus, `docs/Requirements/README.md`'s category register, `requirements-authoring`.
 - **Verification actions:** 29148 checklist per record; citations in `document § section` form; no restated constant; no hardened proposal; verification method present.
 - **Output schema:** the `agent-handoffs` envelope, extended with `requirements:` and `proposed_decisions:`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. **The canonical records travel in full and sit outside the cap** — they are the payload, not commentary on it; everything around them is bound by it.
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, with a recommendation, through the parent — never to the human directly.
 - **Handoff limit:** ~300 tokens of envelope; the records themselves are the payload and are not compressed.

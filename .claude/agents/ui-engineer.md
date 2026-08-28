@@ -77,7 +77,7 @@ HANDOFF:          [→ @react-specialist]
 ═══════════════════════════════════════════════════════════════
 ```
 
-**Reviewing, the output is a verdict instead**, in the shape defined by `agent-handoffs § Reviewer verdict`, with the evidence block from `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here. Compact example:
+**Reviewing, the output is a verdict instead**, in the shape defined by `review-verdicts § Reviewer verdict`, with the evidence block from `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here. Compact example:
 
 ```yaml
 reviewer: ui-engineer
@@ -112,7 +112,8 @@ evidence: |
 - **Required inputs:** The question or the item link; reviewing, the PR number, review-worktree path, and board-item link. References only.
 - **Artifact retrieval:** The existing components, design-system primitives, and data hooks yourself; `Architecture.md § D1`, `§ D2`; `DESIGN.md` for what the surfaces do and what it still owes.
 - **Verification actions:** Recon the client as it is before designing against it; check the structure at 375px before widening; open the state hook you claim reorders rather than inferring it from a component.
-- **Output schema:** Architect — the template above. Reviewer — `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** Architect — the template above. Reviewer — `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here. The architect template above is held to the same row — one bracketed line per field.
 - **Allowed downstream agents:** Architect — hand off to `@react-specialist` through `@worker-manager`. Reviewer — none; you report to `@pr-judge` only.
 - **Escalation:** A visual or interaction convention with no home in `DESIGN.md` goes up as a finding to `@engineering-lead`; you never write it into the document yourself.
 - **Handoff limit:** ~300 tokens.

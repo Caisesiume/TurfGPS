@@ -172,7 +172,7 @@ For durable unattended cadence beyond a session's life, propose a scheduled-task
 
 When the loop genuinely cannot proceed — a §21 condition, a judge deadlock, a human-gated item:
 1. Label the blocked item/PR **`awaiting-human`** and record exactly what decision is needed and the options, on the item itself.
-2. Ask via `AskUserQuestion`, **with a recommendation attached to every option set** — the escalation packet in `agent-handoffs` is the shape. With remote control active this pushes a notification to the human's phone; the loop is now honestly paused, not silently stuck.
+2. Ask via `AskUserQuestion`, **with a recommendation attached to every option set** — the escalation packet in `handoff-payloads` is the shape. With remote control active this pushes a notification to the human's phone; the loop is now honestly paused, not silently stuck.
 3. Park that thread and keep every lane that does NOT depend on the answer turning.
 4. When the human answers, **resume from the persisted escalation packet, not from the conversation.** The packet is on the item or PR; read it, apply the answer, remove the label, and **record the decision on the item, routing any documentation change to its owning document.** Do not reconstruct the prior thread to remember what was asked — a human may answer hours or days later, in a different session, and an escalation that can only be resumed by whoever was there is an escalation that expires. Decisions that live only in chat are lost, which is the Owner's stated reason for the rule.
 
@@ -212,7 +212,8 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 - **Required inputs:** None beyond the board and the artifacts — this is the entry point.
 - **Artifact retrieval:** `scripts/loop/fingerprint.sh engineering-lead` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
 - **Verification actions:** The fingerprint, on your own consumer, before any dispatch; every event dispatch carries its `trigger:`; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation.
-- **Output schema:** the org report; escalation packet per `agent-handoffs`.
+- **Output schema:** the org report; envelope per `agent-handoffs`; escalation packet per `handoff-payloads`.
+- **Output cap:** two rows of `agent-handoffs § Output caps` bind you — the **`@engineering-lead` dispatch** row for every dispatch you write, and the **Owner report** row for the org report above. Both numbers, and the prose licence, live there and are not copied here.
 - **Allowed downstream agents:** `@requirements-engineer`, `@backlog-dependency-planner` (non-batch graph events only), `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`; a registry reviewer **only as courier for `@pr-judge`**, never on your own initiative and never into a panel already running — selection is the judge's and remains so (`§ Before you invoke anything`).
 - **Escalation:** The §21 conditions only, plus the two always-human categories.
 - **Handoff limit:** ~300 tokens per dispatch; never forwards a subagent response whole.

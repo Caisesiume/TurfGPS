@@ -1,9 +1,9 @@
 ---
 name: agent-handoffs
-description: The shared envelope and schemas for every handoff between TurfGPS agents — the input-references/execution/verdict principle, the size limit and its per-field caps, the five payload schemas (worker completion, reviewer verdict, revision packet, escalation packet, risk assessment), the evidence law a reviewer's verdict must satisfy, the context-escalation ladder, and tool-output discipline. Every agent that dispatches another agent, reports to one, or returns a verdict loads this before it writes a handoff.
+description: The shared envelope for every handoff between TurfGPS agents — the input-references/execution/verdict principle, the size limit with its per-field caps, the output caps every capped artifact is held to, the trigger block, the obligation not to end a pass with a continuation outstanding, the context-escalation ladder, tool-output discipline, and the four questions asked before any invocation. The role-specific payload schemas are in `handoff-payloads`; the reviewer verdict and the evidence law are in `review-verdicts`. Every agent that dispatches another agent or reports to one loads this before it writes a handoff.
 ---
 
-# Agent handoffs — the envelope and its payloads
+# Agent handoffs — the envelope
 
 Ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md § D8`, from the Owner directive §23–25.
 
@@ -37,6 +37,24 @@ The ~300 tokens are spent field by field, and a limit with no per-field budget i
 | `recommended_next_action` | **one** action |
 
 Where the reasoning matters and is retrievable, cite where it lives — `DECISIONS.md § RD-007`, the ADR, the PR comment. Where it matters and lives nowhere yet, that is a signal to write it into an artifact, not to widen the envelope.
+
+### Output caps
+
+**Every capped artifact is capped here, and this section is its one home.** A contract that produces one of these cites this table rather than restating a number. Characters rather than tokens, because a writer can count characters.
+
+| Artifact | Cap |
+|---|---|
+| reviewer verdict | **≤ 1,200 chars** plus its findings table; the evidence block **≤ 10 bullets, one line each** |
+| judgment | **≤ 6,000 chars** plus its per-finding resolution table |
+| review ledger | **≤ 2,000 chars**, and it **supersedes** — one table per PR, rewritten each cycle, never appended |
+| worker envelope | **≤ 1,500 chars** |
+| `graph_update` | **≤ 1,200 chars** |
+| an `@engineering-lead` dispatch | **≤ 1,200 chars** |
+| an Owner report | **≤ 2,000 chars** |
+
+**Prose inside a capped artifact is licensed for exactly four things:** a finding **overturned** · a conflict **dissolved** · a rule **renegotiated** · a predecessor **corrected**. In each of those the reasoning *is* the decision and cannot be recovered from the outcome. **A finding that simply holds gets a row, not a paragraph** — the row states it, the artifact the row names carries the rest, and a reader wanting the argument opens what it cites.
+
+**The caps are what give the rule above teeth.** *Verbosity is a contract violation, not a style preference* named no number a writer could fail, and a rule nobody can fail is a preference. The cost being cut is not the artifact itself — issue #128 measured 35 judgment comments at about 120k tokens total, roughly 2% of the runs that produced them. It is the **re-read multiplier**: each cycle ingests its predecessors, so on PR #67 the fifth cycle could take in ~25k tokens of earlier prose before reading a line of the diff. A cap is paid once where it is written and refunded on every later pass.
 
 ## The envelope
 
@@ -76,141 +94,14 @@ trigger:
 
 **An explicitly dispatched agent knows why it was invoked and does not re-poll to second-guess its parent.** The fingerprint's state is per-consumer and already consumed by the dispatcher; re-running the generic gate would let the very signal that caused the dispatch reject it. Self-gating on `scripts/loop/fingerprint.sh <your-own-agent-name>` is for waking *autonomously* — cron, `/loop`, a scheduled run — and the argument is never omitted, because the bare default puts every caller on one shared state file.
 
-## Payload schemas
+## Where the payloads live
 
-### Worker completion
+This skill is the envelope. The schemas that fill it were split out on 28 August 2026, because it is loaded by nearly every agent in the organization and each of them was carrying every other role's payload to reach its own:
 
-Returned by any implementation specialist to `@worker-manager`.
+- **`review-verdicts`** — the reviewer verdict schema, and the evidence law that verdict is measured against. Every convened reviewer loads it.
+- **`handoff-payloads`** — worker completion, the revision packet, the escalation packet, the risk assessment, structured uncertainty, and the dependency finding and graph update.
 
-```yaml
-status: completed
-issue: ENG-142
-changes:
-  - added token refresh handling
-  - added expired-session recovery
-  - added regression tests
-files_changed:
-  - src/auth/session.ts
-  - tests/auth/session.test.ts
-tests:
-  status: passed
-  commands:
-    - npm test -- session.test.ts
-risks:
-  - none_known
-requires_review:
-  - security
-  - correctness
-  - testing
-confidence: 0.93
-```
-
-`requires_review` is a **hint from the person who wrote the code** about where it is weakest. It informs selection; it does not decide it — the registry and the risk assessment do, because an author's sense of where their own work is weak is exactly the thing under review.
-
-Where an acceptance criterion is `test`-verified, the completion also carries the red demonstration required by `docs/DELIVERY.md § Proof that a test can fail` — the assertion's own failure message, per criterion, or the story that owes it.
-
-### Reviewer verdict
-
-Returned by every convened reviewer to `@pr-judge`.
-
-```yaml
-reviewer: security
-status: valid_review
-inspected:
-  diff: true
-files_inspected:
-  - src/auth/session.ts
-findings:
-  - id: SEC-01
-    severity: high
-    file: src/auth/session.ts
-    line: 142
-    description: refresh tokens can be reused after rotation
-    required_change: invalidate the old refresh token on successful rotation
-    root_cause: implementation
-verdict: revise            # pass | revise | blocker | N/A
-confidence: 0.96
-residual_risk:
-needs_followup: false
-evidence: |
-  VERIFIED INDEPENDENTLY:
-    · …
-  ACCEPTED ON TRUST:
-    · …
-```
-
-**`inspected: diff: false` makes the verdict automatically invalid** and the judge ignores it. That flag is the floor; the standard is the `evidence` block, defined in the next section.
-
-Return decision-relevant data only. Deep internal analysis is welcome; only its conclusions enter the parent's context.
-
-**Every finding a reviewer files will be resolved by the judge into exactly one of five outcomes** — `required_change` · `accepted_risk` · `invalid_finding` · `future_work` · `informational`. A reviewer does not resolve its own findings, but knowing the vocabulary changes how it writes them: a finding filed as though everything must block is a finding the judge has to reclassify, and one filed as a passing remark is one that disappears. The five are defined in `docs/DELIVERY.md § Findings and their owners`.
-
-### Revision packet
-
-Produced by `@pr-judge` on remand, consumed by `@worker-manager`.
-
-```yaml
-revision:
-  issue: PR-381
-  cycle: 2
-required_changes:
-  - finding: SEC-01
-    owner: backend
-    scope: src/auth/session.ts
-    change: invalidate old refresh token after successful rotation
-accepted_risks:
-  - finding: PERF-03
-    owner: pr-judge
-    reason: cost bounded by candidate cap; revisit if the cap moves
-review_after_revision:
-  required:
-    - security
-    - correctness
-  not_required:
-    - architecture
-    - accessibility
-    - documentation
-```
-
-`review_after_revision.not_required` is not decoration — it is the instruction that stops a one-line fix from re-running the bench, and it is checkable against the ledger afterwards.
-
-### Escalation packet
-
-The only shape in which anything reaches the human, and only `@engineering-lead` sends it.
-
-```yaml
-human_decision_required: true
-question: <one precise question>
-reason: <why existing artifacts cannot answer it>
-options:
-  - ...
-recommended_option: ...
-impact:
-  ...
-```
-
-**Never ask "What should I do?"** An escalation without a recommendation is work handed back, and the Owner has said so directly. The qualifying conditions are in `docs/DELIVERY.md § Escalation and human judgement`; nothing else qualifies.
-
-### Risk assessment
-
-Produced by `@change-risk-assessor`, consumed by `@worker-manager` at intake and `@pr-judge` at PR open. Structured data only, no prose. Its shape is in that agent's definition.
-
-`review_not_required` in that assessment is a **hard negative**, not a hint — see `review-board-dispatch § Negative routing`.
-
-## Structured uncertainty (blocked)
-
-*§48.* An agent that needs another domain's judgement does not open a conversation with that domain. It **stops and returns**:
-
-```yaml
-status: blocked
-needs_domain_decision:
-  domain: architecture
-  question: <one precise question>
-  evidence: [Architecture.md § Retrieving zones, FR-24, PR 381]
-  recommendation: <what you would do, and why>
-```
-
-The orchestrator that dispatched you routes **one** targeted request, and the answer becomes an artifact or a recorded decision — an ADR, a `DECISIONS.md` entry, an amended requirement — so the next agent retrieves it rather than asking again. **Agents never chat**: a back-and-forth costs a full execution per turn and leaves nothing behind that anyone can retrieve.
+Load the one your role returns, and cite it rather than restating it; neither is summarized here.
 
 ## An outstanding continuation is not left behind
 
@@ -231,81 +122,6 @@ continuation_owed:
 ```
 
 Ending with the work held only in the pass's own context is neither. The second ending is not the lesser one: an agent that cannot await its children still discharges the obligation by making the state retrievable and the debt explicit — the same artifact-over-conversation principle this skill applies to every other handoff. **A pass that ends silently with a continuation outstanding is a defect in that pass**, not an accident of scheduling, and it is invisible by construction: nothing anywhere records that a step was owed.
-
-## Dependency findings and graph updates
-
-*ADR-0003 § P7. The persisted grammar both schemas refer to is `turfgps-board-ops § The dependency representation`, and is not restated here.*
-
-### Dependency finding
-
-Returned by `@scrum-master`, an implementation specialist, `@worker-manager`, or `@pr-judge` when the graph looks wrong from where they stand. It **always ends at `@backlog-dependency-planner` — and always reaches it via the orchestration path**: the reporter puts the finding in its envelope, `@engineering-lead` dispatches the planner. Dispatch authority over the planner is exactly two agents (`ADR-0003 § P9`, amended): `@engineering-lead` for every graph event, and `@requirements-engineer` for its own story batches, which it continues directly because relaying a mandatory pipeline step through an orchestrator adds a hop with no decision in it. Reporting a finding is not dispatching, and **the reporter edits no edge**: a graph repaired in passing by four agents is a graph with no owner, and the repair nobody reviewed is the one that survives.
-
-```yaml
-dependency_finding:
-  reporter: scrum-master
-  story: 46
-  suspected_prerequisite: 43          # or missing_prerequisite / invalid_edge: <n>
-  evidence: ["#46 AC-2 reads the persisted classification", "#43 is what creates it"]
-  recommendation: verify and persist a hard edge — 46 blocked by 43
-```
-
-### Graph update
-
-Returned by `@backlog-dependency-planner`. Edges, not prose: no story text, no requirement text, no account of the pass.
-
-```yaml
-graph_update:
-  stories_examined: [41, 43, 46, 47]
-  added:   [{blocked: 46, prerequisite: 43, type: hard, reason: "consumes the persisted classification"}]
-  removed: [{blocked: 47, prerequisite: 52, reason: "scope moved out of #52; the relationship no longer holds"}]
-  preserved: 9                        # a count — edges outside the pass are untouched, not re-listed
-  newly_unblocked: [43]               # derived from prerequisite state — a satisfied edge is never `removed`
-  newly_blocked: []
-  parallelizable: [[43, 52]]
-  affected_epics: ["Access classification"]
-```
-
-`@requirements-story-organizer` may extend its envelope with **`dependency_hints`** — `{downstream, upstream, reason}`, references only: hints for the planner, never authority over the graph.
-
-## A reviewer does not accept a claim it could check
-
-*Ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md § D5`; moved here by ADR-0002 § O1. This is the home of the evidence law. It lives beside the verdict schema that carries it because every reviewer already loads this skill, and none of them should have to load the judge's dispatch mechanics to find the standard their own verdict is measured against.*
-
-Everything in a dispatch's case file is a **claim**. None of it is evidence, and a reviewer accepts none of it where the means to check it is at hand: not the PR body's account of what changed, not the author's stated gate results, not a count in a commit message, not "the cited section says X." Where the diff, the tree, the section, or the command is available, **the reviewer looks**.
-
-Checking is read-only. `review-board-dispatch § The read-only clause (learned the hard way)` still binds — read the diff, read the tree, open the cited heading, run a command that only reads. A check that would write anything is not available to you; that claim goes under `ACCEPTED ON TRUST` naming `@validation-agent` as its owner.
-
-### The report block
-
-Every verdict carries this, in two halves:
-
-```
-VERIFIED INDEPENDENTLY:
-  · …
-ACCEPTED ON TRUST:
-  · …
-```
-
-**The second half is the load-bearing one.** Listing what you checked is easy and flattering, and a reviewer will fill that half without effort. Naming what you took on faith is the only part of this that makes a reviewer *notice* they took something on faith — which is the entire point, because nothing else in a review surfaces an inherited premise. Write that half first if it helps.
-
-**An empty `VERIFIED INDEPENDENTLY` block is itself a finding.** A reviewer that checked nothing has reviewed the PR body, not the work, and has returned an opinion where a verdict was asked for. Say so plainly rather than letting it pass as brevity.
-
-**This block is the standard; `inspected: diff: true` is only the floor.** The verdict schema above carries that flag, and a verdict reporting `false` is automatically invalid. But a flag is a self-assessment and the block is an enumeration, so a verdict may satisfy the flag and still fail here. The judge checks the block.
-
-### What the obligation reaches
-
-**It reaches what the verdict rests on** — any claim your own verdict depends on. It is not a re-run of the suite: that is `@validation-agent`'s job, it runs last and alone for exactly that reason, and duplicating it across the bench would double the cost of every PR to learn nothing new. Where a claim's truth would not move your verdict, take it on trust and list it.
-
-**`ACCEPTED ON TRUST` is not a dumping ground.** A claim the verdict rests on, written in that half, **is the finding** — the reviewer has just recorded that its own verdict is unsupported. Check it, or file the gap as a finding, but do not list it and rule as though you had.
-
-### Why this is a rule and not a habit
-
-Both of these were found by an agent that checked a premise it had been handed, and neither was found by the pass meant to find it.
-
-- **The board agent that could not see the board.** Its own definition told it an empty board was "a complete and correct run" and to stop; the board held **37 items**. That instruction was reachable on every run, and the run that reached it would have reported an empty backlog and recorded itself as complete. Found 4 August 2026 while sweeping citation delimiters — `c091046`.
-- **The gates whose report could not say where they ran.** `Architecture.md § D8` puts the Go module in `service/`. The gate block carried no working directory, and neither did the report line it then prescribed — that form had no field for one, so no line written in it could name the tree it measured, whatever the commands had actually done. Whether the underlying results differed at all varies by gate, and `local-gates § Backend (Go)` is where that is measured; the form could carry none of it either way. `local-gates § The law` now requires that field. Eleven agent files and the PR-body template carried the same directory-less copy, so the path ran unbroken from command to report line. Closed before any PR in this repository existed to carry it; the instrument, not a reviewer, was the thing that would have lied. Found 5 August 2026 because a layout decision recorded its own cost honestly — `d6a7e3e`, `1928a28`. **The mechanism first recorded here — all five commands passing vacuously over an empty root — was itself measured false and retracted on 22 August 2026; `Architecture.md § D8` carries the retraction and `local-gates § Backend (Go)` the measurement. The incident stands and so does the law it justifies**: the report still could not say where it ran, and the quiet gate is quiet from the wrong directory for a reason that says nothing about what it read.
-
-Neither is something a reviewer catches by reading attentively. Both were **instruments reporting success**, and the only thing that separated the report from the truth was an agent running the thing itself.
 
 ## The context escalation ladder
 

@@ -66,7 +66,9 @@ Argument: the merged or closed issue number. It reads open issues once, parses h
 
 ### P7 — Two schemas in `agent-handoffs`
 
-*Context: §11, §18, §20. `agent-handoffs § Dependency findings and graph updates`.*
+**Both now live in `handoff-payloads`**, split out of `agent-handoffs` on 28 August 2026; the heading records where P7 put them and the citation below is the current home.
+
+*Context: §11, §18, §20. `handoff-payloads § Dependency findings and graph updates`.*
 
 **`dependency_finding`** — reporter, story, suspected or missing prerequisite, evidence references, recommendation. Returned by `@scrum-master`, specialists, `@worker-manager`, `@pr-judge`; **always** routed to the planner; reporters never edit edges. **`graph_update`** — stories examined, edges added/removed/preserved with type and reason, newly unblocked, newly blocked, parallelizable sets, affected Epics. The organizer's envelope may extend with `dependency_hints`.
 
@@ -159,7 +161,7 @@ A hard edge whose prerequisite is **successfully complete** is **satisfied**: it
 
 `@pr-judge` and `@worker-manager` read as though they did: the judge routed `dependency`/`planning`-root-cause findings "to `@backlog-dependency-planner`" and listed it downstream, and the manager "carried a `dependency_finding` up to" it. Both now **classify and report upward**, and `@engineering-lead` dispatches. The distinction is the point: **a finding is evidence, a dispatch is a decision about whether the graph should be re-reasoned now**, and a planner with four dispatchers is one that runs on every reporter's estimate of its own urgency — the per-event discipline this record exists to hold. Root-cause classification is untouched and remains load-bearing: without a correctly named `dependency` or `planning` root cause, there is nothing for the lead to route.
 
-Neither agent lost anything it owned. `agent-handoffs § Dependency findings and graph updates` states the same routing in the schema's own home.
+Neither agent lost anything it owned. `handoff-payloads § Dependency findings and graph updates` states the same routing in the schema's own home.
 
 ## Amendment — 2026-08-16 (first live loop cycle)
 

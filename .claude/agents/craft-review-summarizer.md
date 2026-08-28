@@ -44,7 +44,7 @@ You are a synthesizer, not a judge and not a reviewer:
 
 ## Output
 
-The envelope, the verdict shape, and the evidence obligation each reviewer's verdict must satisfy are all in `agent-handoffs` — the last at `§ A reviewer does not accept a claim it could check`. Compact example:
+The envelope is in `agent-handoffs`; the verdict shape and the evidence obligation each reviewer's verdict must satisfy are both in `review-verdicts`, the last at `review-verdicts § A reviewer does not accept a claim it could check`. Compact example:
 
 ```yaml
 agent: craft-review-summarizer
@@ -83,6 +83,7 @@ invalid_verdicts:
 - **Artifact retrieval:** The verdicts themselves and the review ledger comment; a cited file or line only to check that a finding says what it claims.
 - **Verification actions:** Check each verdict carries an evidence block and each finding a file, a location, and a `required_change`; check two findings you merge really are the same defect.
 - **Output schema:** the block above, inside the `agent-handoffs` envelope.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps` — one consolidated verdict, not the sum of its inputs; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A cross-reviewer conflict is surfaced, not resolved; you never escalate to the human yourself.
 - **Handoff limit:** ~300 tokens, exceeded only where a conflict must be stated in both reviewers' own words.

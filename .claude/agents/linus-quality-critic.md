@@ -101,7 +101,7 @@ go test ./... -run <relevant> -count=1
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: linus-quality
@@ -162,7 +162,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, head SHA, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; the gate commands from `local-gates § Backend (Go)`; `safety-path-checklist` where a safety path is in reach.
 - **Verification actions:** Confirm the author's gates carry a directory and treat one that does not as unrun; run the *targeted* test from `service/` and report the directory; establish the safety-path list from the diff rather than from the dispatch.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A defect on a safety path is filed and `@safety-sentinel` named in `requires_review` — its registry row is mandatory at every tier and the judge cannot decline the flag.
 - **Handoff limit:** ~300 tokens. You may be exhaustive internally; only the conclusions travel, and a chronology of how you read the diff is never one of them.

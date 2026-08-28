@@ -77,7 +77,7 @@ The corpus has already caught this defect one level up. `NFR-001` carried an acc
 
 ### What a reviewer does with it
 
-Confirming a demonstration instead of reading the claim of one is an instance of `agent-handoffs § A reviewer does not accept a claim it could check`, and is governed there rather than here. One consequence is worth naming because it is not obvious: **re-running a demonstration is a write**, since it neutralises an implementation in a tree, so it is not available to a critic under that section's read-only bound and belongs in the `ACCEPTED ON TRUST` half. What is available read-only is the shape of the recorded evidence — that an entry exists for every `test`-verified criterion the item claims, and that each carries an assertion's message rather than a build failure.
+Confirming a demonstration instead of reading the claim of one is an instance of `review-verdicts § A reviewer does not accept a claim it could check`, and is governed there rather than here. One consequence is worth naming because it is not obvious: **re-running a demonstration is a write**, since it neutralises an implementation in a tree, so it is not available to a critic under that section's read-only bound and belongs in the `ACCEPTED ON TRUST` half. What is available read-only is the shape of the recorded evidence — that an entry exists for every `test`-verified criterion the item claims, and that each carries an assertion's message rather than a build failure.
 
 The form the pull request reports this in sits with the gate report law, under `local-gates § The law`.
 
@@ -118,10 +118,10 @@ Two floors are not subject to selection:
 
 ### Verdicts
 
-Each convened reviewer returns **`pass`**, **`revise`**, or **`blocker`**, with a confidence and severity-tagged findings. The schema is in the `agent-handoffs` skill; the evidence obligations are in `review-board-dispatch`.
+Each convened reviewer returns **`pass`**, **`revise`**, or **`blocker`**, with a confidence and severity-tagged findings. The schema and the evidence obligations are both in `review-verdicts`.
 
 - **Enumerate or certify.** A `revise` or `blocker` with no concrete finding is invalid and goes back — it is an impression where a verdict was asked for. So is a `pass` that mentions an actionable problem without filing it: the problem is a finding with an owner, or it is informational and says so.
-- **Evidence or the verdict does not count.** A review that did not inspect the actual code or diff is invalid on its face. The full obligation — the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block — is in `agent-handoffs § A reviewer does not accept a claim it could check`, and it is the standard, not a formality.
+- **Evidence or the verdict does not count.** A review that did not inspect the actual code or diff is invalid on its face. The full obligation — the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block — is in `review-verdicts § A reviewer does not accept a claim it could check`, and it is the standard, not a formality.
 - **N/A is not a courtesy pass.** A convened reviewer that finds its lane genuinely untouched returns `N/A`. It does not pass. An agent that passes because it found nothing to examine has recorded an approval it never performed, and that matters later, when the question is who actually approved something.
 
 ### Findings and their owners
@@ -206,6 +206,23 @@ This is a token-efficiency requirement as much as a review-hygiene one, and the 
 Initial implementation may refactor coherently; **review remediation patches narrowly.** `@worker-manager` states this law in every revision dispatch, because the specialist receiving a remand is precisely the agent most tempted to improve one more thing while it is in there.
 
 **The judge keeps a review ledger** as a structured comment on the PR — reviewer, verdict, confidence, diff SHA reviewed, domain — updated every cycle. The ledger is what makes carried-forward validity checkable by someone who was not there, which is the same reason the red-demonstration rule prefers evidence to sequence.
+
+### The cycle-inflation rule
+
+**At cycle 3 or later, a new `low`-severity finding located in text the previous cycle created resolves to `future_work` by default, not `required_change`.** The default is a starting point and not a bar: **overriding it requires a stated reason naming what makes that instance different**, recorded with the resolution like any other, and a judge that can state one has satisfied the rule rather than escaped it.
+
+**Four things it never reaches**, and the list is closed: a finding at `medium` severity or above · anything on a safety path · a security finding · a **false statement of fact**. Those resolve on their merits at every cycle. The rule bounds the *precision* work a late cycle generates about itself, and precision is the only thing it bounds.
+
+**Two of those four are terms of art, and they are defined here because nothing else defines them.** An exclusion a judge cannot apply the same way twice is not an exclusion.
+
+- **The severity scale is `blocker` > `high` > `medium` > `low` > `info`** — the vocabulary every reviewer's finding schema already carries, stated here as the ordinal it is. ***`medium` or above*** therefore means `blocker`, `high`, or `medium`. A finding that arrives without a severity is not `low` by default: the judge assigns one, and records it, before this rule is applied to it.
+- **A false statement of fact is a sentence a reader could act on that the artifact it names does not support** — a citation to a section that does not say it, a count that does not match what was counted, a claim about a command's output the command does not produce, an attribution to the wrong author or artifact. **The test is the check, not the wording.** It is a false statement of fact if a reader can open the named artifact and find otherwise, however the sentence is phrased; hedging it into an opinion does not move it out of the class, and only correcting it or removing the claim does. This matters on a prose corpus, where the alternative to a definition is a rule escapable by rewording.
+
+**The evidence is three independent records, and only two of them are a judge's.** PR #67's cycle 2 is **`@linus-security-critic`'s verdict**, persisted on the PR by `@engineering-lead` under *"no ruling issued"* because the judge process ended before it could rule: eight new findings, *"all second-order — every one attaches to prose that did not exist in cycle 1."* A reviewer named the shape from inside the panel, which is where it is first visible. PR #120's **cycle-2 judgment comment** recorded that *"four of the five new findings are precision defects in text that the discharge of cycle 1's findings created"* — and scoped its next cycle to the named edits for that reason. PR #110's final ruling put the mechanism beyond inference: the `DOC-16` fix **mechanically produced** `DOC-17`, because *"a faithful, correct execution of the packet generated the next finding."* A loop whose input is its own output terminates on the budget rather than on the work.
+
+**Two of those three records are cycle 2, and the rule still begins at cycle 3 — they establish the mechanism, not the threshold.** Cycle 2 is the earliest a finding *can* sit in text a previous cycle created, so it is where the shape first becomes visible, and it is also the panel's **first** reading of that correction — ordinary review, and where a regression the fix introduced actually lands. Cycle 3 is the first reading of a correction to a correction the panel has already read once. The floor sits one cycle above the first occurrence deliberately: the record that shows whether this is working is written at the cycle it declines to bind.
+
+**The number is why this is a rule rather than a preference.** A revision cycle costs roughly **570,000 tokens** — the judge, the worker, and the re-run lanes — measured across one session of live operation and recorded in issue #128. That is what the default is worth each time it holds, weighed against one `low` finding which `future_work` records as a traceable issue and therefore does not lose. `§ Findings and their owners` governs that half unchanged: never a revision trigger, and never lost.
 
 ### Convergence and budgets
 

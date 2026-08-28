@@ -67,6 +67,7 @@ Where the evidence is sufficient: `followup: none` and `recommendation: decide_n
 - **Artifact retrieval:** The verdicts and the review ledger comment; a cited file or line only to audit a claim against it.
 - **Verification actions:** Check each verdict carries an evidence block; check every finding has file, location, and required change; check every required lane has a verdict.
 - **Output schema:** the block above; envelope per `agent-handoffs`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Name the weakest specific point; do not argue it.
 - **Allowed downstream agents:** None — you propose a follow-up, `@pr-judge` dispatches it.
 - **Escalation:** None directly. A conflict you cannot characterise is reported to the judge as a conflict.
 - **Handoff limit:** ~300 tokens.

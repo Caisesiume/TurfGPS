@@ -44,7 +44,7 @@ You defer prose style and formatting polish; a doc can be plain and still perfec
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: docs
@@ -83,7 +83,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, board-item link. References only.
 - **Artifact retrieval:** The diff yourself; the code the document describes; `Architecture.md` for drift; the review ledger comment when checking verdict fidelity.
 - **Verification actions:** Grep the function, open the handler, check the migration — a claim is verified against disk or it is not verified. Open every cross-reference you call resolvable.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** Drift whose root cause is a requirement or architecture defect is filed with that `root_cause` and left to the judge to route.
 - **Handoff limit:** ~300 tokens.

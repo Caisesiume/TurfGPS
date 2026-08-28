@@ -181,7 +181,8 @@ Every question that does reach the human carries a **proposed answer**. A questi
 - **Required inputs:** Mode, and the batch's source sections or the finding/issue ID. References only.
 - **Artifact retrieval:** The four documents, `docs/Requirements/` including `DECISIONS.md`, the board, the cited stories.
 - **Verification actions:** Every record cites `document § section`; no restated constant; no hardened proposal; verification method present; coverage audited both directions; no continuation left outstanding at the end of the pass.
-- **Output schema:** the report above; envelope and escalation packet per `agent-handoffs`.
+- **Output schema:** the report above; envelope per `agent-handoffs`; escalation packet per `handoff-payloads`.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. It governs the report above and the envelope alike; the digest is a list of IDs, and `DECISIONS.md` holds their reasoning.
 - **Allowed downstream agents:** the five requirements sub-agents, selected by task type; `@backlog-dependency-planner` as a **one-shot pipeline continuation** after a story batch — dispatched, never managed, and not a sixth sub-agent. Upward: `@engineering-lead`.
 - **Escalation:** The five §21 conditions only, always with a recommendation.
 - **Handoff limit:** ~300 tokens upward; the digest is a list of IDs, not their reasoning — that lives in `DECISIONS.md`.

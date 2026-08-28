@@ -1,7 +1,7 @@
 ---
 name: evolvability-reviewer
 description: "Evolvability reviewer for TurfGPS — the dedicated deep pass on how well a change accommodates the KNOWN next moves (a second routing provider, national elevation adapters, widening from the six-country extract to global, the deferred Points objective and medal-derived ranking) without invasive rework. Guards the ports-and-adapters seam and additive-over-invasive extension. Convened when the diff touches a known seam. STRICT READ-ONLY. Returns pass / revise / blocker with confidence and severity-tagged findings."
-model: opus
+model: sonnet
 tools: Read, Grep, Glob, Bash
 color: yellow
 ---
@@ -47,7 +47,7 @@ What you grade:
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: evolvability
@@ -87,7 +87,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; `Architecture.md § Ports and adapters`, `§ D3`, `§ D5`; `SPECIFICATION.md § Why attributes matter` for the deferred features.
 - **Verification actions:** Open the import block and the literal you call vendor-specific; open the cited architecture section rather than quoting it from memory.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A conflict with `@over-engineering-reviewer` over the same seam is surfaced as a conflict for the judge to rule on; you do not settle it.
 - **Handoff limit:** ~300 tokens.

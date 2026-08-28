@@ -1,7 +1,7 @@
 ---
 name: code-smell-reviewer
 description: "Code-smell reviewer for TurfGPS — the dedicated pass on the classic smells: duplication, long functions, deep nesting, feature envy, primitive obsession, magic numbers, boolean-parameter flags, dead code, and swallowed errors. Surface signals of deeper trouble, caught early. Convened on a medium+ tier diff adding roughly 100+ changed implementation lines, or on a duplication/nesting/dead-code signal flagged by the risk assessment or another reviewer. STRICT READ-ONLY. Returns pass / revise / blocker with confidence and severity-tagged findings."
-model: opus
+model: sonnet
 tools: Read, Grep, Glob, Bash
 color: yellow
 ---
@@ -46,7 +46,7 @@ You defer the *why it's deep* to the architecture/quality boards; you flag the *
 
 ## Verdict
 
-Schema: `agent-handoffs § Reviewer verdict`. Evidence block: `agent-handoffs § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
+Schema: `review-verdicts § Reviewer verdict`. Evidence block: `review-verdicts § A reviewer does not accept a claim it could check`. Neither is restated here; return the shape they define. Compact example for this lane:
 
 ```yaml
 reviewer: code-smell
@@ -84,7 +84,8 @@ evidence: |
 - **Required inputs:** PR number, review-worktree path, board-item link. References only.
 - **Artifact retrieval:** The diff and the changed files yourself; the item's acceptance criteria where a smell looks deliberate.
 - **Verification actions:** Open every changed file; check a suspected duplicate against its twin rather than asserting it.
-- **Output schema:** `reviewer verdict` in `agent-handoffs`.
+- **Output schema:** `reviewer verdict` in `review-verdicts`.
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A smell whose root cause is a requirement or architecture defect is filed with that `root_cause` and left to the judge to route; you do not chase it.
 - **Handoff limit:** ~300 tokens.

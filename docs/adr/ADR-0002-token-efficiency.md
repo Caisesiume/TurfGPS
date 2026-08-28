@@ -18,7 +18,7 @@ The directive proposes several things this repository had already built. They ar
 
 | Directive | Where it already lives |
 |---|---|
-| §25/§26 — reviewers do not rerun the machine suite | `agent-handoffs § What the obligation reaches`; `@validation-agent` runs last and alone |
+| §25/§26 — reviewers do not rerun the machine suite | `review-verdicts § What the obligation reaches`; `@validation-agent` runs last and alone |
 | §17/§18 — files **and** domain intersection test | `review-board-dispatch § The intersection test` |
 | §35 — confidence follow-ups are one-hop | `DELIVERY.md § The merge decision`; `@confidence-assessor` |
 | §30 — pre-invocation questions | `agent-handoffs § Before you invoke anything` |
@@ -52,13 +52,15 @@ Measured on this repository, on 2026-08-10, before any edit in this wave.
 
 ## Decision
 
-### O1 — The evidence law moves to `agent-handoffs`
+### O1 — The evidence law moved to `agent-handoffs`
 
 *Context: L1, §42's "one authoritative home per shared rule", §43's "load the smallest sufficient instruction set".*
 
-`§ A reviewer does not accept a claim it could check` — the rule, the two-halves block, *What the obligation reaches*, and both recorded incidents — now lives in **`agent-handoffs`**, beside the verdict schema that carries it. `review-board-dispatch` keeps the heading with a one-line pointer, so the 23 existing citations still land somewhere true until a fleet pass retargets them. `pr-judge.md` and `DELIVERY.md` are retargeted in this wave.
+`review-verdicts § A reviewer does not accept a claim it could check` — the rule, the two-halves block, what the obligation reaches, and both recorded incidents — moved to **`agent-handoffs`**, beside the verdict schema that carries it. `review-board-dispatch` keeps the heading with a one-line pointer, so the 23 existing citations still land somewhere true until a fleet pass retargets them. `pr-judge.md` and `DELIVERY.md` are retargeted in this wave.
 
 The law itself is **unchanged in substance** — this is a move, not a rewrite. Its purpose is that reviewers stop loading the judge-side skill entirely; every one of the 23 already loads `agent-handoffs`, so the new home costs them nothing.
+
+**The home moved once more on 28 August 2026, and this decision is unchanged by it.** `agent-handoffs` was split, and the evidence law travelled with the verdict schema it measures into `review-verdicts` — still one skill for a reviewer, now without the payload schemas of every other role attached. What O1 decided is where this law sits *relative to the verdict*, and that has held through both moves; the citations were retargeted in the same diff that made them false.
 
 ### O2 — Five tightened registry rows, and one mandatory set
 
@@ -115,7 +117,7 @@ Tool output: success is a one-line confirmation; failure returns the failed comm
 
 *Context: §37, §38.*
 
-`required_change | accepted_risk | invalid_finding | future_work | informational`. **`future_work`** is valid work outside scope: the judge records it as a traceable issue reference, or hands it to `@engineering-lead` to route — **never a revision trigger, never lost.** **`informational`** is recorded and actioned by nobody. In `DELIVERY.md § Findings and their owners`, `agent-handoffs § Reviewer verdict`, `pr-judge.md § Phase 8`.
+`required_change | accepted_risk | invalid_finding | future_work | informational`. **`future_work`** is valid work outside scope: the judge records it as a traceable issue reference, or hands it to `@engineering-lead` to route — **never a revision trigger, never lost.** **`informational`** is recorded and actioned by nobody. In `DELIVERY.md § Findings and their owners`, `review-verdicts § Reviewer verdict`, `pr-judge § Phase 8`.
 
 ### O9 — Stopping rule, cycle justification, accounting
 
@@ -131,7 +133,7 @@ Tool output: success is a one-line confirmation; failure returns the failed comm
 
 ### O10 — Model retiers
 
-*Context: L13, §40. Owned by a fleet pass over the agent files; recorded here as the ratified target.*
+*Context: L13, §40. Owned by a fleet pass over the agent files; recorded here as the ratified target.* **Amended by O19 (28 August 2026)**, which narrows the semantic-reviewer exclusion below to §40's own classification. Read the two together; where they differ, O19 is the live rule.
 
 To `sonnet`: `@craft-review-summarizer`, `@go-review-summarizer`, `@linus-review-summarizer`, `@scrum-master`, `@state-reporter`, `@validation-agent`. **Every semantic reviewer is unchanged** — a narrow lane is not a cheap judgement, and downgrading a critic to save tokens is exactly the trade §50 forbids.
 
@@ -204,7 +206,7 @@ O6's component list stands; what each component *reads* was wrong in ways that e
 
 ### O16 — A gate command is `@validation-agent`'s, and a reviewer's lapse is noted rather than fatal
 
-*Observed once. A `@docs-reviewer` ran gate commands, exceeding its dispatch.* What a reviewer needing a measurement does instead is `agent-handoffs § What the obligation reaches`, applied at dispatch by `review-board-dispatch § Read-only is not the whole of the boundary`; this record adds no third statement of it.
+*Observed once. A `@docs-reviewer` ran gate commands, exceeding its dispatch.* What a reviewer needing a measurement does instead is `review-verdicts § What the obligation reaches`, applied at dispatch by `review-board-dispatch § Read-only is not the whole of the boundary`; this record adds no third statement of it.
 
 **The judge's disposition is recorded alongside it, because the risk here runs both ways.** In the observed case the tree verified clean and the measurements proved load-bearing, and the judge **noted the lapse rather than invalidating the verdict** — which is correct, and is now written down so the next judge does not over-correct into discarding one. The validity table asks whether a verdict is *evidenced*; discarding one whose evidence held buys nothing and costs a full re-review. **A tree that moved remains the separate and fatal failure.** In `review-board-dispatch § Read-only is not the whole of the boundary`.
 
@@ -217,3 +219,34 @@ O6's component list stands; what each component *reads* was wrong in ways that e
 **Extended 18 August 2026, on this record's own evidence gap.** O17 makes the `Activate when` column the whole of the bound, and PR #110's security review found that column naming neither **inbound network exposure / deployment reachability** nor **supply chain / build provenance** — so a document deciding either fell outside the lane this record had just widened. PR #67 is O17's entire evidentiary basis and its own `SEC-02` sits in that gap: the reverse-proxy exposure invariant, Valhalla's HTTP daemon not binding loopback, is ingress, where `external requests` is egress. **`supply chain / build provenance` is earned by ownership rather than by an incident, and is recorded that way rather than given a #67 story it does not have:** `linus-security-critic § Core Identity` names the third-party supply chain among the surfaces the lane guards, `linus-security-critic § Attribute Ownership` puts it in the Security row's own list of what the lane checks, and `linus-security-critic § Contract` both sweeps it as a responsibility and carries the `govulncheck` verification action — none of the three touched by this diff, so the column now names a surface the lane already owned. Both surfaces are now named in the column. **No disjunct was restored** — the column remains a closed enumeration, and this record still does not copy it.
 
 **This widens a row O2 narrowed, on the evidence O2 asked for, and it is not a reversal of the wave.** `docs_only` remains an exact deterministic fact about file extensions and O6's §50 guard is untouched. What it stops being is an automatic answer about the **security lane** — which was never a file-extension question, and which §50 already reserved for the assessor and the judge on exactly this reasoning.
+
+## Amendment — 2026-08-28 (measured session)
+
+*Source: issue #128, which measured one session of live operation end to end — ~12.7M subagent tokens, `@pr-judge` ~28% of them and the convened reviewers ~23%. The measurement's finding is that the cost sits in what agents **read** and how often they **re-do**, not in what they write: 35 judgment comments totalled ~120k tokens, about 2% of the runs that produced them. O1–O9 and O11–O17 stand; **O10 is amended by O19 below**, on the revisit condition O10 itself named. This amendment adds the one rule the distribution asks for by name, and settles the model tiers the same session made decidable.*
+
+### O18 — Cycle inflation has a floor
+
+At cycle 3 or later, a new `low`-severity finding in text the previous cycle created resolves to **`future_work` by default**, and an override states what makes that instance different. `medium`+ severity, safety paths, security findings, and false statements of fact are outside it entirely. The law is `DELIVERY.md § The cycle-inflation rule`, which is where it is ratified and where its bounds are settled; `pr-judge § Phase 8` is where it is applied.
+
+**Ratified because three records converged without conferring, and they do not all come from the same seat** — PR #67 cycle 2, which is `@linus-security-critic`'s **verdict** persisted under *"no ruling issued"* rather than a judge's ledger (eight new findings, every one attached to prose cycle 1 did not contain), and PR #120 cycle 2's **judge ledger** (four of five new findings created by discharging cycle 1); then PR #110's final ruling, which established mechanism rather than correlation: a **compliant** execution of the revision packet mechanically produced the next finding. That is a loop whose input is its own output, and it stops on the budget rather than on the work.
+
+**The cost is why it carries a number.** A revision cycle measured at roughly **570,000 tokens**; the session #128 measured would have avoided three to four of them. A rule with a number attached is applied, and one without it is weighed against whatever the last reviewer noticed.
+
+**What this gives up, stated plainly:** some real `low` findings will merge unfixed, carried as `future_work` issues instead. That is the wager — the same one `future_work` was created to make in O8 — and the counter-evidence to watch for is a `future_work` backlog that grows without ever being worked, which would mean the class is being used to close cycles rather than to defer them.
+
+### O19 — O10's semantic-reviewer exclusion is narrowed to the directive it implements
+
+*Amends O10. Filed as a blocker by `@linus-architecture-critic` on PR #129 cycle 1: the diff retiered nine semantic reviewers while O10 read* **"Every semantic reviewer is unchanged."** *Both could not stand. Resolved by amending O10 rather than withdrawing the retiers, on two grounds — and the amendment costs two of them.*
+
+**O10 went beyond the directive it implements.** §40 sorts roles by the shape of their work and names **"narrow reviewers"** explicitly among those that *"may use a cheaper one."* O10 read that as a blanket exclusion of every reviewer. That is stricter than the directive, so this narrows an over-broad implementation rather than reversing an Owner position — §40's carve-outs for *"difficult architecture"* and the high-reasoning roles are untouched, and it is those, not the word *reviewer*, that O10 was protecting.
+
+**O10 named its own revisit condition, and the data now exists.** It deferred §32 outcome-based tuning *"until real PR data exists"* and fixed the metric in advance: **not how often a reviewer passes, but whether its findings were unique and outcome-changing.** Merged PRs with recorded ledgers now exist. The condition O10 set is met rather than circumvented, and applying the metric O10 chose is the amendment it asked for.
+
+**The metric is applied in both directions, because it cut both ways. Two retiers are withdrawn.**
+
+- **`@maintainability-reviewer` returns to `opus`.** On PR #106 its `MAINT-06` reached the `Makefile` false pass — a report line derived from nothing the recipes produced — independently of `@validation-agent`'s `VAL-01` blocker; together they carried `CORE-01`, the `required_change` that PR turned on. `MAINT-01` and `MAINT-02` carried two more at `high`. **Recorded honestly: `MAINT-06` was not unique, and the metric asks for both.** It counts anyway, because a semantic lane arriving at a machine lane's blocker by its own route is judgement rather than duplication, and the class it caught is a **false pass** — the class a cheaper model is likeliest to wave through.
+- **`@worker-manager` returns to `opus`.** The retier held that its Phases 2–4 are checklist-shaped — a roster, a written order, two named commands, mechanical verification — and that the residual risk, **negative routing**, is contained by three mandatory floors. `@linus-architecture-critic` dismantled that and is right: **all three floors are predicates over the diff, and a lane that never runs produces an absence from the diff rather than a signal in it.** Worse, the high-tier floor **inverts** — under-routing yields a smaller diff, which yields a lower tier, which yields a smaller panel. The containment is weakened by the very failure it exists to hold. The uncovered risk sits in Phase 1 and the dormancy call, which the justification never reached.
+
+**Eleven retiers stand, and their basis is the classification, not outcome data.** Eight are narrow reviewer lanes with an explicit checklist — `@code-smell-reviewer`, `@design-reviewer`, `@evolvability-reviewer`, `@go-structure-critic`, `@modularity-reviewer`, `@performance-reviewer`, `@scalability-reviewer`, `@ux-reviewer` — and three are structured filing roles: `@project-coordinator`, `@requirements-librarian`, `@requirements-reconciler`. **That is §40's classification and nothing more. Most have never been convened, so no outcome data exists for them and none is claimed** — asserting otherwise would be exactly the guess O10 refused to encode. **O10's metric governs them in both directions once data arrives:** a lane whose findings prove unique and outcome-changing returns to `opus` on the same evidence that just returned two, and the ledger is where that will show.
+
+**Counter-evidence to watch:** a `sonnet` lane returning `pass` on a diff a later cycle or a merged defect proves it should not have. Reversing one is a row in the ledger and a line of frontmatter.
