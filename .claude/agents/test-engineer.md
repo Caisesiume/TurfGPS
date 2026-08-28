@@ -94,7 +94,7 @@ confidence: 0.94
 - **Allowed downstream:** none — it authors alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.
-- **Must NOT run when:** No item is assigned; the item has no testable surface; the stack under test is dormant — there is no application code yet.
+- **Must NOT run when:** No item is assigned; the item has no testable surface; the stack under test is dormant, which is derived from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume` and never from this line.
 
 ---
 
