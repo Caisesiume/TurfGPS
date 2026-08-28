@@ -227,20 +227,29 @@ func (r *runner) runOnce(ctx context.Context) Outcome {
 		return OutcomeAborted
 	}
 
+	// EVERY LINE THIS RUN WRITES CARRIES THE ID OF THE ROW IT DESCRIBES, and
+	// that is not decoration. `sync_run` records THAT the staging assertions
+	// refused a response; WHICH assertion refused it is in the log and nowhere
+	// else, as are the store error and the status behind every other outcome. An
+	// operator holding a failed row and a log that named the run once had to
+	// match the two on a timestamp — across however many lines the interval put
+	// between them.
+	log := r.log.With("run", id)
+
 	result := Result{Outcome: OutcomeAborted}
 
 	defer func() {
 		recovered := recover()
 		if recovered != nil {
 			result.Outcome = OutcomeAborted
-			r.log.Error("the zone sync run panicked", "panic", recovered)
+			log.Error("the zone sync run panicked", "panic", recovered)
 		}
 
 		finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), r.databaseTimeout)
 		defer cancel()
 
 		if err := r.store.FinishRun(finishCtx, id, result); err != nil {
-			r.log.Error("the zone sync could not record the end of a run, which will be left at running", "run", id, "outcome", result.Outcome, "error", err)
+			log.Error("the zone sync could not record the end of a run, which will be left at running", "outcome", result.Outcome, "error", err)
 		}
 
 		if recovered != nil {
@@ -248,7 +257,7 @@ func (r *runner) runOnce(ctx context.Context) Outcome {
 		}
 	}()
 
-	r.execute(ctx, startedAt, &result)
+	r.execute(ctx, log, startedAt, &result)
 
 	return result.Outcome
 }
@@ -256,8 +265,8 @@ func (r *runner) runOnce(ctx context.Context) Outcome {
 // execute is the run itself. It reports by filling result rather than by
 // returning, so the deferred finalise records what was learned before a failure
 // as well as the failure.
-func (r *runner) execute(ctx context.Context, startedAt time.Time, result *Result) {
-	zones, ok := r.receive(ctx, result)
+func (r *runner) execute(ctx context.Context, log *slog.Logger, startedAt time.Time, result *Result) {
+	zones, ok := r.receive(ctx, log, result)
 	if !ok {
 		return
 	}
@@ -273,7 +282,7 @@ func (r *runner) execute(ctx context.Context, startedAt time.Time, result *Resul
 	if err != nil {
 		result.Outcome = OutcomeAborted
 
-		r.log.Error("the response could not be staged", "error", err)
+		log.Error("the response could not be staged", "error", err)
 
 		return
 	}
@@ -286,7 +295,7 @@ func (r *runner) execute(ctx context.Context, startedAt time.Time, result *Resul
 	if err != nil {
 		result.Outcome = OutcomeAborted
 
-		r.log.Error("the staged response could not be inspected", "error", err)
+		log.Error("the staged response could not be inspected", "error", err)
 
 		return
 	}
@@ -294,12 +303,12 @@ func (r *runner) execute(ctx context.Context, startedAt time.Time, result *Resul
 	if reasons := staged.Verify(r.minZoneRatio); len(reasons) > 0 {
 		result.Outcome = OutcomeAssertionFailed
 
-		r.log.Error("the staged response was refused and nothing was merged", "reasons", reasons)
+		log.Error("the staged response was refused and nothing was merged", "reasons", reasons)
 
 		return
 	}
 
-	r.merge(ctx, received, result)
+	r.merge(ctx, log, received, result)
 }
 
 // receive performs the one external call, bounded by its own deadline, and maps
@@ -310,7 +319,7 @@ func (r *runner) execute(ctx context.Context, startedAt time.Time, result *Resul
 // representations of the same response, and letting it fall out of scope as the
 // mapped rows are returned keeps the peak to one of them plus the staging load
 // rather than to both across the whole run.
-func (r *runner) receive(ctx context.Context, result *Result) ([]Zone, bool) {
+func (r *runner) receive(ctx context.Context, log *slog.Logger, result *Result) ([]Zone, bool) {
 	fetchCtx, cancel := context.WithTimeout(ctx, r.fetchTimeout)
 	body, status, err := r.fetch(fetchCtx)
 
@@ -334,14 +343,14 @@ func (r *runner) receive(ctx context.Context, result *Result) ([]Zone, bool) {
 		if ctx.Err() != nil {
 			result.Outcome = OutcomeAborted
 
-			r.log.Info("the zone sync run was cancelled during the fetch", "error", err)
+			log.Info("the zone sync run was cancelled during the fetch", "error", err)
 
 			return nil, false
 		}
 
 		result.Outcome = OutcomeHTTPError
 
-		r.log.Error("the all-zones fetch failed", "status", status, "error", err)
+		log.Error("the all-zones fetch failed", "status", status, "error", err)
 
 		return nil, false
 	}
@@ -354,7 +363,7 @@ func (r *runner) receive(ctx context.Context, result *Result) ([]Zone, bool) {
 		// is what separates the two.
 		result.Outcome = OutcomeHTTPError
 
-		r.log.Error("the all-zones response could not be read", "error", err)
+		log.Error("the all-zones response could not be read", "error", err)
 
 		return nil, false
 	}
@@ -363,7 +372,7 @@ func (r *runner) receive(ctx context.Context, result *Result) ([]Zone, bool) {
 }
 
 // merge runs the one transaction and records what it did.
-func (r *runner) merge(ctx context.Context, received int, result *Result) {
+func (r *runner) merge(ctx context.Context, log *slog.Logger, received int, result *Result) {
 	mergeCtx, cancel := context.WithTimeout(ctx, r.mergeTimeout)
 	merged, err := r.store.Merge(mergeCtx)
 
@@ -372,7 +381,7 @@ func (r *runner) merge(ctx context.Context, received int, result *Result) {
 	if err != nil {
 		result.Outcome = OutcomeAborted
 
-		r.log.Error("the merge did not commit and nothing was changed", "error", err)
+		log.Error("the merge did not commit and nothing was changed", "error", err)
 
 		return
 	}
