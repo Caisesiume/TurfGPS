@@ -105,3 +105,23 @@ func RequireOwed(lookup func(string) (string, bool)) error {
 		"no configured value for %d of the %d enforcement constants recorded as owed under `CalculationSpecification.md § Enforcement constants that do not yet exist`: %s. No journey is planned under this configuration. No value may be defaulted for these; that section records what each constant is, and `FR-091` why an unset one may not be substituted for",
 		len(missing), len(owed), strings.Join(missing, "; "))
 }
+
+// OwedEnvVars returns the variable each owed constant is supplied through.
+//
+// It exists for one caller: a harness that must START the service in order to
+// measure something else about it, and which RequireOwed would otherwise refuse
+// before that measurement could happen. `service/cmd/turfgps/image_test.go` is
+// that caller. Deriving the names there rather than writing them out is the
+// same argument as the registry's own — a copied pair of names is a second list
+// of two, going stale the day a third constant is added, in a file nobody would
+// think to look in.
+//
+// It returns the names and never the values, because there are none.
+func OwedEnvVars() []string {
+	names := make([]string, 0, len(owed))
+	for _, constant := range owed {
+		names = append(names, constant.envVar)
+	}
+
+	return names
+}
