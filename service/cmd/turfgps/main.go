@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -185,6 +186,30 @@ func startZoneSync(ctx context.Context) (func(), error) {
 
 	go func() {
 		defer close(stopped)
+
+		// Registered after the close above so that it runs BEFORE it, and it is
+		// here because this is the frame a panicking run was always going to
+		// arrive in. runOnce recovers, records the run's row, and re-raises on
+		// purpose — so that a panic is not swallowed by the store's bookkeeping
+		// — and a bare goroutine is where a re-raise becomes the death of the
+		// whole process. That death takes the HTTP server with it without ever
+		// reaching srv.Shutdown: every in-flight request severed, by a failure
+		// in the job whose own package doc says it is off the request path
+		// INCLUDING WHEN IT FAILS.
+		//
+		// So it costs the sync and not the service. The loop is gone until a
+		// restart, which is the end Run returning an error already reaches, and
+		// it is handled the same way: say so loudly, keep serving. The stack is
+		// worth capturing because a panic raised outside runOnce has been logged
+		// nowhere else, and it is still readable here: the runtime unwinds to
+		// this frame when this deferred call RETURNS, not when recover returns,
+		// so the panicking frames are on the stack for the whole of it.
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				slog.Error("the zone sync panicked, so it will not run again before a restart",
+					"panic", recovered, "stack", string(debug.Stack()))
+			}
+		}()
 
 		if err := scheduler.Run(ctx); err != nil {
 			slog.Error("the zone sync stopped", "error", err)
