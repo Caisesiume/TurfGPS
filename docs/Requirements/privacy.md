@@ -1,15 +1,17 @@
 # Privacy
 
-What a stored plan holds, what the system declines to hold at all, and the retention and access controls standing in place of an omission that cannot be made — `Architecture.md § Persistence and cross-device transfer` records that the origin coordinate cannot be designed out, so *the controls that matter are retention and access, not omission*, and a category holding only what is stored could carry neither. Distinct from `Observability`, which owns what must be measurable about a running system: a prohibition on logging a credential is a privacy control and not an observability one. This scope is the category's entry on the register in `README.md`, which is its home.
+What a stored plan holds, what the system declines to hold at all, what may leave the system with a hand-off, and the retention and access controls standing in place of an omission that cannot be made — `Architecture.md § Persistence and cross-device transfer` records that the origin coordinate cannot be designed out, so *the controls that matter are retention and access, not omission*, and a category holding only what is stored could carry neither. **Egress is inside that scope**: a hand-off is composed at dispatch time from live session state rather than from the stored payload, so a bound on what it may carry is a control no record about what is stored can reach. Distinct from `Observability`, which owns what must be measurable about a running system, and from `Hand-off and dispatch`, which owns the mechanics of delivering a portion: a prohibition on logging a credential is a privacy control and not an observability one, and a bound on what a hand-off may carry out is a privacy control and not a dispatch one. This scope is the category's entry on the register in `README.md`, which is its home.
 
 Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
 ## NFR-008 — Keep the plan code out of every log the service writes
 
 ```
-Statement:    The TurfGPS service shall write no plan code into any log output
-              it produces, whether as a request target, a structured
-              attribute, an error message or any other form.
+Statement:    The TurfGPS service process shall write no plan code into any
+              log output it emits, its own statements and its dependencies'
+              alike, at any verbosity the deployment can select, whether as a
+              request target, a structured attribute, an error message or any
+              other form.
 Category:     Privacy
 Source:       Architecture.md § Personal data;
               DEPLOYMENT.md § Where the deployment configuration lives
@@ -51,10 +53,13 @@ Rationale:    `DEPLOYMENT.md § Where the deployment configuration lives`
               there; this record takes only the service half, which that
               section says binds whoever writes the log statements in
               `service/`, and which no file under `deploy/` can constrain. The
-              method is test rather than inspection deliberately: that section
-              records that the service installs no log handler, so its output
-              and a dependency's reach the same host log, and an inspection of
-              the statements written in `service/` would pass over the second.
+              method is test rather than inspection deliberately, and the
+              statement is scoped to the process rather than to those
+              statements for the same reason: that section records that the
+              service installs no log handler, so its own output and a
+              dependency's reach the same host log, and both an inspection of
+              the statements written in `service/` and a statement binding
+              only them would pass over the second.
 Resolved-by:  —
 ```
 
@@ -401,5 +406,251 @@ Rationale:    Deletion is a separate obligation from the bound and not the
               obliged here: that same section names it the first thing
               observability should cover, and observability is owed by
               `Architecture.md § Still owed by this document` and unwritten.
+Resolved-by:  —
+```
+
+## NFR-015 — Keep the plan code out of every log the reverse proxy writes
+
+```
+Statement:    The reverse proxy shall write no plan code into any log it
+              produces, whether in the request target it records by default,
+              in a structured field, in an error entry or in any other form.
+Category:     Privacy
+Source:       Architecture.md § Personal data;
+              DEPLOYMENT.md § Where the deployment configuration lives
+Priority:     MUST
+Verification: inspection — the reverse proxy configuration the deployment
+              model names is examined for every directive deciding what the
+              proxy's logs record, and for the plan code among what they
+              record
+Acceptance:   artefact — the reverse proxy configuration named by
+              `DEPLOYMENT.md § Where the deployment configuration lives`;
+              property — nothing the proxy logs carries a plan code, and the
+              request-target logging the proxy performs where it is left
+              unconfigured is constrained by a directive rather than
+              inherited;
+              location — the logging directives in that configuration,
+              together with the log format each of them names
+Status:       to-build
+Depends-on:   none
+Volatility:   settled — the constraint is stated outright in
+              `DEPLOYMENT.md § Where the deployment configuration lives`,
+              rests on no figure and appears on no open-questions list, and
+              the artefact that discharges it is a recorded debt rather than
+              an open question
+Risk:         The plan code is the only credential for an object holding an
+              origin coordinate that is frequently the user's home, per
+              `Architecture.md § Personal data`, and the code travels in the
+              request line. A proxy left unconfigured logs the full request
+              target, so its access log accumulates every code ever retrieved
+              without anyone having decided that it should: this is the half
+              of the control that fails by omission rather than by a mistaken
+              statement. NFR-008 does not reach it, a proxy's access log being
+              no part of what the service process emits. Every reader of that
+              log holds the credential, and every copy of the log carries it
+              further; nothing observable changes when it happens, and a code
+              cannot be un-disclosed afterwards.
+Rationale:    `DEPLOYMENT.md § Where the deployment configuration lives`
+              splits this control in two and says that a deployment satisfying
+              one enforcement point has satisfied half of it. NFR-008 takes
+              the service half; this record takes the proxy's, and neither
+              reaches the other, because a proxy directive reaches the proxy's
+              access log and nothing else while no file under the deployment
+              directory can constrain what the service process emits. The
+              artefact is named here and not created, on the precedent
+              NFR-004's second criterion sets: that section records that the
+              directory does not exist yet and that no board item authors it,
+              and the criterion is written against the artefact the deployment
+              model names rather than against a claim. The method is
+              inspection rather than the test NFR-008 uses because the whole
+              of what a proxy logs is decided by its configuration, and the
+              defect here is an absent directive — which an inspection of the
+              configuration sees and a run against a proxy configured for the
+              run does not.
+Resolved-by:  —
+```
+
+## NFR-016 — Record a retrieval attempt without recording the plan code
+
+```
+Statement:    The system shall identify a retrieval attempt, in every record
+              it keeps of one, by a value from which the plan code that
+              attempt named cannot be recovered, rather than by the plan code
+              itself.
+Category:     Privacy
+Source:       Architecture.md § Personal data
+Priority:     MUST
+Verification: inspection — the path that records a retrieval attempt is
+              examined from the plan code the attempt names to every value
+              that path writes, for whether any of them is the code or can be
+              turned back into it
+Acceptance:   artefact — the path that records a retrieval attempt, wherever
+              the throttle obliged by NFR-012 is enforced, from the plan code
+              the attempt names to every value that path writes;
+              property — no value written is the plan code, and none can be
+              turned back into it by computation or by any key, table or
+              mapping the deployment holds, so an attempt is identified
+              without the code being held anywhere the record of an attempt
+              reaches;
+              location — the derivation producing the identifying value, and
+              the definition site of every field the record of an attempt
+              carries
+Status:       to-build
+Depends-on:   NFR-012
+Volatility:   open-question — `Architecture.md § Personal data` places rate
+              limiting on the plan lookup inside the same outstanding security
+              decision as the code's length, alphabet and entropy, so what
+              that review rules about how an attempt is throttled and recorded
+              may change what this record can say
+Risk:         The plan code is the sole credential for an object holding a
+              dwelling coordinate, per `Architecture.md § Personal data`, and
+              NFR-012 obliges that every attempt is counted whether or not the
+              code it names exists — so something holds a record of every
+              attempt made. Keyed on the code, that store accumulates every
+              code ever presented, the guessed ones beside the real ones, and
+              it is the disclosure NFR-008 prevents in the log arriving in a
+              store nobody calls a log and nobody thinks to search. Every
+              holder of that store holds the credential, and a code cannot be
+              un-disclosed afterwards.
+Rationale:    The obligation is the property and never a mechanism: no hash,
+              algorithm, length or scheme is named, because
+              `Architecture.md § What is unproven` records at its tenth item
+              that the plan code's parameters are a security decision
+              belonging to review, and a mechanism chosen here would pre-empt
+              that ruling from the wrong side. The record is equally silent
+              about where an attempt is recorded, as NFR-012 is about where
+              the throttle is enforced —
+              `DEPLOYMENT.md § Where the deployment configuration lives`
+              leaves that unsettled, and naming the enforcement point here
+              would settle it. The method is inspection rather than test
+              because the property is of the derivation and not of any run: a
+              search for the code across a limiter's state passes on any
+              reversible encoding of it, and leaves the code recoverable by
+              whoever holds the store.
+Resolved-by:  —
+```
+
+## NFR-017 — Read the per-caller retrieval limit and window from configuration
+
+```
+Statement:    The system shall read the per-caller retrieval limit and the
+              window it is measured over from configuration carrying a
+              documented origin, rather than from literals in the code that
+              enforces the throttle, per
+              `CalculationSpecification.md § Conventions`.
+Category:     Privacy
+Source:       Architecture.md § Personal data
+Priority:     MUST
+Verification: inspection — the configuration entries defining the per-caller
+              retrieval limit and the window it is measured over, and the
+              throttle that enforces them, are examined for values read at run
+              time and for the origin recorded beside each entry
+Acceptance:   artefact — the configuration entries defining the per-caller
+              retrieval limit and the window it is measured over, and the
+              throttle that consumes them;
+              property — both values are read from configuration at run time
+              and neither appears as a literal in the throttle, and each entry
+              records a documented origin in the form
+              `CalculationSpecification.md § Conventions` requires;
+              location — the configuration holding the two entries, and the
+              throttle's own definition site, wherever the enforcement point
+              turns out to be
+Status:       to-build
+Depends-on:   NFR-012
+Volatility:   open-question — the two values do not exist yet.
+              `Architecture.md § Personal data` places rate limiting on the
+              plan lookup inside the outstanding security decision it records,
+              and no document in this repository states a rate; this record
+              obliges where that ruling lands rather than what it says
+Risk:         NFR-012's criterion stands on a configured limit and window that
+              no document states. Chosen inline while that decision is
+              outstanding, the limit is settled silently — at the moment the
+              throttle is first written and by whoever writes it — and the
+              review's answer then costs a code change rather than a
+              configuration change. The limit and the window are what decide
+              how long the sole credential for a dwelling coordinate resists
+              guessing, per `Architecture.md § Personal data`, and the code's
+              own entropy is outstanding beside them, so neither control may
+              be assumed to be carrying the other.
+Rationale:    The obligation is where the outstanding decision lands, not what
+              it decides, and the record names no rate and no window. This is
+              NFR-011's shape applied to the second parameter the same review
+              owes: that record obliges a home for the code's length and
+              alphabet, and the rate is in the same position. It is separate
+              from NFR-012 because the two fail independently — a throttle
+              enforcing a limit hard-coded beside it satisfies that record's
+              criterion today and leaves the review's answer with nowhere to
+              arrive. It is silent about the enforcement point for the reason
+              NFR-012 is, and it deliberately does not classify the limit as a
+              modelling or an enforcement constant under
+              `CalculationSpecification.md § Conventions`: that classification
+              travels with the ruling that sets the value, and taking it here
+              would decide in which direction a deployment may move a figure
+              nobody has set.
+Resolved-by:  —
+```
+
+## NFR-018 — Bound what a hand-off carries to the target application
+
+```
+Statement:    A hand-off shall carry to the target application nothing beyond
+              the stops of the dispatched portion and that portion's terminal
+              points.
+Category:     Privacy
+Source:       SPECIFICATION.md § No accounts;
+              Architecture.md § Persistence and cross-device transfer
+Priority:     MUST
+Verification: test — a hand-off composed in a session in which the system
+              holds the user's Turf username is captured as it is sent, and
+              everything it carries is compared against the dispatched
+              portion's stops and that portion's terminal points
+Acceptance:   metric — values a hand-off carries to the target application
+              that are neither a stop of the dispatched portion nor one of
+              that portion's terminal points, counted over the whole of what
+              is sent rather than over a named list of fields;
+              threshold — zero, with the session's Turf username among what is
+              counted;
+              condition — the hand-off is composed at dispatch time from a
+              live session in which the system holds the user's Turf username,
+              per `Architecture.md § The user's held zones are already known`,
+              and the comparison is run against what leaves the system rather
+              than against the stored plan's payload
+Status:       to-build
+Depends-on:   FR-110;
+              FR-118
+Volatility:   open-question —
+              `Architecture.md § Persistence and cross-device transfer` leaves
+              two treatments of the Turf username live, keeping it out of the
+              stored object or stating its retention explicitly, and records
+              the first as its recommendation rather than as a ruling; a
+              ruling for the second reopens whether the username may travel
+              with a hand-off
+Risk:         A hand-off is composed from live session state rather than from
+              the stored plan, and that state holds the user's Turf username —
+              NFR-009 keeps it out of the stored payload and reaches nothing
+              that leaves.
+              `Architecture.md § Persistence and cross-device transfer`
+              records the origin coordinate as personal data that cannot be
+              designed out and the username as the separable part, and a
+              hand-off carrying both is the one path on which the separable
+              part is not separated: it delivers a named person and a
+              coordinate that is frequently their home in a single request. It
+              leaves for a third party, so no retention or access control in
+              this system reaches it afterwards, and nothing observable here
+              changes when it happens.
+Rationale:    The bound is derived rather than invented, and it enumerates
+              nothing the documents do not carry:
+              `DESIGN.md § Dispatching stop by stop` dispatches as many
+              consecutive stops as the target accepts, and
+              `SPECIFICATION.md § The waypoint limit problem` carries the
+              terminal points as parameters of their own — anything beyond the
+              two serves no stated need. It is written as a closed bound
+              rather than as a list of things to omit, because a denylist is
+              satisfied by leaving out the one field it names and says nothing
+              about the next field a hand-off gains. NFR-009 is silent here by
+              its own scope and not by oversight, binding the stored payload
+              alone. What a Turf stop resolves to on the wire is decided
+              elsewhere and is not restated: this record bounds which things
+              are sent, and not the form any of them takes.
 Resolved-by:  —
 ```

@@ -51,32 +51,39 @@ Rationale:    The obligation is that the value is read from configuration and
 Resolved-by:  —
 ```
 
-## FR-110 — Size a dispatched portion from the intermediate-waypoint allowance
+## FR-110 — Size the first dispatch from the intermediate-waypoint allowance
 
 ```
-Statement:    The system shall size a dispatched portion at as many
-              consecutive stops of the confirmed route as the target's
-              intermediate-waypoint allowance admits as intermediates, plus
-              the one stop the portion's destination slot carries, or at every
-              stop remaining where fewer than that remain.
+Statement:    The system shall size each portion of a confirmed route, on the
+              first attempt to dispatch it, at the target's
+              intermediate-waypoint allowance in intermediate stops plus the
+              one further stop the portion's destination slot carries, or,
+              where no more than that many stops remain, at every stop that
+              remains.
 Category:     Hand-off and dispatch
 Source:       DESIGN.md § Dispatching stop by stop
 Priority:     MUST
-Verification: test — a confirmed route holding more stops than the configured
-              intermediate-waypoint allowance admits yields a portion whose
-              intermediate stops number that allowance and whose stop count
-              exceeds it by exactly the destination slot, and one holding
-              fewer yields every stop that remains
-Acceptance:   given a confirmed route holding more stops than the target's
-              intermediate-waypoint allowance admits as intermediates, when
-              the next portion is dispatched, then the portion's intermediate
-              stops number that allowance and one further stop occupies the
-              destination slot
-              given a confirmed route holding fewer stops than that allowance
-              admits, when the next portion is dispatched, then the portion
+Verification: test — a confirmed route with more stops remaining than one
+              portion's whole length yields a first dispatch whose
+              intermediate stops number the target's intermediate-waypoint
+              allowance and whose stop count exceeds that allowance by exactly
+              the destination slot, and routes with exactly that many stops
+              remaining and with fewer each yield every stop that remains
+Acceptance:   given a confirmed route with more stops remaining than the
+              target's intermediate-waypoint allowance plus the one stop a
+              portion's destination slot carries, when the next portion is
+              first dispatched, then the portion's intermediate stops number
+              that allowance and one further stop occupies the destination
+              slot
+              given a confirmed route with exactly that many stops remaining,
+              when the next portion is first dispatched, then the portion
               carries every stop that remains and withholds none
+              given a confirmed route with fewer than that many stops
+              remaining, when the next portion is first dispatched, then the
+              portion carries every stop that remains and withholds none
 Status:       to-build
-Depends-on:   FR-094; FR-109
+Depends-on:   FR-094;
+              FR-109
 Volatility:   unverified-fact — the arithmetic rests on the allowance counting
               intermediate stops only, which
               `SPECIFICATION.md § The waypoint limit problem` records as an
@@ -102,7 +109,17 @@ Rationale:    The cited section sizes the portion at as many consecutive stops
               allowance itself is configuration under FR-109 and is cited
               rather than restated, the cited section requiring these
               third-party limits be held as configuration rather than as
-              constants in code.
+              constants in code. The two branches are partitioned by the
+              portion's whole length and not by the allowance alone, so more
+              than that many remaining and that many or fewer divide the cases
+              with no gap and nothing decided twice; the second criterion is
+              the boundary itself, which the two branches previously left
+              between them. The record binds the first attempt only. FR-112
+              obliges a refused hand-off be attempted again carrying fewer
+              stops, and read as binding every attempt this record would
+              forbid that on every one of them, so FR-112 could never be
+              satisfied at all — which is the test that decides it.
+              `DECISIONS.md § RD-034` carries both halves.
 Resolved-by:  —
 ```
 
@@ -204,13 +221,13 @@ Category:     Hand-off and dispatch
 Source:       SPECIFICATION.md § Waypoints may be dropped without warning
 Priority:     MUST
 Verification: test — the telling is presented before the hand-off is made, and
-              is presented for a portion within the target's configured
-              allowance as well as for one that fills it
+              is presented for a portion within the target's
+              intermediate-waypoint allowance as well as for one that fills it
 Acceptance:   given a portion of a stored plan ready to be dispatched, when
               the hand-off is offered, then the user is told, before the
               hand-off is made, that the target may drop the Turf stops it
               carries without reporting it
-              given a portion within the target's configured waypoint
+              given a portion within the target's intermediate-waypoint
               allowance, when the hand-off is offered, then that telling is
               presented for it too
 Status:       to-build
@@ -235,7 +252,10 @@ Rationale:    The obligation is the telling and its timing; how it is worded
               portion would say least in exactly the case the user has most
               reason to trust. This is the stance
               `SPECIFICATION.md § Confidence and uncertainty` sets for an
-              estimate, applied to a hand-off.
+              estimate, applied to a hand-off. The quantity that criterion
+              names is the registered noun, `intermediate-waypoint allowance`,
+              and not a second spelling of it: `DECISIONS.md § RD-012` settled
+              the register row this record now writes verbatim.
 Resolved-by:  —
 ```
 
@@ -258,7 +278,8 @@ Acceptance:   given a portion of a stored plan dispatched successfully, when
               plan is next opened, then its zones, their order and the state
               retained with it are as they were before the hand-off
 Status:       to-build
-Depends-on:   FR-094; FR-096
+Depends-on:   FR-094;
+              FR-096
 Volatility:   settled — `DESIGN.md § Dispatching stop by stop` states that the
               plan itself is never at risk in a hand-off because it lives in
               this product
@@ -269,10 +290,14 @@ Risk:         FR-112's fallback has nothing to fall back to if a hand-off can
 Rationale:    The record is what makes this product the holder of the plan
               rather than an exporter of it: dispatching a portion is a read.
               It says nothing about how far along the journey the user has
-              got, which is not plan state —
+              got, which is not plan state.
               `SPECIFICATION.md § Handing off the confirmed route` rules out
-              live position tracking, and FR-110's resumption criterion is
-              satisfiable without the stored plan changing.
+              live position tracking, and FR-110 sizes the portion offered for
+              dispatch from the stops that remain without obliging where the
+              count of those already dispatched is held — so this record
+              bounds what a hand-off may change in the stored plan and leaves
+              that question to whatever record answers it, rather than
+              deciding it here by implication.
 Resolved-by:  —
 ```
 
@@ -314,5 +339,65 @@ Rationale:    The target is cited rather than named, on the rule that this
               guidance, no live position tracking and no zone-arrival prompts
               is a further boundary of the same section and is not authored
               here.
+Resolved-by:  —
+```
+
+## FR-118 — Dispatch each Turf stop at its stopping position
+
+```
+Statement:    The system shall use, as the waypoint dispatched for each Turf
+              stop of a portion, that stop's stopping position rather than the
+              zone's coordinate.
+Category:     Hand-off and dispatch
+Source:       DESIGN.md § Dispatching stop by stop;
+              SPECIFICATION.md § What establishes a stopping position
+Priority:     MUST
+Verification: test — a portion whose Turf stops carry stopping positions
+              distinct from their zones' coordinates hands off carrying those
+              positions in the intermediate slots and in the destination slot,
+              and the same portion handed off carrying any of those zones'
+              coordinates fails
+Acceptance:   given a dispatched portion whose Turf stops each carry a
+              stopping position distinct from that zone's coordinate, when the
+              portion is handed off, then the waypoint dispatched for each of
+              those stops is its stopping position and no zone's coordinate is
+              dispatched
+              given a dispatched portion whose last stop is a Turf zone
+              occupying the target's destination slot, when the portion is
+              handed off, then the point dispatched in that slot is that
+              stop's stopping position
+Status:       to-build
+Depends-on:   FR-092;
+              FR-110
+Volatility:   settled — the stopping position is already the point every
+              access and exclusion decision is taken at, FR-086, FR-089 and
+              FR-092 fixing it there, and `DECISIONS.md § RD-028` records the
+              ruling that dispatch carries the same point
+Risk:         The zone's coordinate is a point nothing in this corpus
+              established as stoppable. FR-089 refuses a stopping position on
+              a road the exclusions refuse and FR-092 refuses a manufactured
+              one, and both checks were run against the other point — so a
+              hand-off dispatching the coordinate sends the driver to a place
+              the exclusions may refuse and the terrain may not admit, and
+              does it after the product has priced the journey as though it
+              had not. The estimate and the destination disagree, with nothing
+              on screen inconsistent with anything else, and the disagreement
+              is invisible until arrival, at the roadside, on a product whose
+              whole value is the stops.
+Rationale:    `DESIGN.md § Dispatching stop by stop` sizes a portion in stops
+              and never says what a stop resolves to on the wire; this record
+              closes that gap rather than reading it out of that section. What
+              decides it is already filed: FR-086 routes a detour's cost
+              through the proposed stopping position, FR-089 refuses one on an
+              excluded road, and FR-092 obliges one be identified before any
+              check about the stop is evaluated — so the stopping position is
+              where every question about whether the stop can be made has been
+              answered, and dispatch is the one place that chain reaches the
+              driver. The second criterion is not the first restated: the
+              destination slot is a different field on the wire from the
+              intermediate slots, FR-111 puts a Turf zone in it, and it is the
+              slot an implementation reaches for the zone's coordinate in. The
+              journey's own origin and final destination are not Turf stops
+              and are untouched here.
 Resolved-by:  —
 ```

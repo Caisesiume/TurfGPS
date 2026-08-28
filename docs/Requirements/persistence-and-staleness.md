@@ -4,30 +4,34 @@ Storing a plan, retrieving it, and what makes a stored plan no longer trustworth
 
 Index: `INDEX.md`. Category register and ID allocation ledger: `README.md`. Story links: `TRACEABILITY.md`. Record format: `requirements-authoring`.
 
-## FR-094 — Keep a confirmed plan reopenable after an arbitrary interval
+## FR-094 — Keep a confirmed plan reopenable within its retention bound
 
 ```
 Statement:    The system shall keep each plan the user confirms as a stored
-              plan that can be reopened on the same device after an arbitrary
-              interval.
+              plan that can be reopened on the same device at any point within
+              the retention bound NFR-013 sets, whatever interval has passed
+              since it was confirmed and however many sessions have ended.
 Category:     Persistence and staleness
 Source:       SPECIFICATION.md § Route persistence
 Priority:     MUST
 Verification: test — a plan confirmed in one session reopens on the same
               device in a later session, after the session that made it has
-              ended and after an arbitrary interval
+              ended, at any point within the retention bound NFR-013 sets
 Acceptance:   given a plan the user has confirmed, when the browser is closed
-              and opened again on the same device after an arbitrary interval,
-              then that stored plan is available to reopen
+              and opened again on the same device at any point within the
+              retention bound NFR-013 sets, then that stored plan is available
+              to reopen
               given a plan the user has confirmed and a session that has since
-              ended, when a new session begins on the same device, then that
-              stored plan is available to reopen with no state carried over
-              from the ended session
+              ended, when a new session begins on the same device within that
+              bound, then that stored plan is available to reopen with no
+              state carried over from the ended session
 Status:       to-build
 Depends-on:   none
 Volatility:   settled — `SPECIFICATION.md § Route persistence` states the
-              obligation directly, and `Architecture.md § D4` decides the
-              store that holds it
+              obligation directly, `Architecture.md § D4` decides the store
+              that holds it, and the bound is cited rather than quoted, so a
+              move in either interval NFR-013 carries does not reach this
+              record
 Risk:         A user who plans a road trip weeks ahead, closes the browser and
               finds the work gone does not redo the planning — they abandon
               the product. The pipeline behind a plan is the most expensive
@@ -35,15 +39,26 @@ Risk:         A user who plans a road trip weeks ahead, closes the browser and
               the one thing they cannot cheaply repeat.
 Rationale:    The record obliges availability and not a mechanism, because
               `Architecture.md § D4` decides where a stored plan lives and
-              this corpus does not become a second home for that decision.
-              Nothing filed obliges the confirmation step that produces the
-              object stored here —
+              this corpus does not become a second home for that decision. The
+              guarantee is bounded by NFR-013 and cites it rather than
+              restating either interval.
+              `SPECIFICATION.md § Route persistence` requires survival across
+              an arbitrary interval to defeat the session-lifetime failure and
+              states no ceiling, so the two are read together rather than
+              ranked, and
+              `Architecture.md § Persistence and cross-device transfer`
+              supplies the ceiling that nothing extends. What the user meets
+              at that ceiling is not authored here:
+              `DESIGN.md § Returning to a stored plan` carries it through the
+              expired-code path FR-103 obliges, and the deletion itself is
+              NFR-014's. Nothing filed obliges the confirmation step that
+              produces the object stored here —
               `SPECIFICATION.md § Route review and zone confirmation` belongs
               to `Review and replacement`, which is reserved — so the
               confirmed plan is named as the input it is and `Depends-on`
               reads `none` until that category opens. What a stored plan
-              retains is FR-096's; how long it is kept is the non-functional
-              lane's and is deliberately absent here.
+              retains is FR-096's; how long it is kept is NFR-013's, and no
+              interval appears here.
 Resolved-by:  —
 ```
 
@@ -269,9 +284,10 @@ Acceptance:   given a plan stored from one device and its plan code presented
               caller is within the per-caller retrieval limit NFR-012 sets,
               then the stored plan is returned
               given a caller for whom the system holds no account and no
-              stored identity, when that caller presents a plan code, then
-              retrieval proceeds on the code alone and no account, login or
-              identity is required of them
+              stored identity, when that caller presents a plan code within
+              the per-caller retrieval limit NFR-012 sets, then retrieval
+              proceeds on the code alone and no account, login or identity is
+              required of them
 Status:       to-build
 Depends-on:   FR-094
 Volatility:   open-question — retrieval by a short code is the proposed
@@ -285,10 +301,11 @@ Risk:         Read as a device or an account condition, this obligation
               excludes: a retrieval path that asks who is calling is an
               account in all but name, and the desk-to-phone case the code
               exists to close fails on the one journey it was built for. Read
-              as an obligation to serve, it fails the other way and forbids
-              the refusal NFR-012 requires, which would leave a dwelling
-              coordinate behind a short code with nothing bounding how often
-              it may be guessed.
+              as an obligation to serve, it would fail the other way and
+              forbid the refusal NFR-012 requires — which is why every
+              criterion here is written inside that limit rather than only the
+              first — and would leave a dwelling coordinate behind a plan code
+              with nothing bounding how often it may be guessed.
 Rationale:    The cited sections oblige that no identity stands between a plan
               code and its plan — no login, no stored identity, no server-side
               user record — and neither obliges that every presentation of a
@@ -296,9 +313,12 @@ Rationale:    The cited sections oblige that no identity stands between a plan
               be conditioned on, not whether a given attempt succeeds. The
               rate is NFR-012's, which refuses attempts beyond the configured
               per-caller limit and counts every attempt whether or not the
-              code exists; it is named here, and its bound written into the
-              first criterion, so that a reader meets the limit on this record
-              rather than discovering it in another category's file.
+              code exists; it is named here, and its bound written into both
+              criteria, so that a reader meets the limit on this record rather
+              than discovering it in another category's file. Both criteria
+              carry it because either alone reads as an unconditional
+              obligation to serve, and the second is the one an implementer
+              reads when asking what may be demanded of a caller.
 Resolved-by:  —
 ```
 
@@ -306,20 +326,26 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall make a stored plan's plan code available from
-              that stored plan's entry in the list of stored plans.
+              that stored plan's entry in the list of stored plans on the
+              user's request, rather than presenting it with the entry.
 Category:     Persistence and staleness
 Source:       DESIGN.md § Returning to a stored plan
 Priority:     SHOULD
-Verification: test — each entry in a list of several stored plans makes a plan
-              code available, and the code taken from one entry retrieves that
-              entry's plan and no other
+Verification: test — each entry in a list of several stored plans offers a way
+              to reveal that stored plan's plan code and carries no plan code
+              until one is requested, and the code revealed from one entry
+              retrieves that entry's plan and no other
 Acceptance:   given a device holding several stored plans, when the list of
-              stored plans is presented, then each entry makes that stored
-              plan's plan code available
-              given the plan code taken from one entry, when it is presented,
-              then the stored plan returned is that entry's and no other
+              stored plans is presented, then each entry offers a way to
+              reveal that stored plan's plan code
+              given that list, when it is presented and no reveal has been
+              requested, then no entry carries a plan code
+              given a plan code revealed from one entry, when it is presented
+              within the per-caller retrieval limit NFR-012 sets, then the
+              stored plan returned is that entry's and no other
 Status:       to-build
-Depends-on:   FR-094; FR-100
+Depends-on:   FR-094;
+              FR-100
 Volatility:   open-question — the cross-device transfer entry under
               `Architecture.md § Open questions owned by this document` lists
               code-keyed server-side storage as proposed and open to revision
@@ -328,8 +354,18 @@ Rationale:    `SHOULD` because retrieval by plan code is FR-100's and works
               several deliberately, which
               `Architecture.md § Persistence and cross-device transfer` says
               the usual case never requires — the code is held locally, and
-              the user sees it only when they want the plan elsewhere. The
-              statement binds once built, which is why it reads `shall`.
+              the user sees it only when they want the plan elsewhere. That
+              posture is what bounds the record to a reveal on request, and
+              the second criterion is where it lands: a plan code printed
+              against every entry puts the sole credential for an object
+              holding a dwelling coordinate on screen in exactly the case that
+              section says has no need of it, and
+              `Architecture.md § Personal data` names that credential an
+              enumeration target. The third criterion is written inside the
+              limit NFR-012 sets, on FR-100's reasoning — this record makes a
+              code available and never obliges that a presentation of it is
+              served. The statement binds once built, which is why it reads
+              `shall`.
 Resolved-by:  —
 ```
 
@@ -381,15 +417,17 @@ Statement:    The system shall answer a plan code that has expired and a plan
 Category:     Persistence and staleness
 Source:       DESIGN.md § Returning to a stored plan
 Priority:     MUST
-Verification: test — an expired plan code and an unrecognised one produce
-              responses carrying the same explanation and the same way on,
-              neither presented as an error
+Verification: test — an expired plan code and an unrecognised one, presented
+              within the limit NFR-012 sets, produce responses carrying the
+              same explanation and the same way on, neither presented as an
+              error
 Acceptance:   given a plan code whose stored plan is no longer held, when it
-              is presented, then the response is a plain explanation offering
-              a way to start a new plan, and is not presented as an error
-              given a plan code that was never issued, when it is presented,
-              then the response is indistinguishable from the response in the
-              criterion above
+              is presented within the per-caller retrieval limit NFR-012 sets,
+              then the response is a plain explanation offering a way to start
+              a new plan, and is not presented as an error
+              given a plan code that was never issued, when it is presented
+              within that same limit, then the response is indistinguishable
+              from the response in the criterion above
 Status:       to-build
 Depends-on:   FR-100
 Volatility:   open-question — the cross-device transfer entry under
@@ -411,6 +449,19 @@ Rationale:    One record and not two, because it is one response: an
               code stopped resolving is deliberately outside the record — the
               retention bounds behind it are the non-functional lane's, and
               this record is what makes the causes look alike from outside.
+              The likeness reaches how long a response takes without this
+              record obliging a timing bound, and the reason is structural:
+              `Architecture.md § The queries the schema exists to serve` puts
+              expiry inside the lookup predicate, so an expired plan and a
+              code that was never issued are both the zero-row result of one
+              statement and the service cannot tell them apart either. There
+              is therefore no second branch to time. No timing threshold is
+              stated and none was available to state —
+              `CalculationSpecification.md` holds none this criterion could
+              have been written against, and a figure standing in for not
+              distinguishable by duration would have been picked here. NFR-012
+              bounds the same path from the other side, which is why both
+              criteria are written inside its limit.
 Resolved-by:  —
 ```
 
@@ -688,5 +739,88 @@ Rationale:    `SPECIFICATION.md § Route persistence` says a stored route keeps
               marking is fixed at computation and is not the round-scoped
               ownership marker FR-098 keeps out of a stored plan, which is why
               a later refresh of the local synced copy does not clear it.
+Resolved-by:  —
+```
+
+## FR-117 — Re-evaluate a reopened plan's stops and report an adverse change
+
+```
+Statement:    The system shall re-evaluate, on each reopening of a stored
+              plan, the access classification of the stops that stored plan
+              uses and the enforceable exclusions under
+              `SPECIFICATION.md § Enforceable exclusions`, and shall tell the
+              user, offering a re-solve, where that re-evaluation finds a stop
+              no longer accessible or a stop an exclusion now removes.
+Category:     Persistence and staleness
+Source:       SPECIFICATION.md § Stored routes go stale;
+              SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — a stored plan reopened after a stop it uses has become
+              inaccessible, and one reopened after an exclusion has come to
+              remove a stop it uses, each carry the telling and the offer of a
+              re-solve; one reopened after a stop has become more accessible
+              or an exclusion on one has lifted carries neither; and a plan
+              whose telling the user does not act on is still there,
+              unchanged, afterwards
+Acceptance:   given a stored plan reopened after a stop it uses has become
+              inaccessible, or after an exclusion has come to remove one, when
+              the plan is presented, then the user is told so with it and is
+              offered a re-solve
+              given a stored plan reopened where the re-evaluation finds no
+              stop it uses inaccessible and no exclusion newly removing one,
+              when the plan is presented, then no such telling is presented,
+              including where a stop has become more accessible or an
+              exclusion on one has lifted
+              given that telling, when the user does not take the offered
+              re-solve, then the stored plan stays available to reopen and its
+              zones and their order are unchanged
+Status:       to-build
+Depends-on:   FR-094;
+              FR-096;
+              FR-106
+Volatility:   settled — `DECISIONS.md § RD-027` records the Owner's ruling
+              that the change is determinable, that the system must determine
+              it, and that materiality is adverse only, and
+              `SPECIFICATION.md § Stored routes go stale` states the telling
+              it obliges
+Risk:         A stop that has become inaccessible since the plan was made is a
+              place the driver must not stop, and a stored plan served without
+              the re-evaluation sends them there carrying a cost estimate
+              computed while the stop was still good — with nothing on screen
+              inconsistent with anything else. It lands on the morning of
+              departure, the one morning the user is least able to check it.
+              The exposure also grows with the interval a plan is allowed to
+              sit: without this record nothing bounds the age at which a
+              retained access classification may still admit a stop, and
+              FR-094 lets that age run to the retention bound NFR-013 sets.
+Rationale:    One record and not two, because it is one gate reading one
+              input: a system that re-evaluates and says nothing has produced
+              no observable behaviour at all, so the re-evaluation and what is
+              done with its outcome are two branches of one obligation rather
+              than two obligations. Its scope is the stops the stored plan
+              uses and not the candidate set, and it is a re-check and not a
+              re-solve; `DECISIONS.md § RD-027` fixes both, together with the
+              asymmetry the second criterion carries — a favourable change is
+              a missed opportunity rather than a hazard, and paying the full
+              re-solve cost in both directions would undercut FR-094's reopen
+              guarantee for a reason unrelated to safety. The record tells and
+              never edits, which is FR-106's rule and is why the re-solve is
+              offered rather than performed; when the plan is presented
+              relative to its background refresh is FR-107's.
+              It does not contradict FR-107, and that is worth stating because
+              both records read correctly alone: FR-107 forbids withholding a
+              reopened plan while its **volatile** data refresh is
+              outstanding, and that refresh is the Turf API call FR-105
+              obliges a reopen to work without. This re-evaluation reads the
+              zone and map data the system already holds, so it completes
+              without a network call and its telling arrives with the plan —
+              which is the shape FR-108 already carries, for a determination
+              made at reopen and against the same FR-107. No age threshold
+              is stated and none was available to state:
+              `CalculationSpecification.md` holds no bound on how old a
+              retained access classification may be, and a figure standing in
+              for one would have been picked here. The re-evaluation is
+              obliged on every reopening instead, which bounds the same thing
+              without a number.
 Resolved-by:  —
 ```

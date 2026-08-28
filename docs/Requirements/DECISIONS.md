@@ -18,6 +18,8 @@ Rung:           N — the ladder rung it rested on, named
 Affects:        the records and documents the interpretation binds
 ```
 
+**One variant, for an entry recording a ruling made elsewhere.** Where the Owner has answered a question escalated under the five conditions, the entry carries `Decided-by:` above `Question:` — naming who ruled and through which pass it was relayed — and `Rung:` then reads `n/a` together with how far the ladder was actually run before the escalation and where it stopped short. The variant exists rather than an omission because an absent `Rung` has to keep meaning exactly one thing: *the entry withheld the thing it exists to prove*. An entry that never rested on a rung says so, says whose decision it was instead, and still shows its ladder work — which is what keeps a reader able to check that the escalation was owed. `RD-027` is the first, and it is the only kind of entry `@requirements-engineer` writes without having decided.
+
 **`Rung` is the load-bearing field.** It is what lets a later reader check whether the ladder was followed or whether something merely landed somewhere reasonable, and an entry without it records that a decision happened while withholding the only thing the record exists to prove. The seven rungs, in precedence: explicit specification · architecture constraints · design intent · existing requirements · existing system behavior · established repository conventions · most conservative reasonable interpretation.
 
 **`RD-NNN` IDs are immutable and never reused**, on the same rule as `FR-*` and `NFR-*`. Entries are not rewritten to read better after the fact: a decision that no longer holds is superseded by a **new** entry saying so, never by editing the old one, because a log that can be quietly revised is not evidence of anything. `@requirements-librarian` owns this file's structure, as it owns the rest of the corpus's shape; `@requirements-engineer` writes the entries, and neither judges whether a decision was right — that is the Owner's.
@@ -1087,4 +1089,419 @@ Rung:           7 — most conservative reasonable interpretation, decisive. The
                 reading.
 Affects:        FR-095. NFR-013, which is the bound that makes this
                 affordable.
+```
+
+## RD-027 — Is a zone change under a stored plan material, and is it determinable?
+
+```
+Date:           2026-08-28
+Decided-by:     the Owner, ratified on PR #135 and relayed by
+                `@engineering-lead`. This entry records a ruling made
+                elsewhere; it is not a ladder resolution, and `§ Entry format`
+                states the variant it takes.
+Question:       A stored plan is reopened, possibly months later, and the zone
+                data underneath may have moved: a stop's access classification
+                may have changed, or an exclusion may now apply that did not
+                before. Is such a change material under `SPECIFICATION.md`,
+                and is it determinable? Escalated under §21 on
+                `@safety-sentinel`'s blocker, the safety intent not being
+                determinable from the documents.
+Interpretation: **It is determinable, and the system must determine it.** On
+                reopen, access classification and exclusion outcomes are
+                re-evaluated **for the stops the plan actually uses** — not a
+                full re-solve, and not the whole candidate set. **A change is
+                material if and only if it is adverse**: a stop that became
+                inaccessible, or a stop to which an exclusion now applies.
+                Materiality is asymmetric by design. **A favourable change is
+                not material** — a stop that became more accessible, or one
+                whose exclusion has lifted, is a missed opportunity rather
+                than a hazard, and does not invalidate a stored plan. **On a
+                material change the driver is told and offered a re-solve**,
+                and the plan is neither silently served nor silently
+                discarded. The asymmetry is the Owner's reasoning rather than
+                an inference from it: the hazard is one-directional, since
+                serving a stop that has since become inaccessible sends a
+                driver somewhere they must not stop, while the inverse costs
+                them a zone they could have taken; and paying the full
+                re-solve cost in both directions would undercut FR-094's
+                reopen guarantee for a reason unrelated to safety.
+Rung:           n/a — Owner ruling, and no rung is claimed. The ladder was run
+                as far as it reaches before the escalation and stopped short:
+                rung 1 obliges the telling —
+                `SPECIFICATION.md § Stored routes go stale` requires anything
+                material to be surfaced as information and never as an
+                automatic edit — and leaves *material* undefined for a changed
+                access classification, which is the whole of what was asked.
+Affects:        FR-117, which carries the ruling. FR-106 and FR-107, which the
+                re-check must not contradict: it tells and never edits.
+                `@safety-sentinel`'s override of `safety_path: false` stands
+                and is settled — the re-check is a safety path.
+```
+
+## RD-028 — Which coordinate does a hand-off dispatch for a Turf stop?
+
+```
+Date:           2026-08-28
+Question:       `DESIGN.md § Dispatching stop by stop` sizes a portion in
+                stops and never says what a stop resolves to on the wire. The
+                zone coordinate and the candidate's stopping position are
+                different points, and nothing filed binds the dispatched
+                waypoint to either. Raised as `SAFE-03` by
+                `@safety-sentinel`.
+Interpretation: **The dispatched waypoint for each Turf stop is that
+                candidate's registered stopping position**, and never the zone
+                coordinate. The corpus already decides every question about
+                whether a stop can be made against the stopping position and
+                not against the zone: FR-086 routes a detour's cost through
+                the proposed stopping position, FR-089 refuses a stopping
+                position on an excluded road, and FR-092 obliges one be
+                identified before any check about the stop is evaluated. A
+                hand-off dispatching a different point therefore sends the
+                driver to a coordinate nothing established as stoppable, and
+                does so after the product has priced the journey as though it
+                had not — so the estimate and the destination disagree with
+                nothing on screen inconsistent with anything else.
+Rung:           4 — existing requirements, decisive. Three filed records fix
+                the stopping position as the point every access and exclusion
+                decision is taken at, and dispatch is the one place that chain
+                reaches the driver. 3 was checked first and reaches nothing:
+                `DESIGN.md § Dispatching stop by stop` counts stops and names
+                no coordinate. 7 corroborates — of the two candidate points,
+                the one the safety checks were run against is the
+                conservative choice.
+Affects:        FR-118, which carries it. FR-110 and FR-111, which size and
+                place a portion in stops and are untouched by what a stop
+                resolves to.
+```
+
+## RD-029 — Is FR-094's *arbitrary interval* bounded by the retention ceiling?
+
+```
+Date:           2026-08-28
+Question:       FR-094 obliges a stored plan be reopenable *after an arbitrary
+                interval*; NFR-013 bounds retention by an absolute limit and
+                NFR-014 obliges deletion once it passes. Under RD-018 expiry
+                means deleted rather than unreadable, so on one registered
+                object in one store the three records oblige opposite
+                outcomes past the ceiling. Found by the set-level consistency
+                pass on remand, not at filing.
+Interpretation: **The reopen guarantee is bounded by the retention bound
+                NFR-013 sets, and FR-094 says so by citing it.** The bound is
+                the narrower obligation and the specification does not
+                contradict it: `SPECIFICATION.md § Route persistence` requires
+                survival across an arbitrary interval to defeat the
+                session-lifetime failure, and
+                `Architecture.md § Persistence and cross-device transfer`
+                answers the same requirement while capping it, and states
+                outright that a plan is deleted at the ceiling however often
+                it has been opened. `DESIGN.md § Returning to a stored plan`
+                carries that deletion through the expired-code path it already
+                specifies, which is what makes the cap a specified user
+                journey rather than an unhandled loss. **Neither record
+                restates the other's figure**, per the Owner's direction on
+                this repair: FR-094 cites NFR-013 and names no interval.
+                FR-095 needed no equivalent repair and is the reason the pair
+                was not obvious — its criterion refuses removal *to make room*
+                rather than removal, so expiry never reaches it.
+Rung:           2 — architecture constraints, decisive.
+                `Architecture.md § Persistence and cross-device transfer`
+                creates the ceiling and states that nothing extends it. 1 was
+                checked and does not contradict: the specification requires
+                survival past a session and never past a stated bound, so the
+                two are read together rather than ranked. 3 corroborates,
+                `DESIGN.md § Returning to a stored plan` having already
+                specified what the user meets at the ceiling.
+Affects:        FR-094. NFR-013 and NFR-014, unchanged. FR-096, FR-097,
+                FR-106 and FR-116, whose criteria carry the same phrase as an
+                antecedent rather than as an obligation and are read against
+                this entry.
+```
+
+## RD-030 — Does the corpus owe the proxy half of *no host log may record a plan code*?
+
+```
+Date:           2026-08-28
+Question:       `DECISIONS.md § Entry format` forbids repairing an entry in
+                place, so this entry is the compliant form of a repair to
+                RD-017 and follows RD-010's shape in carrying the supersession
+                here rather than in a field of its own.
+                RD-017 ruled that the corpus owes the service half of the
+                `DEPLOYMENT.md § Where the deployment configuration lives`
+                obligation *no host log may record a plan code — not the
+                proxy's, not the service's*, on the ground that the proxy half
+                is a deployment artefact no requirement may bind. SEC-07 was
+                then retired whole. Is that ground sound?
+Interpretation: **It is not, and the corpus owes the proxy half too. RD-017's
+                ruling stands in everything else** — the service half, the
+                citation order, and the reach of NFR-008 over everything the
+                service process emits — and one statement of it is superseded,
+                its ground for the exclusion. No filed record moves. The
+                exclusion rested on deployment artefacts being outside what a
+                requirement may bind, and this corpus falsifies that three
+                files away: NFR-004's second acceptance criterion binds the
+                deployment configuration directly, citing that same
+                `DEPLOYMENT.md` section, and does so while the artefact does
+                not yet exist — which is the precedent for naming an artefact
+                without creating it. The proxy half also fails **by default**
+                rather than by commission, which makes it the more urgent of
+                the two: a stock reverse proxy logs the request target, and
+                the plan code travels in it, so the obligation is breached by
+                installing the component and writing nothing. NFR-015 carries
+                it, on RD-017's own citation order.
+                **SEC-07 is closed whole by NFR-008 and NFR-015 together**,
+                and the ledger says so rather than crediting one record with
+                both halves.
+Rung:           4 — existing requirements, decisive. NFR-004 is the filed
+                counter-example to the premise RD-017 reasoned from, and one
+                filed record binding a `deploy/` artefact settles whether the
+                corpus may. 6 corroborates: recording an obligation the
+                documents already carry is filing, not new scope, and
+                `DEPLOYMENT.md` states this one in terms.
+Affects:        NFR-015, which carries the proxy half. NFR-008, unchanged.
+                RD-017, superseded in the one statement named above. The
+                ledger entry crediting SEC-07 as closed by RD-017 alone.
+```
+
+## RD-031 — How may a retrieval attempt be recorded, given the code may not be?
+
+```
+Date:           2026-08-28
+Question:       NFR-012 obliges that **every** retrieval attempt is counted
+                whether or not the plan code it names exists, and NFR-008
+                forbids the plan code appearing in any log the service
+                process emits. Nothing says what identifies an attempt in the
+                record that counting requires. Raised by
+                `@linus-security-critic`.
+Interpretation: **An attempt is identified by a value from which the plan code
+                cannot be recovered, and never by the code itself.** The two
+                filed records leave an implementer with attempts that must be
+                recorded and a code that may not appear, and with nothing
+                between them the obvious implementation keys the limiter and
+                any audit trail on the code — which reproduces exactly the
+                disclosure NFR-008 exists to prevent, in a store nobody
+                thinks of as a log. **The obligation is the property and never
+                a mechanism**: no hash, algorithm, length or scheme is named,
+                both because naming one is an `Appropriate` reject and because
+                `Architecture.md § What is unproven` records the code's own
+                parameters at its tenth item as a security decision belonging
+                to review, which a mechanism chosen here would pre-empt from
+                the wrong side.
+Rung:           2 — architecture constraints, decisive.
+                `Architecture.md § Personal data` states that the code is the
+                plan's sole credential and that the plan holds a dwelling
+                coordinate, which is the whole of the argument: a credential
+                recorded in full is disclosed wherever it is recorded. 4
+                corroborates — NFR-008 and NFR-012 are the two filed records
+                whose seam this closes.
+Affects:        NFR-016, which carries it. NFR-008 and NFR-012, unchanged.
+```
+
+## RD-032 — Where does the per-caller retrieval rate land?
+
+```
+Date:           2026-08-28
+Question:       NFR-012's criterion stands on a configured per-caller limit
+                and window that no document in this repository states.
+                RD-024 raised that as a gap rather than closing it, on the
+                ground that inventing the figure was the only alternative.
+                Was raising it the whole of what was owed?
+Interpretation: **No — the batch had its own precedent two records earlier and
+                did not carry it across.** NFR-010 and NFR-011 are exactly
+                this shape: where a parameter is outstanding, one record
+                obliges the property that does not depend on it and a second
+                obliges that the ruling has somewhere to land — read from
+                configuration carrying a documented origin per
+                `CalculationSpecification.md § Conventions` rather than
+                written inline. The rate is in the same position and takes the
+                same treatment: NFR-017 obliges the landing site and **names
+                no rate and no window**. RD-024's refusal to invent the figure
+                was right and is untouched; what it missed is that refusing to
+                state a value and refusing to say where it goes are different
+                refusals, and only the first was owed. A limit chosen inline
+                while the review is outstanding closes that decision silently,
+                at the moment the throttle is first written and by whoever
+                writes it.
+
+                **NFR-017 does not classify the constant either.** Whether a
+                per-caller retrieval limit is a model constant belonging in
+                `CalculationSpecification.md` or an enforcement parameter
+                belonging with the deployment is settled by the same
+                outstanding review that sets the value, and a record obliging
+                only the landing site pre-empts neither. Put by
+                `@requirements-nfr` on the revision pass and folded here
+                rather than logged as an entry of its own: where a parameter
+                lands and what kind of parameter it is are one question about
+                one figure, and splitting them across two IDs would leave
+                either readable without the other.
+Rung:           4 — existing requirements, decisive. NFR-011 is the filed
+                precedent and it is two records away in the same batch, so
+                the reading is applied rather than derived. 6 corroborates:
+                `CalculationSpecification.md § Conventions` already requires
+                every constant to be configurable and to carry a documented
+                origin, so obliging a home restates no decision.
+Affects:        NFR-017, which carries it. NFR-012, unchanged. RD-024,
+                extended rather than superseded — its ruling on the
+                aggregation point and on counting every attempt stands.
+```
+
+## RD-033 — Does the Privacy category own what a hand-off carries out?
+
+```
+Date:           2026-08-28
+Question:       A hand-off sends a portion of a stored plan to a third-party
+                navigation application. Privacy's scope covers what a stored
+                plan holds, what the system declines to hold, and the
+                retention and access controls over it — so egress falls
+                between the category's two halves and nothing in the corpus
+                bounds what a hand-off may carry. Bound it, or scope egress
+                out and name where it lands?
+Interpretation: **Bound it, in Privacy, and widen the scope line to say so.**
+                Scoping egress out would name a home that does not exist:
+                `Hand-off and dispatch` owns the mechanics of delivering a
+                portion, and a control on what may leave is a privacy control
+                by the same reasoning that puts a prohibition on logging a
+                credential there rather than in `Observability`. The bound is
+                **derived and not invented**: NFR-009 keeps the Turf username
+                out of the *stored payload* only, and a hand-off is composed
+                at dispatch time from live session state — which holds the
+                username, as NFR-009's own condition states and as
+                `Architecture.md § The user's held zones are already known`
+                requires for the player-data call. It can therefore reach the
+                target without ever having been stored, and NFR-009 is silent
+                by its own scope rather than by oversight.
+                `Architecture.md § Persistence and cross-device transfer`
+                recommends keeping the username out and
+                `SPECIFICATION.md § No accounts` is the posture behind it, so
+                the obligation is filed rather than authored. NFR-018 bounds a
+                hand-off to the dispatched portion's stops and its terminal
+                points, and enumerates nothing the documents do not carry.
+Rung:           2 — architecture constraints, decisive on the username, that
+                section stating the treatment and its reason. 4 decides the
+                category: NFR-008 sits in Privacy on the same distinction the
+                scope line already draws against `Observability`, and this is
+                that distinction applied to data leaving rather than data
+                written. 7 bounds the record — what the hand-off needs is the
+                narrowest bound that does not break the feature.
+Affects:        NFR-018, which carries it. The `Privacy` scope line in
+                `privacy.md` and its entry on the category register in
+                `README.md`, widened to name egress. NFR-009, unchanged.
+```
+
+## RD-034 — Where does FR-110's sizing stop, and what governs a portion after a refusal?
+
+```
+Date:           2026-08-28
+Question:       Two defects on one record. FR-110's statement branches on
+                *fewer than that remain* while its criteria branch on more or
+                fewer than the allowance admits, so the two disagree at
+                exactly the allowance and neither covers it. And FR-112
+                obliges a refused hand-off be attempted again carrying fewer
+                stops, which FR-110 as written forbids on every attempt.
+Interpretation: **The partition is by the portion's whole length, and FR-110
+                governs the initial dispatch only.** A portion carries at most
+                the intermediate-waypoint allowance in intermediates plus the
+                one stop its destination slot holds, so the two branches
+                divide at *more than that number remaining* against *that
+                number or fewer remaining*, with no gap and no case deciding
+                twice. And the sizing rule is the offer, not the outcome:
+                FR-110 sizes the portion as first dispatched, FR-112 governs
+                every attempt after a refusal, and the two stop contradicting
+                each other the moment FR-110 says which attempt it binds.
+                Read the other way — FR-110 binding every attempt — FR-112
+                could never be satisfied at all, which is the test that
+                decides it.
+Rung:           3 — design intent, decisive on both halves.
+                `DESIGN.md § Dispatching stop by stop` sizes a portion at as
+                many consecutive stops as the target accepts and states the
+                destination-slot arithmetic in the same breath, and it names
+                the graceful degradation as what happens **when a hand-off is
+                rejected**, which is the qualification FR-110 was missing. 1
+                was checked: `SPECIFICATION.md § The waypoint limit problem`
+                fixes the allowance's scope and says nothing about retries.
+Affects:        FR-110. FR-112, unchanged. FR-111, whose destination-slot
+                obligation the partition is written against.
+```
+
+## RD-035 — Does FR-103's indistinguishability reach the time a response takes?
+
+```
+Date:           2026-08-28
+Question:       FR-103 obliges an expired plan code and an unrecognised one
+                produce the same explanation, and its own `Risk` names two
+                distinguishable responses as an enumeration oracle against
+                objects holding a dwelling coordinate. A response
+                distinguishable by how long it takes is distinguishable.
+                Raised by `@linus-security-critic`.
+Interpretation: **The two are one outcome of one query, so there is no second
+                branch to time, and FR-103 records that rather than acquiring
+                a timing bound.**
+                `Architecture.md § The queries the schema exists to serve`
+                puts expiry inside the lookup predicate, so an expired plan
+                and a code that was never issued are both the zero-row result
+                of the same statement — the service cannot tell them apart
+                either, which is what makes the indistinguishability
+                structural rather than a discipline someone must maintain.
+                **No timing threshold is stated**, and the alternative was
+                rejected on the rule against fabricated metrics: any figure
+                standing in for *not distinguishable by duration* would have
+                been picked here, and `CalculationSpecification.md` holds no
+                threshold this criterion could have been written against.
+                The criteria state the shared outcome; the argument sits in
+                `Rationale` so a later agent cannot split the two paths
+                without meeting it.
+Rung:           2 — architecture constraints, decisive. The shared predicate
+                is a stated property of the query the schema exists to serve,
+                not a property this record has to oblige into existence. 6
+                corroborates on the refusal to invent a figure,
+                `docs/README.md § Conventions` putting every threshold in one
+                document that holds none for this.
+Affects:        FR-103. NFR-012, which bounds the same path from the other
+                side and is unchanged.
+```
+
+## RD-036 — Does FR-101's on-demand reveal oblige the code be absent by default?
+
+```
+Date:           2026-08-28
+Question:       FR-101 makes a stored plan's plan code available from its list
+                entry, and `@linus-security-critic` raised that the record
+                does not match the posture it cites. Two readings discharge
+                that finding: a reveal merely has to exist, or no entry
+                carries a code until a reveal is asked for. Which does the
+                record oblige? Raised as `SEC-135-09` on PR #135 and put by
+                `@requirements-fr` on this revision pass, rather than found at
+                filing.
+Interpretation: **Absent by default, and a second criterion carries it.** The
+                weaker reading is no posture at all: a reveal offered beside a
+                code already on screen satisfies the words while leaving the
+                credential displayed in exactly the case the cited section
+                says has no need of it.
+                `Architecture.md § Persistence and cross-device transfer`
+                states the posture positively — the code is held locally and
+                the user meets it only when they want the plan elsewhere — and
+                `Architecture.md § Personal data` names that code the sole
+                credential for an object holding a dwelling coordinate, and an
+                enumeration target. A list printing one code against every
+                entry therefore puts every credential the device holds on
+                screen at once, which is the aggregation the record was raised
+                against and which neither reading of the words would have
+                flagged. **No mechanism for the reveal is named**: what is
+                obliged is that no entry carries a code until one is
+                requested, and how a reader asks for it is interface design
+                that `DESIGN.md § Returning to a stored plan` has not settled
+                and this entry does not settle for it.
+Rung:           2 — architecture constraints, decisive. The cited section
+                states the posture as what the usual case requires, so the
+                reading is applied rather than inferred from a consequence. 1
+                was checked and reaches nothing:
+                `SPECIFICATION.md § No accounts` establishes that the code is
+                the only credential and says nothing about when it is shown. 7
+                corroborates — of the two readings, absent-by-default is the
+                conservative one, and it is the one whose failure mode is a
+                reader pressing one more control rather than a credential
+                disclosed to whoever is standing behind them.
+Affects:        FR-101, which carries it in a criterion of its own. FR-100 and
+                NFR-012, unchanged — this record makes a code available and
+                never obliges that a presentation of it is served.
+                `SEC-135-09` on PR #135, which it closes.
 ```
