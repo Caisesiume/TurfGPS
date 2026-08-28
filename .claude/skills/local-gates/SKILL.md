@@ -78,20 +78,23 @@ The race detector is not optional on this codebase. `Architecture.md § D1` chos
 
 Live once the client's manifest (`web/package.json`) exists. Required on every PR touching the client, per `Architecture.md § D2`.
 
-**Every command below runs from `web/`**, where `Architecture.md § D8` puts the client.
+**Run the frontend gates through the Makefile, from the repository root**, where the Makefile is.
 
 ```bash
-cd web          # not optional, for the same reason as the Go block above
-npm run build   # tsc + vite build, no errors
-npm run lint    # 0 issues
-npm run test    # all pass
+make web-gates
 ```
 
-npm resolves a script against the nearest `package.json`, and there is none at the repository root, so from there these three do not run the client's build, lint, or tests at all. That failure is at least loud: npm names a missing script. The Go block is mostly loud from the root too, but not uniformly, and its one quiet gate is quiet for a reason that says nothing about whether the tree was checked — `§ Backend (Go)` above records what each of the five does. This block is wrong from the root and says so, and `cd web` is the whole of its defence until a target covers this stack.
+`web-gates` runs the three frontend gates — `build`, `lint`, `test` — and each is a target of its own when only one of them is wanted. **What those targets execute is in the Makefile and is deliberately not repeated here**, for the reason `§ When these activate` below gives.
+
+**The working directory is the Makefile's job here too, and this stack fails loudly from the wrong one.** npm resolves a script against the nearest `package.json` and there is none at the repository root, so from there these three do not run the client's build, lint or tests at all — npm names a missing script and stops. That is the opposite of the backend's quiet gate, which `§ Backend (Go)` above records; what the two share is that the old defence was an agent remembering `cd web` on every command line, and a shell that resets between commands is back at the root by the second one. The recipes carry `web/` instead, where `Architecture.md § D8` puts the client.
+
+**This gate's threshold is zero issues and not zero errors**, warnings included — which is not what a default eslint run exits on, so the target is what enforces the threshold rather than the script's own default. The Makefile is where that is argued and where the flag lives.
+
+**`make web-gates` prints its own report line, and it is a second line rather than more fields on the backend's.** A code line names the one directory that decided which tree it measured, per law 1 below, and this run entered only `web/`; the Makefile carries the rest of that argument at the target. **Paste the line rather than composing one**, for the reason `§ Backend (Go)` above gives.
 
 ### When these activate
 
-**The `Makefile` at the repository root is the canonical gate runner**, introduced by the first Go PR as this section required, and this skill now points at its targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. `§ Frontend (Vite + React)` above still carries its commands, because nothing yet runs them — that block's manifest does not exist, and the Makefile's own header records where its targets will come from when it does.
+**The `Makefile` at the repository root is the canonical gate runner**, introduced by the first Go PR as this section required, and this skill now points at its targets rather than listing commands. Agent prompts that duplicate command lists drift; a Makefile does not. Both stack blocks above now name targets rather than commands — `§ Backend (Go)` since the first Go PR, and `§ Frontend (Vite + React)` since the commit that created `web/package.json` and the targets covering it, which was the last exception this section carried.
 
 **The Makefile is the commands' one home, and every other file names the target instead.** Ten agent files carried these commands inline, every one of them without the working directory, because they were copied before `Architecture.md § D8` existed and nothing pulled them forward when it did — the ten had gone stale in the same commit that made this file correct. They now **name the gate they must pass and cite this skill for how to run it**. A file that reproduces a gate command is a defect on sight, however correct the copy looks on the day it is written: a second home for the model outlives whoever checked it, and the commands have moved once already — out of this file, which was their home only for as long as there was no Makefile. Reproducing them is licensed in exactly one case — a **reviewer quoting the one check it performs itself**, as an instrument of its own review rather than as the gate — and such a file says inline why the copy is there and cites this skill for the rest.
 
