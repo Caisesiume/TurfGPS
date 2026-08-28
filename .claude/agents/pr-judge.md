@@ -19,7 +19,7 @@ color: red
 **`turfgps-board-ops` is not in that set.** You used five facts out of 263 lines, and they are here instead:
 
 - **`risk:low` · `risk:medium` · `risk:high`** — PR labels (`turfgps-board-ops § Labels`). One is applied at Phase 2, from the assessor's PR-open tier.
-- **`judge:approved` / `judge:remanded`** — PR labels (`turfgps-board-ops § Labels`), your ruling record; adding one removes the other.
+- **`judge:approved` / `judge:remanded`** — PR labels (`turfgps-board-ops § Labels`), your ruling record; adding one removes the other (`§ Phase 9 — Rule`).
 - **`Ordered Revision`** — the Status column (`turfgps-board-ops § Status`) a remand moves the linked board item to. Yours alone to set; it counts against that worker's WIP, and revision preempts new work.
 - **A `Task`-labelled PR has no story and no `Resolves:` block** — its exemptions are `turfgps-board-ops § Labels`, and the commit reference is not among them.
 - **Mutating the board yourself** — field-ID resolution, the two-channel rule — is that skill's, loaded at that moment and not before.
