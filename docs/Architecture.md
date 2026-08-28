@@ -669,7 +669,7 @@ CREATE TABLE IF NOT EXISTS sync_run (
     id             bigserial   PRIMARY KEY,
     started_at     timestamptz NOT NULL,
     completed_at   timestamptz,
-    outcome        text        NOT NULL,   -- ok | http_error | assertion_failed | aborted
+    outcome        text        NOT NULL,   -- running | ok | http_error | assertion_failed | aborted
     http_status    smallint,
     response_bytes bigint,
     zones_received integer,
@@ -682,6 +682,8 @@ CREATE TABLE IF NOT EXISTS sync_run (
 ```
 
 `completed_at` is what `last_changed_at` on a zone row is stamped with, so every changed row is attributable to a run. Two figures are worth watching from the first day: `rows_updated` far above the modelled ~1,840 means the change-detection `WHERE` has stopped discriminating, and `zones_received` falling means a truncated response — the failure the staging assertions exist to catch.
+
+**`running` is not a terminal outcome, and it is in the vocabulary because a crashed worker writes nothing.** The row is inserted when the run starts, carrying `started_at` and `running`, and updated once at whatever end the run reaches. A worker killed between those two writes leaves a row stuck at `running`, which says *a run started here and died*; a schema that only ever wrote the row at the end would leave no row at all, and a run that died would be indistinguishable from a run that never happened. The four terminal values divide the ends a worker can reach and report: `ok`, merged; `http_error`, the response was unusable, with `http_status` and `response_bytes` separating a refused request from a body that would not parse; `assertion_failed`, the staging assertions rejected it and nothing was merged; `aborted`, anything else, including a database error during the merge and a run cancelled at shutdown. Only `started_at` and `outcome` are `NOT NULL`, which is what keeps a run that failed before it received anything recordable at all.
 
 There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows every thirty minutes — roughly 23 MB of dead tuples per run, forty-eight runs a day, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
 
