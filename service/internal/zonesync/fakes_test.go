@@ -16,10 +16,10 @@ var errStore = errors.New("the store said no")
 type fakeStore struct {
 	mu sync.Mutex
 
-	lastAttempt    time.Time
-	everAttempted  bool
-	lastAttemptErr error
-	lastAttempts   int
+	sinceLastAttempt time.Duration
+	everAttempted    bool
+	lastAttemptErr   error
+	lastAttempts     int
 
 	beginErr error
 	nextID   int64
@@ -39,36 +39,41 @@ type fakeStore struct {
 	merges   int
 }
 
-func (f *fakeStore) LastAttempt(context.Context) (time.Time, bool, error) {
+func (f *fakeStore) SinceLastAttempt(context.Context) (time.Duration, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	f.lastAttempts++
 
 	if f.lastAttemptErr != nil {
-		return time.Time{}, false, f.lastAttemptErr
+		return 0, false, f.lastAttemptErr
 	}
 
-	return f.lastAttempt, f.everAttempted, nil
+	return f.sinceLastAttempt, f.everAttempted, nil
 }
 
-func (f *fakeStore) BeginRun(_ context.Context, startedAt time.Time) (int64, error) {
+func (f *fakeStore) BeginRun(context.Context) (int64, time.Time, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	if f.beginErr != nil {
-		return 0, f.beginErr
+		return 0, time.Time{}, f.beginErr
 	}
+
+	// The store dates the run, so the fake does too rather than being handed an
+	// instant it would only echo.
+	startedAt := time.Now()
 
 	f.begun = append(f.begun, startedAt)
 	f.nextID++
 
 	// A started run is the recorded attempt the rate limit is gated on, so the
-	// fake records it the way the real store's INSERT does.
-	f.lastAttempt = startedAt
+	// fake records it the way the real store's INSERT does: the server's answer
+	// to how long ago the last attempt was becomes none at all.
+	f.sinceLastAttempt = 0
 	f.everAttempted = true
 
-	return f.nextID, nil
+	return f.nextID, startedAt, nil
 }
 
 func (f *fakeStore) FinishRun(_ context.Context, _ int64, result Result) error {
@@ -108,7 +113,7 @@ func (f *fakeStore) Inspect(context.Context, time.Time) (Staged, error) {
 	return f.inspect, nil
 }
 
-func (f *fakeStore) Merge(context.Context, time.Time) (Merged, error) {
+func (f *fakeStore) Merge(context.Context) (Merged, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -118,7 +123,16 @@ func (f *fakeStore) Merge(context.Context, time.Time) (Merged, error) {
 		return Merged{}, f.mergeErr
 	}
 
-	return f.merged, nil
+	merged := f.merged
+
+	// The real store always answers with the instant it stamped, so a fixture
+	// that did not set one is completed by the fake rather than modelling a
+	// merge that committed at the zero instant.
+	if merged.CompletedAt.IsZero() {
+		merged.CompletedAt = time.Now()
+	}
+
+	return merged, nil
 }
 
 func (f *fakeStore) outcomes() []Outcome {

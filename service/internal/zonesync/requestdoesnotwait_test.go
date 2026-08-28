@@ -115,7 +115,7 @@ func newMergeHeldStore() *mergeHeldStore {
 // The signal is a non-blocking send for the reason the one-shot release exists:
 // the number of runs is not the test's to control, and a second run must not
 // wedge on a signal nobody is listening for.
-func (s *mergeHeldStore) Merge(ctx context.Context, completedAt time.Time) (Merged, error) {
+func (s *mergeHeldStore) Merge(ctx context.Context) (Merged, error) {
 	select {
 	case s.entered <- struct{}{}:
 	default:
@@ -123,7 +123,7 @@ func (s *mergeHeldStore) Merge(ctx context.Context, completedAt time.Time) (Merg
 
 	<-s.release
 
-	return s.fakeStore.Merge(ctx, completedAt)
+	return s.fakeStore.Merge(ctx)
 }
 
 func (s *mergeHeldStore) letTheMergeFinish() { s.releaseOnce() }

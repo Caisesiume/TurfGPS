@@ -92,6 +92,13 @@ type Merged struct {
 	Inserted int
 	Updated  int
 
+	// CompletedAt is when the merge committed, read from the SERVER inside the
+	// merge's own transaction. It is both the instant every row the merge
+	// touched carries in last_changed_at and the instant the run records as
+	// completed_at, so the two cannot disagree — and neither is a reading of the
+	// clock of whichever host happened to be running the sync.
+	CompletedAt time.Time
+
 	// AbsentIDs are ids held in `zone` and missing from the response. They are
 	// recorded and never acted on — `Architecture.md § Absence is recorded and
 	// never acted on` is the argument, and nothing in this package deletes a
@@ -127,15 +134,28 @@ type Result struct {
 // outcome each failure reaches, and that every path out writes the row — is
 // testable without a database.
 type Store interface {
-	// LastAttempt returns the start instant of the most recent run of ANY
-	// outcome, and whether there has been one. It is the rate limit's gate, and
+	// SinceLastAttempt returns how long ago the most recent run of ANY outcome
+	// started, and whether there has been one. It is the rate limit's gate, and
 	// it is the last attempt rather than the last success because the endpoint
 	// meters requests and not results.
-	LastAttempt(ctx context.Context) (time.Time, bool, error)
+	//
+	// IT IS AN ELAPSED TIME AND NOT AN INSTANT, which is what makes the gate
+	// hold across hosts. The question is whether a whole interval has passed,
+	// and answering it takes two instants; put a process clock on either side of
+	// that subtraction and a host running fast subtracts an honest instant from
+	// its own early one, decides the interval is up before it is, and spends an
+	// allowance the endpoint meters per interval and not per process. Both
+	// instants are the server's and the server subtracts them, so what comes
+	// back is a duration no clock in this process can skew.
+	SinceLastAttempt(ctx context.Context) (time.Duration, bool, error)
 
-	// BeginRun inserts the run's row carrying startedAt and `running`, and
-	// returns its id.
-	BeginRun(ctx context.Context, startedAt time.Time) (int64, error)
+	// BeginRun inserts the run's row carrying `running` and the server's current
+	// instant, and returns its id and that instant.
+	//
+	// The instant comes from the store for the reason above — it is the value
+	// the gate subtracts — and comes back because the run is dated by it
+	// everywhere else too: Inspect bounds date_created by it.
+	BeginRun(ctx context.Context) (id int64, startedAt time.Time, err error)
 
 	// FinishRun updates that row once, with the terminal outcome and whatever
 	// else the run learned.
@@ -149,8 +169,9 @@ type Store interface {
 	Inspect(ctx context.Context, startedAt time.Time) (Staged, error)
 
 	// Merge merges the staged rows into `zone` in ONE transaction, never
-	// batched, stamping completedAt into last_changed_at.
-	Merge(ctx context.Context, completedAt time.Time) (Merged, error)
+	// batched, stamping the server's instant into last_changed_at and returning
+	// it on Merged.
+	Merge(ctx context.Context) (Merged, error)
 }
 
 // Locker is the sync's exclusive lock.
@@ -175,7 +196,6 @@ type runner struct {
 	fetch FetchFunc
 	store Store
 	log   *slog.Logger
-	now   func() time.Time
 
 	fetchTimeout    time.Duration
 	databaseTimeout time.Duration
@@ -193,10 +213,8 @@ type runner struct {
 // thing worth recording happened, leaving the row at `running` for a run whose
 // end is known.
 func (r *runner) runOnce(ctx context.Context) Outcome {
-	startedAt := r.now()
-
 	beginCtx, cancelBegin := context.WithTimeout(ctx, r.databaseTimeout)
-	id, err := r.store.BeginRun(beginCtx, startedAt)
+	id, startedAt, err := r.store.BeginRun(beginCtx)
 
 	cancelBegin()
 
@@ -346,10 +364,8 @@ func (r *runner) receive(ctx context.Context, result *Result) ([]Zone, bool) {
 
 // merge runs the one transaction and records what it did.
 func (r *runner) merge(ctx context.Context, received int, result *Result) {
-	completedAt := r.now()
-
 	mergeCtx, cancel := context.WithTimeout(ctx, r.mergeTimeout)
-	merged, err := r.store.Merge(mergeCtx, completedAt)
+	merged, err := r.store.Merge(mergeCtx)
 
 	cancel()
 
@@ -363,6 +379,7 @@ func (r *runner) merge(ctx context.Context, received int, result *Result) {
 
 	unchanged := received - merged.Inserted - merged.Updated
 	absent := len(merged.AbsentIDs)
+	completedAt := merged.CompletedAt
 
 	result.Outcome = OutcomeOK
 	result.CompletedAt = &completedAt
@@ -408,7 +425,6 @@ func newRunner(cfg Config) (*runner, error) {
 		fetch:           cfg.Fetch,
 		store:           cfg.Store,
 		log:             cfg.logger(),
-		now:             time.Now,
 		fetchTimeout:    cfg.FetchTimeout,
 		databaseTimeout: cfg.DatabaseTimeout,
 		mergeTimeout:    cfg.MergeTimeout,

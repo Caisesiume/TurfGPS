@@ -175,10 +175,19 @@ func buildMergeSQL() string {
 }
 
 const (
+	// beginRunSQL dates the run by the SERVER and hands that instant back.
+	//
+	// `now()` rather than a parameter because started_at is the rate limit's
+	// gate and sinceLastAttemptSQL below subtracts it from the server's own
+	// clock. A row dated by whichever host ran the sync would put one host's
+	// clock on one side of that subtraction and the server's on the other, and a
+	// host running fast would decide the interval was up before it was. It is
+	// returned because the run is dated by it everywhere else too — inspectSQL
+	// bounds date_created by it.
 	beginRunSQL = `
 INSERT INTO sync_run (started_at, outcome)
-VALUES ($1, $2)
-RETURNING id`
+VALUES (now(), $1)
+RETURNING id, started_at`
 
 	finishRunSQL = `
 UPDATE sync_run
@@ -194,11 +203,23 @@ SET    outcome        = $2,
        absent_ids     = $11
 WHERE  id = $1`
 
-	// lastAttemptSQL is the rate limit's gate. It is max(started_at) over every
-	// outcome, including `running`: a run in flight has already spent the
+	// sinceLastAttemptSQL is the rate limit's gate. It is max(started_at) over
+	// every outcome, including `running`: a run in flight has already spent the
 	// request, and a run that died holds the allowance until the interval
 	// elapses just as a completed one does.
-	lastAttemptSQL = `SELECT max(started_at) FROM sync_run`
+	//
+	// The subtraction is done here so that both of its operands are the
+	// server's — see beginRunSQL. Epoch seconds rather than an interval because
+	// a float8 becomes a Duration without a driver-specific interval type in
+	// between, and the gate is measured in minutes, where float64 seconds have
+	// precision to spare. An empty table gives one row carrying NULL, not no
+	// rows.
+	sinceLastAttemptSQL = `SELECT extract(epoch FROM now() - max(started_at)) FROM sync_run`
+
+	// serverNowSQL reads the instant the merge stamps and the run records. It is
+	// taken inside the merge's transaction, where now() is that transaction's
+	// own timestamp and is constant for its whole duration.
+	serverNowSQL = `SELECT now()`
 
 	// inspectSQL counts everything the staging assertions of
 	// `Architecture.md § The sync write path` decide on, in one round trip. The
@@ -247,32 +268,37 @@ func New(pool *pgxpool.Pool, log *slog.Logger) (*Store, error) {
 	return &Store{pool: pool, log: log}, nil
 }
 
-// LastAttempt returns the start instant of the most recent run of any outcome.
-func (s *Store) LastAttempt(ctx context.Context) (time.Time, bool, error) {
-	// max() over an empty table is one row carrying NULL, not no rows, so the
-	// scan target is nullable and the emptiness is read off it.
-	var startedAt *time.Time
+// SinceLastAttempt returns how long ago the most recent run of any outcome
+// started, measured by the server.
+func (s *Store) SinceLastAttempt(ctx context.Context) (time.Duration, bool, error) {
+	// The subtraction over an empty table is one row carrying NULL, not no rows,
+	// so the scan target is nullable and the emptiness is read off it.
+	var seconds *float64
 
-	if err := s.pool.QueryRow(ctx, lastAttemptSQL).Scan(&startedAt); err != nil {
-		return time.Time{}, false, fmt.Errorf("reading the last sync attempt: %w", err)
+	if err := s.pool.QueryRow(ctx, sinceLastAttemptSQL).Scan(&seconds); err != nil {
+		return 0, false, fmt.Errorf("reading how long ago the last sync attempt was: %w", err)
 	}
 
-	if startedAt == nil {
-		return time.Time{}, false, nil
+	if seconds == nil {
+		return 0, false, nil
 	}
 
-	return startedAt.UTC(), true, nil
+	return time.Duration(*seconds * float64(time.Second)), true, nil
 }
 
-// BeginRun writes the first of the run's two rows-worth of bookkeeping.
-func (s *Store) BeginRun(ctx context.Context, startedAt time.Time) (int64, error) {
-	var id int64
+// BeginRun writes the first of the run's two rows-worth of bookkeeping, dated by
+// the server, and returns the date it was given.
+func (s *Store) BeginRun(ctx context.Context) (int64, time.Time, error) {
+	var (
+		id        int64
+		startedAt time.Time
+	)
 
-	if err := s.pool.QueryRow(ctx, beginRunSQL, startedAt, string(zonesync.OutcomeRunning)).Scan(&id); err != nil {
-		return 0, fmt.Errorf("recording the start of a sync run: %w", err)
+	if err := s.pool.QueryRow(ctx, beginRunSQL, string(zonesync.OutcomeRunning)).Scan(&id, &startedAt); err != nil {
+		return 0, time.Time{}, fmt.Errorf("recording the start of a sync run: %w", err)
 	}
 
-	return id, nil
+	return id, startedAt.UTC(), nil
 }
 
 // FinishRun writes the second, whatever end the run reached.
@@ -391,7 +417,7 @@ func (s *Store) Inspect(ctx context.Context, startedAt time.Time) (zonesync.Stag
 // leave it behind: it costs one interval of freshness, which is what every other
 // failure in this package costs, against an audit row asserting something
 // impossible.
-func (s *Store) Merge(ctx context.Context, completedAt time.Time) (zonesync.Merged, error) {
+func (s *Store) Merge(ctx context.Context) (zonesync.Merged, error) {
 	var merged zonesync.Merged
 
 	tx, err := s.pool.Begin(ctx)
@@ -400,6 +426,17 @@ func (s *Store) Merge(ctx context.Context, completedAt time.Time) (zonesync.Merg
 	}
 
 	defer func() { _ = tx.Rollback(ctx) }()
+
+	// The instant this merge stamps every row it touches with, and the instant
+	// the run records as completed_at. Read here rather than taken from the
+	// process clock, for the reason beginRunSQL gives about started_at: a run
+	// whose two instants come from different clocks can record an end before its
+	// own beginning, and currency is read off this one.
+	var completedAt time.Time
+
+	if err := tx.QueryRow(ctx, serverNowSQL).Scan(&completedAt); err != nil {
+		return zonesync.Merged{}, fmt.Errorf("reading the instant to stamp the merge with: %w", err)
+	}
 
 	var before int
 
@@ -447,6 +484,7 @@ func (s *Store) Merge(ctx context.Context, completedAt time.Time) (zonesync.Merg
 
 	merged.Inserted = inserted
 	merged.Updated = updated
+	merged.CompletedAt = completedAt.UTC()
 
 	return merged, nil
 }

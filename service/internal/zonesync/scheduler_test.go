@@ -145,7 +145,7 @@ func TestTheNextFetchIsGatedOnTheRECORDEDLastAttempt(t *testing.T) {
 	store := okStore()
 	// A run recorded a moment ago by a process that is now gone.
 	store.everAttempted = true
-	store.lastAttempt = start.Add(-testInterval / 4)
+	store.sinceLastAttempt = testInterval / 4
 
 	locker := &fakeLocker{}
 	fetch := &fakeFetch{body: []byte(oneZoneResponse), status: 200}

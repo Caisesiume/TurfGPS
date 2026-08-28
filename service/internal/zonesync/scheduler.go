@@ -136,23 +136,27 @@ func (s *Scheduler) untilDue(ctx context.Context, lastLocal time.Time) time.Dura
 	readCtx, cancel := context.WithTimeout(ctx, s.databaseTimeout)
 	defer cancel()
 
-	recorded, ever, err := s.store.LastAttempt(readCtx)
+	since, ever, err := s.store.SinceLastAttempt(readCtx)
 	if err != nil {
 		s.log.Error("the zone sync could not read when it last ran, so it is waiting out a whole interval", "error", err)
 
 		return s.interval
 	}
 
-	now := s.now()
-
 	var wait time.Duration
 
+	// The recorded gate is the server's elapsed time, already subtracted there,
+	// so nothing in this process is on either side of it.
 	if ever {
-		wait = s.interval - now.Sub(recorded)
+		wait = s.interval - since
 	}
 
+	// The local fallback is the other way round, and stays that way: both of its
+	// instants are this process's own clock, which is consistent with itself
+	// whatever it reads, and it is only ever asked about this process's own last
+	// attempt.
 	if !lastLocal.IsZero() {
-		if local := s.interval - now.Sub(lastLocal); local > wait {
+		if local := s.interval - s.now().Sub(lastLocal); local > wait {
 			wait = local
 		}
 	}
