@@ -12,7 +12,7 @@ Written 31 July 2026 to carry context between machines. Read this first if you a
 
 It is not a zone map and not a navigation app. It is an optimizer with an explanation layer: it compares whole journeys, prices the real cost of each stop, and tells the user *why* one route beats another.
 
-**The documentation leads the implementation.** `docs/` is the source of truth for intent, and it runs ahead of the tree rather than describing it. **What the repository actually holds is derived and never asserted here**: `codebase-map § Which map is authoritative — check the tree, do not assume` is the one place that answers it, and it carries both the one-line check and the reason the deleted Next.js prototype is not a partial implementation of this design. This paragraph asserted the answer instead, and was wrong from 14 August 2026 until 28 August 2026.
+**The documentation leads the implementation.** `docs/` is the source of truth for intent, and it runs ahead of the tree rather than describing it. **What the repository actually holds is derived and never asserted here**: `codebase-map § Which map is authoritative — check the tree, do not assume` is the one place that answers it, and it carries both the one-line check and the reason the deleted Next.js prototype is not a partial implementation of this design. This paragraph asserted the answer instead, and was wrong from the merge of PR #106 — where the Go service became reachable on `main` — until 28 August 2026. The span opens on a merge rather than a date because a commit's own date is the day it was written on a branch, not the day `main` acquired it.
 
 ## 2. Read these, in this order
 

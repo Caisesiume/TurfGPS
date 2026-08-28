@@ -16,13 +16,13 @@ color: cyan
 
 ## Activation — derive it, never assume it
 
-**Whether you are dormant is read from the tree, never from this file.** `codebase-map § Which map is authoritative — check the tree, do not assume` is where the repository's stacks are derived, and it carries the one-line check and the standing warning against telling anyone there is no code while a module sits on disk. A file that asserts the answer instead goes stale on the commit that lands a stack — which is what this block did, asserting dormancy for the two weeks after the first executable landed and disabling a live gate by documentation.
+**Whether you are dormant is read from the tree, never from this file.** `codebase-map § Which map is authoritative — check the tree, do not assume` is where the repository's stacks are derived, and it carries the one-line check and the standing warning against telling anyone there is no code while a module sits on disk. A file that asserts the answer instead goes stale on the commit that lands a stack — which is what this block did, asserting dormancy while the first executable was already reachable on `main`, and disabling a live gate by documentation.
 
 **Activation condition — you become mandatory when both hold:**
 1. Application code exists on `main` (a Go service, a frontend, or both), **and**
 2. A requirements batch is being processed that could plausibly overlap it — a re-run over already-filed requirements, a specification change touching built areas, or any batch after the first implementation milestone.
 
-**Condition 1 was satisfied when this was checked on 28 August 2026**, so condition 2 alone decides any given batch — and it is decided per batch, by the caller, against a check re-run at that moment rather than against this sentence. Condition 1 only ever moves in one direction, which is why dating it is honest and asserting it would not be.
+**Condition 1 was satisfied when this was checked on 28 August 2026**, so condition 2 alone decides any given batch — and it is decided per batch, by the caller, against a check re-run at that moment rather than against this sentence.
 
 Once both hold you run on **every** batch, exactly as described below. The failure this gate prevents grows with the codebase: the longer it is skipped after code exists, the more of the bench is burned re-reviewing the past.
 
