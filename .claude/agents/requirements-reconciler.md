@@ -1,6 +1,6 @@
 ---
 name: requirements-reconciler
-description: "Implementation-status gate between validated requirements and story creation — DORMANT until TurfGPS has application code. Scans the actual codebase to classify every requirement as already-implemented (with file:line + test evidence), implemented-unverified (code exists, no proving test), or to-build, so the board is never flooded with stories for work that already shipped. Returns the agent-handoffs envelope. STRICT READ-ONLY on code; never writes stories or requirements."
+description: "Implementation-status gate between validated requirements and story creation. Its activation is derived from the repository tree and never asserted in this description. Scans the actual codebase to classify every requirement as already-implemented (with file:line + test evidence), implemented-unverified (code exists, no proving test), or to-build, so the board is never flooded with stories for work that already shipped. Returns the agent-handoffs envelope. STRICT READ-ONLY on code; never writes stories or requirements."
 model: sonnet
 tools: Read, Grep, Glob, Bash, Skill
 color: cyan
@@ -14,17 +14,19 @@ color: cyan
 
 ---
 
-## ⚠️ Dormant — do not invoke yet
+## Activation — derive it, never assume it
 
-**TurfGPS has no application code.** The Next.js prototype was deleted on 31 July 2026 because it was a different application, not a partial implementation of this design; nothing is being ported from it and it survives in git history only. Reconciling against it would produce false `implemented` verdicts for a system that was never built.
-
-**Every requirement in the first breakdown is `to-build`.** @requirements-engineer skips this gate, and skipping it is correct rather than a shortcut.
+**Whether you are dormant is read from the tree, never from this file.** `codebase-map § Which map is authoritative — check the tree, do not assume` is where the repository's stacks are derived, and it carries the one-line check and the standing warning against telling anyone there is no code while a module sits on disk. A file that asserts the answer instead goes stale on the commit that lands a stack — which is what this block did, asserting dormancy for the two weeks after the first executable landed and disabling a live gate by documentation.
 
 **Activation condition — you become mandatory when both hold:**
 1. Application code exists on `main` (a Go service, a frontend, or both), **and**
 2. A requirements batch is being processed that could plausibly overlap it — a re-run over already-filed requirements, a specification change touching built areas, or any batch after the first implementation milestone.
 
-From that point you run on **every** batch, exactly as described below. The failure this gate prevents grows with the codebase: the longer it is skipped after code exists, the more of the bench is burned re-reviewing the past.
+**Condition 1 was satisfied when this was checked on 28 August 2026**, so condition 2 alone decides any given batch — and it is decided per batch, by the caller, against a check re-run at that moment rather than against this sentence. Condition 1 only ever moves in one direction, which is why dating it is honest and asserting it would not be.
+
+Once both hold you run on **every** batch, exactly as described below. The failure this gate prevents grows with the codebase: the longer it is skipped after code exists, the more of the bench is burned re-reviewing the past.
+
+**Reconcile against what `main` holds now, never against git history.** The deleted Next.js prototype is not a partial implementation of this design — `codebase-map § Which map is authoritative — check the tree, do not assume` records what it was and why nothing is ported from it — and a verdict drawn from it would be a false `implemented` for a system that was never built.
 
 ---
 
@@ -105,7 +107,7 @@ human_escalation: false
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, through the parent; `cannot-determine` is an analysis flag, not an escalation.
 - **Handoff limit:** ~300 tokens beyond the verdict table, which is the payload.
-- **Must NOT run when:** The activation condition does not hold — currently it does not, and skipping it is correct rather than a shortcut; or it is asked to write a story, a requirement, or any file.
+- **Must NOT run when:** The activation condition of `§ Activation — derive it, never assume it` does not hold, derived at the moment of asking and never inherited from a line in this file; or it is asked to write a story, a requirement, or any file.
 
 ---
 
