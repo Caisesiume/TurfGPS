@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -41,12 +42,136 @@ import (
 // pg_advisory_lock on this number.
 const syncAdvisoryLockKey int64 = 20260820
 
-// stagingColumns are the columns of `zone_incoming` in its declared order, which
-// is the order the copy below supplies values in.
-var stagingColumns = []string{
-	"id", "name", "latitude", "longitude", "date_created", "total_takeovers",
-	"takeover_points", "points_per_hour", "type_id", "region_id",
-	"region_name", "region_country", "area_id", "area_name",
+// zoneColumn is one column of the ingest set, bound to the value a staged zone
+// supplies for it.
+//
+// THE BINDING ON ONE LINE IS THE POINT OF THIS TYPE. The fourteen columns were
+// written out six times in this file — the staging column list, the COPY row,
+// and the four lists inside the merge — and exactly one of those pairings had to
+// agree by POSITION rather than by name: the staging list is what COPY is given,
+// and the row builder supplied values in the order it hoped that list was in.
+// Swap two columns of the same type between them and the compiler accepts it,
+// pgx accepts it, PostgreSQL accepts it, and the first thing to notice is a zone
+// whose area name is its region name. Naming the column beside its accessor
+// makes that swap unwriteable; deriving the other five lists from this one slice
+// makes them unable to disagree at all.
+type zoneColumn struct {
+	name  string
+	value func(zonesync.Zone) any
+}
+
+const (
+	// The two stamps the merge writes that no staged row supplies. They are
+	// named because the merge treats them differently from each other and from
+	// everything in zoneColumns: first_seen_at is written on insert and never
+	// updated, last_changed_at on both.
+	firstSeenColumn   = "first_seen_at"
+	lastChangedColumn = "last_changed_at"
+
+	// zoneKeyColumn is the merge's conflict target, and so the one ingest column
+	// it neither assigns nor tests for change.
+	zoneKeyColumn = "id"
+)
+
+// zoneColumns is `zone_incoming` in its declared order.
+//
+// THE ORDER IS THE MIGRATION'S AND MUST STAY THE MIGRATION'S. COPY is positional
+// against the column list it is handed, that list is derived from this one, and
+// so this slice is the single place the order is decided.
+var zoneColumns = []zoneColumn{
+	{"id", func(z zonesync.Zone) any { return z.ID }},
+	{"name", func(z zonesync.Zone) any { return z.Name }},
+	{"latitude", func(z zonesync.Zone) any { return z.Latitude }},
+	{"longitude", func(z zonesync.Zone) any { return z.Longitude }},
+	{"date_created", func(z zonesync.Zone) any { return z.DateCreated }},
+	{"total_takeovers", func(z zonesync.Zone) any { return z.TotalTakeovers }},
+	{"takeover_points", func(z zonesync.Zone) any { return z.TakeoverPoints }},
+	{"points_per_hour", func(z zonesync.Zone) any { return z.PointsPerHour }},
+	{"type_id", func(z zonesync.Zone) any { return z.TypeID }},
+	{"region_id", func(z zonesync.Zone) any { return z.RegionID }},
+	{"region_name", func(z zonesync.Zone) any { return z.RegionName }},
+	{"region_country", func(z zonesync.Zone) any { return z.RegionCountry }},
+	{"area_id", func(z zonesync.Zone) any { return z.AreaID }},
+	{"area_name", func(z zonesync.Zone) any { return z.AreaName }},
+}
+
+// stagingColumns is the name half of zoneColumns, in the same order, which is
+// the form pgx's CopyFrom takes.
+var stagingColumns = func() []string {
+	names := make([]string, len(zoneColumns))
+	for i, c := range zoneColumns {
+		names[i] = c.name
+	}
+
+	return names
+}()
+
+// stagingValues is the value half, for one zone, in that same order — the order
+// being a fact of zoneColumns rather than of this function.
+func stagingValues(z zonesync.Zone) []any {
+	values := make([]any, len(zoneColumns))
+	for i, c := range zoneColumns {
+		values[i] = c.value(z)
+	}
+
+	return values
+}
+
+// mergeSQL is the statement of `Architecture.md § The sync write path`, written
+// from zoneColumns.
+//
+// ONE DEPARTURE FROM THE FORM WRITTEN THERE, and it changes nothing the
+// statement does: the select list names the staging columns instead of `i.*`.
+// The expansion of `i.*` is positional, so the two column lists agreeing would
+// be a property of the migration's declaration order rather than of anything
+// visible here, and a column inserted into `zone_incoming` in the middle would
+// silently shift fourteen values one place to the right.
+//
+// The four load-bearing properties are unchanged and are argued in that section:
+// first_seen_at is absent from the SET list, every other field is refreshed
+// including the ones that look constant, the change test is IS DISTINCT FROM
+// rather than <> because four columns are nullable, and the WHERE is what keeps
+// a sync writing a thousand rows instead of all of them.
+var mergeSQL = buildMergeSQL()
+
+func buildMergeSQL() string {
+	width := len(lastChangedColumn)
+
+	for _, c := range zoneColumns {
+		if len(c.name) > width {
+			width = len(c.name)
+		}
+	}
+
+	names := make([]string, 0, len(zoneColumns))
+	selected := make([]string, 0, len(zoneColumns))
+	assignments := make([]string, 0, len(zoneColumns))
+	changed := make([]string, 0, len(zoneColumns))
+
+	for _, c := range zoneColumns {
+		names = append(names, c.name)
+		selected = append(selected, "i."+c.name)
+
+		if c.name == zoneKeyColumn {
+			continue
+		}
+
+		assignments = append(assignments, fmt.Sprintf("%-*s = excluded.%s", width, c.name, c.name))
+		changed = append(changed, fmt.Sprintf("zone.%-*s IS DISTINCT FROM excluded.%s", width, c.name, c.name))
+	}
+
+	assignments = append(assignments,
+		fmt.Sprintf("%-*s = excluded.%s", width, lastChangedColumn, lastChangedColumn))
+
+	return "\n" +
+		"INSERT INTO zone (" + strings.Join(names, ",\n                  ") + ",\n" +
+		"                  " + firstSeenColumn + ", " + lastChangedColumn + ")\n" +
+		"SELECT " + strings.Join(selected, ",\n       ") + ",\n" +
+		"       $1, $1\n" +
+		"FROM   zone_incoming i\n" +
+		"ON CONFLICT (" + zoneKeyColumn + ") DO UPDATE SET\n" +
+		"       " + strings.Join(assignments, ",\n       ") + "\n" +
+		"WHERE  " + strings.Join(changed, "\n   OR  ")
 }
 
 const (
@@ -100,59 +225,6 @@ SELECT (SELECT count(*) FROM zone_incoming),
 SELECT coalesce(array_agg(z.id ORDER BY z.id), '{}'::integer[])
 FROM   zone z
 WHERE  NOT EXISTS (SELECT 1 FROM zone_incoming i WHERE i.id = z.id)`
-
-	// mergeSQL is the statement of `Architecture.md § The sync write path`.
-	//
-	// ONE DEPARTURE FROM THE FORM WRITTEN THERE, and it changes nothing the
-	// statement does: the select list names the staging columns instead of
-	// `i.*`. The expansion of `i.*` is positional, so the two column lists
-	// agreeing is a property of the migration's declaration order rather than
-	// of anything visible here, and a column inserted into `zone_incoming` in
-	// the middle would silently shift fourteen values one place to the right.
-	//
-	// The four load-bearing properties are unchanged and are argued in that
-	// section: first_seen_at is absent from the SET list, every other field is
-	// refreshed including the ones that look constant, the change test is IS
-	// DISTINCT FROM rather than <> because four columns are nullable, and the
-	// WHERE is what keeps a sync writing a thousand rows instead of all of them.
-	mergeSQL = `
-INSERT INTO zone (id, name, latitude, longitude, date_created, total_takeovers,
-                  takeover_points, points_per_hour, type_id, region_id,
-                  region_name, region_country, area_id, area_name,
-                  first_seen_at, last_changed_at)
-SELECT i.id, i.name, i.latitude, i.longitude, i.date_created, i.total_takeovers,
-       i.takeover_points, i.points_per_hour, i.type_id, i.region_id,
-       i.region_name, i.region_country, i.area_id, i.area_name,
-       $1, $1
-FROM   zone_incoming i
-ON CONFLICT (id) DO UPDATE SET
-       name            = excluded.name,
-       latitude        = excluded.latitude,
-       longitude       = excluded.longitude,
-       date_created    = excluded.date_created,
-       total_takeovers = excluded.total_takeovers,
-       takeover_points = excluded.takeover_points,
-       points_per_hour = excluded.points_per_hour,
-       type_id         = excluded.type_id,
-       region_id       = excluded.region_id,
-       region_name     = excluded.region_name,
-       region_country  = excluded.region_country,
-       area_id         = excluded.area_id,
-       area_name       = excluded.area_name,
-       last_changed_at = excluded.last_changed_at
-WHERE  zone.name            IS DISTINCT FROM excluded.name
-   OR  zone.latitude        IS DISTINCT FROM excluded.latitude
-   OR  zone.longitude       IS DISTINCT FROM excluded.longitude
-   OR  zone.date_created    IS DISTINCT FROM excluded.date_created
-   OR  zone.total_takeovers IS DISTINCT FROM excluded.total_takeovers
-   OR  zone.takeover_points IS DISTINCT FROM excluded.takeover_points
-   OR  zone.points_per_hour IS DISTINCT FROM excluded.points_per_hour
-   OR  zone.type_id         IS DISTINCT FROM excluded.type_id
-   OR  zone.region_id       IS DISTINCT FROM excluded.region_id
-   OR  zone.region_name     IS DISTINCT FROM excluded.region_name
-   OR  zone.region_country  IS DISTINCT FROM excluded.region_country
-   OR  zone.area_id         IS DISTINCT FROM excluded.area_id
-   OR  zone.area_name       IS DISTINCT FROM excluded.area_name`
 )
 
 // Store is the PostGIS adapter for the zone sync's write path. It satisfies
@@ -241,13 +313,7 @@ func (s *Store) Stage(ctx context.Context, zones []zonesync.Zone) error {
 
 	copied, err := tx.CopyFrom(ctx, pgx.Identifier{"zone_incoming"}, stagingColumns,
 		pgx.CopyFromSlice(len(zones), func(i int) ([]any, error) {
-			z := zones[i]
-
-			return []any{
-				z.ID, z.Name, z.Latitude, z.Longitude, z.DateCreated, z.TotalTakeovers,
-				z.TakeoverPoints, z.PointsPerHour, z.TypeID, z.RegionID,
-				z.RegionName, z.RegionCountry, z.AreaID, z.AreaName,
-			}, nil
+			return stagingValues(zones[i]), nil
 		}))
 	if err != nil {
 		return fmt.Errorf("staging the response: %w", err)
