@@ -14,6 +14,14 @@
 # edge never blocks readiness, so counting one would manufacture a blocker and
 # hold work the board never intended to hold.
 #
+# DECLARED BLOCKERS ONLY. A `Blocked by:` line carries its reason on the same line,
+# and that prose names other issues and pull requests — `as of PR #67`, `which #89
+# computes`. Only the leading `#N` list, before the reason begins, is an edge; the
+# rest of the line is provenance. Scanning the whole line manufactured blockers
+# nobody declared, and because a satisfied edge's line stays in the body forever
+# (`turfgps-board-ops § Satisfied is not removed`) such a phantom blocked its story
+# permanently — #136 was held on a pull request its own reason merely mentioned.
+#
 # SATISFIED MEANS SUCCESSFULLY COMPLETE, not merely closed (directive-4 §13). A
 # blocker is satisfied iff it is CLOSED with stateReason COMPLETED — or with no
 # stateReason at all, which is how a legacy plain close reads. Closed as
@@ -22,9 +30,17 @@
 # of promoting a story onto dead work. Any other closed reason blocks too — the
 # ambiguous case fails toward blocked, always.
 #
+# A REFERENCE MAY BE A PULL REQUEST. Issue and PR numbers share one sequence and
+# `gh issue view` resolves both, so a declared blocker may be either. A MERGED pull
+# request is satisfied — the work landed. One still open blocks; one closed unmerged
+# never landed and blocks as `not_completed`. Which kind a reference is comes off the
+# `url`, because `state` alone cannot tell a closed-unmerged pull request from the
+# legacy plain-closed issue above: both are CLOSED with no stateReason.
+#
 # A blocker whose state cannot be read counts as STILL BLOCKING and is reported
 # on its own line. An unreadable prerequisite must never be able to read as a
 # satisfied one — the same rule fingerprint.sh applies to an unreadable component.
+# That is unchanged; it now reaches only references that were actually declared.
 #
 # Usage: scripts/loop/dependents.sh <issue-number>
 # Exit:  0  read the board (prints `none` when nothing depended on #N)
@@ -40,21 +56,39 @@ esac
 GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 
 # One board read. `gh --jq` uses the jq engine compiled into gh; standalone jq is
-# NOT installed on this machine. Emits one `<issue> <blocker,blocker,...>` line
-# per open story carrying at least one hard blocker.
-pairs="$("$GH" issue list --state open --limit 200 --json number,body --jq '
+# NOT installed on this machine. Emits one `<issue> <the whole Blocked by line>`
+# record per hard-blocker line — the raw line, because which of the references on
+# it are DECLARED is decided below, in the shell, where it can be tested against
+# fixtures without a network.
+lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
   .[]
   | select(.body != null)
   | {n: .number,
      dep: (.body | split("## Dependencies")
                  | if length > 1 then (.[1] | split("\n## ")[0]) else "" end)}
-  | {n: .n,
-     b: [ .dep | split("\n")[]
-        | select(test("^ *\\**Blocked by"))
-        | scan("#[0-9]+") | ltrimstr("#") ]}
-  | select(.b | length > 0)
-  | "\(.n) \(.b | join(","))"
+  | .n as $n
+  | .dep | split("\n")[]
+  | select(test("^ *\\**Blocked by"))
+  | "\($n) \(.)"
 ' 2>/dev/null)"
+
+# The declared blockers, then one `<issue> <blocker,blocker,...>` line per story —
+# joined across a story's several `Blocked by:` lines, in the order the body gives.
+# The declared list is the run of `#N` references and their separators that opens
+# the line; the first token that is neither ends it, which is the reason delimiter
+# in the grammar and the end of the line in a grandfathered one.
+pairs="$(printf '%s\n' "$lines" | awk '
+  { n = $1; rest = substr($0, index($0, " ") + 1); list = ""
+    sub(/^ *[*]*Blocked by[^#]*/, "", rest)   # the label; [^#] stops at the first ref
+    while (match(rest, /^#[0-9]+/)) {
+      list = (list == "" ? "" : list ",") substr(rest, 2, RLENGTH - 1)
+      rest = substr(rest, RLENGTH + 1)
+      if (!sub(/^([ ,;&+]|and)+/, "", rest)) break
+    }
+    if (list == "") next
+    if (!(n in b)) order[++k] = n
+    b[n] = (n in b) ? b[n] "," list : list }
+  END { for (i = 1; i <= k; i++) print order[i], b[order[i]] }')"
 
 if [ -z "$pairs" ]; then
   "$GH" auth status >/dev/null 2>&1 || { echo "error: could not read GitHub" >&2; exit 2; }
@@ -83,16 +117,21 @@ state_of() {
     *"|$1=NOT_COMPLETED|"*) echo NOT_COMPLETED ; return ;;
     *"|$1=UNKNOWN|"*)       echo UNKNOWN ;       return ;;
   esac
-  raw="$("$GH" issue view "$1" --json state,stateReason \
-         --jq '.state + " " + (.stateReason // "")' 2>/dev/null)"
-  case "$raw" in *' '*) st="${raw%% *}"; rs="${raw#* }" ;; *) st=""; rs="" ;; esac
-  case "$st|$rs" in
-    OPEN\|*)                        s=OPEN ;;
-    CLOSED\|COMPLETED|CLOSED\|)     s=DONE ;;          # completed, or a legacy plain close
-    CLOSED\|NOT_PLANNED)            s=NOT_PLANNED ;;
-    CLOSED\|DUPLICATE)              s=DUPLICATE ;;
-    CLOSED\|*)                      s=NOT_COMPLETED ;; # an unrecognized reason blocks too
-    *)                              s=UNKNOWN ;;
+  raw="$("$GH" issue view "$1" --json state,stateReason,url \
+         --jq '.url + " " + .state + " " + (.stateReason // "")' 2>/dev/null)"
+  case "$raw"  in *' '*) u="${raw%% *}";   rest="${raw#* }" ;; *) u="";        rest="" ;; esac
+  case "$rest" in *' '*) st="${rest%% *}"; rs="${rest#* }"  ;; *) st="$rest";  rs="" ;; esac
+  case "$u" in */pull/*) k=pr ;; */issues/*) k=issue ;; *) k="" ;; esac
+  case "$k|$st|$rs" in
+    issue\|OPEN\|*)                           s=OPEN ;;
+    issue\|CLOSED\|COMPLETED|issue\|CLOSED\|) s=DONE ;;          # completed, or a legacy plain close
+    issue\|CLOSED\|NOT_PLANNED)               s=NOT_PLANNED ;;
+    issue\|CLOSED\|DUPLICATE)                 s=DUPLICATE ;;
+    issue\|CLOSED\|*)                         s=NOT_COMPLETED ;; # an unrecognized reason blocks too
+    pr\|MERGED\|*)                            s=DONE ;;          # the work landed; not a blocker
+    pr\|OPEN\|*)                              s=OPEN ;;
+    pr\|CLOSED\|*)                            s=NOT_COMPLETED ;; # closed unmerged: it never landed
+    *)                                        s=UNKNOWN ;;
   esac
   seen="$seen|$1=$s|"
   echo "$s"
