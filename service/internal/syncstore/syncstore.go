@@ -15,6 +15,38 @@
 // EVERY STATEMENT HERE IMPLEMENTS `Architecture.md § The sync write path` rather
 // than inventing anything. Where this file departs from the shape written there
 // it says so and why, at the statement.
+//
+// ---------------------------------------------------------------------------
+// NEVER EXECUTED, AND THIS PACKAGE CARRIES NO TESTS.
+//
+// Not one SQL statement below has been sent to a PostgreSQL server. There is no
+// test file in this directory, nothing in the suite calls a method on this type,
+// and no database was provisioned to author it — so the transaction shape, the
+// staging load, the assertions, the advisory lock, the conflict target and the
+// counts written to `sync_run` are all argued and none of them is measured.
+//
+// THE MARKER IS HERE BECAUSE THE PROSE ABOVE AND BELOW READS EXACTLY LIKE THE
+// PROSE IN THE PACKAGES WHOSE TESTS RUN. Every comment in this file states what
+// the code does in the same settled voice as `internal/zonesync`, whose claims
+// are held up by assertions that go red when they stop being true. Nothing
+// distinguishes the two on the page, which is the whole failure this line
+// closes: a reader has no way to tell an implemented claim from a verified one,
+// and will reasonably assume the stronger of the two. It is the Go half of the
+// condition `migrations/0001_zone_store.sql` states under NEVER EXECUTED, whose
+// DDL these statements are written against; that file is the argument in full
+// for why neither half can be exercised here.
+//
+// A FAKE OVER `pgxpool` WOULD NOT DISCHARGE THIS, and is refused rather than
+// owed. What is unverified is what PostgreSQL does with these statements —
+// isolation, the conflict target, the lock's scope, the command tags — and a
+// fake answers every one of those from whatever the author believed while
+// writing it. Such a test would report green over precisely the beliefs that
+// are in doubt, and it would replace an honest marker with a false one.
+//
+// WHAT DISCHARGES IT IS A DATABASE. `Architecture.md § What is unproven` item 1
+// names the evidence owed against this schema; the run that produces it is also
+// the run that can first put a test under this package.
+// ---------------------------------------------------------------------------
 package syncstore
 
 import (
