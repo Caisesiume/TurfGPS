@@ -244,7 +244,7 @@ Basis: FR-038 · `Architecture.md § Ports and adapters`
 
 **@backlog-dependency-planner writes this section and is the only agent that may** — through the GitHub MCP, per `§ Two channels, two identities — do not collapse them` above; an edge is not a judgment and never goes out under the judge's token. It writes the edges only: the narrative, the acceptance criteria, the `Resolves:` line, the labels and the fields belong to other owners.
 
-Readers: **@scrum-master** reads the hard edges for readiness · **@project-coordinator** consumes the Ready queue's order and never reads edges to rebuild it · **`scripts/loop/dependents.sh`** reads them deterministically after a merge. Any agent that spots a wrong, missing, or stale edge files a `dependency_finding` (`agent-handoffs § Dependency findings and graph updates`) and **edits nothing**.
+Readers: **@scrum-master** reads the hard edges for readiness · **@project-coordinator** consumes the Ready queue's order and never reads edges to rebuild it · **`scripts/loop/dependents.sh`** reads them deterministically after a merge. Any agent that spots a wrong, missing, or stale edge files a `dependency_finding` (`handoff-payloads § Dependency findings and graph updates`) and **edits nothing**.
 
 ### The grandfather clause
 

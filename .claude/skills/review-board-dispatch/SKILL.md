@@ -1,6 +1,6 @@
 ---
 name: review-board-dispatch
-description: Mechanics for safely convening TurfGPS's reviewers — the deterministic preflight that closes lanes before any LLM runs, the read-only clause, tree-integrity verification, sequencing, review identity, the selection and negative-routing law, the reviewer registry that decides who is convened at all, and the marginal-contribution rule for overlapping reviewers. Dispatch-side only: the evidence law reviewers must satisfy lives in `agent-handoffs`. Use whenever dispatching any reviewer.
+description: Mechanics for safely convening TurfGPS's reviewers — the deterministic preflight that closes lanes before any LLM runs, the read-only clause, tree-integrity verification, sequencing, review identity, the selection and negative-routing law, the reviewer registry that decides who is convened at all, the marginal-contribution rule for overlapping reviewers, and the scoped re-review that binds every cycle after the first. Dispatch-side only: the evidence law reviewers must satisfy lives in `review-verdicts`. Use whenever dispatching any reviewer.
 ---
 
 # Review Board Dispatch — Safe Convening Mechanics
@@ -25,7 +25,7 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 ### Read-only is not the whole of the boundary
 
-**Running a gate is `@validation-agent`'s.** The gates in `local-gates` are machine evidence; they run **last and alone**, on every PR, so that nothing races them and one agent owns the result the PR body reports. A reviewer that runs them anyway has not broken read-only — a green `go test` leaves nothing in the tree — but it has produced a second, unattributed measurement of the thing the ledger records under another name, and paid again for the execution selective review exists to avoid (`agent-handoffs § What the obligation reaches`).
+**Running a gate is `@validation-agent`'s.** The gates in `local-gates` are machine evidence; they run **last and alone**, on every PR, so that nothing races them and one agent owns the result the PR body reports. A reviewer that runs them anyway has not broken read-only — a green `go test` leaves nothing in the tree — but it has produced a second, unattributed measurement of the thing the ledger records under another name, and paid again for the execution selective review exists to avoid (`review-verdicts § What the obligation reaches`).
 
 **A reviewer needing a measurement asks for it rather than taking it:** file the gap as a finding naming `@validation-agent` as its owner, or list the claim under `ACCEPTED ON TRUST` with that owner. Both are already the evidence law's prescribed moves. What stays licensed is a reviewer's **own instrument** — `govulncheck` and `gitleaks` for the security lane, a grep, a heading list, anything read-only that *is* the review rather than a re-run of the suite. `local-gates § When these activate` draws that line and this clause does not redraw it.
 
@@ -39,13 +39,13 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 ## The case file (same for every reviewer) — references, not content
 
-PR number and the story it links · acceptance criteria and requirement codes · the head SHA under review · files modified · **safety paths touched** (see `safety-path-checklist`) · where the gate results are (see `local-gates`) · the review worktree path · the read-only clause.
+PR number and the story it links · acceptance criteria and requirement codes · the head SHA under review · files modified · **safety paths touched** (see `safety-path-checklist`) · where the gate results are (see `local-gates`) · the review worktree path · the read-only clause · **on cycle 2 and later, the scope** — the findings this revision discharged and the sites that discharged them, per `§ Scoped re-review`.
 
 **Send the references; the reviewer opens the artifacts itself.** Pasting the diff, the requirement text, or the PR body into the dispatch pays for the same bytes twice and hands the reviewer a copy that can already be stale. It also quietly invites the failure the next section exists to prevent.
 
 ## A reviewer does not accept a claim it could check
 
-**Moved.** The evidence law — the rule, the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block, what the obligation reaches, and both recorded incidents — now lives in **`agent-handoffs § A reviewer does not accept a claim it could check`**, which every reviewer already loads. It was here, so no reviewer could reach its own standard without loading the judge's dispatch mechanics too. This heading remains only so existing citations land somewhere true; cite the new home.
+**Moved.** The evidence law — the rule, the `VERIFIED INDEPENDENTLY` / `ACCEPTED ON TRUST` block, what the obligation reaches, and both recorded incidents — now lives in **`review-verdicts § A reviewer does not accept a claim it could check`**, which every reviewer loads. It was here, so no reviewer could reach its own standard without loading the judge's dispatch mechanics too; it then travelled with the verdict schema when `agent-handoffs` was split on 28 August 2026. This heading remains only so existing citations land somewhere true; cite the new home.
 
 ## Deterministic preflight
 
@@ -80,7 +80,7 @@ From `docs/DELIVERY.md § Selection`, which is where it is ratified; this sectio
 - **Convene from the registry, never by default.** A reviewer with no matching row does not run. *A PR exists* is not an activation condition.
 - **Smallest sufficient panel.** Before dispatching, ask whether this reviewer has a reasonable chance of changing the outcome. If not, not dispatching it is the decision, not an omission.
 - **Two floors are exempt from selection.** `@validation-agent` on every PR, last and alone. `@safety-sentinel` on every safety-path diff, at every tier, never softened by a budget. The sentinel is also the one reviewer any agent may convene directly on a safety concern, outside selection entirely — that door stays open.
-- **Verdicts are `pass` / `revise` / `blocker`** with confidence and severity-tagged findings — schema in `agent-handoffs`. A `revise` or `blocker` naming no concrete finding is invalid and goes back; so is a `pass` that names an actionable problem without filing it. **`@validation-agent` is outside this vocabulary**: it returns a machine result, `validation: {status: pass | fail}`, because evidence and judgement must be distinguishable in the ledger without a special case.
+- **Verdicts are `pass` / `revise` / `blocker`** with confidence and severity-tagged findings — schema in `review-verdicts`. A `revise` or `blocker` naming no concrete finding is invalid and goes back; so is a `pass` that names an actionable problem without filing it. **`@validation-agent` is outside this vocabulary**: it returns a machine result, `validation: {status: pass | fail}`, because evidence and judgement must be distinguishable in the ledger without a special case.
 - **N/A is not a courtesy pass.** A *convened* reviewer that finds its lane genuinely untouched returns `N/A`. Selection means this should now be rare — a common `N/A` is evidence the registry row is wrong, and is worth reporting as such.
 - **Contradictory demands between reviewers** = CONFLICT. The judge resolves it by ruling one finding `invalid_finding` with a reason, or escalates it; never averages, never silently picks a side.
 
@@ -214,6 +214,12 @@ Both must hit. A typo fixed in a comment inside `auth/session.go` touches the se
 **Where the answer is genuinely unclear, re-run.** The cost of one extra reviewer is one execution; the cost of a wrongly carried verdict is a defect merged under a signature that never saw it. **On safety paths there is no unclear case** — any touch re-runs `@safety-sentinel`.
 
 A documentation-only revision does not invalidate security, data integrity, or performance. A schema revision may invalidate data integrity, backend correctness, and performance, and almost certainly does not invalidate accessibility or UX.
+
+### Scoped re-review
+
+**After a revision, a reviewer is convened to verify the named edits, and the dispatch says so.** The scope is part of the case file, not a judge's improvisation: the finding IDs this cycle discharged, and the sites that discharged them. **A fresh sweep at cycle 2 or later runs only on a recorded reason** — in the same shape as a `reviewer_override`, on the PR, naming the signal. Unscoped is the expensive default and it is not the safe one: a reviewer re-reading a whole document to confirm five clauses spends roughly 60k of context on about 5k of work, and arrives at the same five clauses.
+
+**Scope by the named edits; read for the claim rather than the word.** On PR #67 a `loopback` keyword sweep reported no surviving falsehood and the lane that swept the *claim* — `network-facing`, `sole ingress`, `unreachable from outside` — found `SEC-21` sixty lines away, which is why the scope is a set of edits and never a string to grep. On PR #120 the opposite error: `DOC-10` was filed against a line whose very next sentence already carried the correction, and it cost a resolution to dispose of. **A reviewer that reads only the changed characters is scoped correctly and reviewing nothing** — read the passage each edit sits in, and answer whether what it now claims is true.
 
 ## Always escalate to a human
 
