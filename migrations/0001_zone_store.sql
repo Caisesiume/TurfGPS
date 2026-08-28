@@ -1,6 +1,7 @@
 -- 0001_zone_store.sql — the synced zone store
 --
--- Creates `zone`, `zone_incoming`, `sync_run`, and the one index on `zone`.
+-- Creates `zone`, `zone_incoming`, `sync_run`, one index on `zone` and one on
+-- `sync_run`.
 -- This is the first migration in the repository.
 --
 -- The design is settled in `Architecture.md § The schema` and its subsections.
@@ -21,6 +22,12 @@
 -- output for the real query shapes against a loaded copy.
 -- `0001_zone_store.verify.sql` is the instrument that produces it, and a first
 -- run of that script is owed before this file is applied anywhere that matters.
+--
+-- The divergence check at the end of this file is covered by the same
+-- sentence. It has never been parsed by a PostgreSQL server, and until it has
+-- been run once against a copy that was deliberately diverged first — so that
+-- it is seen to RAISE, and not merely seen to pass — it is a guard that is
+-- written rather than a guard that is known to fire.
 -- ----------------------------------------------------------------------------
 --
 -- APPLY. By an authorised operator, deliberately, never at boot and never by
@@ -39,12 +46,27 @@
 -- rollback, except the PostGIS extension, which the rollback deliberately
 -- leaves in place.
 --
--- IDEMPOTENCY AND ITS LIMIT. Every statement is `IF NOT EXISTS` or a guarded
--- `DO` block, so re-applying over a partially applied state completes instead
--- of aborting. What that does NOT do is repair an object that exists in a
--- different shape: `CREATE TABLE IF NOT EXISTS` on an existing table adds no
--- missing column and no missing constraint, silently. Detecting that case is
--- the verify script's job, not this file's.
+-- IDEMPOTENCY, AND THE CHECK THAT MAKES IT SAFE. Every statement is
+-- `IF NOT EXISTS` or a guarded `DO` block, so re-applying over a partially
+-- applied state completes instead of aborting. On its own that is not enough,
+-- and the gap is why this file ends in a divergence check: `CREATE TABLE IF
+-- NOT EXISTS` over a table that already exists in a DIFFERENT shape adds no
+-- missing column and no missing constraint, and says nothing while it does
+-- so. The migration then reports success over a store it did not build, and
+-- every later statement — the merge, the rate-limit gate, the audit record —
+-- runs against that store believing otherwise.
+--
+-- So this migration asserts its own postcondition before it commits, against
+-- the live catalogue rather than against this file: every column, type,
+-- nullability and generated-ness it promises, every named constraint, both
+-- primary keys, both indexes, `zone_incoming`'s UNLOGGED persistence, and
+-- `zone.geom`'s type, SRID and generation. It runs inside the same
+-- transaction as the DDL, so a divergence raises and rolls the whole
+-- migration back rather than leaving a half-truth behind — and detection does
+-- not depend on anyone remembering to run the verify script afterwards.
+-- `0001_zone_store.verify.sql` remains the deeper instrument, and it asserts
+-- things this check cannot; what it stops being is the only thing standing
+-- between a divergent table and a green apply.
 --
 -- DECISIONS TAKEN HERE, and why, since a store outlives the reasoning that
 -- shaped it:
@@ -79,8 +101,74 @@
 --      properties are as well measured there and deliberately not enforced,
 --      on the argument that a constraint's only power over upstream data is to
 --      convert Turf changing something into a local outage.
+--
+--   5. `search_path` is pinned for the transaction, and every relation this
+--      file creates or reads is schema-qualified. Left unpinned, unqualified
+--      `sync_run` resolves through whatever path the applying session happens
+--      to carry, and the two questions this store exists to answer — has
+--      enough time passed to fetch again, and what did the last run do —
+--      could be answered by a table this migration never built. That is the
+--      CVE-2018-1058 class, and it is silent by construction. `pg_catalog`
+--      leads the pinned path so no built-in can be shadowed, `public` follows
+--      because that is where PostGIS and this schema live, and `pg_temp` is
+--      named LAST rather than left implicit, which is the only way to stop a
+--      temporary relation being searched ahead of both.
+--
+--      TWO CONSEQUENCES FOR ANYONE EDITING THIS FILE. Because `pg_catalog`
+--      leads, an UNQUALIFIED `CREATE` here would target `pg_catalog`: every
+--      `CREATE` below names `public` explicitly and any statement added later
+--      must too. And because PostGIS functions are reached through `public`,
+--      the preconditions refuse an installation that put the extension
+--      somewhere else, rather than resolving `ST_MakePoint` through a path
+--      this file did not choose.
+--
+--   6. The divergence check asserts `expected ⊆ actual`, not equality. A
+--      column this file does not know about is not evidence that this
+--      migration failed, and refusing one would make 0001 unre-runnable the
+--      moment 0002 adds one. The direction that matters here is the other
+--      one: something this file promised, absent or differently shaped.
+--      Asserting the ABSENCE of a column is a live requirement — it is
+--      `current_owner` and `date_last_taken` specifically, it is about what a
+--      later migration may add rather than about what 0001 built, and part A
+--      of `0001_zone_store.verify.sql` is its home.
+--
+--      ONE LIMIT, STATED RATHER THAN LEFT TO BE DISCOVERED. Constraints are
+--      checked by name, type and validity, not by expression text.
+--      PostgreSQL normalises a CHECK expression when it stores it, so a
+--      string comparison against `pg_get_constraintdef` output would be
+--      brittle across server versions rather than strict — it would fail on
+--      correct databases, which is the fastest way to get a guard deleted. A
+--      constraint that is present under the right name and carries a
+--      different expression is therefore not caught here.
+--
+--   7. A second index on `sync_run`, for the currency read. `zonestore` asks
+--      for the completion instant of the latest successful run, and that is
+--      the one question about this store that a request may reach. Against
+--      the primary key alone it is a sequential scan and a sort over every
+--      run ever recorded — a table that grows by roughly 17,500 rows a year
+--      and is never pruned. `sync_run_completed_at_ok` is partial on
+--      `outcome = 'ok'` and descending on `completed_at`, which is the
+--      query's own predicate and its own ordering, so the answer is the first
+--      entry the scan reads. It costs the sync two index entries per run,
+--      forty-eight times a day. This is free to take now only because 0001
+--      has not been applied anywhere; after an apply it would be a second
+--      migration. `Architecture.md § The indexes` records one index on
+--      `sync_run` and now understates it by one — that line is owed, and it
+--      is not this file's to write.
 
 BEGIN;
+
+-- --- The schema this migration resolves in ----------------------------------
+--
+-- Decision 5 in the header is the argument; this is the statement. `SET LOCAL`
+-- is scoped to this transaction and the session's own path is restored at
+-- COMMIT or ROLLBACK, so applying this file changes nothing about the session
+-- that applied it.
+--
+-- `pg_catalog` leads, so an unqualified CREATE below would land in it. Every
+-- CREATE names `public`.
+
+SET LOCAL search_path = pg_catalog, public, pg_temp;
 
 -- --- Preconditions ----------------------------------------------------------
 --
@@ -101,7 +189,35 @@ BEGIN
 END
 $$;
 
-CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis SCHEMA public;
+
+-- A third precondition, and it exists because the statement above is
+-- `IF NOT EXISTS`: an extension that already exists somewhere else is skipped
+-- silently, `SCHEMA public` and all. Every PostGIS function this file calls —
+-- `postgis_lib_version` here, `ST_MakePoint` and `ST_SetSRID` in the generated
+-- column, `postgis_typmod_type` and `postgis_typmod_srid` in the divergence
+-- check — is reached through `public` on the pinned path. If the extension is
+-- not there, this migration refuses rather than resolving them through a path
+-- it did not choose.
+
+DO $$
+DECLARE
+    ext_schema text;
+BEGIN
+    SELECT n.nspname
+      INTO ext_schema
+      FROM pg_extension e
+      JOIN pg_namespace n ON n.oid = e.extnamespace
+     WHERE e.extname = 'postgis';
+
+    IF ext_schema IS DISTINCT FROM 'public' THEN
+        RAISE EXCEPTION
+            'PostGIS is installed in schema %, and this migration resolves its functions through public: CREATE EXTENSION IF NOT EXISTS skips an extension that already exists, so the SCHEMA clause above did not move it.',
+            COALESCE(ext_schema, '(not installed)')
+            USING HINT = 'Install PostGIS in public, or amend this migration deliberately to name the schema it is in.';
+    END IF;
+END
+$$;
 
 DO $$
 DECLARE
@@ -137,7 +253,7 @@ $$;
 -- `Architecture.md § The two absences, and the test that keeps them absent`;
 -- the verify script is its enforcement.
 
-CREATE TABLE IF NOT EXISTS zone (
+CREATE TABLE IF NOT EXISTS public.zone (
     id               integer          PRIMARY KEY,
     name             text             NOT NULL,
     latitude         double precision NOT NULL,
@@ -201,7 +317,7 @@ CREATE TABLE IF NOT EXISTS zone (
 -- It carries no `geom` either: `zone.geom` is generated from the merged
 -- scalars, so the staging table has nothing to derive and nothing to invert.
 
-CREATE UNLOGGED TABLE IF NOT EXISTS zone_incoming (
+CREATE UNLOGGED TABLE IF NOT EXISTS public.zone_incoming (
     id               integer,
     name             text,
     latitude         double precision,
@@ -235,7 +351,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS zone_incoming (
 -- and the asymmetry it turns on is that deletion has never been observed while
 -- a truncated response has.
 
-CREATE TABLE IF NOT EXISTS sync_run (
+CREATE TABLE IF NOT EXISTS public.sync_run (
     id             bigserial   PRIMARY KEY,
     started_at     timestamptz NOT NULL,
     completed_at   timestamptz,
@@ -259,7 +375,7 @@ CREATE TABLE IF NOT EXISTS sync_run (
     )
 );
 
--- --- The index --------------------------------------------------------------
+-- --- The indexes -----------------------------------------------------------
 --
 -- One index on `zone`, besides the primary key's own.
 -- `Architecture.md § The indexes` records the four that are deliberately not
@@ -275,6 +391,269 @@ CREATE TABLE IF NOT EXISTS sync_run (
 -- Creating it proves nothing. Only EXPLAIN on the real query shape counts, and
 -- there is no database here to run one against.
 
-CREATE INDEX IF NOT EXISTS zone_geom_gist ON zone USING gist (geom);
+CREATE INDEX IF NOT EXISTS zone_geom_gist ON public.zone USING gist (geom);
+
+-- The second index, on `sync_run`, for the currency read. Decision 7 in the
+-- header is the argument. The query it serves is `zonestore.currencySQL`:
+--
+--     SELECT completed_at
+--     FROM   sync_run
+--     WHERE  outcome = 'ok' AND completed_at IS NOT NULL
+--     ORDER  BY completed_at DESC
+--     LIMIT  1
+--
+-- Two choices below are deliberate and both could be made differently.
+--
+-- The partial predicate is `outcome = 'ok'` ALONE, omitting the query's
+-- `completed_at IS NOT NULL`. The query's predicate implies this one, so the
+-- planner may still use the index, and the narrower form would buy nothing: a
+-- row at `ok` without a `completed_at` is not a state the write path can
+-- produce. Omitting it keeps the index serving a currency read written without
+-- that clause.
+--
+-- `DESC` is written out rather than left to a backward scan of an ascending
+-- index, so the index's ordering — descending, NULLS FIRST by implication —
+-- matches the query's own exactly and the LIMIT 1 needs no sort above it.
+--
+-- Creating it proves nothing here either, for the reason the paragraph above
+-- gives about the GiST index. Part E of `0001_zone_store.verify.sql` is what
+-- would.
+
+CREATE INDEX IF NOT EXISTS sync_run_completed_at_ok
+    ON public.sync_run (completed_at DESC)
+    WHERE outcome = 'ok';
+
+-- --- The divergence check ---------------------------------------------------
+--
+-- This migration's postcondition, asserted against the live catalogue before
+-- it commits. The header paragraph IDEMPOTENCY, AND THE CHECK THAT MAKES IT
+-- SAFE is the argument for its existence; decision 6 states its one direction
+-- and its one limit.
+--
+-- Everything below reads `pg_catalog` unqualified, which is exact because
+-- `pg_catalog` leads the path pinned at the top of this transaction, and names
+-- every relation it examines as `public.<name>` for the same reason the CREATE
+-- statements do.
+
+-- Columns: name, type, nullability, and whether the column is generated.
+-- `zone.geom` is not in this list; it is checked on its own below, where the
+-- SRID can be read as a number instead of as part of a rendered type name.
+DO $$
+DECLARE
+    divergences text;
+BEGIN
+    WITH expected(tbl, col, typ, not_null) AS (
+        VALUES
+            ('zone'::text,    'id'::text,        'integer'::text,            true),
+            ('zone',          'name',            'text',                     true),
+            ('zone',          'latitude',        'double precision',         true),
+            ('zone',          'longitude',       'double precision',         true),
+            ('zone',          'date_created',    'timestamp with time zone', true),
+            ('zone',          'total_takeovers', 'integer',                  true),
+            ('zone',          'takeover_points', 'smallint',                 true),
+            ('zone',          'points_per_hour', 'smallint',                 true),
+            ('zone',          'type_id',         'smallint',                 false),
+            ('zone',          'region_id',       'smallint',                 true),
+            ('zone',          'region_name',     'text',                     true),
+            ('zone',          'region_country',  'text',                     false),
+            ('zone',          'area_id',         'integer',                  false),
+            ('zone',          'area_name',       'text',                     false),
+            ('zone',          'first_seen_at',   'timestamp with time zone', true),
+            ('zone',          'last_changed_at', 'timestamp with time zone', true),
+
+            ('zone_incoming', 'id',              'integer',                  false),
+            ('zone_incoming', 'name',            'text',                     false),
+            ('zone_incoming', 'latitude',        'double precision',         false),
+            ('zone_incoming', 'longitude',       'double precision',         false),
+            ('zone_incoming', 'date_created',    'timestamp with time zone', false),
+            ('zone_incoming', 'total_takeovers', 'integer',                  false),
+            ('zone_incoming', 'takeover_points', 'smallint',                 false),
+            ('zone_incoming', 'points_per_hour', 'smallint',                 false),
+            ('zone_incoming', 'type_id',         'smallint',                 false),
+            ('zone_incoming', 'region_id',       'smallint',                 false),
+            ('zone_incoming', 'region_name',     'text',                     false),
+            ('zone_incoming', 'region_country',  'text',                     false),
+            ('zone_incoming', 'area_id',         'integer',                  false),
+            ('zone_incoming', 'area_name',       'text',                     false),
+
+            ('sync_run',      'id',              'bigint',                   true),
+            ('sync_run',      'started_at',      'timestamp with time zone', true),
+            ('sync_run',      'completed_at',    'timestamp with time zone', false),
+            ('sync_run',      'outcome',         'text',                     true),
+            ('sync_run',      'http_status',     'smallint',                 false),
+            ('sync_run',      'response_bytes',  'bigint',                   false),
+            ('sync_run',      'zones_received',  'integer',                  false),
+            ('sync_run',      'rows_inserted',   'integer',                  false),
+            ('sync_run',      'rows_updated',    'integer',                  false),
+            ('sync_run',      'rows_unchanged',  'integer',                  false),
+            ('sync_run',      'absent_count',    'integer',                  false),
+            ('sync_run',      'absent_ids',      'integer[]',                false)
+    ),
+    actual(tbl, col, typ, not_null, is_generated) AS (
+        SELECT c.relname::text,
+               a.attname::text,
+               format_type(a.atttypid, a.atttypmod),
+               a.attnotnull,
+               a.attgenerated <> ''
+          FROM pg_attribute a
+          JOIN pg_class     c ON c.oid = a.attrelid
+         WHERE a.attrelid IN ('public.zone'::regclass,
+                              'public.zone_incoming'::regclass,
+                              'public.sync_run'::regclass)
+           AND a.attnum > 0
+           AND NOT a.attisdropped
+    )
+    SELECT string_agg(
+               format('  %s.%s: expected %s%s, found %s',
+                      e.tbl, e.col, e.typ,
+                      CASE WHEN e.not_null THEN ' NOT NULL' ELSE '' END,
+                      CASE
+                          WHEN a.col IS NULL THEN 'no such column'
+                          ELSE a.typ
+                               || CASE WHEN a.not_null     THEN ' NOT NULL'  ELSE '' END
+                               || CASE WHEN a.is_generated THEN ' GENERATED' ELSE '' END
+                      END),
+               E'\n' ORDER BY e.tbl, e.col)
+      INTO divergences
+      FROM expected e
+      LEFT JOIN actual a ON a.tbl = e.tbl AND a.col = e.col
+     WHERE a.col IS NULL
+        OR (a.typ, a.not_null, a.is_generated) IS DISTINCT FROM (e.typ, e.not_null, false);
+
+    IF divergences IS NOT NULL THEN
+        RAISE EXCEPTION
+            E'tables this migration would have created already exist in a different shape:\n%',
+            divergences
+            USING HINT = 'CREATE TABLE IF NOT EXISTS repaired none of this. Reconcile the existing tables deliberately, or roll them back with 0001_zone_store.down.sql, before applying 0001.';
+    END IF;
+END
+$$;
+
+-- Constraints, primary keys, indexes, and the staging table's persistence.
+DO $$
+DECLARE
+    problems text;
+BEGIN
+    SELECT string_agg(format('  %s on %s', x.name, x.tbl), E'\n' ORDER BY x.name)
+      INTO problems
+      FROM (VALUES ('zone_lat_range'::text,   'public.zone'::text),
+                   ('zone_lon_range',         'public.zone'),
+                   ('zone_takeovers_nonneg',  'public.zone'),
+                   ('sync_run_outcome_known', 'public.sync_run')) AS x(name, tbl)
+     WHERE NOT EXISTS (SELECT 1
+                         FROM pg_constraint k
+                        WHERE k.conrelid = x.tbl::regclass
+                          AND k.conname  = x.name
+                          AND k.contype  = 'c'
+                          AND k.convalidated);
+
+    IF problems IS NOT NULL THEN
+        RAISE EXCEPTION
+            E'CHECK constraints this migration promises are missing or NOT VALID:\n%',
+            problems;
+    END IF;
+
+    SELECT string_agg(format('  %s: primary key is (%s), expected (%s)',
+                             x.tbl, COALESCE(pk.cols, 'none'), x.cols),
+                      E'\n' ORDER BY x.tbl)
+      INTO problems
+      FROM (VALUES ('public.zone'::text, 'id'::text),
+                   ('public.sync_run',   'id')) AS x(tbl, cols)
+      LEFT JOIN LATERAL (
+               SELECT string_agg(a.attname::text, ',' ORDER BY u.ord) AS cols
+                 FROM pg_constraint c
+                 CROSS JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS u(attnum, ord)
+                 JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = u.attnum
+                WHERE c.conrelid = x.tbl::regclass
+                  AND c.contype  = 'p') pk ON true
+     WHERE pk.cols IS DISTINCT FROM x.cols;
+
+    IF problems IS NOT NULL THEN
+        RAISE EXCEPTION
+            E'primary keys are not what this migration declares:\n%',
+            problems;
+    END IF;
+
+    SELECT string_agg(format('  %s on %s using %s (%s)', x.name, x.tbl, x.am, x.col),
+                      E'\n' ORDER BY x.name)
+      INTO problems
+      FROM (VALUES ('zone_geom_gist'::text,     'public.zone'::text, 'gist'::text, 'geom'::text),
+                   ('sync_run_completed_at_ok', 'public.sync_run',   'btree',      'completed_at')) AS x(name, tbl, am, col)
+     WHERE NOT EXISTS (SELECT 1
+                         FROM pg_index     i
+                         JOIN pg_class     ic ON ic.oid = i.indexrelid
+                         JOIN pg_am        m  ON m.oid  = ic.relam
+                         JOIN pg_attribute a  ON a.attrelid = i.indrelid
+                                             AND a.attnum   = i.indkey[0]
+                        WHERE i.indrelid = x.tbl::regclass
+                          AND ic.relname = x.name
+                          AND m.amname   = x.am
+                          AND a.attname  = x.col
+                          AND i.indisvalid
+                          AND i.indisready);
+
+    IF problems IS NOT NULL THEN
+        RAISE EXCEPTION
+            E'indexes this migration promises are absent, invalid, or built on something else:\n%',
+            problems
+            USING HINT = 'An index carrying the right name on the wrong column or the wrong access method is reported here as missing, because that is what it is to the queries it was created to serve.';
+    END IF;
+
+    IF (SELECT c.relpersistence
+          FROM pg_class c
+         WHERE c.oid = 'public.zone_incoming'::regclass) <> 'u' THEN
+        RAISE EXCEPTION
+            'zone_incoming exists and is not UNLOGGED'
+            USING HINT = 'The staging table is truncated and rebuilt from the response on every run. A LOGGED one writes WAL for every staged row, to protect data the next run reconstructs anyway.';
+    END IF;
+END
+$$;
+
+-- `zone.geom`, on its own, because this is the column the deleted prototype got
+-- wrong. Type, geometry type and SRID are read as values rather than matched
+-- against a rendered type name, which keeps the assertion exact across PostGIS
+-- versions instead of exact against one of them. The generation check is the
+-- load-bearing one: a `geom` that is an ordinary column rather than GENERATED
+-- is NULL on every row, because the write path never supplies a point — that
+-- being the whole reason the column is generated.
+DO $$
+DECLARE
+    geom_type   regtype;
+    geom_typmod integer;
+    geom_gen    "char";
+BEGIN
+    SELECT a.atttypid, a.atttypmod, a.attgenerated
+      INTO geom_type, geom_typmod, geom_gen
+      FROM pg_attribute a
+     WHERE a.attrelid = 'public.zone'::regclass
+       AND a.attname  = 'geom'
+       AND a.attnum   > 0
+       AND NOT a.attisdropped;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'zone exists without a geom column';
+    END IF;
+
+    IF geom_type <> 'geography'::regtype THEN
+        RAISE EXCEPTION
+            'zone.geom is %, not geography', geom_type
+            USING HINT = 'geometry is planar. It would make every distance in the corridor and neighbourhood queries a projected one, and would not raise while doing it.';
+    END IF;
+
+    IF upper(postgis_typmod_type(geom_typmod)) IS DISTINCT FROM 'POINT'
+       OR postgis_typmod_srid(geom_typmod) IS DISTINCT FROM 4326 THEN
+        RAISE EXCEPTION
+            'zone.geom is geography(%, %), not geography(Point, 4326)',
+            COALESCE(postgis_typmod_type(geom_typmod), 'unconstrained'),
+            postgis_typmod_srid(geom_typmod);
+    END IF;
+
+    IF geom_gen <> 's' THEN
+        RAISE EXCEPTION
+            'zone.geom is not a STORED generated column'
+            USING HINT = 'The write path supplies latitude and longitude and never a point. An ordinary geom column is NULL on every row, and every spatial query then returns nothing rather than failing.';
+    END IF;
+END
+$$;
 
 COMMIT;
