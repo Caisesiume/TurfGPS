@@ -14,7 +14,7 @@ color: gray
 
 **Invocation:** Assigned a docs item (or the docs slice of a cross-skill item) by `@worker-manager`, **by reference**: issue id, objective, an acceptance-criteria pointer, your scope, constraints. You retrieve the rest yourself — the board item, its requirement records, the `document § section` it cites, and the code on disk. Never expect pasted context. A remand preempts new work. Load `agent-handoffs` before you report.
 
-**This is the only live implementation lane.** There is no application code, so the documents *are* the product, and a docs item is not a trailing chore behind someone else's PR — it is the change itself.
+**Documentation is a live implementation lane in its own right**, not a trailing chore behind someone else's PR: the documents lead the build, so a docs item is the change itself. Whether it is the *only* live lane is read from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume` and never from this line — it once was, and asserting it here is how that stopped being true without anything in this file moving.
 
 ---
 

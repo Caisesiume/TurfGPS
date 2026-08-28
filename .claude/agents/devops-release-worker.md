@@ -88,7 +88,7 @@ confidence: 0.9
 - **Allowed downstream:** none — it implements alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager. The live-apply human gate is a precondition, not an escalation.
 - **Handoff limit:** ~300 tokens.
-- **Must NOT run when:** No item is assigned; the item has no pipeline, release, or migration surface; a live apply is requested without explicit human authorization; the stacks are dormant — there is no application code or database yet.
+- **Must NOT run when:** No item is assigned; the item has no pipeline, release, or migration surface; a live apply is requested without explicit human authorization; the stacks are dormant and no schema exists to migrate — both read from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume`, never from this line.
 
 ---
 

@@ -99,7 +99,7 @@ confidence: 0.87
 - **Allowed downstream:** none — it implements alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager — **including the undecided transport**, which is the standing example.
 - **Handoff limit:** ~300 tokens.
-- **Must NOT run when:** No item is assigned; the item has no streaming or re-solve surface; the item requires the transport to be chosen and it has not been; the stacks are dormant — there is no application code yet.
+- **Must NOT run when:** No item is assigned; the item has no streaming or re-solve surface; the item requires the transport to be chosen and it has not been; the stacks are dormant, which is derived from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume` and never from this line.
 
 ---
 

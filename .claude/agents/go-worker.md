@@ -110,7 +110,7 @@ confidence: 0.93
 - **Allowed downstream:** none — it implements alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, as an escalation packet with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.
-- **Must NOT run when:** No item is assigned; the item is outside the Go lane; the Go stack is dormant — there is no application code yet.
+- **Must NOT run when:** No item is assigned; the item is outside the Go lane; the Go stack is dormant, which is derived from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume` and never from this line.
 
 ---
 
