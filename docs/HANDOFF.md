@@ -12,7 +12,7 @@ Written 31 July 2026 to carry context between machines. Read this first if you a
 
 It is not a zone map and not a navigation app. It is an optimizer with an explanation layer: it compares whole journeys, prices the real cost of each stop, and tells the user *why* one route beats another.
 
-**The documentation leads the implementation.** There is no application code at all — the repository's Next.js prototype was deleted on 31 July 2026 because it was a different application, not a partial implementation of this design. `docs/` is the source of truth for intent, not the source tree.
+**The documentation leads the implementation.** `docs/` is the source of truth for intent, and it runs ahead of the tree rather than describing it. **What the repository actually holds is derived and never asserted here**: `codebase-map § Which map is authoritative — check the tree, do not assume` is the one place that answers it, and it carries both the one-line check and the reason the deleted Next.js prototype is not a partial implementation of this design. This paragraph asserted the answer instead, and was wrong from 14 August 2026 until 28 August 2026.
 
 ## 2. Read these, in this order
 
@@ -47,7 +47,7 @@ Memory files do not travel between machines, so they must be recreated. **Save w
 
 Worth saving:
 
-- **A pointer**, not a copy: `docs/README.md` is the front door and `docs/SPECIFICATION.md` is the source of truth for intent; there is no code.
+- **A pointer**, not a copy: `docs/README.md` is the front door and `docs/SPECIFICATION.md` is the source of truth for intent. What the tree holds is worth saving to no memory at all — it is derived on the spot per `codebase-map § Which map is authoritative — check the tree, do not assume`, and a remembered answer is stale by construction.
 - **The verified-facts warning** from section 3, specifically that inference about Turf mechanics has a poor track record and the live API should be consulted.
 - **The user's working preferences**, in section 5 below. These are not in the repository and are the most easily lost.
 - **The current step**, section 6.
