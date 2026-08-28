@@ -49,6 +49,27 @@ const (
 	// moves the loss to the runtime's kill.
 	shutdownTimeout = 5 * time.Second
 
+	// syncStopTimeout bounds the wait for the background sync to stop, for the
+	// same reason shutdownTimeout above bounds the HTTP drain — and it is a
+	// second budget rather than a share of that one because the two are waited
+	// on in sequence, so what the runtime allows the process to disappear in is
+	// spent by their sum and by neither alone.
+	//
+	// IT CANNOT BE LONG ENOUGH TO LET A RUN FINISH, and it does not try. The
+	// sync's detached writes are budgeted in minutes — the terminal `sync_run`
+	// update and the lock release each take the database timeout — so a wait
+	// that saw them out is a wait no grace period outlives, and the process
+	// would be killed mid-shutdown on every rolling deploy rather than choosing
+	// where it stopped.
+	//
+	// The cost is deliberate and it falls on the run record rather than on a
+	// request: a run still in flight when this expires is left at `running`,
+	// which `Architecture.md § The sync write path` already gives a meaning to,
+	// and the next attempt waits out the interval on it rather than fetching. A
+	// loop between runs — the ordinary case, every minute of the interval bar
+	// the seconds a run takes — stops at once and never spends this at all.
+	syncStopTimeout = 3 * time.Second
+
 	// readHeaderTimeout bounds how long a client may take to send its request
 	// headers, so an idle connection cannot hold a server goroutine open.
 	readHeaderTimeout = 10 * time.Second
@@ -96,6 +117,16 @@ func main() {
 	}
 
 	serveErr := serve(ctx, ln)
+
+	// Cancelled here, explicitly, rather than left to the deferred stop above.
+	// serve returns for two reasons and only one of them has already cancelled
+	// ctx: a listener that fails returns an error with the context still live,
+	// the sync loop watching that context never finishes, and the wait below
+	// blocks for good — so the exit this function ends with is unreachable and
+	// the process survives as a dead listener beside a live sync loop. This
+	// covers both paths; on the signal path ctx is already done and it is a
+	// no-op.
+	stop()
 
 	// Called explicitly rather than deferred: the exit below skips defers, and
 	// the whole purpose of this call is to let the sync's own shutdown finish.
@@ -163,7 +194,23 @@ func startZoneSync(ctx context.Context) (func(), error) {
 	slog.Info("the zone sync is running", "interval", cfg.Interval)
 
 	return func() {
-		<-stopped
+		select {
+		case <-stopped:
+		case <-time.After(syncStopTimeout):
+			// Returns WITHOUT closing the pool, deliberately. Close blocks
+			// until every connection is back, and the connection this sync
+			// holds its session lock on is precisely the one that has not come
+			// back — so closing here would restore the unbounded wait the
+			// budget exists to remove. The process is leaving: its sockets go
+			// with it, and PostgreSQL releases a session lock when the backend
+			// holding it dies, which is why the lock is session-level and not a
+			// lease.
+			slog.Error("the zone sync did not stop within its budget, so this process is leaving without it",
+				"budget", syncStopTimeout,
+				"consequence", "a run in flight is left at running, and the next attempt waits out the interval on it rather than fetching")
+
+			return
+		}
 
 		pool.Close()
 	}, nil
