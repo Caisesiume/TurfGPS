@@ -88,7 +88,7 @@ confidence: 0.9
 - **Allowed downstream:** none — it implements alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager. The live-apply human gate is a precondition, not an escalation.
 - **Handoff limit:** ~300 tokens.
-- **Must NOT run when:** No item is assigned; the item has no pipeline, release, or migration surface; a live apply is requested without explicit human authorization; the stacks are dormant and no schema exists to migrate — both read from the tree per `codebase-map § Which map is authoritative — check the tree, do not assume`, never from this line.
+- **Must NOT run when:** No item is assigned; the item has no pipeline, release, or migration surface; a live apply is requested without explicit human authorization; the stacks are dormant — read per the one-line check in `codebase-map § Which map is authoritative — check the tree, do not assume`, which settles the stacks and says nothing about schema — and no schema exists to migrate, which the tree answers only negatively (no `.sql` and no migration directory anywhere in it) and which `postgis-migration-protocol` settles from live state once a database exists. Both are read at the moment of asking, never from this line.
 
 ---
 
