@@ -277,7 +277,7 @@ func (s *Store) BeginRun(ctx context.Context, startedAt time.Time) (int64, error
 
 // FinishRun writes the second, whatever end the run reached.
 func (s *Store) FinishRun(ctx context.Context, id int64, result zonesync.Result) error {
-	_, err := s.pool.Exec(ctx, finishRunSQL,
+	tag, err := s.pool.Exec(ctx, finishRunSQL,
 		id,
 		string(result.Outcome),
 		result.CompletedAt,
@@ -292,6 +292,19 @@ func (s *Store) FinishRun(ctx context.Context, id int64, result zonesync.Result)
 	)
 	if err != nil {
 		return fmt.Errorf("recording the end of sync run %d: %w", id, err)
+	}
+
+	// AN UPDATE THAT MATCHED NOTHING IS NOT AN ERROR THE DRIVER REPORTS. The
+	// statement was valid and the WHERE found no row, which is success as far as
+	// PostgreSQL and pgx are concerned — so with the command tag thrown away, a
+	// row that was never inserted, or was deleted under this run, is
+	// indistinguishable from one updated exactly as intended. `sync_run` is the
+	// only durable record this worker keeps, and this is the write that closes
+	// it: reporting success for having written nowhere is the one failure it
+	// cannot afford.
+	if n := tag.RowsAffected(); n != 1 {
+		return fmt.Errorf("recording the end of sync run %d updated %d rows and not 1: the row this run inserted is not there to finish, so the outcome %q is recorded nowhere",
+			id, n, result.Outcome)
 	}
 
 	return nil
@@ -473,8 +486,18 @@ func (s *Store) Acquire(ctx context.Context) (func(context.Context), bool, error
 // attempt, and every attempt after it, would read that as "another holder is
 // running" and quietly stop syncing. Losing one connection is the cheaper
 // failure by a wide margin.
+//
+// A FALSE ANSWER IS A DIFFERENT THING AND IS NOT TREATED AS THAT ONE.
+// pg_advisory_unlock returns false when the session did not hold the lock at
+// all, which the statement here could not once report because it was run for
+// its effect with its answer discarded. A session that holds nothing cannot
+// hand anything to the next borrower, so the connection is safe to return —
+// what is not safe is the silence, because it means this run believed it held
+// the lock for its whole duration and did not.
 func (s *Store) release(ctx context.Context, conn *pgxpool.Conn) {
-	if _, err := conn.Exec(ctx, "SELECT pg_advisory_unlock($1)", syncAdvisoryLockKey); err != nil {
+	var unlocked bool
+
+	if err := conn.QueryRow(ctx, "SELECT pg_advisory_unlock($1)", syncAdvisoryLockKey).Scan(&unlocked); err != nil {
 		s.log.Error("the sync lock could not be released, so its connection is being discarded", "error", err)
 
 		if hijacked := conn.Hijack(); hijacked != nil {
@@ -482,6 +505,11 @@ func (s *Store) release(ctx context.Context, conn *pgxpool.Conn) {
 		}
 
 		return
+	}
+
+	if !unlocked {
+		s.log.Error("the sync lock was not held by the session asked to release it, so this run did not hold what it believed it held",
+			"key", syncAdvisoryLockKey)
 	}
 
 	conn.Release()
