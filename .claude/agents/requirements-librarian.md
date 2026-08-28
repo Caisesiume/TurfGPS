@@ -113,7 +113,7 @@ human_escalation: false
 - **Artifact retrieval:** `docs/Requirements/` in full, the category register, `requirements-authoring § Corpus layout`, the stories the matrix links to.
 - **Verification actions:** Matrix verified in both directions; every citation names its document; every `RD-*` carries a rung and resolvable codes; no ID reused; index reconciled to records, never the reverse.
 - **Output schema:** the `agent-handoffs` envelope, extended with `filed:`, `matrix:`, `decisions_normalized:`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** Counts and IDs; the corpus on disk holds the rest.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Counts and IDs; the corpus on disk holds the rest.
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, through the parent — structural defects are findings, not escalations.
 - **Handoff limit:** ~300 tokens; the corpus holds the detail.

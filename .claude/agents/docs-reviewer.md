@@ -84,7 +84,7 @@ evidence: |
 - **Artifact retrieval:** The diff yourself; the code the document describes; `Architecture.md` for drift; the review ledger comment when checking verdict fidelity.
 - **Verification actions:** Grep the function, open the handler, check the migration — a claim is verified against disk or it is not verified. Open every cross-reference you call resolvable.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** Drift whose root cause is a requirement or architecture defect is filed with that `root_cause` and left to the judge to route.
 - **Handoff limit:** ~300 tokens.

@@ -98,7 +98,7 @@ confidence: 0.9
 - **Artifact retrieval:** The board item, its requirement records, the cited `document § section`, and live state via `pg_catalog`/`information_schema`.
 - **Verification actions:** Test-copy apply and rollback; precondition audit recorded with its query and result; `EXPLAIN` evidence of index use; known-distance coordinate-order test.
 - **Output schema:** `handoff-payloads § Worker completion`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here.
 - **Allowed downstream:** none directly — migrations go to @devops-release-worker for the human-gated apply; reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.

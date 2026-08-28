@@ -102,7 +102,7 @@ NEEDS A HUMAN:    [decisions/escalations awaiting the human, or "nothing"]
 - **Artifact retrieval:** The board, open and merged PRs, `reports/`, `git log`, `needs-re` issues, `docs/adr/`, `docs/Requirements/DECISIONS.md`.
 - **Verification actions:** Every claim carries evidence (merge SHA, PR number, report path, record ID); the window is stated and derived, never assumed.
 - **Output schema:** the digest template above — written for a human, not an agent.
-- **Output cap:** the **Owner report** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** Written for a human is not a licence to be long — it is why every field is one line.
+- **Output cap:** the **Owner report** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Written for a human is not a licence to be long — it is why every field is one line.
 - **Allowed downstream:** none. It dispatches nothing and is consumed by the human and @engineering-lead.
 - **Escalation:** none of its own — it *surfaces* what needs a human; framing an escalation is @engineering-lead's.
 - **Handoff limit:** the digest is the product; keep it skimmable, and put detail behind IDs rather than in the report.

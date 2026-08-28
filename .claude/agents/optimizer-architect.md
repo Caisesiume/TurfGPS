@@ -91,7 +91,7 @@ confidence: 0.88
 - **Artifact retrieval:** The board item, its requirement records, `CalculationSpecification.md`, and the arguing section of `SPECIFICATION.md`.
 - **Verification actions:** Every formula cited not restated; the cost statement computed; failure modes enumerated; confidence never a scoring term.
 - **Output schema:** `handoff-payloads § Worker completion`, extended with `cost_statement`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here.
 - **Allowed downstream:** none directly — the design goes to @go-worker via @worker-manager, which it reports to.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.

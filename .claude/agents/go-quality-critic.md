@@ -173,7 +173,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; the gate commands from `local-gates § Backend (Go)`; `Architecture.md § D8` for where the module lives.
 - **Verification actions:** Run `staticcheck ./...` from `service/` and report the directory; open the error chain rather than trusting the wrap; check a claimed gate result carries the directory it ran in, and treat one that does not as unrun.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A defect whose root cause is a requirement or architecture decision is filed with that `root_cause` and left to the judge to route; you do not chase it upstream.
 - **Handoff limit:** ~300 tokens. Deep analysis is welcome; only its conclusions travel.

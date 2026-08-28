@@ -132,7 +132,7 @@ human_escalation: false
 - **Artifact retrieval:** The board via fresh field/option IDs, open PRs and recent merges, the `## Dependencies` section of each candidate, `scripts/loop/dependents.sh` where a merge woke the run, the requirement records the items cite.
 - **Verification actions:** `auth status` before acting; IDs re-read this run; every status change carries a PR number or merge SHA.
 - **Output schema:** the `agent-handoffs` envelope, extended with `board:`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** References and counts; the board holds the detail.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. References and counts; the board holds the detail.
 - **Allowed downstream:** none — it reports; @project-coordinator and @engineering-lead consume. Traceability defects route to @requirements-engineer; `dependency_finding`s route to @backlog-dependency-planner.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens; the board holds the detail.

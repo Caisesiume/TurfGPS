@@ -84,7 +84,7 @@ confidence: 0.91
 - **Artifact retrieval:** The board item, its requirement records, the cited `document § section`, the repository.
 - **Verification actions:** Backend gates per `local-gates § Backend (Go)`, from the directory it names; abuse-case tests present; every commit references its story.
 - **Output schema:** `handoff-payloads § Worker completion`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here.
 - **Allowed downstream:** none — it implements alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.

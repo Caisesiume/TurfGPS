@@ -45,7 +45,7 @@ Where the reasoning matters and is retrievable, cite where it lives — `DECISIO
 | Artifact | Cap |
 |---|---|
 | reviewer verdict | **≤ 1,200 chars** plus its findings table; the evidence block **≤ 10 bullets, one line each** |
-| judgment | **≤ 6,000 chars** |
+| judgment | **≤ 6,000 chars** plus its per-finding resolution table |
 | review ledger | **≤ 2,000 chars**, and it **supersedes** — one table per PR, rewritten each cycle, never appended |
 | worker envelope | **≤ 1,500 chars** |
 | `graph_update` | **≤ 1,200 chars** |

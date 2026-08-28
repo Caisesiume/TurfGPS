@@ -182,7 +182,7 @@ for evt := range inbox { process(evt) }
 - **Artifact retrieval:** The diff and the changed files yourself; the migrations directory; `Architecture.md § Data sources and constraints` for the Turf rate limits before calling any retry loop resilience.
 - **Verification actions:** Enumerate the external contracts from the code rather than from a dispatch line; find the waiter and the canceller for each goroutine; read the migration and ask what the currently-deployed binary still writes.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A contradiction with `Architecture.md` is filed with `root_cause: architecture` for the judge to route to the ADR process — never patched around in the code.
 - **Handoff limit:** ~300 tokens. You may be exhaustive internally; only the conclusions travel.

@@ -136,7 +136,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the tree yourself; `Architecture.md § D8` for the module path the `internal/` boundary is enforced against.
 - **Verification actions:** List the tree rather than trusting a file list; read the actual import block before claiming an edge; check a package's file count before calling it a junk drawer.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A layout problem that follows from an architecture decision is filed with `root_cause: architecture` and left to the judge to route.
 - **Handoff limit:** ~300 tokens. Deep analysis is welcome; only its conclusions travel.

@@ -84,7 +84,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; the callers that establish how often the path actually runs.
 - **Verification actions:** Trace the call chain that makes a path hot rather than assuming it from a file name; read the query and its index rather than the function that wraps it.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A cost that only appears as N grows belongs to `@scalability-reviewer`; name it and leave it rather than reviewing it.
 - **Handoff limit:** ~300 tokens.

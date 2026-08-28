@@ -88,7 +88,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed components yourself; the item's acceptance criteria; `DESIGN.md § When nothing fits at all` and `SPECIFICATION.md § Platform and mobile-first design` for the specified states.
 - **Verification actions:** Open the component and read the states it can actually render; open the cited design section rather than quoting it from memory.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A gap that touches accessibility classification is filed and named as such — `DELIVERY.md` makes that an always-human category, and a clean lane there is a recommendation, not an approval.
 - **Handoff limit:** ~300 tokens.

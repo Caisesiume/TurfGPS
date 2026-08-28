@@ -118,7 +118,7 @@ human_escalation: false
 - **Artifact retrieval:** `docs/Requirements/` records and their statuses, `TRACEABILITY.md`, the board and existing issues, `requirements-authoring`, `turfgps-board-ops`.
 - **Verification actions:** Every story carries `Resolves:`, its label, and its Milestone; coverage audited in both directions; no constant copied into an AC; no `XL` filed; **no `Blocked by:` line written by you**.
 - **Output schema:** the `agent-handoffs` envelope, extended with `epics:`, `stories:`, `coverage:`, `dependency_hints:`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** Issue numbers and codes; the board holds the story text.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Issue numbers and codes; the board holds the story text.
 - **Allowed downstream:** none. Upward: `@requirements-engineer` only.
 - **Escalation:** §21 conditions only, with a recommendation, through the parent.
 - **Handoff limit:** ~300 tokens; the board holds the stories.

@@ -215,7 +215,7 @@ Move the linked board item to **`Ordered Revision`** and hand `@worker-manager` 
 
 **One ledger comment per PR, and it supersedes.** Reviewer, domain, verdict, confidence, diff SHA, cycle — carrying unaffected verdicts forward marked `carried (SHA)`. Rewrite the whole table each cycle rather than appending a second one: a PR carrying five ledgers makes the sixth cycle read four stale tables to find the live row, and the ledger's job is to state the current state of every lane in one place. Where a superseded copy must stay visible, say in one line which comment it replaces.
 
-**Both are capped, and the caps are `agent-handoffs § Output caps` — the judgment's and the ledger's are two rows of that table, read there and not copied here.** Prose inside either is licensed for four things only — a finding overturned, a conflict dissolved, a rule renegotiated, a predecessor corrected. **A finding that simply holds gets a row.** The reason is not tidiness: every later cycle reads what the earlier ones wrote before it reads the diff, so a paragraph written once is paid for on every pass that follows it.
+**Both are capped, and the caps are `agent-handoffs § Output caps` — the judgment's and the ledger's are two rows of that table, which also settle what prose either licenses; read there and not copied here.** The reason the licence is narrow is not tidiness: every later cycle reads what the earlier ones wrote before it reads the diff, so a paragraph written once is paid for on every pass that follows it.
 
 Apply the intersection test from `review-board-dispatch § Incremental review validity`: files **and** domain must both hit to invalidate; where it is genuinely unclear, re-run; on safety paths there is no unclear case.
 

@@ -172,7 +172,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; the gate results from `local-gates § Backend (Go)`; `SPECIFICATION.md` on the Turf username, plan expiry, and the short code.
 - **Verification actions:** Run `govulncheck ./...` from `service/` and `gitleaks detect` from the repository root — the two directories differ deliberately — and report both; establish the trust boundaries and the sensitive-data list from the diff rather than from the dispatch.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A finding touching stored personal data or a safety path is filed and flagged for the human via `@engineering-lead` — `DELIVERY.md`'s always-human categories are not agent-resolvable.
 - **Handoff limit:** ~300 tokens, exceeded only for an exploit that must be stated step by step to be believed.

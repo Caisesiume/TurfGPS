@@ -82,7 +82,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; the candidate cap from `CalculationSpecification.md § Bounding the candidate set`; the Turf limits from `Architecture.md § Data sources and constraints`.
 - **Verification actions:** Read the actual bound or its absence in the code; take every rate limit and cap from its document rather than from memory or the PR body.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** Single-execution waste belongs to `@performance-reviewer` and general resilience to `@linus-architecture-critic`; name and leave rather than reviewing.
 - **Handoff limit:** ~300 tokens.

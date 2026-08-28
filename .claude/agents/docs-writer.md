@@ -86,7 +86,7 @@ confidence: 0.93
 - **Artifact retrieval:** The board item, its requirement records, the cited `document § section`, and the code on disk.
 - **Verification actions:** Documentation gates per `local-gates § Documentation gates`, in full and named; backend gates if Go comments changed; every claim checked against disk.
 - **Output schema:** `handoff-payloads § Worker completion`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here.
 - **Allowed downstream:** none — it writes alone and reports to @worker-manager.
 - **Escalation:** §21 conditions only, with a recommendation, via @worker-manager.
 - **Handoff limit:** ~300 tokens.

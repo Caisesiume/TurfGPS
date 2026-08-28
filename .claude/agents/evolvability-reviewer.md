@@ -88,7 +88,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; `Architecture.md § Ports and adapters`, `§ D3`, `§ D5`; `SPECIFICATION.md § Why attributes matter` for the deferred features.
 - **Verification actions:** Open the import block and the literal you call vendor-specific; open the cited architecture section rather than quoting it from memory.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A conflict with `@over-engineering-reviewer` over the same seam is surfaced as a conflict for the judge to rule on; you do not settle it.
 - **Handoff limit:** ~300 tokens.

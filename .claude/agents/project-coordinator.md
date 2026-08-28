@@ -108,7 +108,7 @@ human_escalation: false
 - **Artifact retrieval:** The board, open PRs, the scrum-master's ordering, and the item's `@change-risk-assessor` assessment where one exists.
 - **Verification actions:** No worker assigned atop an open remand; no two assignments landing on one branch (`worker-manager § One writer per branch`); WIP respected; every dispatch carries references only; merge order justified against real file overlap.
 - **Output schema:** the `agent-handoffs` envelope, extended with `coordination:`.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** References and one-line rationales; the reader opens the board and the PRs.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. References and one-line rationales; the reader opens the board and the PRs.
 - **Allowed downstream:** `@worker-manager` (dispatch). Upward: `@engineering-lead`.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens per dispatch and per report.

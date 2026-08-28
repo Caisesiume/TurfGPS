@@ -108,7 +108,7 @@ human_escalation: false
 - **Artifact retrieval:** `scripts/loop/dependents.sh` first on a completion event, then the affected stories' bodies, `docs/Requirements/` records and `DECISIONS.md`, `docs/adr/`, and the named architecture and design sections.
 - **Verification actions:** Every written edge carries a type and a concrete one-line reason; every edge examined against a live issue that exists and is open; unrelated edges confirmed untouched; the subgraph's boundary stated in the report.
 - **Output schema:** the `agent-handoffs` envelope, extended with `graph_update`.
-- **Output cap:** the **`graph_update`** row of `agent-handoffs § Output caps`; the number lives there and is not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.** An edge carries its one-line reason and nothing more — the story bodies hold the graph.
+- **Output cap:** the **`graph_update`** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. An edge carries its one-line reason and nothing more — the story bodies hold the graph.
 - **Allowed downstream:** none. Upward: @engineering-lead. Findings route to @requirements-engineer (requirement), @requirements-story-organizer (decomposition), or the ADR process (architecture).
 - **Escalation:** §21 conditions only, with a recommendation, through @engineering-lead.
 - **Handoff limit:** ~300 tokens; the issue bodies hold the graph.

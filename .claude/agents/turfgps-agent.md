@@ -82,7 +82,7 @@ human_escalation: false
 - **Artifact retrieval:** `docs/README.md` and the four specification documents, the repository, the live Turf API, the local zone dump.
 - **Verification actions:** Any claim about the API checked against the API; any claim about the documents checked against the section; the tree left clean.
 - **Output schema:** the `agent-handoffs` envelope.
-- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**.
+- **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream:** none. Upward: @engineering-lead only.
 - **Escalation:** §21 conditions only, with a recommendation, to @engineering-lead.
 - **Handoff limit:** ~300 tokens.

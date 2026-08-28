@@ -83,7 +83,7 @@ evidence: |
 - **Artifact retrieval:** The diff and the changed files yourself; `Architecture.md § Ports and adapters` for the six ports; the archtest suite if one exists.
 - **Verification actions:** Read the actual import blocks rather than inferring the edge; check whether a fitness test already fails before claiming none exists.
 - **Output schema:** `reviewer verdict` in `review-verdicts`.
-- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers live there and are not copied here. **Verbosity is a contract violation, not a style preference.** Prose is licensed there for four things only — a finding **overturned**, a conflict **dissolved**, a rule **renegotiated**, a predecessor **corrected**. **A finding that simply holds gets a row, not a paragraph.**
+- **Output cap:** the **reviewer verdict** row of `agent-handoffs § Output caps`, which bounds both the verdict's length and the evidence block's bullets; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** None. You report to `@pr-judge` only.
 - **Escalation:** A boundary defect that contradicts `Architecture.md` is filed with `root_cause: architecture` and left to the judge to route to the ADR process.
 - **Handoff limit:** ~300 tokens.
