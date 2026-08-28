@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -193,5 +194,176 @@ func TestAMalformedTunableIsRefusedRatherThanDefaulted(t *testing.T) {
 				t.Errorf("%s=%q was accepted as %+v, want it refused", pair[0], pair[1], cfg)
 			}
 		})
+	}
+}
+
+// unoverridden is the configuration `complete()` loads, written out field by
+// field so a test can say what a single override must and must not change.
+//
+// It names the default CONSTANTS rather than the figures behind them. Copying
+// "5m" here would put a second home under a value whose home is the constant a
+// few lines away in config.go, and the copy would go stale silently — the
+// failure the constants exist to prevent, reintroduced by the test that checks
+// them.
+func unoverridden() ZoneSync {
+	return ZoneSync{
+		DatabaseURL:      complete()[EnvDatabaseURL],
+		AllZonesURL:      complete()[EnvAllZonesURL],
+		Interval:         3 * time.Minute, // complete()'s own interval, parsed.
+		FetchTimeout:     defaultFetchTimeout,
+		DatabaseTimeout:  defaultDatabaseTimeout,
+		MergeTimeout:     defaultMergeTimeout,
+		MaxResponseBytes: defaultMaxResponseBytes,
+		MinZoneRatio:     defaultMinZoneRatio,
+	}
+}
+
+// differences lists the fields on which two configurations disagree.
+//
+// It exists so the failure below names the field rather than printing two
+// structs and leaving a reader to diff eight fields by eye. A swap reports as
+// two lines that read as each other's mirror, which is the shape that says
+// "swap" rather than "wrong value".
+func differences(got, want ZoneSync) []string {
+	var out []string
+
+	for _, f := range []struct {
+		name      string
+		got, want any
+	}{
+		{"DatabaseURL", got.DatabaseURL, want.DatabaseURL},
+		{"AllZonesURL", got.AllZonesURL, want.AllZonesURL},
+		{"Interval", got.Interval, want.Interval},
+		{"FetchTimeout", got.FetchTimeout, want.FetchTimeout},
+		{"DatabaseTimeout", got.DatabaseTimeout, want.DatabaseTimeout},
+		{"MergeTimeout", got.MergeTimeout, want.MergeTimeout},
+		{"MaxResponseBytes", got.MaxResponseBytes, want.MaxResponseBytes},
+		{"MinZoneRatio", got.MinZoneRatio, want.MinZoneRatio},
+	} {
+		if f.got != f.want {
+			out = append(out, fmt.Sprintf("%s = %v, want %v", f.name, f.got, f.want))
+		}
+	}
+
+	return out
+}
+
+// override is one environment variable, the value it is set to, and the single
+// change that setting it may make.
+type override struct {
+	env   string
+	raw   string
+	apply func(*ZoneSync)
+}
+
+// overrides pairs every overridable variable with the one field it owns.
+//
+// EVERY VALUE IS DISTINCT FROM EVERY OTHER AND FROM EVERY DEFAULT, which is the
+// property the table turns on rather than a matter of taste. Three of these
+// fields are `time.Duration` and two of the defaults behind them are the same
+// figure, so a value shared between two rows would let a mapping that sent an
+// override to the wrong field of the same type produce the expected struct
+// anyway. The figures are arbitrary and mean nothing beyond being unlike each
+// other; they are prime seconds so that no two can be confused by arithmetic.
+func overrides() []override {
+	return []override{
+		{EnvFetchTimeout, "41s", func(c *ZoneSync) { c.FetchTimeout = 41 * time.Second }},
+		{EnvDatabaseTimeout, "43s", func(c *ZoneSync) { c.DatabaseTimeout = 43 * time.Second }},
+		{EnvMergeTimeout, "47s", func(c *ZoneSync) { c.MergeTimeout = 47 * time.Second }},
+		{EnvMaxResponseBytes, "53", func(c *ZoneSync) { c.MaxResponseBytes = 53 }},
+		{EnvMinZoneRatio, "0.59", func(c *ZoneSync) { c.MinZoneRatio = 0.59 }},
+	}
+}
+
+// TestEachOverrideReachesItsOwnFieldAndNoOther discriminates the override block
+// of LoadZoneSync, which nothing else does.
+//
+// ---------------------------------------------------------------------------
+// WHY THE OVERRIDE TEST NEXT DOOR IS NOT THIS TEST. Read before editing.
+//
+// TestTheTunablesHaveDefaultsAndAreOverridable sets three variables and checks
+// three fields. It cannot fail on the defect this block is actually exposed to:
+// the block is five near-identical lines, each naming a variable and a field
+// that happen to share a name, and three of the five carry the same type. Swap
+// the variables on the database-timeout and merge-timeout lines and the
+// compiler is satisfied, every existing test still passes — neither of those
+// two is ever set — and the service runs the merge on the short budget and the
+// short operations on the long one. Nothing observable says so until an
+// operator raises one budget and watches the other move.
+//
+// So the assertion here is over the WHOLE configuration and not over the field
+// under test. Checking only the overridden field would catch a variable read
+// into no field at all, and miss the swap entirely, because a swap is only
+// visible in the field that was not supposed to change.
+//
+// The subtests are one override at a time by design. Setting all five at once
+// is the weaker arrangement — every field then differs from its default, so a
+// mapping that crossed two of them still produces five changed fields and the
+// crossing has to be spotted in the values. One at a time makes it structural:
+// exactly one field may move, and a swap moves two.
+// ---------------------------------------------------------------------------
+func TestEachOverrideReachesItsOwnFieldAndNoOther(t *testing.T) {
+	t.Parallel()
+
+	// The unoverridden load is asserted first, because every subtest below is
+	// stated as a difference from it. If this is wrong they are all measuring
+	// against the wrong baseline, and the block they exist to discriminate
+	// would be reported as sound while the defaults were the thing at fault.
+	base, err := LoadZoneSync(env(complete()))
+	if err != nil {
+		t.Fatalf("loading with no overrides: %v", err)
+	}
+
+	if diff := differences(*base, unoverridden()); len(diff) != 0 {
+		t.Fatalf("an unoverridden load disagrees with the defaults it is built from: %v", diff)
+	}
+
+	for _, o := range overrides() {
+		t.Run(o.env, func(t *testing.T) {
+			t.Parallel()
+
+			want := unoverridden()
+			o.apply(&want)
+
+			pairs := complete()
+			pairs[o.env] = o.raw
+
+			got, err := LoadZoneSync(env(pairs))
+			if err != nil {
+				t.Fatalf("loading with %s=%q: %v", o.env, o.raw, err)
+			}
+
+			if diff := differences(*got, want); len(diff) != 0 {
+				t.Errorf("setting %s=%q and nothing else changed the wrong field(s): %v — exactly one field may move, and two moving is the two variables having been crossed in the override block",
+					o.env, o.raw, diff)
+			}
+		})
+	}
+}
+
+// TestEveryOverrideAppliedAtOnceKeepsItsOwnField is the second arrangement of
+// the same question, and it is here for the one defect the subtests above
+// cannot reach: a line that reads the right variable into the right field but
+// is later clobbered by another, which is invisible while only one variable is
+// ever set.
+func TestEveryOverrideAppliedAtOnceKeepsItsOwnField(t *testing.T) {
+	t.Parallel()
+
+	want := unoverridden()
+	pairs := complete()
+
+	for _, o := range overrides() {
+		o.apply(&want)
+
+		pairs[o.env] = o.raw
+	}
+
+	got, err := LoadZoneSync(env(pairs))
+	if err != nil {
+		t.Fatalf("loading with every override set: %v", err)
+	}
+
+	if diff := differences(*got, want); len(diff) != 0 {
+		t.Errorf("with every variable set to a value unlike every other, the configuration loaded wrong: %v", diff)
 	}
 }
