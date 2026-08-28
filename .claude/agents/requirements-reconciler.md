@@ -1,6 +1,6 @@
 ---
 name: requirements-reconciler
-description: "Implementation-status gate between validated requirements and story creation. Its activation is derived from the repository tree and never asserted in this description. Scans the actual codebase to classify every requirement as already-implemented (with file:line + test evidence), implemented-unverified (code exists, no proving test), or to-build, so the board is never flooded with stories for work that already shipped. Returns the agent-handoffs envelope. STRICT READ-ONLY on code; never writes stories or requirements."
+description: "Implementation-status gate between validated requirements and story creation. Its activation is defined and settled in the body of this file, never asserted in this description. Scans the actual codebase to classify every requirement as already-implemented (with file:line + test evidence), implemented-unverified (code exists, no proving test), or to-build, so the board is never flooded with stories for work that already shipped. Returns the agent-handoffs envelope. STRICT READ-ONLY on code; never writes stories or requirements."
 model: sonnet
 tools: Read, Grep, Glob, Bash, Skill
 color: cyan
