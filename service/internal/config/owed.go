@@ -1,4 +1,7 @@
-// Package config reads the service's operator-facing configuration.
+// Package config decides whether the service's operator-facing configuration is
+// one the service may start under. It reads nothing itself and imports no os:
+// the caller performs the lookup and hands it in, and
+// `service/cmd/turfgps/main.go` is where os.LookupEnv is reached.
 //
 // It does one thing so far, and deliberately only that: it refuses a
 // configuration in which an enforcement constant recorded as owed carries no
@@ -23,6 +26,14 @@ import (
 // able to author it silently. The system being blocked until each value is
 // authored, by the batch that owns it, is what `FR-091` is for rather than a
 // cost of it.
+//
+// Nothing here exposes a value either, and #51 owns the path that will. Until
+// it does, the first consumer of one of these constants cannot reach its value
+// through this registry and must name the variable itself at the point of use —
+// the copied name this file argues against — and a typo there leaves
+// RequireOwed green while the check it feeds runs against nothing. That is
+// `FR-091`'s own recorded Risk and it is open: this type binds the names a
+// deployment must supply and binds no consumer that reads them.
 type owedConstant struct {
 	// documentedName is the constant's name exactly as the cited section
 	// records it. It is what binds this registry to that section — see
@@ -31,14 +42,18 @@ type owedConstant struct {
 
 	// envVar is where a deployment supplies the value.
 	//
-	// The environment is the mechanism the service's unit already reaches
-	// out-of-repo material through, per
-	// `DEPLOYMENT.md § Where the deployment configuration lives`, so reading
-	// configuration from it opens no second delivery path. That section also
-	// records the deployment-facing half of what this registry drives — that
-	// a value arrives through the environment, and what the service does when
-	// one does not. It records no value for either constant, because none is
-	// authored.
+	// `DEPLOYMENT.md § Where the deployment configuration lives` records the
+	// deployment-facing half of what this registry drives — that a value
+	// arrives through the environment, and what the service does when one does
+	// not. It records no value for either constant, because none is authored,
+	// and `owed_corpus_test.go` is what holds it to this registry.
+	//
+	// It does not establish the environment as the only way out-of-repo
+	// material reaches this process. That section requires the unit to
+	// reference an out-of-repo source and records which mechanism carries it
+	// as still owed; an answer that does not deliver through the environment
+	// would make this variable a second path rather than the same one. Whether
+	// one exists is that open question's to answer and is not decided here.
 	envVar string
 }
 
@@ -110,13 +125,15 @@ func RequireOwed(lookup func(string) (string, bool)) error {
 
 // OwedEnvVars returns the variable each owed constant is supplied through.
 //
-// It exists for one caller: a harness that must START the service in order to
-// measure something else about it, and which RequireOwed would otherwise refuse
-// before that measurement could happen. `service/cmd/turfgps/image_test.go` is
-// that caller. Deriving the names there rather than writing them out is the
-// same argument as the registry's own — a copied pair of names is a second list
-// of two, going stale the day a third constant is added, in a file nobody would
-// think to look in.
+// It exists so that nothing constructing a configuration has to write those
+// names out. Every caller so far is a test that constructs one: a harness that
+// must START the service in order to measure something else about it, which
+// RequireOwed would otherwise refuse before that measurement could happen, and
+// the refusal tests, which build partial configurations to assert which
+// constants a refusal names. Deriving the names rather than writing them out is
+// the same argument as the registry's own — a copied list is a second list,
+// going stale the day a third constant is added, in a file nobody would think
+// to look in. A count of those callers would be a third.
 //
 // It returns the names and never the values, because there are none.
 func OwedEnvVars() []string {
