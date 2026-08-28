@@ -354,10 +354,30 @@ func (s *Store) Inspect(ctx context.Context, startedAt time.Time) (zonesync.Stag
 // ONE TRANSACTION, NEVER BATCHED. That is not tidiness: it is the whole answer
 // to a request served mid-refresh, because under MVCC no reader can observe a
 // partial merge, and `Architecture.md § The sync write path` states plainly that
-// splitting it into batches takes that guarantee away. Everything below happens
-// inside the one transaction, including the two counts the row figures are
-// derived from, so those figures describe the state the merge actually committed
-// rather than a table something else may have touched between statements.
+// splitting it into batches takes that guarantee away.
+//
+// WHAT MAKES THE TWO COUNTS COMPARABLE IS THE ADVISORY LOCK AND NOT THIS
+// TRANSACTION. The default isolation level is READ COMMITTED, under which every
+// statement takes its own snapshot: `before` and `after` are therefore read from
+// two different views of the table, and a writer committing between them makes
+// their difference describe its work as well as this merge's. That difference is
+// subtracted from the rows the merge affected, so it can drive Updated below
+// zero and into `sync_run.rows_updated`, a column carrying no CHECK to refuse
+// it. This comment previously credited the transaction with a guarantee only
+// REPEATABLE READ or stricter would have given it.
+//
+// The lock is what actually holds. Acquire takes the sync's advisory key at
+// session level for the whole run, nothing else in this service writes `zone`,
+// and `Architecture.md § Migrating against a running sync` requires any
+// migration touching it to take that same key — so this run is the only writer
+// while the merge is open.
+//
+// That is an argument rather than an enforcement, which is why the figures are
+// tested below BEFORE anything is committed. A count that cannot be true is
+// evidence the premise failed, and a run that cannot say what it did does not
+// leave it behind: it costs one interval of freshness, which is what every other
+// failure in this package costs, against an audit row asserting something
+// impossible.
 func (s *Store) Merge(ctx context.Context, completedAt time.Time) (zonesync.Merged, error) {
 	var merged zonesync.Merged
 
@@ -392,17 +412,28 @@ func (s *Store) Merge(ctx context.Context, completedAt time.Time) (zonesync.Merg
 		return zonesync.Merged{}, fmt.Errorf("counting the zones held after the merge: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return zonesync.Merged{}, fmt.Errorf("committing the merge: %w", err)
-	}
-
 	// Inserted and updated are separated by the change in the table's size
 	// rather than by inspecting each affected row. The alternative is a
 	// RETURNING clause testing the system column xmax, which reads whether a row
 	// version was superseded — an internal detail this file would then depend
 	// on to report a statistic.
-	merged.Inserted = after - before
-	merged.Updated = int(tag.RowsAffected()) - merged.Inserted
+	inserted := after - before
+	updated := int(tag.RowsAffected()) - inserted
+
+	// Neither can be negative while this run is the only writer, so either one
+	// being negative says it was not. See the note on the lock above.
+	if inserted < 0 || updated < 0 {
+		return zonesync.Merged{}, fmt.Errorf(
+			"the merge is not committing: it affected %d rows while `zone` went from %d to %d, giving %d inserted and %d updated — figures that cannot both be true unless something else wrote `zone` while the sync held its lock, and what this run merged is therefore not known",
+			tag.RowsAffected(), before, after, inserted, updated)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return zonesync.Merged{}, fmt.Errorf("committing the merge: %w", err)
+	}
+
+	merged.Inserted = inserted
+	merged.Updated = updated
 
 	return merged, nil
 }
