@@ -35,8 +35,10 @@ type owedConstant struct {
 	// out-of-repo material through, per
 	// `DEPLOYMENT.md § Where the deployment configuration lives`, so reading
 	// configuration from it opens no second delivery path. That section also
-	// records that the service offers no environment variable, flag or argument
-	// today: these are the first, and no document yet describes them.
+	// records the deployment-facing half of what this registry drives — that
+	// a value arrives through the environment, and what the service does when
+	// one does not. It records no value for either constant, because none is
+	// authored.
 	envVar string
 }
 
