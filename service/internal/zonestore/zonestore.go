@@ -39,6 +39,44 @@ WHERE  outcome = 'ok'
 ORDER  BY completed_at DESC
 LIMIT  1`
 
+// poolSearchPath is the schema resolution order every connection from this
+// pool carries.
+//
+// IT IS THE POOL HALF OF A PINNING THE MIGRATION ONLY MADE FOR ITSELF.
+// `migrations/0001_zone_store.sql` decision 5 is the argument in full — why an
+// unpinned path is the CVE-2018-1058 class, why it is silent by construction,
+// and why the three entries are in this order — and this constant is not a
+// second statement of it. What that decision could not reach is the session
+// that later READS what it built: it pinned the path the tables were created
+// in and left the queries below resolving through whatever path the connecting
+// role happened to carry, which is exactly the two questions it names, asked of
+// tables this migration never built.
+//
+// The value matches the migration's byte for byte, ordering included. A second
+// choice of path would be the same as no pinning at all.
+const poolSearchPath = "pg_catalog, public, pg_temp"
+
+// minPoolConns is the floor this service holds its connection pool to.
+//
+// IT IS A FLOOR AND NOT A SETTING. An operator who sizes the pool up through
+// the DSN's pool_max_conns keeps their number; one who sizes it below this, or
+// leaves it unset, is raised to this. Unset is the case that matters, because
+// pgx's own default is max(4, NumCPU) — a property of the host the process
+// landed on, never a decision about this workload, and two on a small one.
+//
+// The floor exists because two connections are spoken for while a sync runs and
+// neither is available to a request. `internal/syncstore` takes the sync's
+// advisory lock at SESSION level, which pins the connection holding it for the
+// whole run, and the run needs a second for whatever statement it is on. A pool
+// of two therefore has nothing left at all for the half a request may reach —
+// the currency read below — for the duration of every run.
+//
+// Eight is this package's operational choice in the sense `internal/config`
+// uses for the figures it picks: no measurement of the request path exists to
+// derive one from, because that path is one handler today. It leaves six while
+// a run holds two, and the DSN is where an operator raises it.
+const minPoolConns int32 = 8
+
 // Currency is how current the local synced copy is.
 //
 // EverSucceeded is a field rather than a zero-value convention because "never
@@ -108,6 +146,17 @@ func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	// Names this service in pg_stat_activity, so a lock or a long transaction
 	// is attributable without guessing which client held it.
 	cfg.ConnConfig.RuntimeParams["application_name"] = "turfgps"
+
+	// See poolSearchPath. Set as a startup parameter rather than by a statement
+	// on each checkout, so there is no window in which a connection has been
+	// handed out and not yet pinned.
+	cfg.ConnConfig.RuntimeParams["search_path"] = poolSearchPath
+
+	// See minPoolConns. Compared rather than assigned, so a DSN that asked for
+	// more keeps what it asked for.
+	if cfg.MaxConns < minPoolConns {
+		cfg.MaxConns = minPoolConns
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
