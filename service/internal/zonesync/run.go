@@ -13,7 +13,7 @@
 //     whole life, and everything below it is unexported. A handler cannot
 //     "just call the refresh" because there is nothing to call.
 //   - No package in this module may import it transitively except the
-//     composition root and `internal/zonesyncstore`, which implements the ports
+//     composition root and `internal/syncstore`, which implements the ports
 //     declared here and so must name them; and nothing reachable from the
 //     request surface imports either of those two. That is checked rather than
 //     intended — `offrequestpath_test.go`, which fails closed, and which is

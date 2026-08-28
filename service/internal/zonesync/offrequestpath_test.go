@@ -61,7 +61,7 @@ const (
 	// syncAdapter implements the ports this package declares, so it necessarily
 	// names them. It is a write-path package: no request surface may reach it
 	// either, which the check below asserts of requestSurface directly.
-	syncAdapter = modulePath + "/internal/zonesyncstore"
+	syncAdapter = modulePath + "/internal/syncstore"
 )
 
 // mayImportTheWorker is exhaustive. Adding an entry widens the hole this test

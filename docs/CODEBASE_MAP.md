@@ -46,7 +46,7 @@ the HTTP server and the sync worker, and drains what is in flight on a signal.
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters` |
 | `internal/zonestore` | the read side of the synced zone store, and the owner of the pool |
 | `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |
-| `internal/zonesyncstore` | the PostGIS adapter behind those ports — the write side |
+| `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
 
 Four constraints across that set are not visible from the package names.
 
@@ -61,7 +61,7 @@ exported entry that can reach the endpoint is the scheduler's loop, which the
 process owns for its whole life, so there is nothing for a handler to call.
 
 **No package may reach `internal/zonesync` transitively except the composition
-root and `internal/zonesyncstore`**, which is exempt because it implements the
+root and `internal/syncstore`**, which is exempt because it implements the
 ports the worker declares and must name them. Nothing reachable from the
 request surface imports either. That is checked rather than intended, by a test
 that refuses rather than passes when the packages it names are missing —
@@ -81,7 +81,7 @@ constrains, and this file does not repeat it.
 
 The boundary itself: `internal/zonestore` answers questions — it opens the pool
 and reports how current the local copy is — and a handler may import it.
-`internal/zonesyncstore` writes, imports `internal/zonesync` for its port
+`internal/syncstore` writes, imports `internal/zonesync` for its port
 types, and no handler could usefully import it.
 
 ## The database directory

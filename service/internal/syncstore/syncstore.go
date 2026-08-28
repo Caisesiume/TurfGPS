@@ -1,14 +1,21 @@
-// Package zonesyncstore is the write side of the synced zone store: the PostGIS
+// Package syncstore is the write side of the synced zone store: the PostGIS
 // adapter behind the ports `internal/zonesync` declares.
 //
 // It is separate from `internal/zonestore` so that reading how current the copy
 // is does not drag the sync worker into the import graph of everything that
 // reads it — the boundary `FR-022` AC2 is checked over. See that package's doc.
 //
+// IT IS NAMED AWAY FROM `internal/zonestore` DELIBERATELY. The two were once
+// `zonestore` and `zonesyncstore`, which differ by four letters in the middle of
+// a word — on the one boundary this design calls load-bearing, where the whole
+// question a reader is asking is which of the two they are looking at. A name
+// that has to be read to the end to be told apart from its opposite is a name
+// that will be misread on the import line.
+//
 // EVERY STATEMENT HERE IMPLEMENTS `Architecture.md § The sync write path` rather
 // than inventing anything. Where this file departs from the shape written there
 // it says so and why, at the statement.
-package zonesyncstore
+package syncstore
 
 import (
 	"context"

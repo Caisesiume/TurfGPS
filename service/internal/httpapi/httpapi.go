@@ -19,7 +19,7 @@
 //
 //   - The invariant is that no package in this module may reach
 //     `internal/zonesync` transitively except the composition root and
-//     `internal/zonesyncstore`, the sync's write-path adapter, which must name
+//     `internal/syncstore`, the sync's write-path adapter, which must name
 //     the ports it implements — and that THIS package reaches neither of those
 //     two, which is the leg the criterion is about. The exemption is argued at
 //     the check rather than here. Wherever a future handler lands, in this

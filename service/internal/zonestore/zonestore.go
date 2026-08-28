@@ -9,7 +9,7 @@
 // would put the sync worker in the transitive imports of every handler that ever
 // reads a zone, and the check would have to be weakened until it said nothing.
 //
-// So the two halves are two packages. This one answers questions; `zonesyncstore`
+// So the two halves are two packages. This one answers questions; `syncstore`
 // writes. A handler may import this and could not usefully import that.
 package zonestore
 

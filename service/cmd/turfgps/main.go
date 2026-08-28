@@ -18,10 +18,10 @@ import (
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
+	"github.com/Caisesiume/TurfGPS/service/internal/syncstore"
 	"github.com/Caisesiume/TurfGPS/service/internal/turf"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonestore"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
-	"github.com/Caisesiume/TurfGPS/service/internal/zonesyncstore"
 )
 
 const (
@@ -170,7 +170,7 @@ func startZoneSync(ctx context.Context) (func(), error) {
 }
 
 func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.Scheduler, error) {
-	store, err := zonesyncstore.New(pool, slog.Default())
+	store, err := syncstore.New(pool, slog.Default())
 	if err != nil {
 		return nil, err
 	}
