@@ -17,7 +17,9 @@ func clientFor(t *testing.T, srv *httptest.Server, maxBytes int64) *Client {
 		t.Fatalf("building the client: %v", err)
 	}
 
-	return c.WithHTTPClient(srv.Client())
+	c.setHTTPClient(srv.Client())
+
+	return c
 }
 
 // TestASuccessfulFetchReturnsTheBodyAndItsStatus is the ordinary path.

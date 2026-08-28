@@ -53,12 +53,18 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 	}, nil
 }
 
-// WithHTTPClient substitutes the HTTP client, for a test that serves the
+// setHTTPClient substitutes the HTTP client, for a test that serves the
 // endpoint itself.
-func (c *Client) WithHTTPClient(h *http.Client) *Client {
+//
+// UNEXPORTED, AND IT RETURNS NOTHING. As an exported method returning *Client it
+// read as a builder — the shape that invites NewClient(...).WithHTTPClient(...)
+// — while doing the opposite of one: it mutates the receiver in place, so a
+// caller that kept the value it was chaining from would find that value changed
+// underneath it. It was never a construction option, and its only caller is this
+// package's own test serving the endpoint from an httptest server, which is an
+// argument for keeping it out of the package's API rather than in it.
+func (c *Client) setHTTPClient(h *http.Client) {
 	c.http = h
-
-	return c
 }
 
 // FetchAllZones fetches the complete zone set.
