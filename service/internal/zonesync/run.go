@@ -12,9 +12,12 @@
 //     can reach the endpoint is Scheduler.Run, a loop the process owns for its
 //     whole life, and everything below it is unexported. A handler cannot
 //     "just call the refresh" because there is nothing to call.
-//   - No package in this module except the composition root may import it,
-//     transitively, and that is checked rather than intended —
-//     `offrequestpath_test.go`, which fails closed.
+//   - No package in this module may import it transitively except the
+//     composition root and `internal/zonesyncstore`, which implements the ports
+//     declared here and so must name them; and nothing reachable from the
+//     request surface imports either of those two. That is checked rather than
+//     intended — `offrequestpath_test.go`, which fails closed, and which is
+//     where the exemption is argued rather than here.
 //   - Even a caller that defeated both cannot spend the endpoint's allowance:
 //     the attempt is gated on the last attempt recorded in `sync_run` and taken
 //     under an exclusive lock, so the gate holds across ticks, across processes

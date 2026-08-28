@@ -17,10 +17,14 @@
 // the handler lands wired the wrong way. The guard is therefore structural and
 // it fails closed:
 //
-//   - The invariant is that NO package in this module except the composition
-//     root may reach `internal/zonesync`, transitively. Wherever a future
-//     handler lands, in this package or beside it, the invariant already covers
-//     it — it does not have to be remembered.
+//   - The invariant is that no package in this module may reach
+//     `internal/zonesync` transitively except the composition root and
+//     `internal/zonesyncstore`, the sync's write-path adapter, which must name
+//     the ports it implements — and that THIS package reaches neither of those
+//     two, which is the leg the criterion is about. The exemption is argued at
+//     the check rather than here. Wherever a future handler lands, in this
+//     package or beside it, the invariant already covers it — it does not have
+//     to be remembered.
 //   - The check refuses rather than passes when it cannot find the packages it
 //     ranges over, including this one. Deleting this package does not make the
 //     check vacuous, it makes it red.
