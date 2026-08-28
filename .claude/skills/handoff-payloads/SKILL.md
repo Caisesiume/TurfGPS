@@ -5,7 +5,7 @@ description: The role-specific payloads that fill the TurfGPS handoff envelope �
 
 # Handoff payloads — the schemas that fill the envelope
 
-*Split out of `agent-handoffs` on 28 August 2026. That skill holds the envelope every payload extends, the size limit, and the output caps, and none of it is restated here. Load the payload your role actually returns; an agent that reports work does not need the graph schemas, and an agent that repairs the graph does not need the escalation packet.*
+*Split out of `agent-handoffs` on 28 August 2026. That skill holds the envelope every payload extends, the size limit, and the output caps. **The reviewer verdict is not one of these payloads** — it, and the evidence law it is measured against, are in `review-verdicts`. None of either is restated here. Load the payload your role actually returns; an agent that reports work does not need the graph schemas, and an agent that repairs the graph does not need the escalation packet.*
 
 ## Worker completion
 
@@ -107,7 +107,7 @@ The orchestrator that dispatched you routes **one** targeted request, and the an
 
 ## Dependency findings and graph updates
 
-*ADR-0003 § P7. The persisted grammar both schemas refer to is `turfgps-board-ops § The dependency representation`, and is not restated here.*
+*`ADR-0003 § P7`. The persisted grammar both schemas refer to is `turfgps-board-ops § The dependency representation`, and is not restated here.*
 
 ### Dependency finding
 
