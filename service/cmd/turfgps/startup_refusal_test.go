@@ -9,12 +9,18 @@ package main
 //
 // `service/internal/config/owed_test.go` binds config.RequireOwed's decision,
 // exhaustively and cheaply. The decision is not the criterion. Delete the
-// RequireOwed call from main below, or move it under net.Listen, and every one
-// of those assertions stays green while the built service starts, listens, and
-// plans journeys with an implausible-gradient threshold nobody configured —
-// which is precisely the state `FR-091`'s Risk names: not a check that fails
-// but a check that silently never runs. Nothing that stops at the package
-// boundary can see it, so this file starts the executable.
+// RequireOwed call from main below and every one of those assertions stays
+// green while the built service starts, listens, and plans journeys with an
+// implausible-gradient threshold nobody configured — which is precisely the
+// state `FR-091`'s Risk names: not a check that fails but a check that silently
+// never runs. Nothing that stops at the package boundary can see it, so this
+// file starts the executable.
+//
+// Moving that call below net.Listen rather than deleting it is a WEAKER variant
+// and a different claim, and this file does not catch that one. It is set out
+// under WHAT IT DOES NOT REACH below, which also records why it is not the
+// state described here: a service that refuses after binding still refuses, so
+// it still plans no journey.
 //
 // Each criterion's second clause is what forces that. AC1 and AC2 say the
 // configuration is refused AND NO JOURNEY IS PLANNED UNDER IT; AC3 says a
@@ -34,11 +40,32 @@ package main
 // the refusal to be present and both of those to be absent.
 //
 // An absence is only worth as much as the guarantee that the thing would have
-// been printed. What supplies that guarantee is AC3, which requires one of
-// those lines to appear on a complete configuration: if either is renamed, or
-// the start-up record stops carrying it, AC3 goes red rather than AC1 and AC2
-// quietly weakening into assertions about a string nothing prints. That
-// interlock is why all three live in one file.
+// been printed. What supplies that guarantee is AC3, which requires the SERVED
+// line — the one printed on exactly the path AC1 and AC2 assert the absence
+// of — to appear on a complete configuration. Rename it, or stop the
+// start-up record carrying it, and AC3 goes red rather than AC1 and AC2 quietly
+// weakening into assertions about a string nothing prints. That interlock is
+// why all three live in one file.
+//
+// IT HAS TO BE THE SERVED LINE SPECIFICALLY, and that was settled by execution
+// rather than reasoned. AC3 used to accept EITHER line as proof the start was
+// accepted, and recorded which one it had matched nowhere. Run on a host
+// already holding the address main binds, the child prints `cannot listen`, AC3
+// was satisfied by it and reported PASS — and on that host the rename above
+// went uncaught while AC1 and AC2 spent the whole run checking for the absence
+// of a string nothing printed. A suite reporting success having established
+// nothing is this item's own subject matter turned on the file that asserts it.
+//
+// So the two lines now answer two questions rather than one. EITHER proves
+// execution reached net.Listen, which is all AC3's own criterion asks and why
+// the bind-refused line is still accepted for it. Only the served line
+// establishes the interlock, and AC3 asserts it separately: a run that saw only
+// the other one FAILS rather than passing over a guarantee it did not
+// establish. That failure is deliberately not conditional on anything else
+// being wrong — a guarantee that was not established is not established
+// whether the line was renamed or the host merely held the port, this file
+// cannot tell those two apart, and the message names both so that freeing the
+// port separates them in one further run.
 //
 // WHAT IT DOES NOT REACH. Moving the RequireOwed call BELOW net.Listen but
 // above serve is not caught here, and that was demonstrated rather than
@@ -69,6 +96,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,21 +128,38 @@ const (
 	// constant, which is what the assertions below read.
 	refusalMarker = "refusing to start"
 
+	// servedMarker is what main logs once the listener is bound and the server
+	// is up. It is the one line that establishes the interlock described at the
+	// top of this file, because it is printed on exactly the path AC1 and AC2
+	// assert the absence of.
+	servedMarker = "listening"
+
+	// bindRefusedMarker is what main logs when the host refuses the bind. It
+	// proves execution reached net.Listen and nothing past that: the process
+	// never served, so it says nothing about what would have been printed had
+	// it.
+	bindRefusedMarker = "cannot listen"
+
 	// startupFixture is what this file supplies as a configured value. It is a
 	// PRESENCE FIXTURE and it is not a figure — see the note at the top of this
 	// file.
 	startupFixture = "set-by-the-startup-refusal-test-not-a-value"
 )
 
-// listenerMarkers are the lines main prints once execution has reached
-// net.Listen: one for a bind that succeeded and one for a bind the host
-// refused. Either proves the start got past the refusal, which is what AC3
-// needs; neither may appear on a refused start, which is what AC1 and AC2 need.
+// listenerMarkers are both lines main prints once execution has reached
+// net.Listen. Either proves the start got past the refusal, which is what AC3's
+// own criterion needs; neither may appear on a refused start, which is what AC1
+// and AC2 need, so both are asserted absent there.
 //
-// Both are kept because AC3 must not depend on port 8080 being free on the host
-// running it. A host that refuses the bind has still answered the only question
-// this file asks of that step — whether execution reached it.
-var listenerMarkers = []string{"listening", "cannot listen"}
+// Both are kept because that criterion must not depend on the address main
+// binds being free on the host running it. A host that refuses the bind has
+// still answered the only question the criterion asks of this step — whether
+// execution reached it.
+//
+// They are NOT interchangeable for the interlock, and nothing may read this
+// slice as though they were: see the top of this file, and the separate
+// servedMarker assertion in AC3.
+var listenerMarkers = []string{servedMarker, bindRefusedMarker}
 
 // TestServiceRefusesToStartWithNoOwedValueSupplied binds `FR-091` AC1 at the
 // start: a configuration carrying no value for a constant recorded as owed is
@@ -162,8 +207,25 @@ func TestServiceRefusesToStartOnAPartialConfiguration(t *testing.T) {
 			}
 
 			record := runRefusedStart(t, executable, supplied)
+			configuration := "a configuration supplying a value for every constant recorded as owed except " + omitted
 
-			assertRefused(t, record, []string{omitted}, "a configuration supplying a value for every constant recorded as owed except "+omitted)
+			assertRefused(t, record, []string{omitted}, configuration)
+
+			// The counts the refusal leads with, which nothing else in this
+			// suite reads. Set both of them to the size of the registry and
+			// every message still names the one constant actually missing, so
+			// the whole suite stays green while an operator who configured all
+			// but one is told that none of them took — sent to re-supply
+			// values that are already set, and handed a count the list printed
+			// beside it contradicts. Derived from the configuration this case
+			// built rather than written out, so a third constant recorded as
+			// owed needs no edit here.
+			counts := fmt.Sprintf("%d of the %d", len(names)-len(supplied), len(names))
+
+			if !strings.Contains(record, counts) {
+				t.Errorf("the refusal of %s does not report %q. Exactly %d of the %d constants recorded as owed carry no value in it, and that count is how an operator reads how far from complete the deployment is — one disagreeing with the list printed beside it is worse than no count at all.\n%s",
+					configuration, counts, len(names)-len(supplied), len(names), record)
+			}
 
 			for _, name := range names {
 				if name == omitted {
@@ -194,9 +256,11 @@ func TestServiceRefusesToStartOnAPartialConfiguration(t *testing.T) {
 // exited 1 on every input would satisfy both of them completely; this is the
 // control that separates a refusal attributable to the configuration from a
 // process that simply cannot start. And it is what keeps their absence
-// assertions honest: it requires a listener line to actually be printed, so a
-// rename that stopped those lines matching goes red here rather than silently
-// weakening them.
+// assertions honest: it requires servedMarker itself to be printed on this
+// path, so a rename that stopped it matching goes red here rather than silently
+// weakening them. A run that could not observe that — because the host held
+// the address — says so and fails, rather than passing over an interlock it
+// never established. The reasoning is at the top of this file.
 func TestServiceStartsWithEveryOwedValueSupplied(t *testing.T) {
 	executable := buildServiceExecutable(t)
 	names := owedEnvVarNames(t)
@@ -220,6 +284,15 @@ func TestServiceStartsWithEveryOwedValueSupplied(t *testing.T) {
 	if !reached {
 		t.Fatalf("within %s the service neither refused to start nor reached its listener under a configuration supplying a value for every constant recorded as owed (%s).\nWanted one of %q, which is what main prints once execution has passed the refusal and reached net.Listen. Nothing here observed the configuration being accepted, and the absence assertions in the two tests above rest on one of those lines being printed on this path.\n%s",
 			acceptanceBudget, strings.Join(names, ", "), listenerMarkers, record)
+	}
+
+	// The interlock, asserted apart from the criterion above because it is a
+	// different claim. Reaching net.Listen is all AC3 itself asks; only
+	// servedMarker establishes that AC1's and AC2's absence assertions are
+	// about a line something actually prints.
+	if !strings.Contains(record, servedMarker) {
+		t.Errorf("the configuration was accepted and execution reached net.Listen, but the start-up record carries %q and never %q, so this run did not establish the interlock AC1 and AC2 rest on: it observed %q printed on no path at all, and those two tests spent the run asserting the absence of a line nothing here was seen to print.\nEither this host already holds %s — free it and re-run, which is what tells the two causes apart — or main no longer logs %q once it is serving, in which case AC1 and AC2 now pass over a service that got past the refusal and served.\n%s",
+			bindRefusedMarker, servedMarker, servedMarker, defaultAddr, servedMarker, record)
 	}
 }
 
@@ -515,9 +588,12 @@ func containsAny(record string, markers []string) bool {
 // lockedBuffer collects a child's stderr so it can be read while the child is
 // still writing to it.
 //
-// The gate runs this suite under the race detector, and a bytes.Buffer read
-// from the test goroutine while os/exec's copier writes to it is a data race
-// whatever it happens to print.
+// A bytes.Buffer read from the test goroutine while os/exec's copier writes to
+// it is a data race whatever it happens to print, so this answers to that
+// property and not to any detector run. The Makefile's `test` target does carry
+// `-race` unconditionally; whether the detector has ever run against this file
+// is a question about the host, which needs a C compiler for it, and no run of
+// it here has been observed.
 type lockedBuffer struct {
 	mu  sync.Mutex
 	buf bytes.Buffer
