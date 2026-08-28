@@ -43,9 +43,9 @@ type Zone struct {
 // empty name — so a value type cannot tell a field the response omitted from a
 // field the response sent as zero. Decoding a required field that is absent must
 // be an error and not a silent zero: `Architecture.md § Retrieving zones`
-// measures nine of these on every one of 154,845 records, so a record missing
-// one is a response this system does not understand rather than a zone with a
-// default.
+// measures nine of these on every record of the complete response, so a record
+// missing one is a response this system does not understand rather than a zone
+// with a default.
 //
 // The genuinely optional ones are `type` and, inside `region`, `country` and
 // `area`. Their absence is the ordinary case and never an anomaly, which that

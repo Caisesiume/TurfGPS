@@ -19,8 +19,8 @@ import (
 )
 
 // errorBodySnippet is how much of an unusable response is quoted into the error.
-// Enough for an API error object to be readable, short enough that a 43 MB body
-// arriving under a wrong status does not become a log line.
+// Enough for an API error object to be readable, short enough that a
+// full-corpus body arriving under a wrong status does not become a log line.
 const errorBodySnippet = 512
 
 // Client fetches from the Turf API.

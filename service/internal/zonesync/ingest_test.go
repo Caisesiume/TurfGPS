@@ -222,7 +222,8 @@ func TestADateWithNoZoneIsReadAsUTC(t *testing.T) {
 }
 
 // TestTheRefusalNamesTheRecord keeps the failure diagnosable. A sync that
-// refuses 154,845 records because one of them is malformed has to say which.
+// refuses a whole corpus because one of its records is malformed has to say
+// which one.
 func TestTheRefusalNamesTheRecord(t *testing.T) {
 	t.Parallel()
 
