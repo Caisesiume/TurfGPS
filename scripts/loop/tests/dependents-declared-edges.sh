@@ -49,6 +49,9 @@ cat > "$FIX/list" <<'FIXTURE'
 215 Blocked by issues #7 and #41
 216 Blocked by: PR #67
 217 Blocked by (see below): #7
+218 Blocked by: #7 AND #41
+219 Blocked by: #7#41
+220 **Blocked by:** #7, #41
 FIXTURE
 
 # `gh issue view <n> --json state,stateReason,url --jq '.url + " " + .state + …'`.
@@ -170,6 +173,22 @@ run 41;  absent "and no phantom that would block for good"  "#214" "#208 (blocke
 run 7;   check  "a kind-qualified label keeps both members" 0 "#215 (blockers: #41 open)"
 run 67;  check  "a PR-qualified label declares its PR"      0 "eligible: #201, #216"
 run 7;   check  "a parenthetical aside is not a reason"     0 "eligible: #217"
+
+# (iii) The three branches of that boundary no fixture reached. Each was measured
+# REMOVABLE with every other assertion still green — the green-but-broken trap — and
+# each fails by UNDER-reading: the list ends early, the story's one open blocker is
+# never counted, and it is promoted with nothing anyone would look at. So all three are
+# asked from #7, which is satisfied: a story that lost its tail does not merely print a
+# shorter list, it moves to `eligible`, which is the harm itself and is what reds here.
+#   Uppercase `AND` — the conjunction is spelled per character, so narrowing the class
+#   to `and` keeps #215 above green and only this fixture can see it.
+#   Adjacent refs — the glue run is starred, not plussed, and no other fixture puts two
+#   references together, so nothing else distinguishes zero glue from one separator.
+#   Bold label — `[*]*` in the strip. Without it the line matches no label at all, the
+#   declared list is empty and the story leaves the report entirely rather than short.
+run 7;   check  "an uppercase conjunction is still glue"    0 "#218 (blockers: #41 open)"
+run 7;   check  "adjacent references need no glue at all"   0 "#219 (blockers: #41 open)"
+run 7;   check  "a bold label strips like a plain one"      0 "#220 (blockers: #41 open)"
 
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
