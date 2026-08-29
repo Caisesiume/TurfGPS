@@ -5,9 +5,15 @@
 //
 // NO API PATH IS WRITTEN IN THIS PACKAGE. The all-zones endpoint is named by
 // role in `Architecture.md § Retrieving zones` and arrives here as a resolved
-// URL from configuration, so this module is not a second home for the API
-// version — binding the version by citation is `FR-019`'s work, and a versioned
-// path compiled in here would quietly pre-empt it.
+// URL from configuration, so this package is not a second home for the API
+// version.
+//
+// THAT DOES NOT PUT IT OUTSIDE `FR-019`, which is the reading this comment
+// carried. The record's class is the paths that construct a Turf request
+// together with the configuration they draw a base path from, and this package
+// is one of those paths whether or not it compiles a version in. A versioned
+// path written here would not pre-empt the record: it would be bound by it, and
+// would have to name the one version recorded as current.
 package turf
 
 import (

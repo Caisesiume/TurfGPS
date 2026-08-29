@@ -15,8 +15,13 @@
 //     for it — one that goes wrong silently when that section moves.
 //   - The all-zones endpoint. It is named by role in that same section and
 //     reaches the service as a resolved URL, so no versioned API path appears
-//     anywhere in this module. Binding the version by citation is `FR-019`'s
-//     work, not this story's.
+//     anywhere in this module. That absence is NOT an exemption from `FR-019`,
+//     which is how this comment read it: that record's class is the paths that
+//     construct a Turf request TOGETHER WITH any configuration they draw a base
+//     path from, so the version this service issues against is whatever the
+//     environment sets here, and it is inside the class rather than outside it.
+//     What the absence buys is only that this module is not a second home for
+//     the version.
 //
 // Both therefore arrive from the environment or the sync does not run at all.
 package config

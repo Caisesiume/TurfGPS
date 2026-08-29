@@ -35,14 +35,26 @@
 // of up to an interval remains and is a product fact forced by the rate limit,
 // but partial state is not something a query has to defend against.
 //
-// AFTER A FAILED REFRESH, a reader sees the last state that merged. A failed run
-// writes nothing to `zone` — the failure is either before the merge opens or
-// inside a transaction that rolls back — and it does not move currency, because
-// currency is the completion instant of the latest `ok` run and a failed run has
-// none. A store that has never completed a run reports that distinctly rather
-// than reporting a zero instant, so "never synced" cannot be read as "synced
-// long ago". What is done with that answer is `FR-024`'s and `FR-033`'s, not
-// this package's.
+// AFTER A FAILED REFRESH, a reader sees one whole state and never a mixture. The
+// merge is all or nothing TO EVERY READER, which is what MVCC guarantees over
+// one unbatched transaction and is what `Architecture.md § The sync write path`
+// argues; it is the property a query actually has to be able to rely on.
+//
+// IT IS NOT THE STRONGER CLAIM THAT A FAILED RUN WRITES NOTHING TO `zone`, which
+// this comment made until it was narrowed to what MVCC will support. A commit
+// can be IN DOUBT: the server makes the merge durable and the acknowledgement
+// does not arrive, so this run sees an error, records a terminal failure, and
+// the merged rows are there anyway — carrying a last_changed_at that no `ok` run
+// accounts for. Nothing available to this package can tell that case from a
+// merge that never committed, which is why the invariant is stated over what a
+// reader sees rather than over what a failed run wrote.
+//
+// CURRENCY DOES NOT MOVE EITHER WAY, because it is the completion instant of the
+// latest `ok` run and a failed run has none — so the in-doubt case is reported
+// as a copy one interval staler than it is, never as one fresher. A store that
+// has never completed a run reports that distinctly rather than reporting a zero
+// instant, so "never synced" cannot be read as "synced long ago". What is done
+// with that answer is `FR-024`'s and `FR-033`'s, not this package's.
 package zonesync
 
 import (
@@ -60,7 +72,16 @@ import (
 // enforced by a CHECK constraint in `migrations/0001_zone_store.sql`. These
 // constants are the binding of that vocabulary into Go and add nothing to it,
 // which is a claim this file has to keep true rather than merely make.
-// Every one of them is reachable from this file.
+//
+// FOUR OF THE FIVE ARE REACHABLE FROM THIS FILE AND THE FIFTH IS NOT, and the
+// distinction is worth the line because the file said "every one of them" and
+// that was not true. The four terminal values are each reached from real code by
+// a real failure, and run_test.go asserts each one. `OutcomeRunning` is written
+// only by `internal/syncstore`'s BeginRun, in SQL that has never been sent to a
+// server — see that package's NEVER EXECUTED marker — and it appears in no test
+// in this package. It is in the vocabulary for the reason
+// `Architecture.md § The sync write path` gives, which is an argument and not a
+// demonstration, and nothing here should be read as having demonstrated it.
 type Outcome string
 
 // The whole vocabulary, and nothing about it: the meanings are the section
