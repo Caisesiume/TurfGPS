@@ -84,16 +84,18 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 
 # The declared blockers, then one `<issue> <blocker,blocker,...>` line per story —
 # joined across a story's several `Blocked by:` lines, in the order the body gives.
-# THE BOUNDARY. The declared list is the run of `#N` references that opens the line,
-# and it ends at the first WORD, because a word is where the reason starts. Between
-# two references the awk accepts GLUE — punctuation and space, with or without the
-# conjunction `and`. Separators are an open class and are therefore NOT enumerated:
-# enumerating five of them is what silently dropped `#41` from
-# `Blocked by: #7 · #41 — reason`, on this repo's own house separator. Testing the
-# word instead tests the closed side of that split. The rule lives in
-# `turfgps-board-ops § The dependency representation`; this says only what the awk
-# does. Ambiguity resolves toward MORE edges — an over-read blocker holds a story
-# where someone can see it, an under-read one promotes it with nothing to look at.
+# THE BOUNDARY IS NOT DEFINED HERE. Where the declared list begins and ends, what
+# glue is, what an empty list declares and which way ambiguity resolves are all the
+# grammar's, and the grammar's one home is `turfgps-board-ops § The dependency
+# representation` — read the rule there, and change it there first. This says only
+# what the awk does to implement it, in three steps: cut the reason, strip the label,
+# take the opening run of `#N`. The reason goes FIRST because the strip runs to the
+# first `#`, and on a line that declares nothing the other order walks into the
+# reason and reads an edge out of it.
+# THE LABEL PREFIX IS EXPRESSED TWICE, in two dialects — the jq `select` above and
+# the strip below. A grammar extension made in only one of them stays green: the
+# suite stubs `gh`, so a fixture reaches the awk without passing the jq, and an
+# awk-only change therefore passes every test and then sees no live line.
 pairs="$(printf '%s\n' "$lines" | awk '
   { dependent = $1; rest = substr($0, index($0, " ") + 1); list = ""
     sub(/(—|–|--).*$/, "", rest)             # the reason first: it declares nothing
