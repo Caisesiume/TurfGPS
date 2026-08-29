@@ -152,9 +152,9 @@
 --      entry the scan reads. It costs the sync two index entries per run,
 --      forty-eight times a day. This is free to take now only because 0001
 --      has not been applied anywhere; after an apply it would be a second
---      migration. `Architecture.md § The indexes` records one index on
---      `sync_run` and, with decision 8 below, now understates it by two —
---      that line is owed, and it is not this file's to write.
+--      migration. `Architecture.md § The indexes` counts this index and
+--      decision 8's: the line that recorded one on `sync_run` was owed two
+--      more, and it was corrected to three in this same change.
 --
 --   8. A third index, also on `sync_run`, for the rate limit's own gate.
 --      `syncstore.sinceLastAttemptSQL` asks for `max(started_at)` over every
@@ -285,13 +285,25 @@ CREATE TABLE IF NOT EXISTS public.zone (
     latitude         double precision NOT NULL,
     longitude        double precision NOT NULL,
 
-    -- The axis order appears exactly once in this system: here, in DDL.
+    -- The POINT'S axis order appears exactly once in this system: here, in DDL.
     -- ST_MakePoint takes X then Y — longitude then latitude — which is the
     -- exact inversion the deleted prototype shipped. Because the column is
     -- GENERATED, the write path never supplies the point and therefore cannot
-    -- invert it. The two scalars above are kept precisely so that the derived
+    -- invert it.
+    --
+    -- WHAT IS DECIDED AGAIN, ELSEWHERE, IS WHICH VALUE REACHES WHICH COLUMN.
+    -- This expression is faithful to the two columns it reads, and that is the
+    -- limit of what it promises. The binding of a value to an axis lives in
+    -- `syncstore.zoneColumns` and is pinned in Go by
+    -- `TestEveryColumnIsLoadedFromItsOwnField`. Why nothing in this file can
+    -- detect a crossed binding — including the ST_X/ST_Y assertion, which
+    -- passes under one — is `Architecture.md § What the DDL cannot reach`, and
+    -- is not restated here.
+    --
+    -- The two scalars above are kept precisely so that the derived
     -- point has something to be checked against; see
-    -- `Architecture.md § Geometry, SRID, and the coordinate guard`.
+    -- `Architecture.md § Geometry, SRID, and the coordinate guard` and
+    -- `Architecture.md § What the DDL cannot reach`.
     geom             geography(Point, 4326)
                      GENERATED ALWAYS AS (
                        ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography

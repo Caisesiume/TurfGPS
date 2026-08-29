@@ -549,7 +549,9 @@ The type is `geography(Point, 4326)`, and the SRID is written explicitly everywh
 
 `geography` rather than `geometry` because the distances the pipeline computes are metres on the ellipsoid at every scale from **28.93 m** — the closest pair of zones found in an 11,690-zone sample — to 800 km, and because the corpus spans latitudes −54.50 to +78.65 and longitudes −178.41 to +178.83, with **125 zones east of 170°E and 3 west of 170°W**. No single projected SRID covers that, and `geometry` in 4326 would measure in degrees, which are not a unit of distance. `geography` also crosses the antimeridian correctly with no special case, which a planar type does not.
 
-**`geom` is a generated column, and that is the primary defence.** The axis order appears exactly once, in DDL, inside `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`. `ST_MakePoint` takes X then Y — longitude then latitude — which is the exact inversion the deleted prototype got wrong when it indexed `[latitude, longitude]` under a convention specifying `[longitude, latitude]`. A generated column means **the write path never supplies the point and therefore cannot invert it**. Moving the mistake out of code that runs thousands of times and into the one line reviewers actually read is worth more than any test.
+**`geom` is a generated column, and that is the primary defence.** The **point's** axis order is declared exactly once, in DDL, inside `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`. `ST_MakePoint` takes X then Y — longitude then latitude — which is the exact inversion the deleted prototype got wrong when it indexed `[latitude, longitude]` under a convention specifying `[longitude, latitude]`. A generated column means **the write path never supplies the point and therefore cannot invert it**. Moving the mistake out of code that runs thousands of times and into the one line reviewers actually read is worth more than any test.
+
+**That is the point's construction, and it is not the whole of the axis question** — the binding of a value to an axis is decided a second time, in the write path, and *§ What the DDL cannot reach* at the end of this section is where that half is answered. This paragraph is the sentence most likely to stop a reviewer looking there, so it says so itself.
 
 The test exists anyway, because the one line may be wrong.
 
@@ -567,9 +569,17 @@ Two further things that fixture pins, both silent failures otherwise. That 1.237
 
 **All three exist and nothing runs them automatically**, on the same correction the section above carries and for the same reason. They are part C of `migrations/0001_zone_store.verify.sql`, with part D applying assertion 2 to every row actually stored, and an operator runs them per *migrations/README.md § Applying one*.
 
+#### What the DDL cannot reach
+
+**The generated column removes the ability to build the point wrongly. It does not remove the ability to fill the two columns wrongly.** The write path never supplies `geom`, but it still decides which scalar lands in `latitude` and which in `longitude`: `zoneColumns` in `service/internal/syncstore/syncstore.go` pairs each column name with the field it is loaded from, and that pairing is a second declaration of the axis order, in Go, on a line no reviewer reading the DDL will pass.
+
+**A crossed pair there is invisible to every assertion above**, and assertion 2 is the one worth being explicit about. If the write path fills `latitude` from the longitude field and `longitude` from the latitude field, the DDL derives the point faithfully from what it was given: `ST_X(geom)` still equals the `longitude` column and `ST_Y(geom)` still equals the `latitude` column, because both were filled from the same crossed source. The expression is correct, the two numbers are not, and the assertion compares them against each other. It passes. Part D applies that same assertion to every stored row and passes for the same reason — it can detect a wrong generation expression and cannot detect a wrong binding.
+
+**What does detect it is `TestEveryColumnIsLoadedFromItsOwnField`**, in `service/internal/syncstore/columns_test.go`, which asserts every entry of `zoneColumns` against the field it claims to read. It is database-free, so unlike the three assertions above it runs today, on a store whose SQL has never been executed. On this surface that inverts the usual order: the guard on the half the DDL cannot reach is the only one currently executed, and the guard on the half the DDL does reach is the one waiting on a database.
+
 ### The indexes
 
-Two on `zone`, two on `plan`, one on the sync log. That is all of them.
+Two on `zone`, two on `plan`, three on the sync log. That is all of them.
 
 ```sql
 -- zone
@@ -582,9 +592,13 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS plan_expires_at_idx ON plan (expires_at)
 
 -- sync_run
 sync_run_pkey                 btree (id)          -- implicit
+CREATE INDEX IF NOT EXISTS sync_run_completed_at_ok
+    ON sync_run (completed_at DESC) WHERE outcome = 'ok';
+CREATE INDEX IF NOT EXISTS sync_run_started_at
+    ON sync_run (started_at DESC);
 ```
 
-`zone_pkey` serves the upsert's conflict target in Q5 and the resolution of zone ids held in a stored plan. `zone_geom_gist` serves **both** Q1 and Q2 — the `ST_DWithin` containment and the `<->` nearest-neighbour ordering come off one index, which is a property of GiST on geography and not a coincidence to be relied on silently. `plan_expires_at_idx` serves Q3's predicate and Q4's sweep.
+`zone_pkey` serves the upsert's conflict target in Q5 and the resolution of zone ids held in a stored plan. `zone_geom_gist` serves **both** Q1 and Q2 — the `ST_DWithin` containment and the `<->` nearest-neighbour ordering come off one index, which is a property of GiST on geography and not a coincidence to be relied on silently. `plan_expires_at_idx` serves Q3's predicate and Q4's sweep. The two on `sync_run` serve the worker rather than a request: one the currency read, one the rate limit's gate, and the argument for each — including why the second is not partial where the first is — is on the index in `migrations/0001_zone_store.sql` and is not repeated here.
 
 **Four indexes are deliberately not created**, and the reasoning is recorded because each looks obviously useful:
 
@@ -693,7 +707,11 @@ CREATE TABLE IF NOT EXISTS sync_run (
 
 **`running` is not a terminal outcome, and it is in the vocabulary because a crashed worker writes nothing.** The row is inserted when the run starts, carrying `started_at` and `running`, and updated once at whatever end the run reaches. A worker killed between those two writes leaves a row stuck at `running`, which says *a run started here and died*; a schema that only ever wrote the row at the end would leave no row at all, and a run that died would be indistinguishable from a run that never happened. The four terminal values divide the ends a worker can reach and report: `ok`, merged; `http_error`, the response was unusable, with `http_status` and `response_bytes` separating a refused request from a body that would not parse; `assertion_failed`, the staging assertions rejected it and nothing was merged; `aborted`, anything else, including a database error during the merge and a run cancelled at shutdown. Only `started_at` and `outcome` are `NOT NULL`, which is what keeps a run that failed before it received anything recordable at all.
 
-**Telling a row left at `running` from a run still in flight is the advisory lock's job, and it costs nothing to ask.** A run holds the lock *§ Migrating against a running sync* requires of it at session level for the whole of its duration, and PostgreSQL releases a session-level advisory lock when the backend holding it dies — so `pg_locks` answers *is any run in flight*, with no heartbeat column, no lease, and no timeout for anyone to choose. With no holder, every row reading `running` is a run that died. With a holder, the newest such row is the live run and every older one is not, because the lock admits one run at a time. That is the whole of the operator procedure, and it is why `running` needs nothing beside it in the table: the disambiguator was already there, taken for a different reason.
+**Telling a row left at `running` from a run still in flight is the advisory lock's job, and it costs nothing to ask.** A run holds the lock *§ Migrating against a running sync* requires of it at session level for the whole of its duration, and PostgreSQL releases a session-level advisory lock when the backend holding it dies — so `pg_locks` answers *is any run in flight*, with no heartbeat column, no lease, and no timeout for anyone to choose. **The negative is the half that holds unconditionally: with no holder, every row reading `running` is a run that died.** That is what `pg_locks` answers on its own, and it is the answer an operator most often needs.
+
+**With a holder, the newest `running` row is the live run only if the holder is attributable to it**, and the lock does not attribute. Three cases separate *a run is in flight* from *this row is that run*. The lock is taken *before* the run's row exists — `attempt` acquires it, re-reads the due-gate, and only then does `runOnce` insert — so a holder may not have inserted its row yet, and a holder that finds the copy already refreshed returns at the due-gate having inserted none at all. And on the shutdown path the process that gives up waiting for its sync leaves without closing the pool, deliberately, so the backend holding the lock outlives the decision to abandon the run it belongs to. In all three the lock is held while the newest `running` row is a dead run.
+
+So the lock bounds the answer rather than giving it: at most one run is in flight, and which row is that run's needs the holding backend tied to the row — which nothing in this schema records. `running` still needs nothing beside it in the table, because the question an operator asks first is the negative one and the disambiguator for that was already there, taken for a different reason. Naming the live row when a holder exists is not something it does alone, and this section previously said it was.
 
 There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows every thirty minutes — roughly 23 MB of dead tuples per run, forty-eight runs a day, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
 
