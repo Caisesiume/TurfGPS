@@ -29,13 +29,39 @@
 -- Part D  the axis order over every row actually stored
 -- Part E  EXPLAIN, which is the only thing that proves an index is used
 --
--- A note on schema qualification.
+-- A note on schema qualification, correcting the note this file used to carry.
+--
+-- That note said part A followed `current_schema()` because 0001 creates its
+-- tables unqualified, so they land wherever the applying session's path puts
+-- them. The premise is no longer true, and it was made untrue in this same
+-- branch: 0001 pins `search_path` for its transaction and every CREATE in it
+-- names `public`. Following the session's path here would now look somewhere
+-- 0001 never wrote, and it would fail in the direction that says nothing — a
+-- `zone` sitting earlier on the path answers every assertion below about a
+-- table this migration did not build, and part C clones that decoy through
+-- `LIKE` and pronounces its generation expression correct.
+--
+-- So this file pins the path too, and names `public` on every relation it
+-- reads, writes or clones — which is also what
 -- `Architecture.md § The two absences, and the test that keeps them absent`
--- writes this query against `public`. It is
--- written against `current_schema()` here because 0001 creates its tables
--- unqualified, so they land wherever the applying session's search_path puts
--- them, and an assertion that looked somewhere else would report the whole
--- table missing rather than the column that changed.
+-- writes part A's query against. The path is 0001's own, for the reasons
+-- decision 5 of that file gives: `pg_catalog` first so no built-in can be
+-- shadowed, `public` next because that is where PostGIS and this schema live,
+-- `pg_temp` LAST rather than left implicit.
+--
+-- It is `SET` and not `SET LOCAL`, which is the one difference from 0001 and is
+-- deliberate. This file is not a transaction — it is a sequence of statements
+-- run under `ON_ERROR_STOP=1`, each committing on its own — and `SET LOCAL`
+-- outside a transaction block raises a warning and then governs nothing. The
+-- path is set for the psql session and no further than it.
+--
+-- One consequence, in part C. With `pg_temp` named last, an unqualified
+-- reference to the temp clone would find an ordinary `public.zone_guard` ahead
+-- of it if a database had one, so every reference to the clone is written
+-- `pg_temp.zone_guard`. Its CREATE needs no such help: TEMP puts the table in
+-- the temp schema whatever the path says.
+
+SET search_path = pg_catalog, public, pg_temp;
 
 -- === Part A — the column set, in both directions =============================
 --
@@ -66,13 +92,12 @@ BEGIN
     SELECT array_agg(column_name::text ORDER BY column_name)
       INTO actual
       FROM information_schema.columns
-     WHERE table_schema = current_schema()
+     WHERE table_schema = 'public'
        AND table_name   = 'zone';
 
     IF actual IS NULL THEN
         RAISE EXCEPTION
-            'table zone does not exist in schema % — 0001 has not been applied here',
-            current_schema();
+            'table public.zone does not exist — 0001 has not been applied here, whatever else this database may hold under that name';
     END IF;
 
     SELECT array_agg(c ORDER BY c) INTO extra
@@ -108,7 +133,7 @@ BEGIN
     SELECT a.attgenerated, format_type(a.atttypid, a.atttypmod)
       INTO gen, typ
       FROM pg_attribute a
-     WHERE a.attrelid = 'zone'::regclass AND a.attname = 'geom';
+     WHERE a.attrelid = 'public.zone'::regclass AND a.attname = 'geom';
 
     IF gen IS DISTINCT FROM 's' THEN
         RAISE EXCEPTION
@@ -137,7 +162,8 @@ BEGIN
                FROM pg_constraint
               WHERE conname  = w
                 AND contype  = 'c'
-                AND conrelid IN ('zone'::regclass, 'sync_run'::regclass));
+                AND conrelid IN ('public.zone'::regclass,
+                                 'public.sync_run'::regclass));
 
     IF lost IS NOT NULL THEN
         RAISE EXCEPTION 'constraint(s) % are absent; 0001 is applied only in part.', lost;
@@ -155,7 +181,8 @@ BEGIN
       FROM pg_index i
       JOIN pg_class     c  ON c.oid  = i.indexrelid
       JOIN pg_am        am ON am.oid = c.relam
-     WHERE c.relname = 'zone_geom_gist';
+     WHERE c.relname      = 'zone_geom_gist'
+       AND c.relnamespace = 'public'::regnamespace;
 
     IF valid IS NULL THEN
         RAISE EXCEPTION
@@ -178,7 +205,9 @@ DECLARE
     persistence char;
 BEGIN
     SELECT relpersistence INTO persistence
-      FROM pg_class WHERE relname = 'zone_incoming';
+      FROM pg_class
+     WHERE relname      = 'zone_incoming'
+       AND relnamespace = 'public'::regnamespace;
 
     IF persistence IS NULL THEN
         RAISE EXCEPTION 'the staging table zone_incoming does not exist; the sync has nowhere to stage and nothing to assert against before it merges.';
@@ -212,7 +241,7 @@ BEGIN
     FOREACH v IN ARRAY ARRAY['running', 'ok', 'http_error', 'assertion_failed', 'aborted']
     LOOP
         BEGIN
-            INSERT INTO sync_run (started_at, outcome) VALUES (now(), v);
+            INSERT INTO public.sync_run (started_at, outcome) VALUES (now(), v);
             RAISE EXCEPTION USING ERRCODE = 'ZZ001', MESSAGE = 'probe_rollback';
         EXCEPTION
             WHEN sqlstate 'ZZ001' THEN
@@ -229,7 +258,8 @@ $$;
 DO $$
 BEGIN
     BEGIN
-        INSERT INTO sync_run (started_at, outcome) VALUES (now(), 'not_a_known_outcome');
+        INSERT INTO public.sync_run (started_at, outcome)
+        VALUES (now(), 'not_a_known_outcome');
         RAISE EXCEPTION USING ERRCODE = 'ZZ002', MESSAGE = 'vocabulary_not_enforced';
     EXCEPTION
         WHEN check_violation THEN
@@ -254,14 +284,22 @@ $$;
 -- generation expression off the real table rather than a copy of it written
 -- here. That is the whole point: what is under test is the DDL that shipped.
 -- Nothing is written to `zone`, and the two fixture ids exist in live data.
+--
+-- WHAT PART C PROVES, AND ONLY THAT. It proves the DDL. The clone carries
+-- `public.zone`'s own generation expression, the fixture hands that expression
+-- a latitude and a longitude under their own column names, and the three
+-- assertions measure what came back out. It proves nothing about any row the
+-- sync wrote — the clone starts empty and the only two rows in it were written
+-- here, by hand, this file choosing which value went to which column. Stored
+-- rows are part D, and the gap that both parts leave open is stated there.
 
-CREATE TEMP TABLE zone_guard (LIKE zone INCLUDING GENERATED INCLUDING CONSTRAINTS);
+CREATE TEMP TABLE zone_guard (LIKE public.zone INCLUDING GENERATED INCLUDING CONSTRAINTS);
 
 -- Only the coordinates are the fixture. Every other value here is filler
 -- chosen to satisfy NOT NULL and to look like nothing.
-INSERT INTO zone_guard (id, name, latitude, longitude, date_created,
-                        total_takeovers, takeover_points, points_per_hour,
-                        region_id, region_name, first_seen_at, last_changed_at)
+INSERT INTO pg_temp.zone_guard (id, name, latitude, longitude, date_created,
+                                total_takeovers, takeover_points, points_per_hour,
+                                region_id, region_name, first_seen_at, last_changed_at)
 VALUES
     (8240,   'VonScheeles', 59.346932, 18.021527,
      '2000-01-01T00:00:00Z', 0, 0, 0, 0, 'fixture', now(), now()),
@@ -281,7 +319,7 @@ DECLARE
     tolerance constant double precision := 0.001;
 BEGIN
     SELECT ST_Distance(a.geom, b.geom) INTO measured
-      FROM zone_guard a, zone_guard b
+      FROM pg_temp.zone_guard a, pg_temp.zone_guard b
      WHERE a.id = 8240 AND b.id = 119704;
 
     IF measured IS NULL THEN
@@ -307,8 +345,8 @@ DECLARE
     bad_y int;
     bad_x int;
 BEGIN
-    SELECT count(*) INTO bad_y FROM zone_guard WHERE ST_Y(geom::geometry) <> latitude;
-    SELECT count(*) INTO bad_x FROM zone_guard WHERE ST_X(geom::geometry) <> longitude;
+    SELECT count(*) INTO bad_y FROM pg_temp.zone_guard WHERE ST_Y(geom::geometry) <> latitude;
+    SELECT count(*) INTO bad_x FROM pg_temp.zone_guard WHERE ST_X(geom::geometry) <> longitude;
 
     IF bad_y > 0 THEN
         RAISE EXCEPTION
@@ -363,20 +401,37 @@ BEGIN
 END
 $$;
 
-DROP TABLE zone_guard;
+DROP TABLE pg_temp.zone_guard;
 
 -- === Part D — the axis order over every row actually stored ==================
 --
 -- Part C proves the DDL. This proves the table. On an empty migrated copy it
 -- passes trivially and says so; on a loaded copy it is the assertion that
 -- notices a row whose point does not match the scalars it was derived from.
+--
+-- WHAT IT CANNOT NOTICE, stated so the gap is chosen rather than assumed
+-- closed. A stored point that disagrees with its own scalars is a crossed
+-- generation EXPRESSION, and that is the whole of what this comparison
+-- detects. It is worth having for exactly that reason: neither this part nor
+-- 0001's divergence check ever reads the expression text, so behaviour is the
+-- only evidence either of them holds about what builds the point.
+--
+-- A crossed WRITE PATH is invisible to it, and this is the direction that
+-- matters most. If the longitude value is bound to the `latitude` column,
+-- `geom` is generated FROM that column and moves with it: `ST_Y(geom) =
+-- latitude` holds exactly as it held before, over a zone now in another
+-- country. In that direction this part is tautological, and neither pinning
+-- this file's `search_path` nor qualifying its relations narrows it by
+-- anything at all. The binding is decided in Go, before a statement reaches a
+-- server, and it is pinned there — by `TestEveryColumnIsLoadedFromItsOwnField`
+-- in `service/internal/syncstore/columns_test.go`.
 
 DO $$
 DECLARE
     rows_total bigint;
     bad        bigint;
 BEGIN
-    SELECT count(*) INTO rows_total FROM zone;
+    SELECT count(*) INTO rows_total FROM public.zone;
 
     IF rows_total = 0 THEN
         RAISE NOTICE 'part D: zone is empty, so nothing was checked. This is not a pass.';
@@ -384,7 +439,7 @@ BEGIN
     END IF;
 
     SELECT count(*) INTO bad
-      FROM zone
+      FROM public.zone
      WHERE ST_Y(geom::geometry) <> latitude
         OR ST_X(geom::geometry) <> longitude;
 
@@ -421,7 +476,7 @@ DECLARE
     plan_q1 json;
     plan_q2 json;
 BEGIN
-    SELECT count(*) INTO loaded FROM zone;
+    SELECT count(*) INTO loaded FROM public.zone;
 
     IF loaded < 1000 THEN
         RAISE NOTICE 'part E: zone holds % row(s), too few for the planner to be answering the real question. Index use is UNPROVEN. This is not a pass.', loaded;
@@ -432,7 +487,7 @@ BEGIN
         EXPLAIN (FORMAT JSON)
         SELECT id, name, latitude, longitude, date_created, total_takeovers,
                takeover_points, points_per_hour, type_id
-        FROM   zone
+        FROM   public.zone
         WHERE  ST_DWithin(geom,
                           ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
                           1000)
@@ -448,7 +503,7 @@ BEGIN
         EXPLAIN (FORMAT JSON)
         WITH candidate AS (
             SELECT id, geom
-            FROM   zone
+            FROM   public.zone
             WHERE  ST_DWithin(geom,
                               ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
                               1000)
@@ -458,7 +513,7 @@ BEGIN
         FROM   candidate c
         CROSS  JOIN LATERAL (
                  SELECT z.id, z.total_takeovers, z.date_created
-                 FROM   zone z
+                 FROM   public.zone z
                  WHERE  ST_DWithin(z.geom, c.geom, 25000)
                    AND  z.id <> c.id
                  ORDER  BY z.geom <-> c.geom
@@ -491,7 +546,7 @@ $do$;
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT id, name, latitude, longitude, date_created, total_takeovers,
        takeover_points, points_per_hour, type_id
-FROM   zone
+FROM   public.zone
 WHERE  ST_DWithin(geom,
                   ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
                   1000);
@@ -499,7 +554,7 @@ WHERE  ST_DWithin(geom,
 EXPLAIN (ANALYZE, BUFFERS)
 WITH candidate AS (
     SELECT id, geom
-    FROM   zone
+    FROM   public.zone
     WHERE  ST_DWithin(geom,
                       ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
                       1000)
@@ -509,7 +564,7 @@ SELECT c.id, n.id AS neighbour_id, n.total_takeovers, n.date_created
 FROM   candidate c
 CROSS  JOIN LATERAL (
          SELECT z.id, z.total_takeovers, z.date_created
-         FROM   zone z
+         FROM   public.zone z
          WHERE  ST_DWithin(z.geom, c.geom, 25000)
            AND  z.id <> c.id
          ORDER  BY z.geom <-> c.geom

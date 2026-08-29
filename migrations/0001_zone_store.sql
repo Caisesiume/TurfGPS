@@ -666,6 +666,24 @@ $$;
 -- load-bearing one: a `geom` that is an ordinary column rather than GENERATED
 -- is NULL on every row, because the write path never supplies a point — that
 -- being the whole reason the column is generated.
+--
+-- ONE THING THIS CHECK DOES NOT READ, stated so the gap is chosen rather than
+-- assumed closed: the generation EXPRESSION. `attgenerated` records that the
+-- column is computed, not what computes it, so an expression handing
+-- ST_MakePoint its two arguments the other way round satisfies every assertion
+-- below — the limit decision 6 states for CHECK constraints, on the one column
+-- where it costs most. What would catch it is measurement, not catalogue text:
+-- part C of `0001_zone_store.verify.sql` inserts a pair of known coordinates by
+-- name into a clone taken INCLUDING GENERATED and asserts the distance between
+-- them. That file has never been run.
+--
+-- AND IT DOES NOT CLOSE THE OTHER AXIS QUESTION, which nothing in SQL can. If
+-- the WRITE PATH crosses the pair — the longitude value bound to the `latitude`
+-- column — `geom` is generated from those columns and goes on agreeing with
+-- them exactly as it did before, while the zone sits in another country. That
+-- binding is decided in Go before a statement is sent, and it is pinned by
+-- `TestEveryColumnIsLoadedFromItsOwnField` in
+-- `service/internal/syncstore/columns_test.go`.
 DO $$
 DECLARE
     geom_type   regtype;
