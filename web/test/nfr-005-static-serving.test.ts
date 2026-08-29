@@ -59,8 +59,26 @@
 //   a jsdom window whose URL is that origin, because jsdom does not execute
 //   `<script type="module">`. Today's build is one self-contained chunk with
 //   no `import`, no `export` and no `import.meta`, so classic-script and
-//   module evaluation coincide; if chunking ever changes, the evaluation
-//   throws loudly rather than passing quietly.
+//   module evaluation coincide.
+//
+//   That coincidence is a premise, and the evaluation is a poor guard on it. A
+//   static `import`, an `export` and an `import.meta` each throw `SyntaxError`
+//   under a classic-script evaluation. `import('./chunk.js')` does not — it is
+//   valid classic-script syntax and parses without throwing, and it is
+//   precisely what code splitting emits.
+//
+//   Measured here on 30 August 2026, vite 8.2.2: a build carrying a dynamic
+//   import also carries an `import.meta`, both from a `React.lazy` split and
+//   from a hand-written `import()` of an external URL, with `modulePreload`
+//   on or off. So the evaluation does currently throw on a split — but on the
+//   `import.meta` beside it rather than on the split, which is a coupling in
+//   what Vite chooses to emit and not a property of the form. And what it
+//   throws is a `beforeAll` failure, which reports one suite error and skips
+//   all of the assertions below rather than naming the premise that broke.
+//
+//   Neither half of the premise is therefore left to the evaluation. Both are
+//   asserted, by the two tests named for them below, which fail on the thing
+//   that changed and go on running the rest of the file.
 //
 //   "a call to the service" — the upstream is a stub answering the one route
 //   the service serves today. This item's scope excludes `service/`, and the
@@ -122,7 +140,10 @@ const served: Served[] = []
 const requestedByClient: string[] = []
 const receivedByService: string[] = []
 const subresources: string[] = []
+const evaluatedSources: string[] = []
 let rootText = ''
+let headingText = ''
+let paragraphTexts: string[] = []
 let servers: { close: () => void }[] = []
 let window: { close: () => void } | null = null
 
@@ -232,16 +253,15 @@ beforeAll(async () => {
   const references = [...parsed.window.document.querySelectorAll('script[src], link[href]')].map(
     (element) => element.getAttribute('src') ?? element.getAttribute('href') ?? '',
   )
-  const sources: string[] = []
   for (const reference of references) {
     const asset = await fetch(new URL(reference, base))
     subresources.push(reference)
-    if (asset.ok && reference.endsWith('.js')) sources.push(await asset.text())
+    if (asset.ok && reference.endsWith('.js')) evaluatedSources.push(await asset.text())
     else await asset.arrayBuffer()
   }
   parsed.window.close()
 
-  if (html === '' || sources.length === 0) return
+  if (html === '' || evaluatedSources.length === 0) return
 
   // Execute the built bundle against a document whose URL is that origin.
   // fetch, AbortController and AbortSignal are injected as one set because a
@@ -259,7 +279,7 @@ beforeAll(async () => {
       return fetch(new URL(String(input), dom.window.location.href), init as RequestInit)
     },
   })
-  for (const source of sources) dom.window.eval(source)
+  for (const source of evaluatedSources) dom.window.eval(source)
 
   const read = () => dom.window.document.getElementById('root')?.textContent ?? ''
   const deadline = Date.now() + 5_000
@@ -267,6 +287,15 @@ beforeAll(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
   rootText = read()
+
+  // Elements, not the root's flattened text. Everything the upstream sends
+  // arrives as escaped text inside a paragraph React rendered, so a heading or
+  // a paragraph *equal to* a value below can only have been produced by the
+  // client's own component tree — which is what gives AC2's mount assertion a
+  // failure mode independent of the answer that reached it.
+  const root = dom.window.document.getElementById('root')
+  headingText = root?.querySelector('h1')?.textContent ?? ''
+  paragraphTexts = [...(root?.querySelectorAll('p') ?? [])].map((p) => p.textContent ?? '')
 }, 120_000)
 
 afterAll(() => {
@@ -295,8 +324,49 @@ test('AC1 — the build output carries no server-shaped artefact', () => {
   expect(builtFiles).toContain('index.html')
 })
 
+test('AC1 — the build output is the one script index.html declares, and no other', () => {
+  // Subresource discovery reads `index.html` only, so AC1's exact list ranges
+  // over what the document declares rather than over what the origin would
+  // serve. A second `.js` in the output is therefore invisible to every other
+  // assertion in this file: not in `subresources`, not in the exact list, and
+  // not in `SERVER_SHAPED`, which names server shapes and would not name an
+  // ordinary chunk. It would be a file the deploy serves that this harness had
+  // neither fetched nor run — which is AC1's "every byte" going false by
+  // omission, in silence. Pinning the count is what breaks that silence.
+  expect(builtFiles.filter((file) => file.endsWith('.js'))).toHaveLength(1)
+  expect(evaluatedSources).toHaveLength(1)
+})
+
+test('AC2 — nothing evaluated carries a dynamic import, which the evaluation would not catch', () => {
+  // Separate from the count above deliberately: one `expect` failing skips the
+  // rest of its test, and these two premises fail for different reasons and
+  // want to be readable independently.
+  //
+  // This is the form the header's "LOADS" paragraph records as unguarded —
+  // `import(...)` parses under a classic-script evaluation where the static
+  // forms throw. Today it arrives with an `import.meta` that does throw, but on
+  // a coupling in Vite's output that nothing here controls, so it is asserted.
+  // The match is deliberately truncated: a whole minified bundle in a failure
+  // message is unreadable, and the call site is what identifies the split.
+  expect(evaluatedSources.flatMap((source) => source.match(/\bimport\s*\([^)]{0,60}/g) ?? [])).toEqual([])
+})
+
 test('AC2 — the built client loads and mounts from that arrangement', () => {
-  expect(rootText).toContain('TurfGPS')
+  // Neither needle can be supplied by anything the client did not render
+  // itself, and that is the whole requirement on them. A substring search for
+  // `TurfGPS` over the root's text had no independent failure mode: it is
+  // inside `SERVICE_ANSWER`, which `beforeAll` blocks until it sees, and it is
+  // inside the served `index.html`'s own `<title>` — so deleting the `<h1>`
+  // from `App.tsx` left this green, and so would a build whose base URL
+  // resolved to `/` and rendered the client's own markup back as the greeting.
+  //
+  // The heading is an element the upstream's answer cannot become: that answer
+  // is escaped into a paragraph. The `/api` paragraph is the base the client
+  // actually used, rendered from the same constant the call was built from —
+  // a build that resolved it to `''`, to `/`, or to an absolute address baked
+  // in at build time renders that instead, and fails here.
+  expect(headingText).toBe('TurfGPS')
+  expect(paragraphTexts).toContain('/api')
 })
 
 test('AC2 — and completes its first call to the service over HTTP, same-origin', () => {
