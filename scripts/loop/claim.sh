@@ -76,9 +76,18 @@ ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 TABLE="${CLAIM_TABLE_DIR:-$ROOT/.claude/state/review-claims}"
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
 [ -n "$NOW" ] || NOW="unknown-time"
-# A second stamp, for the one place a timestamp becomes a FILENAME. NTFS rejects
-# `:`, so the ISO form above cannot name a directory on this machine — `mv` would
-# fail and the release would report degraded on a table that was perfectly fine.
+# A second stamp, for the one place a timestamp becomes a FILENAME. The ISO form
+# above carries `:`, which Win32 reads as the alternate-data-stream separator and
+# will not accept in a name. What that costs is NOT an `mv` that fails: measured
+# on 2026-08-29 on this host, `mv` SUCCEEDS and this shell reads the row back —
+# Cygwin stores the colon as U+F03A, a private-use codepoint, so the name that
+# lands on disk is not the name that was asked for. PowerShell renders that
+# directory `12?32?59Z`; a native open of the real `…12:32:59Z…` path raises
+# ItemNotFoundException, and a native mkdir of it raises NotSupportedException.
+# So the guard stays, for the reason it was always right: an audit row
+# addressable only from the shell that wrote it is not an audit row. The
+# mechanism is spelled out because this comment previously blamed a failing
+# `mv`, and a false mechanism in a comment is how a live guard gets deleted.
 STAMP="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null)"
 [ -n "$STAMP" ] || STAMP="unknown"
 
