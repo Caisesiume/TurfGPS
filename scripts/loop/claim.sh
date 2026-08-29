@@ -52,14 +52,18 @@
 # STATE
 #   .claude/state/review-claims/ — inside the `/.claude/state/` entry .gitignore
 #   already carries, the established home for durable local control-plane state,
-#   alongside fingerprint.sh's per-consumer files. CLAIM_TABLE_DIR overrides the
+#   alongside fingerprint.sh's per-consumer files. It is MACHINE-local and not
+#   checkout-local: every worktree of one repository resolves the same table, by
+#   the derivation argued at `table_root` below. CLAIM_TABLE_DIR overrides the
 #   location, which is how a test runs against a throwaway root rather than
-#   against the machine's real table.
+#   against the machine's real table. Every verb echoes the table it resolved.
 #
 #     <table>/PAUSED                                 flag: no new claims while it exists
+#     <table>/pr-<n>/<sha>/.manifest.d/row           the selected lane set, written once
 #     <table>/pr-<n>/<sha>/<lane>/holder/row         the claim
 #     <table>/pr-<n>/<sha>/<lane>/verdict.d/row      the verdict, written once, immutable
 #     <table>/pr-<n>/<sha>/<lane>/released-<stamp>/row   a claim given back, kept as audit
+#     <table>/pr-<n>/<sha>/<lane>/released-verdict-<stamp>/row  an interrupted ruling, cleared
 #
 #   This script never reads GH_JUDGE_TOKEN, never invokes gh, and never records
 #   the environment. Free-text fields are additionally scrubbed of token-shaped
@@ -72,8 +76,53 @@ set -u
 LC_ALL=C
 export LC_ALL
 
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# THE TABLE IS MACHINE-LOCAL, NOT CHECKOUT-LOCAL
+#   A mutual-exclusion table two checkouts of one repository cannot both see is
+#   not a mutual-exclusion table. `--show-toplevel` answers with the caller's
+#   own worktree and a linked worktree is its own toplevel, so a judge in the
+#   main checkout and a reviewer dispatched into `../TurfGPS-wt/<slug>` built
+#   two panels for one PR at one SHA that could not see each other: the judge
+#   granted, the reviewer recorded `unclaimed` into the other table at exit 12,
+#   and the judge's panel read outstanding at 10 forever. That is CLAIM-01's
+#   exact shape reopened through the PATH instead of the key, and #144's failure
+#   classes 1 and 2 with it.
+#
+#   `--git-common-dir` is the one thing git answers identically from every
+#   worktree of a repository. Measured on 2026-08-29 on this host from four
+#   cwds — main toplevel, a main subdir, the linked worktree, a linked-worktree
+#   subdir — it returned `.git`, `../../.git`, and twice an absolute path: four
+#   spellings of ONE directory. It is therefore resolved to absolute here rather
+#   than used as given, because two of those four are relative to the caller's
+#   cwd, which is the very thing being eliminated.
+#
+#   The table sits BESIDE that directory rather than inside it, which puts it at
+#   the same path the old line produced from the main checkout — so no existing
+#   table moves and nothing is migrated; only the worktrees that used to diverge
+#   now agree. Where a repository keeps its git directory elsewhere the location
+#   moves with it and all of its worktrees still agree, which is the property
+#   being bought.
+#
+#   fingerprint.sh next door keeps `--show-toplevel` and is right to: its state
+#   is a fact ABOUT one tree, so tree-local is its correct scope. A claim table
+#   is not a fact about a tree. Same directory, different question — which is
+#   why this file resolves its own root instead of copying the neighbour's line.
+table_root() {
+  _gcd="$(git rev-parse --git-common-dir 2>/dev/null)" || return 1
+  [ -n "$_gcd" ] || return 1
+  _gcd="$(cd "$_gcd" 2>/dev/null && pwd)" || return 1
+  [ -n "$_gcd" ] || return 1
+  _par="${_gcd%/*}"
+  [ -n "$_par" ] || _par="/"
+  printf '%s' "$_par"
+}
+ROOT="$(table_root || pwd)"
 TABLE="${CLAIM_TABLE_DIR:-$ROOT/.claude/state/review-claims}"
+
+# Every verb opens by naming the table it acted on. A split table is the failure
+# the resolution above exists to prevent, and the cheapest moment to see one is
+# the FIRST LINE of the FIRST reply — not at synthesis, where two panels are
+# already built and the only evidence of the split is that neither is complete.
+say_table() { printf 'table: %s\n' "$TABLE"; }
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
 [ -n "$NOW" ] || NOW="unknown-time"
 # A second stamp, for the one place a timestamp becomes a FILENAME. The ISO form
@@ -259,6 +308,7 @@ cmd_claim() {
     esac
   done
   [ -n "$owner" ] || owner="unnamed"
+  say_table
 
   ensure_writable || {
     printf 'claim: refused\nreason: degraded — table not writable at %s\n' "$TABLE"
@@ -364,6 +414,7 @@ cmd_verdict() {
       *) usage_die 'verdict <pr> <sha> <lane> <verdict> [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]' ;;
     esac
   done
+  say_table
 
   ensure_writable || {
     printf 'verdict: NOT RECORDED\nreason: degraded — table not writable at %s\n' "$TABLE"
@@ -450,6 +501,7 @@ cmd_release() {
     esac
   done
   [ -n "$reason" ] || usage_die 'release <pr> <sha> <lane> --reason <text> — a reason is required'
+  say_table
 
   ensure_writable || { printf 'release: refused\nreason: degraded — table not writable\n'; exit 2; }
   row="$TABLE/pr-$PR/$SHA/$LANE"
@@ -508,6 +560,7 @@ cmd_status() {
     ONE="$(norm_lane "$3")" || usage_die 'status <pr> <sha> [lane] — <lane> must be [a-z0-9._-]'
   fi
 
+  say_table
   ensure_readable || { printf 'panel: pr-%s @ %s\nstatus: degraded — table unreadable\n' "$PR" "$SHA"; exit 2; }
   panel="$TABLE/pr-$PR/$SHA"
 
@@ -565,9 +618,9 @@ cmd_list() {
   if [ $# -ge 1 ]; then
     PR="$(norm_pr "$1")" || usage_die 'list [pr]'
   fi
+  say_table
   ensure_readable || { printf 'list: degraded — table unreadable at %s\n' "$TABLE"; exit 2; }
   if is_paused; then printf 'paused: true\n'; else printf 'paused: false\n'; fi
-  printf 'table: %s\n' "$TABLE"
 
   found=0
   for p in "$TABLE"/pr-*/; do
@@ -604,6 +657,7 @@ cmd_pause() {
       *)        usage_die 'pause [--reason <text>]' ;;
     esac
   done
+  say_table
   ensure_writable || { printf 'pause: failed\nreason: degraded — table not writable\n'; exit 2; }
   if is_paused; then
     printf 'paused: true\nnote: already paused; the first pause stands\n'
@@ -621,6 +675,7 @@ cmd_pause() {
 
 cmd_resume() {
   [ $# -eq 0 ] || usage_die 'resume'
+  say_table
   ensure_writable || { printf 'resume: failed\nreason: degraded — table not writable\n'; exit 2; }
   if ! is_paused; then printf 'paused: false\nnote: was not paused\n'; exit 0; fi
   rm -f "$TABLE/PAUSED" 2>/dev/null
@@ -634,6 +689,7 @@ cmd_resume() {
 
 cmd_paused() {
   [ $# -eq 0 ] || usage_die 'paused'
+  say_table
   ensure_readable || { printf 'paused: unknown\nreason: degraded — table unreadable\n'; exit 2; }
   if is_paused; then
     printf 'paused: true\n'
