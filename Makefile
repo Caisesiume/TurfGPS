@@ -141,10 +141,18 @@ web-build:
 # The backend's `0` is golangci-lint's exit status, which it earns by exiting
 # nonzero on any issue at all. eslint does not, and the difference is not
 # theoretical here: `web/eslint.config.js` sets its own rules to error, but the
-# shared configs it extends bring warn-level rules with them, so this tree can
-# report issues on a run that exits 0. Measured 28 August 2026, eslint 10.9.1,
-# one warning and no errors — exit 0 bare, exit 1 under --max-warnings 0, the
-# same run and the same output either way.
+# shared configs it extends bring warn-level rules with them, so a warning here
+# is reported on a run that still exits 0. Measured 30 August 2026, eslint
+# 10.9.1: 8 files linted, 0 errors and 0 warnings, exit 0 both bare and under
+# --max-warnings 0, with 3 warn-level rules live in the effective config for
+# src/App.tsx and none of them firing. So the flag changes no exit status on
+# this tree today, which is exactly when it has to already be in the recipe:
+# the first warning is not the moment anyone remembers to add it.
+#
+# This comment recorded one warning and exit 1 under the flag until 30 August
+# 2026. That figure did not survive re-measurement; it is corrected rather than
+# dropped, because the field above is a count and a count is worth only the run
+# that is on record for it.
 #
 # So a bare `npm run lint` is both a wrong field and a wrong gate. `local-gates`
 # puts this gate's threshold at zero ISSUES rather than zero errors, and the
