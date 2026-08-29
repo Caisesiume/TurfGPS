@@ -48,9 +48,12 @@ const (
 // owedBullet matches a top-level bullet of that section and captures the bold
 // span it opens with, which is how the section names each constant.
 //
-// Its anchor is a column-0 anchor ONLY because it is matched against the raw
-// line. Run against a trimmed one it accepts a bullet at any depth, which is a
-// materially weaker claim — see documentedOwedNames below for what that costs.
+// It is matched two ways and the difference carries the whole distinction.
+// Against the RAW line its anchor is a column-0 anchor and a match is a
+// constant. Against the TRIMMED line it recognises the same shape at any depth
+// and names nothing — it serves only to tell an indented bullet shaped like a
+// constant from an ordinary note. documentedOwedNames below is where that
+// distinction is drawn and argued.
 var owedBullet = regexp.MustCompile(`^[*-]\s+\*\*(.+?)\*\*`)
 
 // deploymentTableRow matches one row of the deployment table, capturing the
@@ -144,6 +147,56 @@ func registryRow(envVar, documentedName string) string {
 	return "| `" + envVar + "` | " + documentedName + " |"
 }
 
+// sectionLines returns the lines of path that follow heading, up to the next
+// heading at column 0 or the end of the file, and reports whether the heading
+// was found at all.
+//
+// It is the mechanical half of what both readers below do and deliberately only
+// that half: a path and a heading in, the section's lines and found-or-not out.
+// Every message about what went unmeasured stays at its call site, because what
+// a missing section costs differs between them — one reader loses the
+// registry's binding to the specification, the other loses an operator's
+// variable names — and one message covering both would tell neither reader what
+// it lost.
+//
+// WHERE A SECTION ENDS IS DECIDED ONCE, HERE, AND AT COLUMN 0. The two readers
+// disagreed on exactly this: one tested the raw line and the other the trimmed
+// one, four lines under a comment declaring the raw line the rule. The trimmed
+// test is the weaker of the two and fails in the direction that costs
+// something — an indented line opening with a # sits inside some nested block
+// and ends no section, and cutting the section there drops every constant
+// recorded after it, silently.
+func sectionLines(path, heading string) ([]string, bool, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false, err
+	}
+
+	lines := strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n")
+
+	start := -1
+
+	for i, line := range lines {
+		if strings.TrimSpace(line) == heading {
+			start = i + 1
+
+			break
+		}
+	}
+
+	if start == -1 {
+		return nil, false, nil
+	}
+
+	for i, line := range lines[start:] {
+		if strings.HasPrefix(line, "#") {
+			return lines[start : start+i], true, nil
+		}
+	}
+
+	return lines[start:], true, nil
+}
+
 // deploymentTableRows returns that table's rows, rendered through registryRow.
 //
 // Every unreadable state below is a failure and not a skip, for the reason
@@ -152,40 +205,24 @@ func registryRow(envVar, documentedName string) string {
 func deploymentTableRows(t *testing.T) []string {
 	t.Helper()
 
-	raw, err := os.ReadFile(deploymentPath)
+	lines, found, err := sectionLines(deploymentPath, deploymentSectionHeading)
 	if err != nil {
 		t.Fatalf("cannot read %s: %v\nNothing compared the registry in owed.go against the table an operator is given, so this run is evidence of neither agreement nor disagreement. If the path is wrong, `Architecture.md § D8` is the layout it is derived from.",
 			deploymentPath, err)
 	}
 
-	lines := strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n")
-
-	start := -1
-
-	for i, line := range lines {
-		if strings.TrimSpace(line) == deploymentSectionHeading {
-			start = i + 1
-
-			break
-		}
-	}
-
-	if start == -1 {
+	if !found {
 		t.Fatalf("%s carries no heading %q.\nThe section holding the variable table has been renamed, re-split or removed, and nothing in this module moved with it. Nothing was compared. Repair the citation here and in owed.go against whatever that section is now called.",
 			deploymentPath, deploymentSectionHeading)
 	}
 
 	header := -1
 
-	for i, line := range lines[start:] {
-		if strings.HasPrefix(line, "#") {
-			break
-		}
-
+	for i, line := range lines {
 		// Column 0, for the reason owedBullet gives: a row of some nested block
 		// is not this table.
 		if strings.HasPrefix(line, deploymentTableHeader) {
-			header = start + i
+			header = i
 
 			break
 		}
@@ -232,44 +269,53 @@ func deploymentTableRows(t *testing.T) []string {
 func documentedOwedNames(t *testing.T) []string {
 	t.Helper()
 
-	raw, err := os.ReadFile(specPath)
+	lines, found, err := sectionLines(specPath, owedSectionHeading)
 	if err != nil {
 		t.Fatalf("cannot read %s: %v\nNothing compared the registry in owed.go against the section it is bound to, so this run is evidence of neither agreement nor disagreement. If the path is wrong, `Architecture.md § D8` is the layout it is derived from.",
 			specPath, err)
 	}
 
-	lines := strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n")
-
-	start := -1
-	for i, line := range lines {
-		if strings.TrimSpace(line) == owedSectionHeading {
-			start = i + 1
-
-			break
-		}
-	}
-
-	if start == -1 {
+	if !found {
 		t.Fatalf("%s carries no heading %q.\nThe section the registry in owed.go is bound to has been renamed, re-split or removed, and nothing in this module moved with it. Nothing was compared. Repair the citation here and in owed.go against whatever that section is now called, and check that FR-091's own citation still resolves.",
 			specPath, owedSectionHeading)
 	}
 
 	var names []string
 
-	for _, line := range lines[start:] {
-		if strings.HasPrefix(strings.TrimSpace(line), "#") {
-			break
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if !strings.HasPrefix(trimmed, "* ") && !strings.HasPrefix(trimmed, "- ") {
+			continue
 		}
 
-		// Column 0, and never the trimmed line. A sub-bullet under an entry —
-		// which is how that section would qualify one — is a note ABOUT a
-		// constant and not a second constant. Read at any indentation it enters
-		// the comparison as a name the registry does not hold, and the repair
-		// the resulting failure asks for is to register it, after which the
-		// service refuses to start over something no document owes. That is the
-		// exact state the second loop of the test above calls a defect,
-		// arriving here through the parser instead.
+		// THREE CASES, SEPARATED BY THE SECTION'S OWN CONVENTION: it names each
+		// owed constant in a bold span opening a bullet at column 0. A bullet at
+		// column 0 is read as a constant. A bullet below column 0 that opens the
+		// same way is REPORTED. A bullet below column 0 that does not is skipped.
+		//
+		// The middle case is the one this file got wrong in both directions
+		// before settling here. Dropping it silently is how a constant leaves the
+		// comparison altogether: the registry is then measured against a section
+		// it no longer covers, RequireOwed stays green on a deployment that
+		// configured nothing for it, and the check it feeds runs against nothing.
+		// That is the same hazard the match == nil branch below reports rather
+		// than skips, and it is reported here for the same reason. Reading a NAME
+		// from it instead is the opposite error and just as costly: the failure
+		// that surfaces then asks for the bullet to be registered, and a note
+		// registered as a constant makes the service refuse to start over
+		// something no document owes.
+		//
+		// The shape is not hypothetical. That section records that the gradient
+		// threshold may need to be per elevation provider, and per-provider
+		// sub-bullets are the natural way to author that — read the entry under
+		// `CalculationSpecification.md § Enforcement constants that do not yet exist`.
 		if !strings.HasPrefix(line, "* ") && !strings.HasPrefix(line, "- ") {
+			if owedBullet.MatchString(trimmed) {
+				t.Errorf("%s carries the indented bullet %q, which opens with a bold span exactly as that section names an owed constant, and this test reads constants at column 0 only — so it was left out of the comparison entirely and the registry in owed.go was measured against a section this test did not fully read. It is one of two things and nothing here can tell them apart: a constant, in which case it belongs at column 0 and in the registry, or a note qualifying the constant above it, in which case the bold span opening it is what makes it unreadable here. Do not register it on the strength of this failure alone — a note in the registry makes the service refuse to start over something no document owes.",
+					owedSectionHeading, line)
+			}
+
 			continue
 		}
 
