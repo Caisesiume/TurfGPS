@@ -9,7 +9,8 @@
 #   2. a declared blocker may BE a pull request — numbers share one sequence — and a
 #      MERGED one had no case, so it read UNKNOWN and blocked forever.
 # What must NOT change, and is asserted here too: a DECLARED blocker whose state
-# genuinely cannot be read still counts as blocking (`ADR-0003 § P6`, `ADR-0003 § A3`).
+# genuinely cannot be read still counts as blocking, every closed-but-not-completed
+# reason still blocks, and a legacy plain close still satisfies (`§ P6`, `§ A3`).
 #
 # Hermetic: stub `gh` on PATH, fixture files as the only input, no repo state, no
 # network. The stub returns what `gh --jq` would have returned, which is the same
@@ -37,6 +38,12 @@ cat > "$FIX/list" <<'FIXTURE'
 205 Blocked by: #999 — a declared blocker whose state cannot be read at all
 206 Blocked by: #37 — the limit arrives with it; #41 is where that limit is stored and is still open
 207 Blocked by: #7 · #41 — two declared blockers on this repo's own house separator
+208 Blocked by: #41 — the first of this story's two lines, an open issue
+208 Blocked by: #142 — the second line, an open pull request
+209 Blocked by: #45 — a blocker closed as not planned: work that never happened
+210 Blocked by: #46 — a blocker closed as a duplicate
+211 Blocked by: #47 — a blocker closed for a reason the verdict table does not enumerate
+212 Blocked by: #48 — a legacy plain close: CLOSED carrying no stateReason at all
 FIXTURE
 
 # `gh issue view <n> --json state,stateReason,url --jq '.url + " " + .state + …'`.
@@ -48,6 +55,12 @@ printf '%s/issues/41 OPEN \n'            "$R" > "$FIX/view.41"
 printf '%s/pull/67 MERGED \n'            "$R" > "$FIX/view.67"
 printf '%s/pull/142 OPEN \n'             "$R" > "$FIX/view.142"
 printf '%s/pull/143 CLOSED \n'           "$R" > "$FIX/view.143"
+# The four CLOSED issue verdicts. `REOPENED` is a real member of GitHub's stateReason
+# enum that the table does not enumerate, so it stands in for any member it never sees.
+printf '%s/issues/45 CLOSED NOT_PLANNED\n' "$R" > "$FIX/view.45"
+printf '%s/issues/46 CLOSED DUPLICATE\n'   "$R" > "$FIX/view.46"
+printf '%s/issues/47 CLOSED REOPENED\n'    "$R" > "$FIX/view.47"
+printf '%s/issues/48 CLOSED \n'            "$R" > "$FIX/view.48"
 # no view.999 — the reference cannot be read at all
 
 cat > "$TMP/bin/gh" <<'STUB'
@@ -73,11 +86,19 @@ check() { # check <label> <expected-rc> <expected-substring>
     fails=$((fails + 1))
   fi
 }
-absent() { # absent <label> <substring-that-must-not-appear>
-  if case "$OUT" in *"$2"*) false ;; *) true ;; esac; then
+absent() { # absent <label> <substring-that-must-not-appear> <positive-anchor>
+  # An absence is evidence only from a run that could have carried the thing absent.
+  # Inspecting $OUT alone, this passed on empty output and on rc 2 — an assertion that
+  # cannot fail, the anti-pattern #138 exists to close. So rc 0 is required, and with it
+  # an anchor: a substring THIS run must print, chosen to prove the declared-edge
+  # machinery answered for this very query rather than falling through to `none`.
+  if [ "$RC" = 0 ] \
+     && case "$OUT" in *"$3"*) true  ;; *) false ;; esac \
+     && case "$OUT" in *"$2"*) false ;; *) true  ;; esac; then
     printf 'PASS  %s\n' "$1"
   else
-    printf 'FAIL  %s — %s must not appear, got: %s\n' "$1" "$2" "$(printf '%s' "$OUT" | tr '\n' '|')"
+    printf 'FAIL  %s — expected rc 0 + %s without %s, got rc %s: %s\n' \
+      "$1" "$3" "$2" "$RC" "$(printf '%s' "$OUT" | tr '\n' '|')"
     fails=$((fails + 1))
   fi
 }
@@ -85,11 +106,11 @@ absent() { # absent <label> <substring-that-must-not-appear>
 # Defect 1 — only the declared list is an edge. #136 and #206 each declare #37 alone;
 # the prose behind the reason names a merged PR and an open issue, and neither gates.
 run 37;  check  "prose refs are not edges -> both stories free"  0 "eligible: #136, #206"
-run 41;  absent "an open issue named in prose is not an edge"      "#206"
+run 41;  absent "an open issue named in prose is not an edge"      "#206" "#202 (blockers: #41 open)"
 
 # Defect 2 — a declared blocker that is a merged pull request is satisfied, not UNKNOWN.
 run 67;  check  "declared blocker is a merged PR -> satisfied"   0 "eligible: #201"
-run 67;  absent "the PR named in #136's prose gained no dependent" "#136"
+run 67;  absent "the PR named in #136's prose gained no dependent" "#136" "eligible: #201"
 
 # The declared list itself is kept whole, both members of it.
 run 7;   check  "multi-blocker list: #7 done, #41 still blocks"  0 "#202 (blockers: #41 open)"
@@ -99,9 +120,34 @@ run 7;   check  "multi-blocker list: #7 done, #41 still blocks"  0 "#202 (blocke
 # #41 here and printed #207 as eligible with a declared blocker still open.
 run 7;   check  "an unenumerated separator loses no declared blocker" 0 "#207 (blockers: #41 open)"
 
+# A story's several `Blocked by:` lines are ONE declared list, joined in the order the
+# body gives them — 12 of 96 live stories carried more than one when #147 was judged.
+# #208 is the only fixture with two lines, so it is the only one that can separate an
+# accumulating join from a last-line-wins or a first-line-wins one. It is asked from BOTH
+# ends because the join and the membership scan are separate mechanisms: the first query
+# proves the list was assembled whole and in body order, the second that a member
+# contributed by the LATER line is still found when the scan reaches it — a scan reading
+# only the head of the joined list passes the first query and fails the second.
+run 41;  check  "two Blocked by lines join into one list"        0 "#208 (blockers: #41 open, #142 open)"
+run 142; check  "and the later line does not replace the earlier" 0 "#208 (blockers: #41 open, #142 open)"
+
 # The other two pull-request states block, and the closed one is named as not completed.
 run 142; check  "an open pull request blocks"                    0 "#203 (blockers: #142 open)"
 run 143; check  "a pull request closed unmerged blocks"          0 "#143(NOT_COMPLETED)"
+
+# The CLOSED verdict table (`ADR-0003 § A3`). Each branch is asserted in the direction a
+# wrong answer is SILENT in: closed-but-not-completed is work that never happened, and
+# reading it as satisfied promotes a story onto dead work and prints nothing anyone would
+# look at. The verdict NAME is asserted with the block, because the reason is what
+# @scrum-master files a `dependency_finding` on.
+run 45;  check  "closed NOT_PLANNED still blocks, by that name"  0 "#209 (blockers: #45 not_planned)"
+run 46;  check  "closed DUPLICATE still blocks, by that name"    0 "#210 (blockers: #46 duplicate)"
+run 47;  check  "an unenumerated closed reason blocks too"       0 "#211 (blockers: #47 not_completed)"
+# The other half of the discriminator #143 tests. `CLOSED` with no stateReason is the ONE
+# shape `state` cannot resolve — a closed-unmerged pull request and a legacy plain close
+# are identical in it — and only the url separates them. #143 must block; #48, the same
+# shape on an issue, must satisfy. Either assertion alone leaves the discriminator untested.
+run 48;  check  "a legacy plain-closed issue is satisfied"       0 "eligible: #212"
 
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
