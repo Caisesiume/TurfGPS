@@ -800,13 +800,13 @@ cmd_manifest() {
   # lane would be a set asserting coverage it does not have, which is the exact
   # defect this verb exists to close. The split here is deliberate word
   # splitting — the one place in this file that wants it.
-  set=""; n=0
+  sel=""; nsel=0
   for l in $lanes; do
     nl="$(norm_lane "$l")" || usage_die 'manifest … --lanes — each lane must be [a-z0-9._-]'
-    set="$set $nl"; n=$((n + 1))
+    sel="$sel $nl"; nsel=$((nsel + 1))
   done
-  [ "$n" -gt 0 ] || usage_die 'manifest … --lanes "<lane> …" — the set may not be empty'
-  set="${set# }"
+  [ "$nsel" -gt 0 ] || usage_die 'manifest … --lanes "<lane> …" — the set may not be empty'
+  sel="${sel# }"
 
   ensure_writable || {
     printf 'manifest: NOT RECORDED\nreason: degraded — table not writable\n'
@@ -824,8 +824,8 @@ cmd_manifest() {
     exit 2
   }
   { printf 'pr: %s\nsha: %s\n' "$PR" "$SHA"
-    printf 'lanes: %s\n' "$set"
-    printf 'count: %s\n' "$n"
+    printf 'lanes: %s\n' "$sel"
+    printf 'count: %s\n' "$nsel"
     printf 'selected_by: %s\n' "${by:--}"
     printf 'selected_at: %s\n' "$NOW"
   } > "$stage/row" 2>/dev/null || {
@@ -835,7 +835,7 @@ cmd_manifest() {
   }
 
   if commit_staged "$stage" "$panel/.manifest.d"; then
-    printf 'manifest: recorded\npanel: pr-%s @ %s\ncount: %s\nlanes: %s\n' "$PR" "$SHA" "$n" "$set"
+    printf 'manifest: recorded\npanel: pr-%s @ %s\ncount: %s\nlanes: %s\n' "$PR" "$SHA" "$nsel" "$sel"
     exit 0
   fi
   # Written once, like a verdict, and for the same reason: a selection that can
