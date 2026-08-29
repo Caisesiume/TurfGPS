@@ -95,8 +95,9 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 # does. Ambiguity resolves toward MORE edges — an over-read blocker holds a story
 # where someone can see it, an under-read one promotes it with nothing to look at.
 pairs="$(printf '%s\n' "$lines" | awk '
-  { n = $1; rest = substr($0, index($0, " ") + 1); list = ""
-    sub(/^ *[*]*Blocked by[^#]*/, "", rest)   # the label; [^#] stops at the first ref
+  { dependent = $1; rest = substr($0, index($0, " ") + 1); list = ""
+    sub(/(—|–|--).*$/, "", rest)             # the reason first: it declares nothing
+    sub(/^ *[*]*Blocked by[^#]*/, "", rest)  # then the label and any ornamentation
     while (match(rest, /^#[0-9]+/)) {
       list = (list == "" ? "" : list ",") substr(rest, 2, RLENGTH - 1)
       rest = substr(rest, RLENGTH + 1)
@@ -104,8 +105,8 @@ pairs="$(printf '%s\n' "$lines" | awk '
       rest = substr(rest, RLENGTH - 1)       # RLENGTH spans the glue plus `#<digit>`
     }
     if (list == "") next
-    if (!(n in edges)) order[++stories] = n
-    edges[n] = (n in edges) ? edges[n] "," list : list }
+    if (!(dependent in edges)) order[++stories] = dependent
+    edges[dependent] = (dependent in edges) ? edges[dependent] "," list : list }
   END { for (i = 1; i <= stories; i++) print order[i], edges[order[i]] }')"
 
 if [ -z "$pairs" ]; then

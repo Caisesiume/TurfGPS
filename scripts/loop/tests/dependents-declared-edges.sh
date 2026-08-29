@@ -44,6 +44,11 @@ cat > "$FIX/list" <<'FIXTURE'
 210 Blocked by: #46 — a blocker closed as a duplicate
 211 Blocked by: #47 — a blocker closed for a reason the verdict table does not enumerate
 212 Blocked by: #48 — a legacy plain close: CLOSED carrying no stateReason at all
+213 Blocked by: none — superseded by PR #67
+214 Blocked by: none — the limit moved into #41 and this no longer waits on it
+215 Blocked by issues #7 and #41
+216 Blocked by: PR #67
+217 Blocked by (see below): #7
 FIXTURE
 
 # `gh issue view <n> --json state,stateReason,url --jq '.url + " " + .state + …'`.
@@ -148,6 +153,23 @@ run 47;  check  "an unenumerated closed reason blocks too"       0 "#211 (blocke
 # are identical in it — and only the url separates them. #143 must block; #48, the same
 # shape on an issue, must satisfy. Either assertion alone leaves the discriminator untested.
 run 48;  check  "a legacy plain-closed issue is satisfied"       0 "eligible: #212"
+
+# Where the declared list BEGINS — the other end of the boundary above. The rule is
+# in `turfgps-board-ops § The dependency representation`; these only pin it.
+# (i) The label strip used to skip prose to the first `#`, so #213 and #214 each
+# invented an edge out of `none`: one satisfied, one that would have held its story
+# forever — the harm exactly, because a line reading `none` is never revised. Live
+# story #41 reads `Blocked by: none.` and is one word from the trigger.
+run 67;  absent "an empty declared list yields no edge"     "#213" "eligible: #201"
+run 41;  absent "and no phantom that would block for good"  "#214" "#208 (blockers: #41 open, #142 open)"
+
+# (ii) The bound that rejected the candidate strip `[^#0-9A-Za-z]*`: it buys (i) by
+# refusing every label ornament, reading all three of these to empty and so losing a
+# declared blocker in silence. #215 is asked from #7, which is satisfied — so it is
+# visible at all only if the WHOLE list was read, not merely its tail.
+run 7;   check  "a kind-qualified label keeps both members" 0 "#215 (blockers: #41 open)"
+run 67;  check  "a PR-qualified label declares its PR"      0 "eligible: #201, #216"
+run 7;   check  "a parenthetical aside is not a reason"     0 "eligible: #217"
 
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
