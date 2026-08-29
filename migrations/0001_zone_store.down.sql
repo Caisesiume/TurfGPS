@@ -38,10 +38,30 @@
 
 BEGIN;
 
-DROP INDEX IF EXISTS zone_geom_gist;
+-- --- The schema this rollback resolves in -----------------------------------
+--
+-- The forward migration's own line, byte for byte, for the reason decision 5 of
+-- `0001_zone_store.sql` gives at length. The reason applies harder here.
+--
+-- Left unpinned, `DROP TABLE IF EXISTS zone` resolves through whatever path the
+-- applying session happens to carry, and both ways it can go wrong are silent.
+-- Against a role owning a same-named schema ahead of `public`, it drops a table
+-- this migration never built. Where it finds nothing at all, `IF EXISTS`
+-- downgrades that to a notice and the transaction commits — reporting a
+-- rollback that removed nothing exactly as it reports one that removed
+-- everything. A DESTRUCTIVE file is the last place to accept an exit status
+-- that means either.
+--
+-- Every DROP below names `public`, which is where 0001 creates. `SET LOCAL` is
+-- scoped to this transaction, so the session's own path returns at COMMIT or
+-- ROLLBACK.
 
-DROP TABLE IF EXISTS sync_run;
-DROP TABLE IF EXISTS zone_incoming;
-DROP TABLE IF EXISTS zone;
+SET LOCAL search_path = pg_catalog, public, pg_temp;
+
+DROP INDEX IF EXISTS public.zone_geom_gist;
+
+DROP TABLE IF EXISTS public.sync_run;
+DROP TABLE IF EXISTS public.zone_incoming;
+DROP TABLE IF EXISTS public.zone;
 
 COMMIT;
