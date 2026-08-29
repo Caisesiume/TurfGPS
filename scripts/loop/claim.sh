@@ -91,13 +91,57 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null)"
 # are one directory on this machine and two on Linux; canonicalising makes the
 # row the same one everywhere, and in the safe direction — a lane must not
 # become claimable a second time by changing the case of its name.
+#
+# ONE COMMIT IS ONE EPOCH, HOWEVER ITS SHA IS SPELLED
+#   The epoch used to be the caller's string verbatim, and `ec9ee33` and
+#   `ec9ee330b2cfe0f9164eaa7f3dee22c23c4afdc3` are the two ordinary ways an agent
+#   obtains one head SHA — `git log --oneline` and `git rev-parse HEAD`. Both
+#   validate, so one commit built TWO panels that could not see each other: both
+#   judges granted, the verdict filed `unclaimed` against the spelling its
+#   claimant did not use, one panel outstanding at rc 10 forever while a second
+#   read complete at rc 0. That is #144's failure classes 1, 2 and 6 reopened
+#   through the mechanism that exists to close them.
+#
+#   The row key is therefore the first SEVEN characters of the folded SHA, and
+#   seven is not a taste: it is the shortest spelling this script accepts, so it
+#   is the only prefix every accepted spelling of one commit is guaranteed to
+#   share. A longer key cannot unify a 7-hex caller with a 40-hex one. The whole
+#   string is still validated as 7-40 hex first — the truncation is the KEY and
+#   never the check — and the key is echoed back, so a caller who passes 40 sees
+#   which panel it actually joined rather than the one it typed.
+#
+#   Resolving short to long through `git rev-parse` was the other candidate and
+#   is rejected on purpose: it would put a subprocess, a repository and a new
+#   failure mode into a script whose whole value is that it answers without one,
+#   and it would answer differently — or not at all — on the degraded path this
+#   file is built around. Scanning the panel for a prefix match was rejected for
+#   a harder reason: it is a read before the write, and the claim gate is one
+#   `mkdir` precisely so that no such window exists.
+#
+#   The trade, stated here rather than discovered later: two DIFFERENT commits
+#   sharing a seven-hex prefix under ONE pr number would share a panel. That is
+#   28 bits against the handful of head SHAs a single PR ever carries, and the
+#   alternative costs the git dependency above. If it ever bites, the answer is
+#   a longer key, not a lookup.
+#
+#   `pr-0144` and `pr-144` split a panel the same way and for the same reason,
+#   so the PR number sheds its leading zeros here too. One fix, both keys.
 # ---------------------------------------------------------------------------
 
 norm_pr() {
-  case "${1:-}" in
+  s="${1:-}"
+  case "$s" in
     ''|*[!0-9]*) return 1 ;;
   esac
-  printf '%s' "$1"
+  # `0144` and `144` are one PR. Shed leading zeros, never the last digit:
+  # `0` is a number and the empty string is not a path component.
+  while :; do
+    case "$s" in
+      0?*) s="${s#0}" ;;
+      *)   break ;;
+    esac
+  done
+  printf '%s' "$s"
 }
 
 norm_sha() {
@@ -107,6 +151,13 @@ norm_sha() {
   esac
   n=${#s}
   [ "$n" -ge 7 ] && [ "$n" -le 40 ] || return 1
+  # The epoch — the first seven characters, not the spelling the caller used.
+  # See ONE COMMIT IS ONE EPOCH above. The guard is not redundant with the bound
+  # on the line above it: it keeps the truncation honest if that bound ever
+  # moves, because a key that came out empty would put every panel in one row.
+  case "$s" in
+    ???????*) rest="${s#???????}"; s="${s%"$rest"}" ;;
+  esac
   printf '%s' "$s"
 }
 
@@ -612,6 +663,11 @@ is durable the instant it exists. No LLM, no network, no judgement.
   resume                      Lift the pause. 0.
   paused                      0 not paused · 11 paused · 2 degraded.
   help                        This.
+
+A <sha> is 7-40 hex and the panel key is its first SEVEN characters, so one
+commit is one panel however it is spelled — `ec9ee33` and `ec9ee330b2…` are the
+same row and not two. A <pr> sheds leading zeros for the same reason. Both are
+echoed back canonical, so the reply names the panel you actually joined.
 
 Exit codes: 0 OK · 10 REFUSED · 11 PAUSED · 12 NO_ROW · 2 DEGRADED · 64 USAGE.
 Every ambiguous state refuses. State lives under .claude/state/review-claims/;
