@@ -45,12 +45,17 @@ import (
 //     exactly as it did before, while every zone in the country sits somewhere
 //     else.
 //
-// The compiler cannot object either — the two fields are both float64, so the
-// crossing is a legal program. Eleven of the fourteen columns share a type with
-// at least one other, so the same silence covers the id/total_takeovers,
-// name/region_name, takeover_points/points_per_hour/region_id and
-// region_country/area_name groups; a crossed area name is merely wrong, but it
-// is wrong just as quietly.
+// The compiler cannot object either, and it cannot object for any of the
+// fourteen. Every accessor in zoneColumns is declared `func(zonesync.Zone) any`,
+// so every field erases to the same type at the one place a crossing would be
+// written, and the three columns whose Go types are unique to them are caught by
+// the compiler exactly as little as the coordinate pair is. What the shared
+// types decide is not which crossings compile but which ones a reader fails to
+// notice: eleven of the fourteen columns share a type with at least one other,
+// so a crossing inside the id/total_takeovers, name/region_name,
+// takeover_points/points_per_hour/region_id or region_country/area_name groups
+// reads as plausibly on the page as the crossed coordinate does. A crossed area
+// name is merely wrong, but it is wrong just as quietly.
 //
 // SO THE PINNED SET IS WRITTEN OUT A SECOND TIME, BY HAND, AND NOT DERIVED.
 // A test that read the column name and the accessor from the same slice would
@@ -106,9 +111,17 @@ func pinnedColumns() []pinnedColumn {
 // The coordinate is Göteborg's, and is a real pair on purpose: 11.97 is a valid
 // latitude and 57.7 a valid longitude, so a crossed pair is not out of range and
 // raises nothing anywhere. It lands the zone at 11.97°N 57.7°E — the Arabian
-// Sea, some 5,600 km away — which is the point: the crossing is undetectable by
+// Sea, 6,372 km away — which is the point: the crossing is undetectable by
 // range and glaring by position, and no constraint in the schema looks at
 // position.
+//
+// THAT FIGURE IS COMPUTED, AND THE METHOD IS STATED BECAUSE THIS SENTENCE HAS
+// TWICE CARRIED ONE THAT WAS NOT. 6,371.81 km, great-circle by the haversine
+// formula over the two pairs above with R = 6371.0088 km, rounded to the
+// kilometre. It is written with its method so that the next reader can redo it
+// in a line rather than believe it, which is the standard the marker at the top
+// of syncstore.go holds this package's prose to and which a bare round number
+// stated in the same settled voice cannot meet.
 func probeZone() zonesync.Zone {
 	return zonesync.Zone{
 		ID:             1001,
@@ -189,6 +202,32 @@ func TestEveryPinnedValueDiffersFromEveryOther(t *testing.T) {
 
 // TestEveryColumnIsLoadedFromItsOwnField is the assertion the file header
 // argues for: every entry, and not only the two the geometry is built from.
+//
+// NOTHING IN THIS REPOSITORY ASSERTS THAT THIS TEST EXISTS, and it is cited by
+// name from files that cannot see it. Delete this file, or rename this
+// function, and nothing fails to build and no test goes red — the citations go
+// on describing a guard that is not there, in the same settled voice the marker
+// at the top of syncstore.go was written to break. That is this package's own
+// failure mode aimed one level up: prose asserting a property, with nothing
+// underneath it that would go red when the property stopped holding.
+//
+// AT 3a99a15 THERE ARE EIGHT SUCH CITATIONS IN FOUR FILES outside this package
+// — docs/Architecture.md, migrations/0001_zone_store.sql (four),
+// migrations/0001_zone_store.verify.sql (two) and migrations/README.md — and
+// the count is stated with the commit it was counted at rather than as a
+// standing fact, because it has risen on every revision of this branch and rose
+// again in the commit named here.
+//
+// NO GATE CLOSES THIS, AND THE NEAREST CANDIDATE WAS CHECKED AND DOES NOT.
+// scripts/gates/d8-root-run-claims.sh performs no existence check of any kind —
+// it matches phrases, and its only resolution step locates a markdown heading
+// against a hard-coded table — and its corpus pathspec is `'*.md' 'Makefile'`
+// (:559), which reaches two of the eight citations and none of the six in .sql
+// files. Widening it is owed work that the script's own header (:449) exempts
+// from being treated as a one-word change, and it is tracked as FW-24 rather
+// than assumed done. Until something lands, the guard on this guard is a human
+// one: grep for this function's name before renaming or removing it, and repair
+// what the search returns in the same commit.
 func TestEveryColumnIsLoadedFromItsOwnField(t *testing.T) {
 	t.Parallel()
 
@@ -211,7 +250,7 @@ func TestEveryColumnIsLoadedFromItsOwnField(t *testing.T) {
 		}
 
 		if loaded := got.value(probe); !reflect.DeepEqual(loaded, want.value) {
-			t.Errorf("the %q column is loaded with %s, want %s — its accessor reads a different field of zonesync.Zone than its name says, which the compiler accepts whenever the two fields share a type and which no check over zone.geom can detect, geom being generated from these same columns",
+			t.Errorf("the %q column is loaded with %s, want %s — its accessor reads a different field of zonesync.Zone than its name says, which the compiler accepts for any two fields whatever their types, every accessor in zoneColumns returning any, and which no check over zone.geom can detect, geom being generated from these same columns",
 				got.name, show(loaded), show(want.value))
 		}
 	}

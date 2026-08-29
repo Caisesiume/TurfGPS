@@ -47,10 +47,22 @@ import (
 // that branch says, so the live writer is the recover that re-raises a panic
 // out of the sync goroutine. No environment variable induces that panic, and
 // startZoneSync builds its own scheduler rather than accepting one, so nothing
-// here can inject a port that panics. Asserting it needs either a database or a
-// seam on startZoneSync, and a seam is a production change this file is not
-// licensed to make. The gap is reported with the work rather than papered over
-// with a test that asserts the mapping against a copy of it.
+// here can inject a port that panics.
+//
+// TWO THINGS BLOCK IT, NOT ONE, AND A SEAM ALONE BUYS NOTHING. The injection
+// point is the first: startZoneSync would have to accept a scheduler or a
+// factory before any test could drive `died` true. The second is that the
+// mapping itself is inline in `func main()` at main.go:148-151 and ends in a
+// direct `os.Exit(1)`, which terminates the test binary at the moment the
+// status becomes observable — so even with the seam built and a sync driven to
+// its death, there is no value returned to anything and no assertion left alive
+// to read one. Closure therefore needs main split into an int-returning `run()`
+// whose status a test can compare, or the mapping asserted out of process via
+// `exec.Command(os.Args[0], "-test.run=…")` under an env guard, IN ADDITION TO
+// the injection point. Both are production changes this file is not licensed to
+// make, and they are tracked together as `FW-22`. The gap is reported with the
+// work, at its true cost, rather than papered over with a test that asserts the
+// mapping against a copy of it.
 // ---------------------------------------------------------------------------
 
 // noSyncConfigured puts the environment in the state `NFR-003` measures: none
