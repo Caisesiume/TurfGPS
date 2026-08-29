@@ -8,11 +8,11 @@
 # @backlog-dependency-planner runs this before any subgraph pass. Neither
 # reasons about the graph to obtain a fact grep already holds.
 #
-# Hard blockers only. `Blocked by:` lines inside the issue body's `## Dependencies`
-# section are the graph — the grammar is in `turfgps-board-ops § The dependency
-# representation`. `Soft dependency:` lines are deliberately NOT read here: a soft
-# edge never blocks readiness, so counting one would manufacture a blocker and
-# hold work the board never intended to hold.
+# Hard blockers only. `Blocked by:` lines inside the issue body's `## Dependencies` section
+# are the graph — the grammar is in `turfgps-board-ops § The dependency representation`.
+# `Soft dependency:` lines are deliberately NOT read here: a soft edge never blocks
+# readiness, so counting one would manufacture a blocker and hold work the board
+# never intended to hold.
 #
 # DECLARED BLOCKERS ONLY. A `Blocked by:` line carries its reason on the same line,
 # and that prose names other issues and pull requests — `as of PR #67`, `which #89
@@ -91,10 +91,10 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 # joined across a story's several `Blocked by:` lines, in the order the body gives.
 # THE BOUNDARY IS NOT DEFINED HERE. Where the declared list begins and ends, what
 # glue is, what an empty list declares and which way ambiguity resolves are all the
-# grammar's, and the grammar's one home is `turfgps-board-ops § The dependency
-# representation` — read the rule there, and change it there first. This says only
-# what the awk does to implement it, in three steps: cut the reason where the line
-# declared nothing before its dash, strip the label, take the opening run of `#N`.
+# grammar's, and the grammar's one home is `turfgps-board-ops § The dependency representation`
+# — read the rule there, and change it there first. This says only what the awk does
+# to implement it, in three steps: cut the reason where the line declared nothing
+# before its dash, strip the label, take the opening run of `#N`.
 # THE CUT IS CONDITIONAL, because the dash opens the reason only on such a line. On
 # `Blocked by: #7 — #41 both must land` it stands between two DECLARED references,
 # and cutting there drops `#41` and promotes the story with an open blocker. Where

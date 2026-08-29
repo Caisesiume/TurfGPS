@@ -10,7 +10,8 @@
 #      MERGED one had no case, so it read UNKNOWN and blocked forever.
 # What must NOT change, and is asserted here too: a DECLARED blocker whose state
 # genuinely cannot be read still counts as blocking, every closed-but-not-completed
-# reason still blocks, and a legacy plain close still satisfies (`§ P6`, `§ A3`).
+# reason still blocks, and a legacy plain close still satisfies
+# (`ADR-0003 § P6`, `ADR-0003 § A3`).
 #
 # Hermetic: stub `gh` on PATH, fixture files as the only input, no repo state, no
 # network. The stub returns what `gh --jq` would have returned, which is the same
@@ -193,13 +194,13 @@ run 7;   check  "an uppercase conjunction is still glue"    0 "#218 (blockers: #
 run 7;   check  "adjacent references need no glue at all"   0 "#219 (blockers: #41 open)"
 run 7;   check  "a bold label strips like a plain one"      0 "#220 (blockers: #41 open)"
 
-# (iv) The dash, in both directions. `turfgps-board-ops § The dependency
-# representation` gives one row per shape; this pins a fixture to each of the two the
-# dash owns, and does not restate the rule. Three cycles moved this boundary and each
-# swing was found only afterwards, from whichever shapes that cycle happened to
-# consider — a row carrying no fixture of its own is how that kept happening. Both
-# assertions name the DECLARED LIST rather than a symptom, and the closing `)` is
-# load-bearing: it ends the printed list, so one extra member fails the substring.
+# (iv) The dash, in both directions. `turfgps-board-ops § The dependency representation`
+# gives one row per shape; this pins a fixture to each of the two the dash owns, and does
+# not restate the rule. Three cycles moved this boundary and each swing was found only
+# afterwards, from whichever shapes that cycle happened to consider — a row carrying no
+# fixture of its own is how that kept happening. Both assertions name the DECLARED LIST
+# rather than a symptom, and the closing `)` is load-bearing: it ends the printed list,
+# so one extra member fails the substring.
 #   #221 is asked from #7, which is satisfied and therefore never printed — the story
 #   is in this report at all only because #7 is in its declared list, and `#41 open`
 #   proves the member on the far side of the dash survived with it. Read as a reason,
