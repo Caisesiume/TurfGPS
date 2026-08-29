@@ -290,8 +290,8 @@ func overrides() []override {
 // TestTheTunablesHaveDefaultsAndAreOverridable sets three variables and checks
 // three fields. It cannot fail on the defect this block is actually exposed to:
 // the block is five near-identical lines, each naming a variable and a field
-// that happen to share a name, and three of the five carry the same type. Swap
-// the variables on the database-timeout and merge-timeout lines and the
+// that happen to share a name, and every one of those variables is a string.
+// Swap the variables on the database-timeout and merge-timeout lines and the
 // compiler is satisfied, every existing test still passes — neither of those
 // two is ever set — and the service runs the merge on the short budget and the
 // short operations on the long one. Nothing observable says so until an
