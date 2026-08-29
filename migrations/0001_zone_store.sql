@@ -1,6 +1,6 @@
 -- 0001_zone_store.sql — the synced zone store
 --
--- Creates `zone`, `zone_incoming`, `sync_run`, one index on `zone` and one on
+-- Creates `zone`, `zone_incoming`, `sync_run`, one index on `zone` and two on
 -- `sync_run`.
 -- This is the first migration in the repository.
 --
@@ -59,7 +59,7 @@
 -- So this migration asserts its own postcondition before it commits, against
 -- the live catalogue rather than against this file: every column, type,
 -- nullability and generated-ness it promises, every named constraint, both
--- primary keys, both indexes, `zone_incoming`'s UNLOGGED persistence, and
+-- primary keys, all three indexes, `zone_incoming`'s UNLOGGED persistence, and
 -- `zone.geom`'s type, SRID and generation. It runs inside the same
 -- transaction as the DDL, so a divergence raises and rolls the whole
 -- migration back rather than leaving a half-truth behind — and detection does
@@ -141,7 +141,7 @@
 --      constraint that is present under the right name and carries a
 --      different expression is therefore not caught here.
 --
---   7. A second index on `sync_run`, for the currency read. `zonestore` asks
+--   7. A second index, on `sync_run`, for the currency read. `zonestore` asks
 --      for the completion instant of the latest successful run, and that is
 --      the one question about this store that a request may reach. Against
 --      the primary key alone it is a sequential scan and a sort over every
@@ -153,8 +153,33 @@
 --      forty-eight times a day. This is free to take now only because 0001
 --      has not been applied anywhere; after an apply it would be a second
 --      migration. `Architecture.md § The indexes` records one index on
---      `sync_run` and now understates it by one — that line is owed, and it
---      is not this file's to write.
+--      `sync_run` and, with decision 8 below, now understates it by two —
+--      that line is owed, and it is not this file's to write.
+--
+--   8. A third index, also on `sync_run`, for the rate limit's own gate.
+--      `syncstore.sinceLastAttemptSQL` asks for `max(started_at)` over every
+--      outcome, and `zonesync.Scheduler` reads it twice per interval, both
+--      through `untilDue`: once by the loop deciding whether to sleep, and once
+--      after the lock is acquired, where it decides whether another holder
+--      refreshed the copy while this attempt waited for it. Neither existing
+--      index can answer that query. The primary key is on `id`, which leaves a
+--      sequential scan over a table that grows by roughly 17,500 rows a year
+--      and is never pruned; `sync_run_completed_at_ok` is partial on
+--      `outcome = 'ok'` and keyed on `completed_at`, where this query filters
+--      on no outcome at all and reads a different column.
+--
+--      So `sync_run_started_at` is a plain btree on `started_at DESC`, with no
+--      partial predicate because the query excludes no row — a run still in
+--      flight and a run that died have both spent the request, which is the
+--      whole reason that statement looks at every outcome. PostgreSQL rewrites
+--      `max()` over an indexed column into a one-row scan of that index, and
+--      `DESC` is written out so that scan reads forward. `started_at` is NOT
+--      NULL, so the NULLS FIRST that DESC implies orders nothing.
+--
+--      It is taken here for the same reason decision 7's index is, and the
+--      reasoning is not new: while 0001 is unapplied an index costs one line,
+--      and afterwards it is CREATE INDEX CONCURRENTLY in a migration of its
+--      own, which by decision 1 cannot share a transaction with anything else.
 
 BEGIN;
 
@@ -424,6 +449,29 @@ CREATE INDEX IF NOT EXISTS sync_run_completed_at_ok
     ON public.sync_run (completed_at DESC)
     WHERE outcome = 'ok';
 
+-- The third index, also on `sync_run`, for the rate limit's gate. Decision 8 in
+-- the header is the argument. The query it serves is
+-- `syncstore.sinceLastAttemptSQL`:
+--
+--     SELECT extract(epoch FROM now() - max(started_at)) FROM sync_run
+--
+-- The aggregate is what the index is for: with no GROUP BY and a btree on the
+-- aggregated column, the planner replaces `max(started_at)` with a scan of this
+-- index returning one row, and the arithmetic above it reads that one value.
+-- Without it the same statement reads every row ever recorded, twice per
+-- interval, to compute a maximum.
+--
+-- Unlike the index above it this one is NOT partial. `sinceLastAttemptSQL`
+-- deliberately spans every outcome — a run in flight and a run that died have
+-- both spent the request — so a predicate here would exclude rows the gate
+-- exists to count.
+--
+-- Creating it proves nothing, for the reason both of its neighbours give above.
+-- Nothing in this repository has EXPLAINed it.
+
+CREATE INDEX IF NOT EXISTS sync_run_started_at
+    ON public.sync_run (started_at DESC);
+
 -- --- The divergence check ---------------------------------------------------
 --
 -- This migration's postcondition, asserted against the live catalogue before
@@ -579,7 +627,8 @@ BEGIN
                       E'\n' ORDER BY x.name)
       INTO problems
       FROM (VALUES ('zone_geom_gist'::text,     'public.zone'::text, 'gist'::text, 'geom'::text),
-                   ('sync_run_completed_at_ok', 'public.sync_run',   'btree',      'completed_at')) AS x(name, tbl, am, col)
+                   ('sync_run_completed_at_ok', 'public.sync_run',   'btree',      'completed_at'),
+                   ('sync_run_started_at',      'public.sync_run',   'btree',      'started_at')) AS x(name, tbl, am, col)
      WHERE NOT EXISTS (SELECT 1
                          FROM pg_index     i
                          JOIN pg_class     ic ON ic.oid = i.indexrelid
