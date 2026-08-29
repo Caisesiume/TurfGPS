@@ -643,6 +643,116 @@ cmd_release() {
 }
 
 # ---------------------------------------------------------------------------
+# manifest — the set the panel must be complete AGAINST.
+#
+# Without one, `complete` is a claim about the rows that happen to exist, which
+# is not a claim about coverage at all. A judge that claimed 2 of 7 selected
+# lanes and died mid-selection left a panel reading `complete: true` at rc 0 the
+# moment those two ruled; the next judge, following "0 outstanding, synthesise",
+# publishes a two-lane ledger for a seven-lane board — and Phase 10 makes that
+# table of record. That is #144's failure class 4, a ledger under-reporting
+# lanes while asserting coverage, reproduced by the mechanism built to close it.
+#
+# So the selection is recorded as a row like any other, once, by the same atomic
+# directory commit the verdict uses, and `status` counts a selected lane with no
+# row as outstanding. A panel cannot then read complete while a lane it selected
+# was never claimed. `complete` means complete against something.
+#
+# A panel with NO manifest behaves exactly as it did before: the table does not
+# invent a set nobody recorded, and it will not start refusing panels written by
+# a caller that has not been taught to select yet.
+#
+# It lives at `.manifest.d/`, a leading dot, which no lane can ever be called:
+# `norm_lane` refuses a name beginning with `.`, and the lane globs do not match
+# one either. The name is unreachable rather than merely unused — the same
+# reasoning that keeps `PAUSED` upper-case, one level up.
+# ---------------------------------------------------------------------------
+cmd_manifest() {
+  [ $# -ge 2 ] || usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]'
+  PR="$(norm_pr "$1")"   || usage_die 'manifest <pr> <sha> — <pr> must be digits'
+  SHA="$(norm_sha "$2")" || usage_die 'manifest <pr> <sha> — <sha> must be 7-40 hex'
+  shift 2
+  lanes=""; by=""; writing=false
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --lanes) [ $# -ge 2 ] || usage_die 'manifest … --lanes "<lane> …"'; lanes="$2"; writing=true; shift 2 ;;
+      --by)    [ $# -ge 2 ] || usage_die 'manifest … --by <who>'; by="$(scrub "$2")"; shift 2 ;;
+      *)       usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]' ;;
+    esac
+  done
+  say_table
+  panel="$TABLE/pr-$PR/$SHA"
+
+  if [ "$writing" = false ]; then
+    ensure_readable || { printf 'manifest: unknown\nreason: degraded — table unreadable\n'; exit 2; }
+    printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+    if [ -r "$panel/.manifest.d/row" ]; then
+      printf 'manifest: %s\n'    "$(field lanes "$panel/.manifest.d/row")"
+      printf 'count: %s\n'       "$(field count "$panel/.manifest.d/row")"
+      printf 'selected_by: %s\n' "$(field selected_by "$panel/.manifest.d/row")"
+      printf 'selected_at: %s\n' "$(field selected_at "$panel/.manifest.d/row")"
+      exit 0
+    fi
+    printf 'manifest: none\n'
+    printf 'note: this panel records no selected set; `complete` counts only the rows that exist\n'
+    exit 12
+  fi
+
+  # Every name is canonicalised through the same gate a claim uses, so the
+  # manifest and the rows agree on what a lane is called. One bad name refuses
+  # the whole set at 64 and writes nothing: a manifest that silently dropped a
+  # lane would be a set asserting coverage it does not have, which is the exact
+  # defect this verb exists to close. The split here is deliberate word
+  # splitting — the one place in this file that wants it.
+  set=""; n=0
+  for l in $lanes; do
+    nl="$(norm_lane "$l")" || usage_die 'manifest … --lanes — each lane must be [a-z0-9._-]'
+    set="$set $nl"; n=$((n + 1))
+  done
+  [ "$n" -gt 0 ] || usage_die 'manifest … --lanes "<lane> …" — the set may not be empty'
+  set="${set# }"
+
+  ensure_writable || {
+    printf 'manifest: NOT RECORDED\nreason: degraded — table not writable\n'
+    printf 'direction: the panel has no expected set; do not treat `complete` as coverage\n'
+    exit 2
+  }
+  mkdir -p "$panel" 2>/dev/null || {
+    printf 'manifest: NOT RECORDED\nreason: degraded — could not create panel %s\n' "$panel"
+    exit 2
+  }
+  stage="$panel/.manifest-staging.$$"
+  rm -rf "$stage" 2>/dev/null
+  mkdir "$stage" 2>/dev/null || {
+    printf 'manifest: NOT RECORDED\nreason: degraded — could not stage the selection\n'
+    exit 2
+  }
+  { printf 'pr: %s\nsha: %s\n' "$PR" "$SHA"
+    printf 'lanes: %s\n' "$set"
+    printf 'count: %s\n' "$n"
+    printf 'selected_by: %s\n' "${by:--}"
+    printf 'selected_at: %s\n' "$NOW"
+  } > "$stage/row" 2>/dev/null || {
+    rm -rf "$stage" 2>/dev/null
+    printf 'manifest: NOT RECORDED\nreason: degraded — row not writable\n'
+    exit 2
+  }
+
+  if commit_staged "$stage" "$panel/.manifest.d"; then
+    printf 'manifest: recorded\npanel: pr-%s @ %s\ncount: %s\nlanes: %s\n' "$PR" "$SHA" "$n" "$set"
+    exit 0
+  fi
+  # Written once, like a verdict, and for the same reason: a selection that can
+  # be rewritten after the fact is a selection that can be shrunk to fit what
+  # actually ruled.
+  rm -rf "$stage" 2>/dev/null
+  printf 'manifest: refused\nreason: already recorded — the first selection stays of record\n'
+  printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+  printf 'of_record: %s\n' "$(field lanes "$panel/.manifest.d/row")"
+  exit 10
+}
+
+# ---------------------------------------------------------------------------
 # status — the trigger. The judge synthesises when the panel is complete, and
 # this is how it learns that without an LLM and without receiving anything back.
 # ---------------------------------------------------------------------------
@@ -661,20 +771,39 @@ cmd_status() {
 
   printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
   if is_paused; then printf 'paused: true\n'; else printf 'paused: false\n'; fi
+  mlanes=""
+  [ -r "$panel/.manifest.d/row" ] && mlanes="$(field lanes "$panel/.manifest.d/row")"
+  if [ -n "$mlanes" ]; then printf 'manifest: %s\n' "$mlanes"; else printf 'manifest: none\n'; fi
 
-  total=0; ruled=0; outstanding=""
+  total=0; ruled=0; outstanding=""; one_state=""
   for d in "$panel"/*/; do
     [ -d "$d" ] || continue
     lane="$(basename "$d")"
+    # A dot-name is not a lane — norm_lane refuses one, so anything the glob
+    # turns up beginning with `.` is this file's own bookkeeping and never a row.
+    case "$lane" in .*) continue ;; esac
     [ -z "$ONE" ] || [ "$lane" = "$ONE" ] || continue
     total=$((total + 1))
     st="$(row_state "$d")"
+    [ -z "$ONE" ] || one_state="$st"
     case "$st" in
       ruled)
         ruled=$((ruled + 1))
         printf '  %-30s %-18s %s (conf %s, findings %s) at %s\n' "$lane" "$st" \
           "$(field verdict "$d/verdict.d/row")" "$(field confidence "$d/verdict.d/row")" \
           "$(field findings "$d/verdict.d/row")" "$(field ruled_at "$d/verdict.d/row")"
+        # The verdict's own route to its findings. Without this the judge reads
+        # "revise, conf 0.9, 7 findings" and the mechanism offers it no way to
+        # reach the 7 — on the dead-parent path this table exists for, that is
+        # the whole of what it was supposed to carry.
+        art="$(field artifact "$d/verdict.d/row")"
+        [ -z "$art" ] || [ "$art" = "-" ] || printf '      artifact: %s\n' "$art"
+        # A durable flag no read verb surfaces is a flag nobody acts on.
+        [ "$(field attribution_mismatch "$d/verdict.d/row")" != true ] || \
+          printf '      attribution_mismatch: true — filed_by %s, holder %s\n' \
+            "$(field filed_by "$d/verdict.d/row")" "$(field owner "$d/verdict.d/row")"
+        [ "$(field unclaimed "$d/verdict.d/row")" != true ] || \
+          printf '      unclaimed: true — no claim row covered this lane\n'
         ;;
       claimed)
         outstanding="$outstanding $lane"
@@ -690,6 +819,38 @@ cmd_status() {
         ;;
     esac
   done
+
+  # Selected and never claimed. This is the half `complete` was missing: without
+  # it the panel is complete against whatever happened to get claimed, so a
+  # judge that died part-way through selecting left a two-lane panel reading
+  # complete for a seven-lane board. See `cmd_manifest` above.
+  for l in $mlanes; do
+    [ -z "$ONE" ] || [ "$l" = "$ONE" ] || continue
+    [ -d "$panel/$l" ] && continue
+    total=$((total + 1))
+    outstanding="$outstanding $l"
+    [ -z "$ONE" ] || one_state="never-claimed"
+    printf '  %-30s %-18s selected by the manifest, no row exists\n' "$l" "never-claimed"
+  done
+
+  # The machine-readable answer for a single lane. `status <lane>` returns 10
+  # for held, for free and for ruling-incomplete alike — three states with three
+  # different remedies — and callers are told to branch on the exit status and
+  # never on the prose, which left them nothing to branch on. This field is a
+  # closed vocabulary of five tokens: ruled · claimed · ruling-incomplete · free
+  # · never-claimed. It is a record field in the format every row in this table
+  # already uses, not a sentence, and `field lane_state` reads it.
+  if [ -n "$ONE" ]; then
+    printf 'lane: %s\n' "$ONE"
+    printf 'lane_state: %s\n' "${one_state:-no-row}"
+    if [ "$one_state" = claimed ]; then
+      printf 'holder: %s\n' "$(field owner "$panel/$ONE/holder/row")"
+    elif [ "$one_state" = ruled ]; then
+      printf 'filed_by: %s\n' "$(field filed_by "$panel/$ONE/verdict.d/row")"
+      printf 'artifact: %s\n' "$(field artifact "$panel/$ONE/verdict.d/row")"
+      printf 'note: %s\n'     "$(field note "$panel/$ONE/verdict.d/row")"
+    fi
+  fi
 
   if [ "$total" -eq 0 ]; then
     printf 'lanes: 0\ncomplete: false\nnote: no claim row here — nothing was dispatched under this panel\n'
@@ -728,8 +889,18 @@ cmd_list() {
       t=0; r=0
       for d in "$s"*/; do
         [ -d "$d" ] || continue
+        case "$(basename "$d")" in .*) continue ;; esac   # bookkeeping, not a lane
         t=$((t + 1))
         [ "$(row_state "$d")" = ruled ] && r=$((r + 1))
+      done
+      # A manifest lane with no row is missing from the count above, and a panel
+      # that reports complete while one is missing is the defect `manifest`
+      # exists to close. `status` names them; here they are counted.
+      ml=""
+      [ -r "$s.manifest.d/row" ] && ml="$(field lanes "$s.manifest.d/row")"
+      for l in $ml; do
+        [ -d "$s$l" ] && continue
+        t=$((t + 1))
       done
       [ "$t" -gt 0 ] || continue
       found=$((found + 1))
@@ -839,14 +1010,15 @@ HELP
 sub="${1:-help}"
 [ $# -eq 0 ] || shift
 case "$sub" in
-  claim)   cmd_claim   "$@" ;;
-  verdict) cmd_verdict "$@" ;;
-  release) cmd_release "$@" ;;
-  status)  cmd_status  "$@" ;;
+  claim)    cmd_claim    "$@" ;;
+  verdict)  cmd_verdict  "$@" ;;
+  release)  cmd_release  "$@" ;;
+  manifest) cmd_manifest "$@" ;;
+  status)   cmd_status   "$@" ;;
   list)    cmd_list    "$@" ;;
   pause)   cmd_pause   "$@" ;;
   resume)  cmd_resume  "$@" ;;
   paused)  cmd_paused  "$@" ;;
   help|-h|--help) cmd_help ;;
-  *) printf 'unknown subcommand: %s\n' "$sub" >&2; usage_die '<claim|verdict|release|status|list|pause|resume|paused|help>' ;;
+  *) printf 'unknown subcommand: %s\n' "$sub" >&2; usage_die '<claim|verdict|release|manifest|status|list|pause|resume|paused|help>' ;;
 esac
