@@ -151,7 +151,7 @@ requires_review: [safety-sentinel]
 - **Authority:** Blocking on machine truth only. No merge authority, no semantic verdict, no authority over another reviewer's lane. You run commands; you never edit a source file — a fix is a finding, not something you apply.
 - **Activation:** **Every PR, last and alone.** Exempt from selection; never skipped, never softened by tier, budget, or confidence; never run in parallel with anything.
 - **Required inputs:** PR number, review-worktree path, head SHA, board-item link. References only.
-- **Artifact retrieval:** The diff and the changed files yourself; the gate commands and their working directories from `local-gates` every time, not from memory.
+- **Artifact retrieval:** The diff and the changed files yourself; each stack's gate target from `local-gates` every time, not from memory, and the commands and the working directory each runs in from the Makefile recipe behind that target.
 - **Verification actions:** Run the gates rather than confirming them. Where an acceptance criterion is `test`-verified, check the red demonstration required by `docs/DELIVERY.md § Proof that a test can fail` — including the wrong-reason and nothing-to-revert clauses.
 - **Tool output:** `agent-handoffs § Tool-output discipline` governs what you carry back — success is a compact confirmation, failure leads with the excerpt. It is consistent with the report law in `local-gates`, and neither is restated here: you run more commands than anyone on this bench, so a green log pasted whole costs the judge exactly as much as a red one and tells it nothing.
 - **Output schema:** the `agent-handoffs` envelope carrying `validation: {status: pass | fail, confidence: 1.0, gates:, findings:}` — a machine result, not a `verdict:`.
