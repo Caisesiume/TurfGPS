@@ -27,9 +27,21 @@
 # assert a property of the suite rather than a behaviour of claim.sh, and no
 # mutation of claim.sh should be able to move them.
 #
+# A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND THREE OF THEM WERE.
+# M02, M13 and M20 addressed lines the review board's fixes removed — the mkdir
+# verdict gate, the `\r\n` strip, the `mv -f` of a bare row file. Each still
+# named a real behaviour, so each was re-aimed at the line that now carries it
+# rather than dropped; a mutation retired quietly is an assertion that stops
+# being demonstrated with nothing saying so. The `cmp -s` guard below is what
+# caught all three, which is the argument for keeping it.
+#
 # Usage: scripts/loop/tests/claim-table-mutations.sh [id …]
 #        Exit: 0 every mutation killed · 1 any mutation survived or misapplied
-# Runs the whole suite once per mutation, so the full matrix takes several minutes.
+# The whole suite runs once per mutation. Measured on 2026-08-30 on the
+# reference host: one suite run is ~90s and the full matrix of 43 is a little
+# under an hour, so it is a background gate rather than an inner-loop one. Named
+# ids run a subset — `claim-table-mutations.sh M28 M33` — and that is how a
+# single behaviour is re-demonstrated after a change without paying for all 43.
 
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -43,14 +55,15 @@ trap 'rm -rf "$TMP"' EXIT
 Q="'"
 
 ALL='M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18
-M19 M20 M21 M22 M23 M24 M25 M26 M27'
+M19 M20 M21 M22 M23 M24 M25 M26 M27 M28 M29 M30 M31 M32 M33 M34 M35 M36 M37
+M38 M39 M40 M41 M42 M43'
 WANT="${*:-$ALL}"
 
 # what each mutation neutralises
 desc() {
   case "$1" in
     M01) printf 'claim gate loses atomicity: mkdir -> mkdir -p on the holder' ;;
-    M02) printf 'verdict gate loses atomicity: mkdir -> mkdir -p on verdict.d' ;;
+    M02) printf 'the ruling commit clobbers a ruling of record instead of refusing' ;;
     M03) printf 'claim direction inverted: a degraded table reads as granted' ;;
     M04) printf 'verdict direction inverted: a lost verdict reads as recorded' ;;
     M05) printf 'release no longer requires a --reason' ;;
@@ -76,6 +89,22 @@ desc() {
     M25) printf 'the sha length bounds are removed' ;;
     M26) printf 'a lane may traverse or hide again' ;;
     M27) printf 'status returns 0 for a panel with no rows' ;;
+    M28) printf 'the panel key is the caller SPELLING again, not the seven-hex epoch' ;;
+    M29) printf 'a leading-zero pr number is a panel of its own again' ;;
+    M30) printf 'the table follows the caller worktree again, not the repository' ;;
+    M31) printf 'no verb names the table it acted on' ;;
+    M32) printf 'the ruling commit drops -T and moves INSIDE an existing directory' ;;
+    M33) printf 'the ruling directory is created before its payload — the two-step gate' ;;
+    M34) printf 'status stops counting a selected lane that has no row' ;;
+    M35) printf 'the manifest can be rewritten after the fact' ;;
+    M36) printf 'status prints no lane_state field' ;;
+    M37) printf 'no read verb surfaces the artifact' ;;
+    M38) printf 'a verdict filed by another hand never reads as a mismatch' ;;
+    M39) printf 'the control strip is CR and LF again, so an ANSI escape is stored' ;;
+    M40) printf 'release calls an interrupted ruling finished again' ;;
+    M41) printf 'no read verb surfaces the unclaimed flag' ;;
+    M42) printf 'the table follows the caller cwd, so a subdirectory is its own panel' ;;
+    M43) printf 'the table enforces a verdict vocabulary and refuses one it does not know' ;;
   esac
 }
 
@@ -100,7 +129,7 @@ kills() {
     M15) printf 'and is loud about the anomaly' ;;
     M16) printf 'and status counts it outstanding' ;;
     M17) printf 'and creates no table' ;;
-    M18) printf 'and it is not claimable either' ;;
+    M18) printf 'a lane whose ruling is IN FLIGHT is not claimable' ;;
     M19) printf '64 · pr is not digits' ;;
     M20) printf 'the verdict survives the writer being killed -9' ;;
     M21) printf 'and reads released, not claimed' ;;
@@ -110,6 +139,22 @@ kills() {
     M25) printf '64 · sha too short' ;;
     M26) printf '64 · lane starting with a dot' ;;
     M27) printf 'status: no rows is 12' ;;
+    M28) printf 'the SAME commit spelled short is the SAME row' ;;
+    M29) printf 'a leading-zero PR number is the same panel' ;;
+    M30) printf 'the LINKED WORKTREE resolves the same one' ;;
+    M31) printf 'names its table on line 1' ;;
+    M32) printf 'and a READABLE row stands where the wreckage was' ;;
+    M33) printf 'twelve killed writers leave NO empty ruling directory' ;;
+    M34) printf 'two ruled of seven selected is NOT a complete panel' ;;
+    M35) printf 'a SECOND selection is refused' ;;
+    M36) printf 'lane_state claimed' ;;
+    M37) printf 'the whole-panel view surfaces the artifact too' ;;
+    M38) printf 'a verdict filed by someone OTHER than the holder is 12' ;;
+    M39) printf 'and no escape byte reaches the verdict row on disk' ;;
+    M40) printf 'release RECOVERS it rather than calling it finished' ;;
+    M41) printf 'and a read verb surfaces THAT anomaly too' ;;
+    M42) printf 'a main SUBDIRECTORY resolves the same one' ;;
+    M43) printf 'a verdict of `pass` is recorded' ;;
   esac
 }
 
@@ -120,7 +165,12 @@ mutate() { # mutate <id> <file>
   m="$1"; f="$2"
   case "$m" in
     M01) sed -i 's@if mkdir "$row/holder" 2>/dev/null; then@if mkdir -p "$row/holder" 2>/dev/null; then@' "$f" ;;
-    M02) sed -i 's@if mkdir "$row/verdict.d" 2>/dev/null; then@if mkdir -p "$row/verdict.d" 2>/dev/null; then@' "$f" ;;
+    # M02 used to turn the verdict's `mkdir` gate into `mkdir -p`. That gate is
+    # gone: the ruling is committed by renaming a staged directory, so the
+    # mutual exclusion now lives in `commit_staged` and this edit follows it
+    # there. Clearing the destination first is the same neutralisation — the
+    # kernel stops deciding, and the second ruling of a lane wins.
+    M02) sed -i 's@^  mv -T "$1" "$2" 2>/dev/null$@  rm -rf "$2" 2>/dev/null; mv -T "$1" "$2" 2>/dev/null@' "$f" ;;
     M03) sed -i -e 's@claim: refused\(.*table not writable\)@claim: granted\1@' \
                 -e '/refusing to dispatch/,+1 s@exit 2@exit 0@' "$f" ;;
     M04) sed -i -e 's@verdict: NOT RECORDED@verdict: recorded@g' \
@@ -135,7 +185,10 @@ mutate() { # mutate <id> <file>
                 -e '/^norm_sha() {$/,/^}$/ s@\[!0-9a-f\]@[!0-9a-fA-F]@' "$f" ;;
     M11) sed -i 's|s="${s#@}"|s="${s#@@}"|' "$f" ;;
     M12) sed -i -e 's@(gh\[pousr\]_@(zz[pousr]_@' -e 's@|github_pat_@|zzthub_pat_@' "$f" ;;
-    M13) sed -i "s@tr -d ..r.n.@tr -d ${Q}\\\\r${Q}@" "$f" ;;
+    # M13 used to aim at `tr -d '\r\n'`, which SEC-05 replaced with the whole
+    # control range. Same neutralisation against the line that now carries it:
+    # CR alone, so a newline survives into the record format again.
+    M13) sed -i "s@tr -d ${Q}\[:cntrl:\]${Q}@tr -d ${Q}\\\\r${Q}@" "$f" ;;
     # M14 is caught by the directory-name assertion, not by a failed `mv`.
     # claim.sh's header says NTFS "would have rejected it outright"; measured on
     # 2026-08-29 Cygwin's mv creates `released-2026-08-29T12:32:59Z-473354`
@@ -148,7 +201,12 @@ mutate() { # mutate <id> <file>
     M17) sed -i '/^usage_die() {$/a mkdir -p "$TABLE" 2>/dev/null' "$f" ;;
     M18) sed -i '/^cmd_claim() {$/,/^}$/ s@^  if \[ -d "$row/verdict.d" \]; then$@  if [ -r "$row/verdict.d/row" ]; then@' "$f" ;;
     M19) sed -i '/^usage_die() {$/,/^}$/ s@exit 64@exit 0@' "$f" ;;
-    M20) sed -i 's@mv -f "$tmp" "$row/verdict.d/row"@cp "$tmp" "$row/verdict.d/row.notyet"@' "$f" ;;
+    # M20 used to aim at the `mv -f` of a bare row file into an already-created
+    # verdict.d. The row is now written inside the staging directory before the
+    # commit, so the same neutralisation — a ruling that reports itself recorded
+    # while no readable row lands — is a row written under another name. The
+    # range matters: `cmd_manifest` stages its row identically.
+    M20) sed -i '/^cmd_verdict() {$/,/^}$/ s@> "$stage/row" 2>/dev/null@> "$stage/row.notyet" 2>/dev/null@' "$f" ;;
     M21) sed -i 's@{ sed .*"$dst/row" 2>/dev/null@{ cat "$dst/row" 2>/dev/null@' "$f" ;;
     M22) sed -i -e '/^cmd_claim() {$/,/^}$/ s@claim: refused\(.*could not create row\)@claim: granted\1@' \
                 -e '/^cmd_claim() {$/,/^}$/ { /could not create row/,+1 s@exit 2@exit 0@ }' "$f" ;;
@@ -157,6 +215,43 @@ mutate() { # mutate <id> <file>
     M25) sed -i 's@\[ "$n" -ge 7 \] && \[ "$n" -le 40 \]@[ "$n" -ge 1 ] \&\& [ "$n" -le 400 ]@' "$f" ;;
     M26) sed -i 's@^    \.\*|\*\.\.\*)@    .zzz*|*..zzz*)@' "$f" ;;
     M27) sed -i '/nothing was dispatched under this panel/,+1 s@exit 12@exit 0@' "$f" ;;
+    # The truncation is the KEY and never the check, so this empties the suffix
+    # rather than removing the bound above it: the length check still passes and
+    # the row key becomes the caller's spelling again. That is CLAIM-01 exactly,
+    # and M01-M27 contained no mutant of it — the fix's only coverage lived in a
+    # file the harness never ran, so nothing here could have gone red for it.
+    M28) sed -i 's@rest="${s#???????}"@rest=""@' "$f" ;;
+    M29) sed -i 's@0?\*) s="${s#0}" ;;@00?*) s="${s#0}" ;;@' "$f" ;;
+    # Both edits together are the line SEC-03 filed: the caller's own toplevel,
+    # which a linked worktree answers with a path of its own. One alone would
+    # not neutralise it — `--show-toplevel` with the parent still taken lands
+    # both checkouts on their shared parent directory and they agree by accident.
+    M30) sed -i -e 's@git rev-parse --git-common-dir@git rev-parse --show-toplevel@' \
+                -e 's@_par="${_gcd%/\*}"@_par="$_gcd"@' "$f" ;;
+    M31) sed -i 's@say_table() { printf .table: %s.n. "$TABLE"; }@say_table() { printf "tbl: %s\\n" "$TABLE"; }@' "$f" ;;
+    M32) sed -i 's@^  mv -T "$1" "$2" 2>/dev/null$@  mv "$1" "$2" 2>/dev/null@' "$f" ;;
+    # The two-step gate LA-02 filed, at its widest: the name readers test for
+    # exists before the payload does, so an interruption leaves it empty.
+    M33) sed -i '/stage="\$row\/\.verdict-staging/i mkdir -p "$row/verdict.d" 2>/dev/null' "$f" ;;
+    M34) sed -i 's@\[ -d "$panel/$l" \] && continue@[ -e "$panel" ] \&\& continue@' "$f" ;;
+    M35) sed -i 's@if commit_staged "$stage" "$panel/.manifest.d"; then@if rm -rf "$panel/.manifest.d" 2>/dev/null \&\& commit_staged "$stage" "$panel/.manifest.d"; then@' "$f" ;;
+    M36) sed -i 's@printf .lane_state: %s.n. "${one_state:-no-row}"@printf "lane_state_omitted: %s\\n" "${one_state:-no-row}"@' "$f" ;;
+    M37) sed -i 's@field artifact @field artifact-never @g' "$f" ;;
+    M38) sed -i 's@else mismatch=true; fi@else mismatch=false; fi@' "$f" ;;
+    M39) sed -i "s@tr -d ${Q}\[:cntrl:\]${Q}@tr -d ${Q}\\\\r\\\\n${Q}@" "$f" ;;
+    M40) sed -i '/^cmd_release() {$/,/^}$/ s@if \[ -r "$row/verdict.d/row" \]; then@if [ -d "$row/verdict.d" ]; then@' "$f" ;;
+    M41) sed -i 's@field unclaimed @field unclaimed-never @g' "$f" ;;
+    # SEC-03's sentence, in its purest form: the table root is the caller's cwd.
+    # M30 above is the same defect through `--show-toplevel`, which is blind to a
+    # subdirectory of one checkout; this one is not, and the four-cwd claim needs
+    # both to be demonstrated rather than one.
+    M42) sed -i 's@ROOT="$(table_root || pwd)"@ROOT="$(pwd)"@' "$f" ;;
+    # The one behaviour here that is an ABSENCE — no verdict vocabulary is
+    # enforced, deliberately, because a check could only ever refuse a verdict it
+    # did not recognise and lose the work. Neutralising an absence means adding
+    # the check, so this is the shape of the well-meant "fix" that would silently
+    # start refusing `@validation-agent`'s own two words.
+    M43) sed -i 's@^  \[ -n "$V" \] || usage_die@  case "$V" in pass|fail) usage_die "verdict — unrecognised ruling" ;; esac; [ -n "$V" ] || usage_die@' "$f" ;;
   esac
 }
 

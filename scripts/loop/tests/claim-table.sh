@@ -14,6 +14,19 @@
 # Then `release`, adversarially, because it is the one path that can readmit a
 # second dispatch and is therefore the single hole in the design.
 #
+# Then the review board's own findings, each of which named a state in which the
+# table asserted something untrue, and each of which is falsified here rather
+# than described: one commit is one panel however its SHA is spelled (folded in
+# from claim-table-known-defects.sh, which held these while they were red and is
+# deleted in the same commit as the fold) · one table per repository, exercised
+# across a REAL linked worktree · every verb naming the table it acted on · a
+# ruling committing as one directory, so no failure of the script can leave the
+# empty `verdict.d` that used to wedge four verbs · `release` recovering that
+# wreckage instead of calling it finished · a manifest, so `complete` is
+# complete against something · a verdict naming who FILED it as distinct from
+# who held the lane · `lane_state`, the field a caller may branch on · and a
+# control-character strip a stored ANSI escape cannot survive.
+#
 # BOTH FAILURE DIRECTIONS ARE PINNED SEPARATELY, and that is the part that earns
 # the suite. `claim` must fail toward REFUSING to dispatch; `verdict` must fail
 # toward loudly NOT recording. An inversion of either is silent at runtime and
@@ -47,9 +60,18 @@ SCRIPT="${CLAIM_SH:-$DIR/../claim.sh}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# The table this suite must never touch. Computed exactly as claim.sh computes it,
-# so the guard at the end compares like with like.
-GITROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# The table this suite must never touch. Computed exactly as claim.sh computes
+# it — the parent of the COMMON git directory, resolved absolute — and no longer
+# from `--show-toplevel`. The two answers differ in a linked worktree, which is
+# where this file runs as often as not: the old line watched
+# `<worktree>/.claude/state/review-claims`, a path claim.sh does not write, so
+# the guard was watching an empty room while the real table sat elsewhere. That
+# the two now agree is asserted below rather than assumed, because a hermeticity
+# guard pointed at the wrong path is indistinguishable from a hermetic run.
+_gc="$(git rev-parse --git-common-dir 2>/dev/null)"
+[ -z "$_gc" ] || _gc="$(cd "$_gc" 2>/dev/null && pwd)"
+if [ -n "$_gc" ]; then GITROOT="${_gc%/*}"; else GITROOT="$(pwd)"; fi
+[ -n "$GITROOT" ] || GITROOT="/"
 REALTABLE="$GITROOT/.claude/state/review-claims"
 REAL_BEFORE=absent; [ -e "$REALTABLE" ] && REAL_BEFORE=present
 REAL_N_BEFORE="$(ls -a "$REALTABLE" 2>/dev/null | wc -l | tr -d ' ')"
@@ -265,19 +287,66 @@ check '  and the ruling is still of record'                   0  'approved'
 run claim $PR $SHA ruled-lane --owner r2
 check '  and the lane cannot be re-dispatched'                10 'reason: ruled'
 
-# A ruling in flight — verdict.d present, its row not yet written. A reviewer died
-# mid-write. Neither claimable nor releasable.
+# A ruling interrupted mid-write — verdict.d present, its row never written. No
+# path in claim.sh can produce this state any more, because a ruling is now
+# committed by renaming a directory that already holds its row; the suite builds
+# it by hand, which is what a table written before that change still carries and
+# what a hand-edit leaves. It used to absorb the lane — four verbs refusing
+# forever, with `release`, the verb `pr-judge` Phase 10 names as the remedy,
+# answering that a lane that has ruled "is finished, not stranded" about a lane
+# that had not ruled and could not be recovered by any verb at all.
 fresh
 run claim $PR $SHA inflight --owner r1
 mkdir -p "$(row_of $PR $SHA inflight)/verdict.d"
-run release $PR $SHA inflight --reason 'looks stuck to me'
-check 'release of a lane whose ruling is IN FLIGHT is refused' 10 'reason: ruled'
 run claim $PR $SHA inflight --owner r2
-check '  and it is not claimable either'                      10 'reason: ruled'
+check 'a lane whose ruling is IN FLIGHT is not claimable'     10 'reason: ruled'
 check '  saying the record is unreadable, not absent'         10 'unreadable'
+refute '  and never re-dispatches a lane being ruled'            'claim: granted'
 run status $PR $SHA
 check '  and status counts it outstanding'                    10 'ruling-incomplete'
 refute '  and never reports the panel complete'                  'complete: true'
+
+run release $PR $SHA inflight --reason 'looks stuck to me'
+check 'release RECOVERS it rather than calling it finished'   0  'release: done'
+check '  and names what it cleared'                           0  'cleared: ruling-incomplete'
+refute '  never calling an unruled lane ruled'                   'reason: ruled'
+VAUD="$(ls -d "$(row_of $PR $SHA inflight)"/released-verdict-* 2>/dev/null | head -1)"
+is '  keeping the interrupted ruling as an audit row' \
+   "$([ -n "$VAUD" ] && printf kept || printf destroyed)" kept
+is '  which names the state it was found in' \
+   "$(grep '^state: ' "${VAUD:-/nonexistent}/row" 2>/dev/null | head -1)" 'state: released-ruling-incomplete'
+is '  and why it was cleared' \
+   "$(grep -c '^release_reason: ' "${VAUD:-/nonexistent}/row" 2>/dev/null | tr -d ' ')" 1
+run status $PR $SHA inflight
+check '  leaving the lane free rather than wedged'            10 'lane_state: free'
+run claim $PR $SHA inflight --owner r3
+check '  so the lane is claimable again — the wedge is gone'  0  'claim: granted'
+
+# The same wreckage with NO holder under it — a reviewer killed before its claim
+# was written, or one whose claim was already released. There is nothing to hand
+# back and the recovery still happened, so a 12 here would report that nothing
+# was done about a lane this call had just unwedged.
+fresh
+mkdir -p "$(row_of $PR $SHA orphaned)/verdict.d"
+run release $PR $SHA orphaned --reason 'no holder, just wreckage'
+check 'release clears wreckage with no claim under it'        0  'release: done'
+check '  and says what it cleared there too'                  0  'cleared: ruling-incomplete'
+run claim $PR $SHA orphaned --owner r1
+check '  leaving that lane claimable as well'                 0  'claim: granted'
+
+# The line the recovery must not cross. `release` refuses a READABLE verdict at
+# 10, asserted above; what this pins is that the two are told apart by the ROW
+# and not by the DIRECTORY — the distinction the old test lost, which is how one
+# verb came to say "finished" about a lane that had not ruled.
+fresh
+run claim $PR $SHA ruled-not-stranded --owner r1
+run verdict $PR $SHA ruled-not-stranded approved
+run release $PR $SHA ruled-not-stranded --reason 'let me back in'
+check 'a lane with a READABLE row is still refused at 10'     10 'reason: ruled'
+is '  with its ruling untouched on disk' \
+   "$(grep '^verdict: ' "$(row_of $PR $SHA ruled-not-stranded)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: approved'
+is '  and nothing moved aside from a lane that had ruled' \
+   "$(ls -d "$(row_of $PR $SHA ruled-not-stranded)"/released-verdict-* 2>/dev/null | wc -l | tr -d ' ')" 0
 
 fresh
 run release $PR $SHA never-existed --reason 'x'
@@ -514,6 +583,435 @@ is '  and the ruling of record is the real one' \
    "$(grep '^verdict: ' "$(row_of $PR $SHA forge)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: pending'
 
 # ---------------------------------------------------------------------------
+section 'one commit is one epoch, however its SHA is spelled'
+# ---------------------------------------------------------------------------
+# Folded in from claim-table-known-defects.sh, which held these while they were
+# RED and which is deleted in the same commit as this fold. That file earned its
+# separate existence while it was failing — it is what a real falsification
+# leaves behind — and stopped earning it the moment the fix landed: a green file
+# printing "fold these into claim-table.sh and delete this file" left the only
+# coverage of that fix outside the suite the mutation harness runs, so the
+# certified gate would have stayed green while one commit became two panels
+# again.
+#
+# `git log --oneline` and `git rev-parse HEAD` are the two ordinary ways an
+# agent obtains one head SHA. Both validate, and while the key was the caller's
+# spelling they built two panels that could not see each other: both judges
+# granted, the verdict filed `unclaimed` against the spelling its claimant did
+# not use, one panel outstanding at 10 forever while a second read complete at 0.
+FULL=ec9ee330b2cfe0f9164eaa7f3dee22c23c4afdc3
+SHORT=ec9ee33
+fresh
+run claim $PR $FULL go-architecture-critic --owner judge-a
+check 'a lane claimed at the 40-hex spelling'                 0  'claim: granted'
+# The WHOLE panel line, not a substring of it. `@ ec9ee33` is a substring of
+# `@ ec9ee330b2cf…`, so a check for it would pass against the untruncated key
+# this assertion exists to catch — the harness reported it undemonstrated for
+# exactly that reason, which is the report earning its keep.
+is '  echoing the 7-hex epoch it actually joined' \
+   "$(printf '%s' "$OUT" | grep '^panel: ' | head -1)" "panel: pr-$PR @ $SHORT"
+run claim $PR $SHORT go-architecture-critic --owner judge-b
+check 'the SAME commit spelled short is the SAME row'         10 'reason: held'
+refute '  and is never granted a second dispatch'                'claim: granted'
+is '  so the commit holds ONE panel, not two' \
+   "$(ls "$CLAIM_TABLE_DIR/pr-$PR" 2>/dev/null | wc -l | tr -d ' ')" 1
+is '  keyed by the epoch and not by the spelling' \
+   "$(ls "$CLAIM_TABLE_DIR/pr-$PR" 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')" "$SHORT"
+
+fresh
+run claim $PR $SHORT correctness --owner judge-a
+check 'a lane claimed at the 7-hex spelling'                  0  'claim: granted'
+run claim $PR $FULL correctness --owner judge-b
+check '  refuses the long spelling of the same commit'        10 'reason: held'
+
+# The stranding consequence, which is what made this more than untidiness.
+fresh
+run claim $PR $SHORT correctness --owner judge
+run verdict $PR $FULL correctness approved --conf 0.9
+check 'a verdict at the other spelling covers the claim that exists' 0 'verdict: recorded'
+refute '  and is not filed unclaimed against a panel of its own'    'unclaimed'
+run status $PR $SHORT
+check '  so the claiming judge sees its own panel complete'   0  'complete: true'
+
+# One fix, both keys: `pr-0144` and `pr-144` split a panel the same way.
+fresh
+run claim 0144 abc1234 lane-a --owner judge-a
+run claim 144  abc1234 lane-a --owner judge-b
+check 'a leading-zero PR number is the same panel'            10 'reason: held'
+is '  leaving one pr directory, not two' \
+   "$(ls -d "$CLAIM_TABLE_DIR"/pr-* 2>/dev/null | wc -l | tr -d ' ')" 1
+
+# ---------------------------------------------------------------------------
+section 'one table per repository — a linked worktree is not a second panel'
+# ---------------------------------------------------------------------------
+# `--show-toplevel` answers with the CALLER's worktree and a linked worktree is
+# its own toplevel, so a judge in the main checkout and a reviewer dispatched
+# into ../TurfGPS-wt/<slug> built two panels for one PR at one SHA that could
+# not see each other: the judge granted, the reviewer recorded `unclaimed` into
+# the other table at 12, and the judge's panel read outstanding at 10 forever.
+# That is CLAIM-01's shape through the PATH instead of the key.
+#
+# Four cwds are not enough on their own — two derivations can agree on a path
+# and still disagree about a claim — so the mutual exclusion is exercised ACROSS
+# the two checkouts as well. CLAIM_TABLE_DIR is unset throughout this section,
+# because the derivation is the thing under test, and every call is made inside
+# a throwaway repository built here rather than in this one.
+WTREPO="$TMP/wt-repo"; WTLINK="$TMP/wt-linked"
+mkdir -p "$WTREPO/sub"
+git init "$WTREPO" >/dev/null 2>&1
+: > "$WTREPO/sub/f"
+git -C "$WTREPO" add -A >/dev/null 2>&1
+git -C "$WTREPO" -c user.email=t@example.invalid -c user.name=t commit -m init >/dev/null 2>&1
+git -C "$WTREPO" worktree add -b wt-branch "$WTLINK" >/dev/null 2>&1
+is 'a throwaway repository with a linked worktree was built' \
+   "$([ -d "$WTLINK/sub" ] && printf built || printf unbuilt)" built
+
+# at <dir> <args…> — run the script from <dir> with no CLAIM_TABLE_DIR at all.
+# `|| exit 3` is load-bearing: a cd that failed would run this against the
+# machine's REAL table, which is the one thing this suite may never do.
+at() { atd="$1"; shift; ( cd "$atd" 2>/dev/null || exit 3; unset CLAIM_TABLE_DIR; bash "$SCRIPT" "$@" 2>&1 ); }
+WTTABLE="$WTREPO/.claude/state/review-claims"
+wt1="$(at "$WTREPO"     list | head -1)"
+wt2="$(at "$WTREPO/sub" list | head -1)"
+wt3="$(at "$WTLINK"     list | head -1)"
+wt4="$(at "$WTLINK/sub" list | head -1)"
+is 'the main toplevel resolves the repository table'          "$wt1" "table: $WTTABLE"
+is '  a main SUBDIRECTORY resolves the same one'              "$wt2" "$wt1"
+is '  the LINKED WORKTREE resolves the same one'              "$wt3" "$wt1"
+is '  and a linked-worktree subdirectory too'                 "$wt4" "$wt1"
+
+OUT="$(at "$WTLINK" claim 7 abc1234 shared --owner reviewer-in-worktree)"; RC=$?
+check 'a claim taken from the linked worktree is granted'     0  'claim: granted'
+OUT="$(at "$WTREPO" claim 7 abc1234 shared --owner judge-in-main)"; RC=$?
+check '  and the SAME lane from the main checkout is refused' 10 'reason: held'
+refute '  never as a second panel of its own'                    'claim: granted'
+check '  naming the holder that sits in the other checkout'   10 'holder: reviewer-in-worktree'
+OUT="$(at "$WTREPO" verdict 7 abc1234 shared approved --by reviewer-in-worktree)"; RC=$?
+check 'a verdict filed from the main checkout reaches that claim' 0 'verdict: recorded'
+refute '  and is not filed unclaimed into a table of its own'    'unclaimed'
+OUT="$(at "$WTLINK" status 7 abc1234)"; RC=$?
+check '  so the worktree reads its own panel complete'        0  'complete: true'
+is '  and exactly one table exists across both checkouts' \
+   "$(find "$WTREPO" "$WTLINK" -type d -name review-claims 2>/dev/null | wc -l | tr -d ' ')" 1
+
+# ---------------------------------------------------------------------------
+section 'every verb names the table it acted on, as its FIRST line'
+# ---------------------------------------------------------------------------
+# A split table is what the derivation above prevents, and the cheapest moment
+# to SEE one is the first line of the first reply — not at synthesis, where two
+# panels are already built and the only evidence of the split is that neither is
+# complete. Asserted as line 1 exactly: a `table:` anywhere in the output would
+# pass while the caller still had to hunt for it. The verbs run in an order that
+# puts three of them on a REFUSAL path, because that is the reply a split
+# produces and therefore the one that must carry the line.
+fresh
+for verb in claim verdict release manifest status list pause paused resume; do
+  case "$verb" in
+    claim)    run claim $PR $SHA saystable --owner j1 ;;
+    verdict)  run verdict $PR $SHA saystable approved ;;
+    release)  run release $PR $SHA saystable --reason 'it has ruled' ;;
+    manifest) run manifest $PR $SHA ;;
+    status)   run status $PR $SHA ;;
+    list)     run list ;;
+    pause)    run pause --reason 'halt' ;;
+    paused)   run paused ;;
+    resume)   run resume ;;
+  esac
+  is "$verb names its table on line 1" \
+     "$(printf '%s' "$OUT" | head -1)" "table: $CLAIM_TABLE_DIR"
+done
+
+# ---------------------------------------------------------------------------
+section 'a ruling commits as ONE directory — the gate cannot succeed empty'
+# ---------------------------------------------------------------------------
+# #144's failure class 1, verbatim: a `mkdir` gate followed by a write is two
+# steps, and a process that died between them left `verdict.d` present and
+# empty. That state absorbed the lane — `claim` refused it as ruled, `verdict`
+# refused it as already ruled, `status` counted it outstanding forever, and
+# `release` refused it saying a lane that has ruled "is finished, not stranded",
+# which asserted the opposite of the truth. Four verbs refusing forever, and the
+# only recovery was `rm -rf` of the ledger.
+#
+# The ruling is now the rename of a directory that already holds its row. This
+# section falsifies "the state has no way to arise", which is a claim about the
+# FAILURE paths — so it takes the two this suite can construct, and then the
+# interruption itself, which neither of them reaches.
+
+# 1. The wreckage a table written before that change still carries is REPAIRED
+#    by the next ruling instead of absorbing the lane. This is also what pins
+#    `mv -T`: a plain `mv` onto an existing empty directory does not fail, it
+#    moves the staging directory INSIDE, which reads as a ruled lane holding no
+#    verdict — the wedge rebuilt by the verb meant to clear it.
+fresh
+run claim $PR $SHA repair --owner r1
+mkdir -p "$(row_of $PR $SHA repair)/verdict.d"
+run verdict $PR $SHA repair approved --conf 0.77
+check 'a ruling onto empty wreckage is recorded'              0  'verdict: recorded'
+is '  and a READABLE row stands where the wreckage was' \
+   "$(grep '^verdict: ' "$(row_of $PR $SHA repair)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: approved'
+is '  the ruling directory holding the row and nothing else' \
+   "$(ls "$(row_of $PR $SHA repair)/verdict.d" 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')" 'row'
+run status $PR $SHA repair
+check '  so the lane reads ruled, not ruling-incomplete'      0  'lane_state: ruled'
+
+# 2. Every degraded exit of `verdict` leaves NO ruling directory at all. A
+#    verdict that was not written must not leave behind the name readers test.
+fresh
+: > "$CLAIM_TABLE_DIR"
+run verdict $PR $SHA degraded-a approved
+check 'unwritable table: the verdict refuses'                 2  'verdict: NOT RECORDED'
+is '  leaving no ruling directory anywhere' \
+   "$(find "$CLAIM_TABLE_DIR" -type d -name 'verdict.d' 2>/dev/null | wc -l | tr -d ' ')" 0
+fresh
+mkdir -p "$CLAIM_TABLE_DIR"; : > "$CLAIM_TABLE_DIR/pr-$PR"
+run verdict $PR $SHA degraded-b approved
+check 'unmakeable row: the verdict refuses'                   2  'verdict: NOT RECORDED'
+is '  leaving no ruling directory either' \
+   "$(find "$CLAIM_TABLE_DIR" -type d -name 'verdict.d' 2>/dev/null | wc -l | tr -d ' ')" 0
+
+# 3. And the interruption, which is the case the two above cannot reach: a
+#    writer killed -9 partway through. One full call is timed first and the
+#    kills are swept across a window measured in FRACTIONS of it, from 60% to
+#    170%, so they land where the two-step gate was vulnerable rather than
+#    before the script has done anything. A sweep in fixed wall-clock seconds
+#    drifts into "red for the wrong reason" on a faster or a slower host — and a
+#    sweep in fractions still can, because the calibrating call is one sample:
+#    measured on 2026-08-30, a run in which every kill landed before the commit
+#    reported nothing at all about the gate. So the third assertion below asks
+#    whether the sweep reached the commit window, the sweep is repeated once at
+#    twice the delays when it did not, and neither is a pass on its own. The
+#    invariant itself is absolute and is asserted over every trial rather than
+#    on average: a ruling directory that exists holds a readable row.
+sweep_kills() { # sweep_kills <base-ms> <lane-prefix>
+  swept_wrecked=0; swept_landed=0
+  k=1
+  while [ "$k" -le 12 ]; do
+    bash "$SCRIPT" verdict $PR $SHA "$2-$k" approved --conf 0.5 >/dev/null 2>&1 &
+    kp=$!
+    kms=$(( $1 * (50 + k * 10) / 100 ))
+    sleep "$(printf '%d.%03d' $((kms / 1000)) $((kms % 1000)))"
+    kill -9 "$kp" 2>/dev/null
+    wait "$kp" 2>/dev/null
+    kd="$(row_of $PR $SHA "$2-$k")"
+    if [ -d "$kd/verdict.d" ]; then
+      if [ -r "$kd/verdict.d/row" ]; then swept_landed=$((swept_landed + 1))
+      else swept_wrecked=$((swept_wrecked + 1)); fi
+    fi
+    k=$((k + 1))
+  done
+}
+fresh
+KB="$(date +%s%N 2>/dev/null | tr -cd '0-9')"; [ -n "$KB" ] || KB=0
+run verdict $PR $SHA calibrate approved
+KE="$(date +%s%N 2>/dev/null | tr -cd '0-9')"; [ -n "$KE" ] || KE=0
+TFULL=$(( (KE - KB) / 1000000 ))
+[ "$TFULL" -ge 20 ] && [ "$TFULL" -le 5000 ] || TFULL=400
+sweep_kills "$TFULL" killed
+if [ $((swept_landed + swept_wrecked)) -eq 0 ]; then
+  sweep_kills $((TFULL * 2)) killed-again
+fi
+is 'twelve killed writers leave NO empty ruling directory'    "$swept_wrecked" 0
+is '  and no lane in the panel reads ruling-incomplete' \
+   "$(bash "$SCRIPT" status $PR $SHA 2>&1 | grep -c 'ruling-incomplete' | tr -d ' ')" 0
+is '  with the sweep reaching the commit window at all' \
+   "$([ $((swept_landed + swept_wrecked)) -ge 1 ] && printf reached || printf missed)" reached
+
+# ---------------------------------------------------------------------------
+section 'manifest — complete means complete AGAINST something'
+# ---------------------------------------------------------------------------
+# Nothing recorded which lanes were selected, so `complete` was a claim about
+# the rows that happened to exist and not a claim about coverage at all. A judge
+# that claimed 2 of the 7 lanes it selected and died mid-selection left a panel
+# reading `complete: true` at rc 0 the moment those two ruled; the next judge
+# follows "0 outstanding, synthesise" and publishes a two-lane ledger for a
+# seven-lane board, which Phase 10 then makes of record. That is #144 failure
+# class 4 — a ledger under-reporting lanes while asserting coverage.
+fresh
+run manifest $PR $SHA
+check 'a panel with no manifest says so, at 12'               12 'manifest: none'
+refute '  and never invents a set nobody recorded'               'count:'
+run manifest $PR $SHA --lanes 'correctness @Security-Critic docs testing safety ux design' --by judge-1
+check 'the selected set is recorded'                          0  'manifest: recorded'
+check '  counting every lane selected'                        0  'count: 7'
+check '  canonicalised exactly as a claim would be'           0  'lanes: correctness security-critic docs'
+run manifest $PR $SHA
+check 'the set reads back'                                    0  'count: 7'
+check '  naming who selected it'                              0  'selected_by: judge-1'
+
+run claim   $PR $SHA correctness --owner j1
+run verdict $PR $SHA correctness approved --conf 0.9
+run claim   $PR $SHA security-critic --owner j2
+run verdict $PR $SHA security-critic approved --conf 0.8
+run status $PR $SHA
+check 'two ruled of seven selected is NOT a complete panel'   10 'complete: false'
+refute '  and never reads complete'                              'complete: true'
+check '  naming a selected lane no row was ever made for'     10 'outstanding: docs'
+check '  counting the set it was measured against'            10 'lanes: 7'
+run status $PR $SHA docs
+check '  a selected lane with no row has a state of its own'  10 'lane_state: never-claimed'
+run list $PR
+check '  and list counts it into the same seven'              0  'lanes 7'
+check '  reporting the panel incomplete'                      0  'incomplete'
+
+# Written once, like a verdict, and for the same reason: a selection that can be
+# rewritten is a selection that can be shrunk to fit whatever actually ruled.
+run manifest $PR $SHA --lanes 'correctness security-critic'
+check 'a SECOND selection is refused'                         10 'already recorded'
+refute '  and does not report itself recorded'                   'manifest: recorded'
+check '  the first staying of record'                         10 'of_record: correctness security-critic docs'
+run status $PR $SHA
+check '  so the panel is still measured against seven'        10 'lanes: 7'
+
+# One bad name refuses the whole set and writes nothing: a manifest that
+# silently dropped a lane would be a set asserting coverage it does not have.
+fresh
+run manifest $PR $SHA --lanes 'ok ../evil'
+check 'one malformed lane refuses the whole selection'        64 '[a-z0-9._-]'
+is '  and writes nothing at all' \
+   "$([ -e "$CLAIM_TABLE_DIR" ] && printf created || printf absent)" absent
+run manifest $PR $SHA --lanes '   '
+check 'an empty selection is refused'                         64 'may not be empty'
+
+# A panel with no manifest behaves exactly as it did before: the table does not
+# start refusing panels written by a caller that has not been taught to select.
+fresh
+run claim $PR $SHA solo --owner j1
+run verdict $PR $SHA solo approved
+run status $PR $SHA
+check 'an unmanifested panel still completes on its own rows' 0  'complete: true'
+check '  saying it has no expected set'                       0  'manifest: none'
+
+# ---------------------------------------------------------------------------
+section 'a verdict names who FILED it, not only who held the lane'
+# ---------------------------------------------------------------------------
+# `owner:` is copied out of the claim, so a verdict written by anyone at all was
+# attributed of record to the claimant, and the writer's identity was not merely
+# unrecorded but unrecordable — there was no flag to carry it. A courier filing
+# into a lane held by someone else produced a row reading
+# `verdict / owner: <the reviewer that never ran>`, exit 0, panel complete,
+# synthesise. `unclaimed` never fired, because it fires only where NO holder
+# exists: the likely case was the silent one. Four values, each asserted in the
+# row on disk, because a flag no reader can tell apart is not a flag.
+fresh
+run claim $PR $SHA agree --owner alice
+run verdict $PR $SHA agree approved --by alice
+check 'a verdict filed by the holder is recorded'             0  'verdict: recorded'
+check '  naming its filer'                                    0  'filed_by: alice'
+is '  and the row records the check as having passed' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA agree)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: false'
+
+run claim $PR $SHA differ --owner alice
+run verdict $PR $SHA differ approved --by mallory
+check 'a verdict filed by someone OTHER than the holder is 12' 12 'anomaly: filed by mallory'
+check '  naming both identities'                              12 'the lane is held by alice'
+check '  and it is RECORDED, never discarded to enforce that' 12 'verdict: recorded'
+is '  flagged in the row itself' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA differ)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: true'
+is '  which keeps the filer distinct from the holder on disk' \
+   "$(grep '^filed_by: ' "$(row_of $PR $SHA differ)/verdict.d/row" 2>/dev/null | head -1)" 'filed_by: mallory'
+run status $PR $SHA differ
+check '  and a read verb surfaces the mismatch'               0  'attribution_mismatch: true'
+
+run claim $PR $SHA silent --owner alice
+run verdict $PR $SHA silent approved
+check 'a verdict with no --by is still recorded'              0  'verdict: recorded'
+check '  and says its own writer is unknown'                  0  'filed_by: unrecorded'
+is '  which is a value and not a pass' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA silent)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: unrecorded'
+
+run verdict $PR $SHA no-holder approved --by carol
+check 'a verdict on a lane no claim covers is 12'             12 'anomaly: no claim row covered'
+is '  distinguishing no holder from the wrong holder' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA no-holder)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: no-holder'
+run status $PR $SHA no-holder
+check '  and a read verb surfaces THAT anomaly too'           0  'unclaimed: true'
+
+# ---------------------------------------------------------------------------
+section 'status answers in a field a caller can branch on'
+# ---------------------------------------------------------------------------
+# `status <lane>` returned 10 for held, for free and for ruling-incomplete alike
+# — three states with three different remedies — while every caller is told to
+# branch on the exit status and never on the prose, which left them nothing to
+# branch on. `lane_state:` is that field, and all five of its tokens are pinned
+# here; the sixth this suite can produce, `no-row`, is pinned beside them.
+fresh
+run manifest $PR $SHA --lanes 'ruled-l claimed-l inflight-l free-l never-l'
+run claim $PR $SHA ruled-l --owner j1
+run verdict $PR $SHA ruled-l approved --by j1 --artifact 'https://github.com/x/pull/154#note-1' --note 'seven findings'
+run claim $PR $SHA claimed-l --owner j2
+run claim $PR $SHA inflight-l --owner j3
+mkdir -p "$(row_of $PR $SHA inflight-l)/verdict.d"
+run claim $PR $SHA free-l --owner j4
+run release $PR $SHA free-l --reason 'its judge died'
+
+run status $PR $SHA ruled-l
+check 'lane_state ruled'                                      0  'lane_state: ruled'
+check '  and the ruled lane offers its route to the findings' 0  'artifact: https://github.com/x/pull/154'
+check '  and the note beside it'                              0  'note: seven findings'
+check '  and who filed it'                                    0  'filed_by: j1'
+run status $PR $SHA claimed-l
+check 'lane_state claimed'                                    10 'lane_state: claimed'
+check '  naming the holder to ask'                            10 'holder: j2'
+run status $PR $SHA inflight-l
+check 'lane_state ruling-incomplete'                          10 'lane_state: ruling-incomplete'
+run status $PR $SHA free-l
+check 'lane_state free'                                       10 'lane_state: free'
+run status $PR $SHA never-l
+check 'lane_state never-claimed'                              10 'lane_state: never-claimed'
+run status $PR $SHA ghost-l
+check 'a lane the panel never heard of is no-row at 12'       12 'lane_state: no-row'
+run status $PR $SHA
+check 'the whole-panel view surfaces the artifact too'        10 'artifact: https://github.com/x/pull/154'
+
+# ---------------------------------------------------------------------------
+section 'control characters cannot repaint the reader of a row'
+# ---------------------------------------------------------------------------
+# The strip was `tr -d` of CR and LF alone — they are what break the one-line
+# record format, so they were all that was removed, and ANSI escapes were
+# therefore stored raw. A stored escape survives the round trip and repaints the
+# terminal of the human reading the panel: the row is intact and the reader's
+# view of it is not, which is the one attack a ledger whose whole purpose is
+# being believed cannot afford. The strip is now the ASCII control range under
+# LC_ALL=C — and ordinary text must survive it, or the scrub becomes a second
+# way to lose a verdict, so the UTF-8 half is asserted beside it and built from
+# octal escapes rather than typed, so no checkout encoding can decide it.
+fresh
+ESC="$(printf '\033')"
+U8="$(printf '\303\245\303\244\303\266')"
+run claim $PR $SHA ansi --owner "$(printf 'a\033[31mj1\033[0m')"
+run verdict $PR $SHA ansi approved --note "$(printf 'x\033[2Jy\001z\tw ')$U8"
+check 'a note carrying ANSI escapes is accepted'              0  'verdict: recorded'
+is '  and no escape byte reaches the verdict row on disk' \
+   "$(grep -c "$ESC" "$(row_of $PR $SHA ansi)/verdict.d/row" 2>/dev/null | tr -d ' ')" 0
+is '  nor any other control byte' \
+   "$(grep -c '[[:cntrl:]]' "$(row_of $PR $SHA ansi)/verdict.d/row" 2>/dev/null | tr -d ' ')" 0
+is '  nor the holder row either' \
+   "$(grep -c "$ESC" "$(row_of $PR $SHA ansi)/holder/row" 2>/dev/null | tr -d ' ')" 0
+is '  while ordinary UTF-8 text survives the strip' \
+   "$(grep -c "$U8" "$(row_of $PR $SHA ansi)/verdict.d/row" 2>/dev/null | tr -d ' ')" 1
+
+# ---------------------------------------------------------------------------
+section 'the table enforces no verdict vocabulary'
+# ---------------------------------------------------------------------------
+# `@validation-agent`'s schema returns `status: pass | fail`, and neither word
+# is in `review-verdicts`' vocabulary. A check here could only ever refuse a
+# verdict it did not recognise, losing the work this script exists to keep — so
+# both record, and both read back as themselves rather than as a judgement.
+fresh
+run claim $PR $SHA vpass --owner v1
+run verdict $PR $SHA vpass pass --by v1
+check 'a verdict of `pass` is recorded'                       0  'ruling: pass'
+is '  and reads back as itself' \
+   "$(grep '^verdict: ' "$(row_of $PR $SHA vpass)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: pass'
+run claim $PR $SHA vfail --owner v1
+run verdict $PR $SHA vfail fail --by v1
+check 'a verdict of `fail` is recorded, not refused'          0  'ruling: fail'
+is '  and it too reads back as itself' \
+   "$(grep '^verdict: ' "$(row_of $PR $SHA vfail)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: fail'
+run status $PR $SHA
+check '  and a panel of pass and fail is complete, not judged' 0 'complete: true'
+
+# ---------------------------------------------------------------------------
 section 'CRLF — the checkout form must not change any answer'
 # ---------------------------------------------------------------------------
 # scripts/loop/*.sh carry no eol attribute, so a core.autocrlf=true host checks
@@ -550,6 +1048,12 @@ is 'the real claim table is in the state the suite found it'  "$REAL_AFTER"   "$
 is '  with the same number of entries'                        "$REAL_N_AFTER" "$REAL_N_BEFORE"
 is '  and no row for this suite PR number' \
    "$([ -e "$REALTABLE/pr-$PR" ] && printf leaked || printf clean)" clean
+# The guard is only worth anything if it watched the table the script would have
+# written. `list` is the one read-only verb — it never creates the table — so
+# asking it, with no CLAIM_TABLE_DIR, is safe and is the only way to check that
+# the derivation above matches claim.sh's own rather than a path nothing writes.
+is '  and the table it guarded is the one claim.sh resolves' \
+   "$( (unset CLAIM_TABLE_DIR; bash "$SCRIPT" list 2>&1 | head -1) )" "table: $REALTABLE"
 
 printf '\n%s checks · %s failed\n' "$cases" "$fails"
 [ "$fails" -eq 0 ] || exit 1
