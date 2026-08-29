@@ -88,17 +88,22 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 # glue is, what an empty list declares and which way ambiguity resolves are all the
 # grammar's, and the grammar's one home is `turfgps-board-ops § The dependency
 # representation` — read the rule there, and change it there first. This says only
-# what the awk does to implement it, in three steps: cut the reason, strip the label,
-# take the opening run of `#N`. The reason goes FIRST because the strip runs to the
-# first `#`, and on a line that declares nothing the other order walks into the
-# reason and reads an edge out of it.
+# what the awk does to implement it, in three steps: cut the reason where the line
+# declared nothing before its dash, strip the label, take the opening run of `#N`.
+# THE CUT IS CONDITIONAL, because the dash opens the reason only on such a line. On
+# `Blocked by: #7 — #41 both must land` it stands between two DECLARED references,
+# and cutting there drops `#41` and promotes the story with an open blocker. Where
+# it does fire it goes FIRST, because the strip runs to the first `#`, and on a line
+# that declares nothing the other order walks into the reason and reads an edge out
+# of it.
 # THE LABEL PREFIX IS EXPRESSED TWICE, in two dialects — the jq `select` above and
 # the strip below. A grammar extension made in only one of them stays green: the
 # suite stubs `gh`, so a fixture reaches the awk without passing the jq, and an
 # awk-only change therefore passes every test and then sees no live line.
 pairs="$(printf '%s\n' "$lines" | awk '
   { dependent = $1; rest = substr($0, index($0, " ") + 1); list = ""
-    sub(/(—|–|--).*$/, "", rest)             # the reason first: it declares nothing
+    if (rest ~ /^[^#]*(—|–|--)/)             # the reason first, but only where its
+      sub(/(—|–|--).*$/, "", rest)           # dash comes before every `#`
     sub(/^ *[*]*Blocked by[^#]*/, "", rest)  # then the label and any ornamentation
     while (match(rest, /^#[0-9]+/)) {
       list = (list == "" ? "" : list ",") substr(rest, 2, RLENGTH - 1)
