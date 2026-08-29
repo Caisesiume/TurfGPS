@@ -72,6 +72,8 @@ The old defence was an agent remembering `cd service` on every command line, and
 
 **`make gates` prints law 1's code line itself, derived from the run that produced it** — the Makefile's header is where that derivation is argued, and where the one field it cannot derive says so instead of inventing a number. **Paste that line into the PR body rather than composing one:** a composed line is a claim about a run, and this one is the run's own output.
 
+**Where `make` is absent the line is *derived*, never composed, and the derivation is what gets reported.** A host with no `make` has no target to print the line, which leaves the paste rule with nothing to paste — an undefined case rather than a strict one, and PR #141 ran on such a host: every lane that reported a line hand-wrote it, each disclosing that separately because nothing here said how. Deriving one is licensed under three conditions, all of which must hold: **every recipe body is executed command-for-command**, in the directory that recipe sets, so each field is a real exit status rather than a typed literal; **the line carries the fields the recipe echoes and only those**, in the recipe's order and spelling, because a field the target does not print is a field nothing measured and the grammar belongs to the target rather than to the reporter; and **the PR body states that `make` was absent, under which names it was searched, and that no `make` has parsed the Makefile** — tabs and recipe structure being verified by inspection only, which is the one thing this derivation cannot test. Fail any of the three and the line is composed rather than derived, and law 3 below applies to it: report the gate skipped, with the reason. This governs every stack's report line, and the frontend block below cites it rather than restating it.
+
 The race detector is not optional on this codebase. `Architecture.md § D1` chose Go specifically for a long-lived stateful service holding many concurrent solve sessions with bounded worker pools over the candidate fan-out — concurrency is the reason the language was picked, so it is the thing most likely to break.
 
 ### Frontend (Vite + React)
@@ -90,7 +92,7 @@ make web-gates
 
 **This gate's threshold is zero issues and not zero errors**, warnings included — which is not what a default eslint run exits on, so the target is what enforces the threshold rather than the script's own default. The Makefile is where that is argued and where the flag lives.
 
-**`make web-gates` prints its own report line, and it is a second line rather than more fields on the backend's.** A code line names the one directory that decided which tree it measured, per law 1 below, and this run entered only `web/`; the Makefile carries the rest of that argument at the target. **Paste the line rather than composing one**, for the reason `§ Backend (Go)` above gives.
+**`make web-gates` prints its own report line, and it is a second line rather than more fields on the backend's.** A code line names the one directory that decided which tree it measured, per law 1 below, and this run entered only `web/`; the Makefile carries the rest of that argument at the target. **Paste the line rather than composing one**, and where `make` is absent derive it under the three conditions `§ Backend (Go)` above sets rather than composing one — that section is where both rules are argued, for the reason it gives.
 
 ### When these activate
 
