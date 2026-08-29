@@ -60,6 +60,16 @@ GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 # record per hard-blocker line — the raw line, because which of the references on
 # it are DECLARED is decided below, in the shell, where it can be tested against
 # fixtures without a network.
+#
+# WHAT STAYS ON THE JQ SIDE, AND WHY. Two things: locating `## Dependencies`, and the
+# hard-vs-soft `select(test("^ *\\**Blocked by"))`. Both are record SELECTION rather
+# than parsing — they decide which lines cross the API boundary at all, and running
+# them here is what keeps one board read from shipping every `Soft dependency:` and
+# `Basis:` line on the board. Both also turn on a whole-line prefix the grammar
+# itself defines, so neither carries the ambiguity that moved the declared-list
+# boundary out to awk. The cost is stated rather than hidden: the hermetic suite
+# stubs `gh` and so cannot execute this program, leaving it guarded by the live
+# board and by review, not by a fixture.
 lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
   .[]
   | select(.body != null)
@@ -74,21 +84,29 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 
 # The declared blockers, then one `<issue> <blocker,blocker,...>` line per story —
 # joined across a story's several `Blocked by:` lines, in the order the body gives.
-# The declared list is the run of `#N` references and their separators that opens
-# the line; the first token that is neither ends it, which is the reason delimiter
-# in the grammar and the end of the line in a grandfathered one.
+# THE BOUNDARY. The declared list is the run of `#N` references that opens the line,
+# and it ends at the first WORD, because a word is where the reason starts. Between
+# two references the awk accepts GLUE — punctuation and space, with or without the
+# conjunction `and`. Separators are an open class and are therefore NOT enumerated:
+# enumerating five of them is what silently dropped `#41` from
+# `Blocked by: #7 · #41 — reason`, on this repo's own house separator. Testing the
+# word instead tests the closed side of that split. The rule lives in
+# `turfgps-board-ops § The dependency representation`; this says only what the awk
+# does. Ambiguity resolves toward MORE edges — an over-read blocker holds a story
+# where someone can see it, an under-read one promotes it with nothing to look at.
 pairs="$(printf '%s\n' "$lines" | awk '
   { n = $1; rest = substr($0, index($0, " ") + 1); list = ""
     sub(/^ *[*]*Blocked by[^#]*/, "", rest)   # the label; [^#] stops at the first ref
     while (match(rest, /^#[0-9]+/)) {
       list = (list == "" ? "" : list ",") substr(rest, 2, RLENGTH - 1)
       rest = substr(rest, RLENGTH + 1)
-      if (!sub(/^([ ,;&+]|and)+/, "", rest)) break
+      if (!match(rest, /^([^0-9A-Za-z]|[Aa][Nn][Dd])*#[0-9]/)) break
+      rest = substr(rest, RLENGTH - 1)       # RLENGTH spans the glue plus `#<digit>`
     }
     if (list == "") next
-    if (!(n in b)) order[++k] = n
-    b[n] = (n in b) ? b[n] "," list : list }
-  END { for (i = 1; i <= k; i++) print order[i], b[order[i]] }')"
+    if (!(n in edges)) order[++stories] = n
+    edges[n] = (n in edges) ? edges[n] "," list : list }
+  END { for (i = 1; i <= stories; i++) print order[i], edges[order[i]] }')"
 
 if [ -z "$pairs" ]; then
   "$GH" auth status >/dev/null 2>&1 || { echo "error: could not read GitHub" >&2; exit 2; }
@@ -121,8 +139,8 @@ state_of() {
          --jq '.url + " " + .state + " " + (.stateReason // "")' 2>/dev/null)"
   case "$raw"  in *' '*) u="${raw%% *}";   rest="${raw#* }" ;; *) u="";        rest="" ;; esac
   case "$rest" in *' '*) st="${rest%% *}"; rs="${rest#* }"  ;; *) st="$rest";  rs="" ;; esac
-  case "$u" in */pull/*) k=pr ;; */issues/*) k=issue ;; *) k="" ;; esac
-  case "$k|$st|$rs" in
+  case "$u" in */pull/*) kind=pr ;; */issues/*) kind=issue ;; *) kind="" ;; esac
+  case "$kind|$st|$rs" in
     issue\|OPEN\|*)                           s=OPEN ;;
     issue\|CLOSED\|COMPLETED|issue\|CLOSED\|) s=DONE ;;          # completed, or a legacy plain close
     issue\|CLOSED\|NOT_PLANNED)               s=NOT_PLANNED ;;
@@ -141,15 +159,15 @@ eligible=""; blocked_lines=""; unreadable=""; not_completed=""
 while IFS=' ' read -r issue blockers; do
   [ -n "$issue" ] || continue
   remaining=""
-  for b in $(printf '%s' "$blockers" | tr ',' ' '); do
-    st="$(state_of "$b")"
+  for blocker in $(printf '%s' "$blockers" | tr ',' ' '); do
+    st="$(state_of "$blocker")"
     [ "$st" = "DONE" ] && continue
     [ -n "$remaining" ] && remaining="$remaining, "
-    remaining="$remaining#$b $(printf '%s' "$st" | tr 'A-Z' 'a-z')"
+    remaining="$remaining#$blocker $(printf '%s' "$st" | tr 'A-Z' 'a-z')"
     case "$st" in
-      UNKNOWN) unreadable="$unreadable #$b" ;;
+      UNKNOWN) unreadable="$unreadable #$blocker" ;;
       OPEN)    : ;;
-      *)       not_completed="$not_completed #$b($st)" ;;
+      *)       not_completed="$not_completed #$blocker($st)" ;;
     esac
   done
   if [ -z "$remaining" ]; then

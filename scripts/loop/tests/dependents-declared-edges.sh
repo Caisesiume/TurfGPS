@@ -36,6 +36,7 @@ cat > "$FIX/list" <<'FIXTURE'
 204 Blocked by: #143 — a pull request closed without merging, declared as the blocker
 205 Blocked by: #999 — a declared blocker whose state cannot be read at all
 206 Blocked by: #37 — the limit arrives with it; #41 is where that limit is stored and is still open
+207 Blocked by: #7 · #41 — two declared blockers on this repo's own house separator
 FIXTURE
 
 # `gh issue view <n> --json state,stateReason,url --jq '.url + " " + .state + …'`.
@@ -92,6 +93,11 @@ run 67;  absent "the PR named in #136's prose gained no dependent" "#136"
 
 # The declared list itself is kept whole, both members of it.
 run 7;   check  "multi-blocker list: #7 done, #41 still blocks"  0 "#202 (blockers: #41 open)"
+
+# The boundary is a rule about glue, not a list of five separators: `·` is in no
+# whitelist and is this repo's house separator, so enumerating separators dropped
+# #41 here and printed #207 as eligible with a declared blocker still open.
+run 7;   check  "an unenumerated separator loses no declared blocker" 0 "#207 (blockers: #41 open)"
 
 # The other two pull-request states block, and the closed one is named as not completed.
 run 142; check  "an open pull request blocks"                    0 "#203 (blockers: #142 open)"
