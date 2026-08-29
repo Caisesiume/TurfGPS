@@ -40,7 +40,7 @@ npm --prefix web install       # each worktree needs its own node_modules
 ```
 Smallest change that meets the criteria. Reuse existing hooks and design-system components before adding new ones. Keep components pure and small; lift shared state deliberately; never leave a `useEffect` with a dishonest dependency array. Do not reinvent the streaming layer — it is @progressive-results-specialist's.
 
-**4 — Gates.** Run the **frontend gates** — build, lint, tests — per `local-gates § Frontend (Vite + React)`. The skill holds the commands and the directory they run from; do not reproduce them here. The Makefile at the repository root now runs the backend gates and takes this stack's when `web/package.json` exists, so the list will move.
+**4 — Gates.** Run the **frontend gates** — build, lint, tests — per `local-gates § Frontend (Vite + React)`. The skill names the target and the Makefile at the repository root holds the commands and the directory each runs in; do not reproduce either here. That move is done for this stack as well as the backend, so expect a target there and not a command list.
 
 **5 — PR.** Board-item link · each criterion with its evidence · files with one-line rationale · safety paths touched (a card that renders a time estimate or an accessibility classification touches the *display* of a safety judgement — say so) · gate results. Move to **In review**.
 

@@ -53,21 +53,25 @@
 # linkage while `Architecture.md § D6` is open, and a build flag here would
 # settle it.
 #
-# The frontend block of `local-gates` is dormant until `web/package.json`
-# exists. Its targets belong to the commit that creates it — writing them now
-# would mean shipping recipes nobody can run.
+# The frontend block of `local-gates` is live once `web/package.json` exists,
+# which it now does. `web-gates` runs it, from $(WEB_DIR), and prints a report
+# line of its own; that target below carries why the line is separate from the
+# one above rather than three more fields on it.
 
 GO_DIR  := service
+WEB_DIR := web
 BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates d8-claims fmt vet lint test build image clean
+.PHONY: help gates web-gates d8-claims fmt vet lint test build image clean \
+        web-install web-build web-lint web-test
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
 	@echo ''
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
+	@echo '  make web-gates  build, lint and test, all from $(WEB_DIR)/'
 	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
@@ -76,6 +80,11 @@ help:
 	@echo '  make build   all of $(GO_DIR)/cmd/..., into ./$(BIN_DIR)/'
 	@echo '  make image   container image $(IMAGE), context $(GO_DIR)/'
 	@echo '  make clean   remove ./$(BIN_DIR)/'
+	@echo ''
+	@echo '  make web-install  npm ci — the lockfile exactly, never re-resolved'
+	@echo '  make web-build  npm run build — tsc --noEmit, then vite build'
+	@echo '  make web-lint   npm run lint, warnings failing it too'
+	@echo '  make web-test   npm run test — vitest, one run, no watcher'
 
 # The five backend gates of `local-gates`, in its order.
 #
@@ -98,6 +107,77 @@ gates:
 	echo ''; \
 	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
 	exit $$rc
+
+# The three frontend gates of `local-gates`, in its order.
+#
+# Invoked rather than declared as prerequisites, and all three run after one
+# fails, for the reasons `gates` above already gives — same shape, same
+# argument, not restated.
+#
+# This prints a SECOND report line instead of three more fields on the first,
+# and that is the one design decision in this block. `local-gates` law 1's code
+# line names the single directory that decided which tree was measured, and a
+# run entering both $(GO_DIR) and $(WEB_DIR) has no such directory to name — so
+# whichever one a merged line printed would be false about half of it. There
+# is no frontend `fmt` or `vet` to derive those two fields from, and a single
+# merged `test:` could not say which stack was red. All three are the defect
+# the header describes — a field nothing measured — and `d8-claims` below is
+# kept out of that same line on exactly this argument.
+web-gates:
+	@rc=0; \
+	if $(MAKE) --no-print-directory web-build; then r_build='SUCCESS'; else r_build='FAIL'; rc=1; fi; \
+	if $(MAKE) --no-print-directory web-lint;  then r_lint='0';        else r_lint='FAIL';  rc=1; fi; \
+	if $(MAKE) --no-print-directory web-test;  then r_test='PASS';     else r_test='FAIL';  rc=1; fi; \
+	echo ''; \
+	echo "dir: $(WEB_DIR) | build: $$r_build | lint: $$r_lint | test: $$r_test"; \
+	exit $$rc
+
+web-build:
+	cd $(WEB_DIR) && npm run build
+
+# --max-warnings 0 is what earns the `0` field above, and without it that field
+# would be the header's forbidden one: a count nothing counted.
+#
+# The backend's `0` is golangci-lint's exit status, which it earns by exiting
+# nonzero on any issue at all. eslint does not, and the difference is not
+# theoretical here: `web/eslint.config.js` sets its own rules to error, but the
+# shared configs it extends bring warn-level rules with them, so a warning here
+# is reported on a run that still exits 0. Measured 30 August 2026, eslint
+# 10.9.1: 8 files linted, 0 errors and 0 warnings, exit 0 both bare and under
+# --max-warnings 0, with 3 warn-level rules live in the effective config for
+# src/App.tsx and none of them firing. So the flag changes no exit status on
+# this tree today, which is exactly when it has to already be in the recipe:
+# the first warning is not the moment anyone remembers to add it.
+#
+# This comment recorded one warning and exit 1 under the flag until 30 August
+# 2026. That figure did not survive re-measurement; it is corrected rather than
+# dropped, because the field above is a count and a count is worth only the run
+# that is on record for it.
+#
+# So a bare `npm run lint` is both a wrong field and a wrong gate. `local-gates`
+# puts this gate's threshold at zero ISSUES rather than zero errors, and the
+# flag is what makes the exit status test the threshold that was documented.
+web-lint:
+	cd $(WEB_DIR) && npm run lint -- --max-warnings 0
+
+# vitest, one run and no watcher, which is what makes it usable as a gate; the
+# script is `vitest run` and the recipe adds nothing. It exits nonzero when it
+# finds no test files, so this gate cannot pass having run nothing.
+web-test:
+	cd $(WEB_DIR) && npm run test
+
+# The lock-honoring install, and the only one this repository sanctions.
+#
+# `npm install` re-resolves the ^ ranges in package.json and may write a new
+# package-lock.json, replacing the reviewed dependency set — integrity hashes
+# and all — with one nothing has looked at, in a file the run itself edits.
+# `npm ci` installs exactly what the lock pins and fails when the lock and the
+# manifest disagree, so the tree the gates above measure is the tree review saw.
+#
+# Not a prerequisite of `web-gates`: that would reinstall on every gate run.
+# This is the step for a fresh checkout, and for after the lock changes.
+web-install:
+	cd $(WEB_DIR) && npm ci
 
 # `local-gates § Documentation gates` gate 2, for the one fact this repository
 # has already had restated thirteen times: what a Go command does when it is
