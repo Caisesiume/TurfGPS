@@ -425,21 +425,22 @@ cmd_claim() {
 # exists. A pause does not block it: in-flight work completes.
 # ---------------------------------------------------------------------------
 cmd_verdict() {
-  [ $# -ge 4 ] || usage_die 'verdict <pr> <sha> <lane> <verdict> [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]'
+  [ $# -ge 4 ] || usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]'
   PR="$(norm_pr "$1")"     || usage_die 'verdict <pr> … — <pr> must be digits'
   SHA="$(norm_sha "$2")"   || usage_die 'verdict <pr> <sha> … — <sha> must be 7-40 hex'
   LANE="$(norm_lane "$3")" || usage_die 'verdict <pr> <sha> <lane> … — <lane> must be [a-z0-9._-]'
   V="$(scrub "$4")"
   [ -n "$V" ] || usage_die 'verdict <pr> <sha> <lane> <verdict> — <verdict> may not be empty'
   shift 4
-  conf="-"; findings="-"; artifact="-"; note="-"
+  conf="-"; findings="-"; artifact="-"; note="-"; by=""
   while [ $# -gt 0 ]; do
     case "$1" in
+      --by)                [ $# -ge 2 ] || usage_die 'verdict … --by <who>';     by="$(scrub "$2")";       shift 2 ;;
       --conf|--confidence) [ $# -ge 2 ] || usage_die 'verdict … --conf <x>';     conf="$(scrub "$2")";     shift 2 ;;
       --findings)          [ $# -ge 2 ] || usage_die 'verdict … --findings <n>'; findings="$(scrub "$2")"; shift 2 ;;
       --artifact)          [ $# -ge 2 ] || usage_die 'verdict … --artifact <ref>'; artifact="$(scrub "$2")"; shift 2 ;;
       --note)              [ $# -ge 2 ] || usage_die 'verdict … --note <text>';  note="$(scrub "$2")";     shift 2 ;;
-      *) usage_die 'verdict <pr> <sha> <lane> <verdict> [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]' ;;
+      *) usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]' ;;
     esac
   done
   say_table
@@ -489,6 +490,34 @@ cmd_verdict() {
   unclaimed=false
   [ -d "$row/holder" ] || unclaimed=true
   holder_owner="$(field owner "$row/holder/row")"
+
+  # WHO FILED IT, AS DISTINCT FROM WHO HELD IT.
+  #   `owner:` is copied out of the claim, so before `--by` existed a verdict
+  #   written by anyone at all was attributed of record to the claimant, and the
+  #   writer's identity was not merely unrecorded but unrecordable — there was
+  #   no flag to carry it. A courier filing into a lane held by someone else
+  #   produced a row reading `verdict / owner: <the reviewer that never ran>`,
+  #   exit 0, panel complete, synthesise. `unclaimed` never fired, because it
+  #   only fires when NO holder exists — so the likely case was the silent one.
+  #   That is #140's ledger-corruption class inside the mechanism built to close
+  #   it, and the mechanism cannot close it while the two identities are one
+  #   field.
+  #
+  #   Four values, each meaning exactly one thing, because conflating them is
+  #   how the field stops being evidence:
+  #     false        checked, and the filer is the holder
+  #     true         checked, and they differ — the anomaly, reported at 12
+  #     unrecorded   no `--by` was passed, so nothing could be checked
+  #     no-holder    there is no claim row to check against; see `unclaimed`
+  #   `unrecorded` is not a pass. It is the row saying its own writer is unknown,
+  #   which is strictly more than the old row said and is the audit signal when
+  #   a caller has not been taught to pass `--by` yet.
+  mismatch=unrecorded
+  if [ "$unclaimed" = true ]; then
+    mismatch=no-holder
+  elif [ -n "$by" ]; then
+    if [ "$by" = "$holder_owner" ]; then mismatch=false; else mismatch=true; fi
+  fi
   {
     printf 'lane: %s\n'     "$LANE"
     printf 'pr: %s\n'       "$PR"
@@ -499,6 +528,8 @@ cmd_verdict() {
     printf 'artifact: %s\n' "$artifact"
     printf 'note: %s\n'     "$note"
     printf 'owner: %s\n'    "${holder_owner:--}"
+    printf 'filed_by: %s\n' "${by:-unrecorded}"
+    printf 'attribution_mismatch: %s\n' "$mismatch"
     printf 'unclaimed: %s\n' "$unclaimed"
     printf 'ruled_at: %s\n' "$NOW"
   } > "$stage/row" 2>/dev/null || {
@@ -512,11 +543,20 @@ cmd_verdict() {
   if commit_staged "$stage" "$row/verdict.d"; then
     printf 'verdict: recorded\nlane: %s\npanel: pr-%s @ %s\nruling: %s\nruled_at: %s\n' \
       "$LANE" "$PR" "$SHA" "$V" "$NOW"
+    printf 'filed_by: %s\n' "${by:-unrecorded}"
+    # Durable first, loud second. Refusing either of these would lose a verdict
+    # to enforce a rule about dispatch, which is the wrong trade; both anomalies
+    # are recorded in the row and reported nonzero so the caller cannot miss
+    # them. Both are 12 and neither is new: 12 has always meant "the claim does
+    # not cover this verdict — recorded anyway, flagged". They cannot co-occur,
+    # a mismatch requiring the holder whose absence is the other.
     if [ "$unclaimed" = true ]; then
-      # Durable first, loud second. Refusing here would lose a verdict to enforce
-      # a rule about dispatch, which is the wrong trade; the anomaly is recorded
-      # in the row and reported nonzero so the caller cannot miss it.
       printf 'anomaly: no claim row covered this lane — the verdict is stored and flagged `unclaimed`\n'
+      exit 12
+    fi
+    if [ "$mismatch" = true ]; then
+      printf 'anomaly: filed by %s, but the lane is held by %s — the verdict is stored and flagged `attribution_mismatch`\n' \
+        "$by" "${holder_owner:--}"
       exit 12
     fi
     exit 0
