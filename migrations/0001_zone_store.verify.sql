@@ -140,8 +140,9 @@ BEGIN
 
     IF gen IS DISTINCT FROM 's' THEN
         RAISE EXCEPTION
-            'zone.geom is not a STORED generated column (attgenerated=%). The axis order has moved back into the write path, where it is written thousands of times instead of once, and the coordinate guard is no longer a backstop but the only defence.',
-            coalesce(gen::text, 'none');
+            'zone.geom is not a STORED generated column (attgenerated=%). The POINT''S axis order — ST_MakePoint''s X-then-Y — is no longer declared once in DDL: whatever writes the row now supplies the point itself, per row, and can invert it there.',
+            coalesce(gen::text, 'none')
+            USING HINT = 'That is the point''s CONSTRUCTION, and it is the only half of the question this check reaches. Nothing in this file closes the write-path axis question: which value is bound to the `latitude` column and which to `longitude` is decided in the write path whether `geom` is generated or not, and is pinned in Go by `TestEveryColumnIsLoadedFromItsOwnField` in `service/internal/syncstore/columns_test.go`. See the note above part D and `Architecture.md § What the DDL cannot reach`.';
     END IF;
 
     IF typ <> 'geography(Point,4326)' THEN
