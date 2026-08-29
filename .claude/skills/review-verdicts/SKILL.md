@@ -1,6 +1,6 @@
 ---
 name: review-verdicts
-description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
+description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit; and the obligation to record that verdict into its own claim-table row before the pass ends. Load alongside `agent-handoffs` before returning any review verdict.
 ---
 
 # Review verdicts — the schema and the evidence law
@@ -42,6 +42,32 @@ evidence: |
 Return decision-relevant data only. Deep internal analysis is welcome; only its conclusions enter the parent's context.
 
 **Every finding a reviewer files will be resolved by the judge into exactly one of five outcomes** — `required_change` · `accepted_risk` · `invalid_finding` · `future_work` · `informational`. A reviewer does not resolve its own findings, but knowing the vocabulary changes how it writes them: a finding filed as though everything must block is a finding the judge has to reclassify, and one filed as a passing remark is one that disappears. The five are defined in `docs/DELIVERY.md § Findings and their owners`.
+
+## Record your verdict into its row before your pass ends
+
+**Return the verdict above to `@pr-judge`, and record it into the claim table first.** The return value is the convenience; the row is the record. A pass that ends holding a verdict only in its own context has produced nothing a dead parent can collect, which is the stranding class issue #144 records — and it is why the row comes first rather than after.
+
+```bash
+scripts/loop/claim.sh verdict <pr> <sha> <lane> <ruling> \
+  --conf <x> --findings <n> --artifact <where the full verdict is>
+```
+
+`<ruling>` is the verdict word from `§ Reviewer verdict` above; the table enforces no vocabulary of its own, so a word this skill does not define is a word nothing will refuse. **The dispatch carries the other three arguments** — PR number, head SHA, and your lane name — per `review-board-dispatch § The case file (same for every reviewer) — references, not content`. A dispatch that does not carry them convened you outside the table: record what you can, and say so in your verdict rather than guessing a panel key.
+
+**This obligation lives here and in no agent file.** Every convened reviewer already loads this skill, and stating it in each reviewer definition instead would create two dozen copies to keep true; a reader looks in one place. What a reviewer supplies of its own is its lane name and its ruling.
+
+**Branch on the exit status; never parse the prose.** The full set and what each code means are in the header of `scripts/loop/claim.sh`. These are the ones a reviewer meets, and what each one obliges:
+
+| Status | What you do |
+|---|---|
+| **0** recorded | Nothing further. The ruling is of record and survives your process. |
+| **10** already ruled | **Stop. Do not retry and do not overwrite.** A ruling for your lane at this SHA already stands and stays of record; report the collision in your envelope. |
+| **12** recorded, unclaimed | The ruling is durable and no claim row covered your lane — you were dispatched without a claim, which is a defect in the dispatch. Name it in your envelope. |
+| **2** NOT recorded | The table did not take it. **Carry the whole verdict in your handoff** and say plainly that the table does not hold it. |
+
+**Record before you report, not after.** The order is the entire mechanism: a row written before the pass ends survives a parent that never reads the return value, and `agent-handoffs § An outstanding continuation is not left behind` is the general form of the same obligation.
+
+**Recording is not ruling a second time.** The row carries the ruling, the confidence, the finding count, and a reference to where the full verdict lives. The findings themselves stay in the verdict you return — the table holds no analysis and adjudicates nothing.
 
 ## A reviewer does not accept a claim it could check
 
