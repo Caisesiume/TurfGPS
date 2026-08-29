@@ -111,7 +111,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	stopSync, err := startZoneSync(ctx)
+	stopSync, err := startZoneSync(ctx, stop)
 	if err != nil {
 		slog.Error("the zone sync is configured and could not start", "error", err)
 		os.Exit(1)
@@ -131,16 +131,30 @@ func main() {
 
 	// Called explicitly rather than deferred: the exit below skips defers, and
 	// the whole purpose of this call is to let the sync's own shutdown finish.
-	stopSync()
+	syncDied := stopSync()
 
 	if serveErr != nil {
 		slog.Error("service stopped", "error", serveErr)
 		os.Exit(1)
 	}
+
+	// A sync that ended on its own took this process down with it, and the exit
+	// status is the only part of that a supervisor reads. Zero here would report
+	// the shutdown that just happened as the ordinary one — the drain completed,
+	// so every field of it looks ordinary — and a runtime restarting only on
+	// failure would leave the image running with no sync in it and a route that
+	// answers 200 regardless. The log line above says what happened; this is what
+	// makes something act on it.
+	if syncDied {
+		slog.Error("this process is exiting nonzero because its zone sync is gone, so that a supervisor replaces it")
+		os.Exit(1)
+	}
 }
 
 // startZoneSync starts the background job of `FR-022` and returns the function
-// that waits for it to stop.
+// that waits for it to stop. That function reports whether the sync ended on its
+// own rather than because it was asked to, which is the difference between a
+// shutdown and a casualty and is not otherwise visible from outside.
 //
 // THIS IS THE COMPOSITION ROOT AND THE ONLY PLACE THE SYNC IS WIRED. The ports
 // it satisfies are declared by `internal/zonesync`, and the adapters that
@@ -157,7 +171,7 @@ func main() {
 // function does not force it: a database that is down delays the copy's next
 // refresh, and `FR-022` AC2 is precisely the requirement that no such failure
 // reaches a request.
-func startZoneSync(ctx context.Context) (func(), error) {
+func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, error) {
 	cfg, err := config.LoadZoneSync(os.LookupEnv)
 	if err != nil {
 		return nil, err
@@ -167,7 +181,9 @@ func startZoneSync(ctx context.Context) (func(), error) {
 		slog.Info("no zone sync is configured, so the local zone copy will not be refreshed",
 			"configure", config.EnvDatabaseURL+", "+config.EnvAllZonesURL+" and "+config.EnvInterval)
 
-		return func() {}, nil
+		// False rather than true: a sync that was never started has not died,
+		// and this is the configuration `NFR-003` measures the image in.
+		return func() bool { return false }, nil
 	}
 
 	pool, err := zonestore.Open(ctx, cfg.DatabaseURL)
@@ -184,6 +200,14 @@ func startZoneSync(ctx context.Context) (func(), error) {
 
 	stopped := make(chan struct{})
 
+	// died is written by the goroutine below and read by the waiter returned at
+	// the end, and the two are ordered by the close of stopped: every write to
+	// it happens in a frame the deferred close is registered before, so the
+	// close cannot run until they are done. The waiter reads it only on the
+	// branch that saw that close — the timeout branch reads nothing, and has
+	// nothing to read, because a sync that has not stopped has not died.
+	var died bool
+
 	go func() {
 		defer close(stopped)
 
@@ -197,28 +221,53 @@ func startZoneSync(ctx context.Context) (func(), error) {
 		// in the job whose own package doc says it is off the request path
 		// INCLUDING WHEN IT FAILS.
 		//
-		// So it costs the sync and not the service. The loop is gone until a
-		// restart, which is the end Run returning an error already reaches, and
-		// it is handled the same way: say so loudly, keep serving. The stack is
-		// worth capturing because a panic raised outside runOnce has been logged
-		// nowhere else, and it is still readable here: the runtime unwinds to
-		// this frame when this deferred call RETURNS, not when recover returns,
-		// so the panicking frames are on the stack for the whole of it.
+		// RECOVERING IS NOT THE SAME AS SURVIVING, AND THE FIRST VERSION OF THIS
+		// TRADED ONE FAILURE FOR A QUIETER ONE. Keeping the process up after this
+		// loop is gone keeps nothing that matters: nothing here restarts it, the
+		// request surface is one static route that answers 200 whether the copy
+		// is minutes or months stale, and the log line below is the entire
+		// signal. That is a service reporting healthy while the only thing it
+		// was doing has stopped — indefinitely, and invisibly to anything that
+		// polls it — where an ordinary crash would at least have been replaced
+		// by a supervisor within seconds.
+		//
+		// So the root context is cancelled instead. serve returns, drains what is
+		// in flight rather than severing it, and main exits nonzero so a
+		// supervisor puts a live sync back. The panic still costs this process;
+		// what it no longer costs is the in-flight requests, which is the whole
+		// of what recovering here buys. The stack is worth capturing because a
+		// panic raised outside runOnce has been logged nowhere else, and it is
+		// still readable here: the runtime unwinds to this frame when this
+		// deferred call RETURNS, not when recover returns, so the panicking
+		// frames are on the stack for the whole of it.
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				slog.Error("the zone sync panicked, so it will not run again before a restart",
+				died = true
+
+				slog.Error("the zone sync panicked, so this process is stopping rather than serving on without it",
 					"panic", recovered, "stack", string(debug.Stack()))
+
+				stop()
 			}
 		}()
 
+		// Run is declared to return an error and returns nil on every path it
+		// has. The branch is kept because the signature is the port's and not
+		// this file's to narrow, and it is treated as the panic above is rather
+		// than justifying it: a loop that has ended is a loop that has ended,
+		// however it says so.
 		if err := scheduler.Run(ctx); err != nil {
-			slog.Error("the zone sync stopped", "error", err)
+			died = true
+
+			slog.Error("the zone sync stopped, so this process is stopping rather than serving on without it", "error", err)
+
+			stop()
 		}
 	}()
 
 	slog.Info("the zone sync is running", "interval", cfg.Interval)
 
-	return func() {
+	return func() bool {
 		select {
 		case <-stopped:
 		case <-time.After(syncStopTimeout):
@@ -234,10 +283,16 @@ func startZoneSync(ctx context.Context) (func(), error) {
 				"budget", syncStopTimeout,
 				"consequence", "a run in flight is left at running, and the next attempt waits out the interval on it rather than fetching")
 
-			return
+			// False on this branch, and it is a statement about what was
+			// observed rather than a guess: the sync has not stopped, so it
+			// has not ended on its own, and this process is leaving for a
+			// reason that was already decided before the wait began.
+			return false
 		}
 
 		pool.Close()
+
+		return died
 	}, nil
 }
 
