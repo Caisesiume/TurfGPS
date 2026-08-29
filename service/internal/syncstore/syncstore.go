@@ -101,13 +101,15 @@ const syncAdvisoryLockKey int64 = 20260820
 // and the four lists inside the merge — and exactly one of those pairings had to
 // agree by POSITION rather than by name: the staging list is what COPY is given,
 // and the row builder supplied values in the order it hoped that list was in.
-// Swap two columns between them and the compiler accepts it, pgx accepts it,
-// PostgreSQL accepts it, and the first thing to notice is a zone whose area name
-// is its region name. Which crossings the compiler accepts, and what these
-// columns' Go types do and do not decide about that, is stated in the header of
-// `columns_test.go` and is not restated here. Naming the column beside its
-// accessor makes that swap unwriteable; deriving the other five lists from this
-// one slice makes them unable to disagree at all.
+// Swap two columns between them and the compiler accepts it. Cross two
+// columns the database will take from each other — area_name with
+// region_name — and pgx accepts it, PostgreSQL accepts it, and the first thing
+// to notice is a zone whose area name is its region name. Which crossings the
+// compiler accepts, and what these columns' Go types do and do not decide
+// about that, is stated in the header of `columns_test.go` and is not
+// restated here. Naming the column beside its accessor makes that swap
+// unwriteable; deriving the other five lists from this one slice makes them
+// unable to disagree at all.
 type zoneColumn struct {
 	name  string
 	value func(zonesync.Zone) any
