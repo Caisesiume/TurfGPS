@@ -298,6 +298,10 @@ The ports:
 | `TurfClient` | Player rank, held zones, region lords, zone sync | Turf API v5 |
 | `PlanStore` | Short-code plan persistence and expiry | PostGIS |
 | `Geocoder` | Address, place, and zone-name resolution | Self-hosted; zone names local |
+| `ZoneSyncStore` | The synced zone copy's write path: staging, the staging assertions, the merge, and the run record | PostGIS |
+| `ZoneSyncLock` | The exclusive lock one refresh holds for its duration, and that a migration touching `zone` takes | PostgreSQL advisory lock |
+
+**The last two are the zone sync's, and they are separate from `ZoneRepository` on purpose.** `ZoneRepository` is the read side, which a request may reach; the write side sits behind ports of its own so that no package reachable from the request surface reaches the sync worker at all. They arrived with the scheduled sync as `zonesync.Store` and `zonesync.Locker`, declared by the worker rather than by either adapter, and what each of them must do is *§ The sync write path* and *§ Migrating against a running sync* rather than anything stated here.
 
 The requirement this places on the rest of the system is that **every consumer of external data must tolerate varying quality**, because coverage differs between one part of a route and another. That is already true of the confidence model under *Terrain confidence* in `SPECIFICATION.md`, which extends naturally to provenance: a stop analysed against a two-metre national elevation model is more confident than one analysed with a global thirty-metre model, and the recommendation must say so.
 
@@ -482,7 +486,7 @@ The widths are measured, not guessed. `id` runs 71 to 811,670 and fits `integer`
 
 `currentOwner` and `dateLastTaken` are absent from every one of the 154,845 records. There are therefore **no columns for them**, and there must never be: they are round-scoped, per *§ Volatile and optional fields*, and a synced table that acquires a round-scoped column acquires a rollover problem it currently does not have.
 
-Documenting that is not enough, because the failure is an *addition* made later by someone who has not read this paragraph. The mechanism is a **set-equality test** over the live catalogue, run in CI against a migrated copy:
+Documenting that is not enough, because the failure is an *addition* made later by someone who has not read this paragraph. The mechanism is a **set-equality test** over the live catalogue, against a migrated copy:
 
 ```sql
 SELECT array_agg(column_name ORDER BY column_name)
@@ -501,6 +505,8 @@ region_name, takeover_points, total_takeovers, type_id
 Equality in **both** directions is the whole design, and the direction that matters is the unusual one. A test asserting *these columns exist* cannot fail when a column is added, and a column being added is precisely the event being guarded against. A test asserting *no more than these exist* fails the moment `current_owner` appears, with a message naming it. The other direction catches the opposite drift: a field the sync writes that has quietly lost its column.
 
 That is also why the column list above is worth reading carefully. It is not documentation of the table; it is the assertion, and the table is checked against it.
+
+**The test exists and nothing runs it automatically**, which corrects what this paragraph claimed until 29 August 2026. It is part A of `migrations/0001_zone_store.verify.sql`, run by an operator against a migrated copy per *migrations/README.md § Applying one*. There is no pipeline in this repository to run it in: *DEPLOYMENT.md § Still owed by this document* owes the one that must, and naming CI before that exists named nothing.
 
 ### The region hierarchy is not a tree
 
@@ -549,7 +555,7 @@ The test exists anyway, because the one line may be wrong.
 
 **A range check is not that test, and the corpus says why.** Under a table-wide swap, `CHECK (latitude BETWEEN -90 AND 90)` fires only on rows whose true longitude exceeds 90°. That is **5,982 rows — 3.86%** of the corpus, and all of them are in Korea (1,884), the United States (1,744), Japan (1,362), Australia (299), Thailand (163), New Zealand (152), China (87) and Canada (56). **In all six primary markets of *§ D5* — Sweden, the UK, Germany, Norway, Denmark and Finland — the number of rows a latitude range check would catch is zero.** Swedish longitudes run 10.99° to 24.17°; British, 0.00° to 8.57°. A developer writing a fixture from Nordic data — which is what a Turf developer writes, and what the prototype used — gets a check that cannot fail. For **96.14%** of the corpus a swapped coordinate is still a coordinate PostGIS accepts without complaint.
 
-**The guard is three assertions, run in CI against a migrated copy.** It uses two real zones from the corpus, with the expected distances computed independently by Vincenty on the WGS84 spheroid.
+**The guard is three assertions, against a migrated copy.** It uses two real zones from the corpus, with the expected distances computed independently by Vincenty on the WGS84 spheroid.
 
 *Assertion 1 — a known distance.* Zone `8240` **VonScheeles** (59.346932, 18.021527) and zone `119704` **StGravkoret** (59.354872, 18.029727) are **1000.0006 m** apart. `ST_Distance(a.geom, b.geom)` must equal that to within 1 mm. The pair was chosen for being almost exactly a kilometre apart, because a fixture whose expected value is memorable is a fixture someone will notice has changed.
 
@@ -558,6 +564,8 @@ The test exists anyway, because the one line may be wrong.
 *Assertion 3 — the fixture is capable of failing.* Swapping the fixture's own coordinates must change the computed distance by more than the tolerance. For the pair above the swap gives **1237.1695 m**, a factor of **1.2372**. Without this assertion the guard can be silently defanged by someone substituting a better-looking pair — and the corpus contains **27 zones whose latitude and longitude are within one degree of each other**, any of which would make assertions 1 and 2 pass under a swap. A test that does not check it can fail is a test that reports success either way.
 
 Two further things that fixture pins, both silent failures otherwise. That 1.2372 factor is the danger expressed as one number: **a coordinate swap in Stockholm produces a distance 24% too large — not an absurdity, a plausible figure.** Nothing in a log would look wrong. And `ST_Distance(geography, geography)` defaults to the spheroid; passing `false` for `use_spheroid` selects a sphere and returns **997.7710 m** for the same pair, off by 2.23 m or 0.223%. On the long leg — zone `8226` **Riksgatan** to zone `346` **QueensPark**, **398,139.0284 m** — the sphere is off by 1,264 m, 0.318%. A millimetre tolerance means the fixture pins the spheroid setting too, at no extra cost.
+
+**All three exist and nothing runs them automatically**, on the same correction the section above carries and for the same reason. They are part C of `migrations/0001_zone_store.verify.sql`, with part D applying assertion 2 to every row actually stored, and an operator runs them per *migrations/README.md § Applying one*.
 
 ### The indexes
 
@@ -685,6 +693,8 @@ CREATE TABLE IF NOT EXISTS sync_run (
 
 **`running` is not a terminal outcome, and it is in the vocabulary because a crashed worker writes nothing.** The row is inserted when the run starts, carrying `started_at` and `running`, and updated once at whatever end the run reaches. A worker killed between those two writes leaves a row stuck at `running`, which says *a run started here and died*; a schema that only ever wrote the row at the end would leave no row at all, and a run that died would be indistinguishable from a run that never happened. The four terminal values divide the ends a worker can reach and report: `ok`, merged; `http_error`, the response was unusable, with `http_status` and `response_bytes` separating a refused request from a body that would not parse; `assertion_failed`, the staging assertions rejected it and nothing was merged; `aborted`, anything else, including a database error during the merge and a run cancelled at shutdown. Only `started_at` and `outcome` are `NOT NULL`, which is what keeps a run that failed before it received anything recordable at all.
 
+**Telling a row left at `running` from a run still in flight is the advisory lock's job, and it costs nothing to ask.** A run holds the lock *§ Migrating against a running sync* requires of it at session level for the whole of its duration, and PostgreSQL releases a session-level advisory lock when the backend holding it dies — so `pg_locks` answers *is any run in flight*, with no heartbeat column, no lease, and no timeout for anyone to choose. With no holder, every row reading `running` is a run that died. With a holder, the newest such row is the live run and every older one is not, because the lock admits one run at a time. That is the whole of the operator procedure, and it is why `running` needs nothing beside it in the table: the disambiguator was already there, taken for a different reason.
+
 There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows every thirty minutes — roughly 23 MB of dead tuples per run, forty-eight runs a day, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
 
 ### Absence is recorded and never acted on
@@ -805,7 +815,7 @@ Ten things. The first is the one that matters most, and it disqualifies this sec
 
 Also outside it: the elevation surface, which cannot be designed until *§ D6* settles between `godal` and PostGIS raster; solve-session residency, which is an open question this document already carries and which decides whether unconfirmed sessions touch the database at all; connection pooling, and any role beyond the single `app_role` named above; and backup, restore and retention of the database itself as distinct from the plans inside it.
 
-And finally, this is a design and not a migration. **The DDL is written next, and it is its own reviewable item** — idempotent, with a documented rollback, applied by nobody without explicit human authorisation, against a database that does not yet exist.
+And finally, this is a design and not a migration. **The DDL is no longer owed: it was written as its own reviewable item and it exists** — `migrations/0001_zone_store.sql`, idempotent, with a documented rollback beside it and a verify script that makes it falsifiable. It has still been applied by nobody, and against a database that still does not exist; what that leaves unmet is `migrations/README.md`'s to state, under *migrations/README.md § State of proof*, and is not restated here.
 
 ---
 
