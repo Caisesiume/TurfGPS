@@ -27,8 +27,10 @@
 #   10  REFUSED   the lane is already held, or already ruled; or the panel is not
 #                 complete yet. An expected, ordinary "no".
 #   11  PAUSED    new claims are paused. Rows already held may still record.
-#   12  NO_ROW    nothing was claimed here — no such panel or lane; or a verdict
-#                 arrived for a lane no claim covers (recorded anyway, flagged).
+#   12  NO_ROW    nothing was claimed here — no such panel, lane or manifest; or
+#                 the claim does not cover the verdict that arrived (recorded
+#                 anyway, flagged): no claim at all, or one held by someone
+#                 other than the filer.
 #   2   DEGRADED  state could not be read, written, or locked.
 #   64  USAGE     malformed arguments. Nothing was read and nothing was written.
 #
@@ -42,12 +44,18 @@
 #   the table holds it. Silent success is the direction that loses work; it is
 #   never taken by either.
 #
-# THE ATOMIC PRIMITIVE
+# THE ATOMIC PRIMITIVES
 #   A claim is `mkdir` of one directory. The kernel decides the winner, not a
 #   read followed by a write, so two concurrent claimants on one lane at one SHA
 #   produce exactly one 0 and one 10. There is no window between the test and the
 #   set because there is no test. This holds on Git Bash for Windows, where the
 #   call lands on CreateDirectory, which fails when the name exists.
+#
+#   A RECORD — a verdict, a manifest — is committed by renaming the directory
+#   that already holds it onto the name readers test for, so the name cannot
+#   exist without its payload. Same kernel decision, same absence of a window,
+#   and additionally no half-written state for an interruption to leave behind.
+#   `commit_staged` below is the one place that primitive lives.
 #
 # STATE
 #   .claude/state/review-claims/ — inside the `/.claude/state/` entry .gitignore
@@ -1040,19 +1048,33 @@ is durable the instant it exists. No LLM, no network, no judgement.
           Take the lane atomically. 0 granted — dispatch it. 10 held or already
           ruled — do NOT dispatch. 11 paused. 2 degraded, refused.
 
-  verdict <pr> <sha> <lane> <ruling> [--conf <x>] [--findings <n>]
+  verdict <pr> <sha> <lane> <ruling> [--by <who>] [--conf <x>] [--findings <n>]
                                      [--artifact <ref>] [--note <text>]
           Record the ruling into the lane's own row, once. 0 recorded. 10 already
-          ruled, the first stays of record. 12 recorded but no claim covered it.
+          ruled, the first stays of record. 12 recorded but the claim does not
+          cover it — no claim at all, or one held by someone other than --by.
           2 NOT recorded — carry it in your handoff. A pause does not block this.
+          Pass --by: without it the row records `filed_by: unrecorded`, which is
+          the row saying its own writer is unknown.
 
   release <pr> <sha> <lane> --reason <text>
-          Hand a stranded claim back so the lane can be re-dispatched. 0 done.
-          10 the lane already ruled. 12 nothing was held. 2 degraded.
+          Hand a stranded claim back so the lane can be re-dispatched, and clear
+          a ruling that was interrupted mid-write. 0 done. 10 the lane has ruled
+          — a readable verdict is finished, not stranded. 12 nothing was held
+          and nothing needed clearing. 2 degraded.
+
+  manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]
+          With --lanes, record the selected lane set, once: `complete` then
+          means complete against it. 0 recorded. 10 already recorded, the first
+          stays of record. 64 a malformed lane — nothing is written. 2 degraded.
+          Without --lanes, read it back. 0 present · 12 this panel has none.
 
   status  <pr> <sha> [lane]
           The panel. 0 complete — synthesise. 10 lanes outstanding. 12 no rows.
-          2 degraded.
+          2 degraded. With a <lane> it also prints `lane_state:`, one of
+          ruled · claimed · ruling-incomplete · free · never-claimed — three of
+          those return 10 and have three different remedies, so branch on that
+          field rather than on the sentence beside it.
 
   list    [pr]                Every panel, or one PR's. 0 always, 2 degraded.
   pause   [--reason <text>]   No new claims. Held lanes still record. 0.
@@ -1066,8 +1088,11 @@ same row and not two. A <pr> sheds leading zeros for the same reason. Both are
 echoed back canonical, so the reply names the panel you actually joined.
 
 Exit codes: 0 OK · 10 REFUSED · 11 PAUSED · 12 NO_ROW · 2 DEGRADED · 64 USAGE.
-Every ambiguous state refuses. State lives under .claude/state/review-claims/;
-CLAIM_TABLE_DIR overrides the location.
+Every ambiguous state refuses. State lives under .claude/state/review-claims/
+beside the repository's common git directory, so every worktree of one checkout
+resolves ONE table; CLAIM_TABLE_DIR overrides the location. Every verb echoes
+the table it resolved as its first line — if two agents disagree about a panel,
+compare those before anything else.
 HELP
   exit 0
 }
