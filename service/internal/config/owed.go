@@ -31,9 +31,16 @@ import (
 // it does, the first consumer of one of these constants cannot reach its value
 // through this registry and must name the variable itself at the point of use —
 // the copied name this file argues against — and a typo there leaves
-// RequireOwed green while the check it feeds runs against nothing. That is
-// `FR-091`'s own recorded Risk and it is open: this type binds the names a
-// deployment must supply and binds no consumer that reads them.
+// RequireOwed green while the check it feeds runs against nothing.
+//
+// That is the failure SHAPE `FR-091`'s Risk describes — a check that does not
+// fail but silently never runs — and it is not that Risk. Its antecedent is a
+// constant left unset, and on this route the value is configured and RequireOwed
+// is right to pass; nothing FR-091 states is violated and no refusal it asks for
+// is owed. So this is an adjacent hazard that FR-091 does not reach, and it
+// stays open until #51 gives a consumer a way to read a value without naming the
+// variable itself: this type binds the names a deployment must supply and binds
+// no consumer that reads them.
 type owedConstant struct {
 	// documentedName is the constant's name exactly as the cited section
 	// records it. It is what binds this registry to that section — see
@@ -64,8 +71,15 @@ type owedConstant struct {
 // there, and `docs/` sits outside this module where go:embed cannot reach. What
 // keeps the list honest is instead `owed_corpus_test.go`, which reads the
 // section and goes red when the two disagree in either direction. So the class
-// is what binds, not a hand-written pair: a third constant added to that section
-// fails this package until it is added here.
+// is what binds, not a hand-written pair: a third constant recorded the way that
+// section records one — a bullet opening with its name in a bold span — fails
+// this package until it is added here, and one recorded as that same bullet
+// indented below column 0 is reported rather than dropped.
+//
+// The bullet is the limit of the claim and not an aside. A constant that section
+// came to record in some other shape entirely is outside what that test reads,
+// and this registry would not follow it; `owed_corpus_test.go` states what it
+// reads and where that reading stops.
 var owed = []owedConstant{
 	{
 		// Defined at
