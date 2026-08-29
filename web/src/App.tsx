@@ -43,7 +43,7 @@ export default function App() {
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-medium text-slate-500">Service</h2>
           <p className="mt-1 text-base">{describe(status)}</p>
-          <p className="mt-2 break-all font-mono text-xs text-slate-400">{apiBaseUrl}</p>
+          <p className="mt-2 break-all font-mono text-xs text-slate-500">{apiBaseUrl}</p>
         </section>
       </div>
     </main>
