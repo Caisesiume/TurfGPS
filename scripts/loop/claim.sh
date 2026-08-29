@@ -660,6 +660,29 @@ cmd_release() {
       printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
       exit 2
     }
+    # The readability test above is a read before a write, and the write it
+    # guards is the only one in this file that can move a RULING OF RECORD. A
+    # verdict committing in the same instant would land its payload into the
+    # directory between the two, and this call would carry a real ruling off to
+    # an audit row that `status` does not read. So the question is asked again
+    # after the move, when the rename has already serialised the two: whatever
+    # is in hand now is what was actually taken. A ruling goes back and the
+    # release refuses — the direction that never discards a verdict — and if it
+    # cannot go back the call says loudly where it left it rather than reporting
+    # a recovery that lost one.
+    if [ -r "$vdst/row" ]; then
+      if commit_staged "$vdst" "$row/verdict.d"; then
+        printf 'release: refused\nreason: ruled — a ruling landed while this call was clearing the lane\n'
+        printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+        printf 'of_record: %s\n' "$(field verdict "$row/verdict.d/row")"
+        exit 10
+      fi
+      printf 'release: refused\nreason: degraded — a ruling landed mid-release and could not be put back\n'
+      printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+      printf 'ruling_is_at: %s\n' "$vdst"
+      printf 'direction: the verdict is on disk and is NOT of record; do not re-dispatch this lane\n'
+      exit 2
+    fi
     { printf 'lane: %s\npr: %s\nsha: %s\n' "$LANE" "$PR" "$SHA"
       printf 'state: released-ruling-incomplete\n'
       printf 'note: a verdict directory with no readable row — a ruling interrupted mid-write\n'
