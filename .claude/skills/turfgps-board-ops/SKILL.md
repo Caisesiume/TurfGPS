@@ -224,6 +224,32 @@ Basis: FR-038 · `Architecture.md § Ports and adapters`
 - **`Soft dependency: #N — <one-line reason>`** is a **soft** edge: preferable order that **never blocks readiness**. No agent may read one as a gate.
 - **`Basis:`** is optional, at most one line per edge — requirement codes and `Document.md § Section` citations. Enough that a later agent can check the edge without recomputing the plan; not the reasoning that produced it.
 
+**Where the declared list begins and ends.** On a `Blocked by:` line the **declared** blockers are the run of `#N` references that **opens the line's content**, and the content starts after the label — which may carry **ornamentation**: punctuation, a bracketed aside, or a word naming what kind of reference follows. The run continues across **glue** — anything between two references that is punctuation and space, with or without the conjunction `and` — and it **ends at the first word**, because a word is where the reason begins; every `#N` past that word is prose, a reason being free to name any issue or pull request without gating on it. What ornamentation may **not** contain is the reason, and the reason begins at the **dash** — the `—` the form above uses, and its two other spellings `–` and `--` — so a line reaching a dash **before any reference** declares nothing at all, however many its reason names. Separators are deliberately **not** enumerated: the closed side of the split is the word, and enumerating five of them is what once dropped `#41` on this repo's own house separator (#138, `ADR-0003 § A6`).
+
+**The rule is enumerated, one row per shape, because prose could disagree with itself and did.** This was two paragraphs until 2026-08-29; three cycles of PR #147 each moved the boundary against one of them while the other went stale, so every repair was locally correct and globally a regression. Each row is pinned by a fixture in `scripts/loop/tests/dependents-declared-edges.sh`, named below, so a row cannot go stale without a test going red.
+
+| the `Blocked by:` line | declared | pinned by |
+|---|---|---|
+| `Blocked by: #7 · #41 — <reason>` | `7,41` | `#207` |
+| `Blocked by: #7 — #41 both must land` | `7,41` | `#221` |
+| `Blocked by: #37 — see #67` | `37` | `#222` |
+| `Blocked by issues #7 and #41` | `7,41` | `#215` |
+| `Blocked by: PR #67` | `67` | `#216` |
+| `Blocked by (see below): #7` | `7` | `#217` |
+| `Blocked by: none — superseded by PR #67` | *empty* | `#213` |
+| `Blocked by: none.` | *empty* | `#223` |
+| `Blocked by: superseded by PR #67` | `67` — **open, see below** | none |
+
+**Three rows carry a qualification, and each is stated here rather than left to be found.**
+
+- **The `#37 — see #67` row is pinned by `#222`, whose line reads `Blocked by: #41 — see #142`, and not by the live shape it is drawn from.** Every reference on live story `#136` and on fixture `#206` is already satisfied, so neither prints a list at all — they can assert only an absence, which both readings of the row share. `#222` is asked from `#41`, so the whole list prints, and `#142` is open: declaring the reference behind the dash puts it in the parentheses and reds the row.
+- **`#223` cannot be made to fail against today's parser, and that is a limit of the fixture rather than evidence it does not have.** The line carries no `#`, so no mutation of the awk can red it. It is there because the row exists and a row carrying no fixture is the defect this table replaces, and it pins the row against a parser that would declare an edge from the **label** — the only direction this shape has ever failed in.
+- **The last row is open and is named rather than left silent.** An empty declaration whose reason carries no dash is indistinguishable from ornamentation followed by a reference, so it reads as declaring `67`. Closing it means enumerating the ornament vocabulary — the enumeration this boundary was re-cut to be rid of. **As of 2026-08-29 no live line is of that shape**: of the 112 `Blocked by:` lines the script's own jq selection returns, exactly one carries a word between the label and its first reference, and that one is `#41`'s `Blocked by: none.`, which carries no reference at all. That is a live-board count with an as-of basis and not a bound on tomorrow.
+
+**Where the boundary is ambiguous it resolves toward more edges, never fewer**: an over-read blocker holds a story where someone can see it, an under-read one promotes it with nothing to look at. **The two empty rows are the one place that tie-break does not reach**, because there is no ambiguity to resolve — an edge read out of `none` is invented rather than over-read, and it holds the story **permanently**, a line reading `none` being one nobody ever comes back to revise. The plain ASCII hyphen is deliberately **not** a reason marker: it is ambiguous with hyphenation and with a separator, and ambiguity resolves toward more edges.
+
+`scripts/loop/dependents.sh` implements this table and cites this section rather than restating it.
+
 **Every edge carries a concrete reason**, because an edge nobody can verify is the edge nobody dares delete — which is how a backlog quietly becomes a serial chain.
 
 **A planned story with no edges says so: `No dependencies.`** New stories are filed with `_Pending @backlog-dependency-planner._` in this section, and **the placeholder is an explicit blocking state, not an empty graph** — unplanned is not unblocked. A story promotes only once the planner has replaced the placeholder, with edges or with `No dependencies.`; a placeholder that outlives its batch's planning pass is itself a `dependency_finding`.
@@ -234,7 +260,7 @@ Basis: FR-038 · `Architecture.md § Ports and adapters`
 
 *Ratified by directive 4 §8–§11 into `ADR-0003`.* A hard edge whose prerequisite is **successfully complete** is **satisfied**: it stops gating, and **its line stays in the body as provenance**. It still answers why B followed A, what capability B consumed, and what historically depended on A — which is what makes a later graph validation, an impact analysis, or a debugging pass possible at all.
 
-**Satisfaction is derived, never written.** No `satisfied:` flag, no strike-through, no rewritten line: an edge is satisfied exactly when its prerequisite issue is closed as completed, and that fact already lives in GitHub. A written mirror of GitHub state is the copy that goes stale silently and then gets believed — the same reason no agent here keeps a task list beside the board. `scripts/loop/dependents.sh` derives it deterministically, and **closed as `not planned` or as a duplicate is not completion** — such a prerequisite still blocks, and the mismatch is a `dependency_finding` rather than a promotion.
+**Satisfaction is derived, never written.** No `satisfied:` flag, no strike-through, no rewritten line: an edge is satisfied exactly when its prerequisite has landed — an **issue closed as completed**, or a **pull request merged** — and that fact already lives in GitHub. A declared blocker may be either kind: issue and pull-request numbers share one sequence, so a reference resolves to whichever it names (`ADR-0003 § A6`). A written mirror of GitHub state is the copy that goes stale silently and then gets believed — the same reason no agent here keeps a task list beside the board. `scripts/loop/dependents.sh` derives it deterministically, and **closed as `not planned` or as a duplicate is not completion, and neither is a pull request closed without merging** — such a prerequisite still blocks, and the mismatch is a `dependency_finding` rather than a promotion.
 
 **Removal is a different operation with a different owner.** An edge is removed **only by @backlog-dependency-planner**, and only when the *relationship itself* no longer holds — scope changed, architecture moved the boundary, the decomposition changed, the edge was wrong, the prerequisite is no longer required. That removal is recorded in the pass's `graph_update`. Deleting an edge because its prerequisite merged destroys provenance to record something already true; keeping an edge whose basis is gone gates work on a relationship nobody believes.
 
