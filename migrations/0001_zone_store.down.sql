@@ -30,11 +30,13 @@
 -- it here would take with it any spatial object created outside 0001 —
 -- including, with CASCADE, ones this migration never saw.
 --
--- NO INVALID INDEX TO CLEAN UP. 0001 builds its index inside the transaction
--- rather than concurrently, so there is no half-built index for this file to
--- drop. A later migration that uses CREATE INDEX CONCURRENTLY must carry that
--- drop in its own rollback, per
--- `Architecture.md § Migrating against a running sync`.
+-- NO INVALID INDEX TO CLEAN UP. 0001 builds all three of its indexes —
+-- `zone_geom_gist` on `zone`, and `sync_run_completed_at_ok` and
+-- `sync_run_started_at` on `sync_run` — inside the transaction rather than
+-- concurrently, so there is no half-built index for this file to drop. Each
+-- also falls with the table that carries it, dropped below. A later migration
+-- that uses CREATE INDEX CONCURRENTLY must carry that drop in its own
+-- rollback, per `Architecture.md § Migrating against a running sync`.
 
 BEGIN;
 
@@ -44,17 +46,25 @@ BEGIN;
 -- `0001_zone_store.sql` gives at length. The reason applies harder here.
 --
 -- Left unpinned, `DROP TABLE IF EXISTS zone` resolves through whatever path the
--- applying session happens to carry, and both ways it can go wrong are silent.
--- Against a role owning a same-named schema ahead of `public`, it drops a table
--- this migration never built. Where it finds nothing at all, `IF EXISTS`
--- downgrades that to a notice and the transaction commits — reporting a
--- rollback that removed nothing exactly as it reports one that removed
--- everything. A DESTRUCTIVE file is the last place to accept an exit status
--- that means either.
+-- applying session happens to carry, and it goes wrong silently: against a
+-- role owning a same-named schema ahead of `public`, it drops a table this
+-- migration never built.
 --
 -- Every DROP below names `public`, which is where 0001 creates. `SET LOCAL` is
 -- scoped to this transaction, so the session's own path returns at COMMIT or
 -- ROLLBACK.
+--
+-- ONE FAILURE MODE THIS DOES NOT CLOSE, stated rather than left to be
+-- discovered. Naming the schema fixes WHERE these DROPs look; it does not make
+-- them report what they found. `IF EXISTS` against an absent relation raises a
+-- notice and nothing more, so this file exits 0 whether it destroyed three
+-- tables or none — a rollback run where 0001 was never applied is
+-- indistinguishable, by exit status, from one that removed everything. The
+-- clause is kept anyway, because it is also what lets this file finish a
+-- rollback that stopped part way. What would close the gap is a precondition
+-- check on the three relations, and it belongs with the human-gated procedure
+-- that authorises the apply rather than inside the destructive statement it
+-- would be guarding.
 
 SET LOCAL search_path = pg_catalog, public, pg_temp;
 

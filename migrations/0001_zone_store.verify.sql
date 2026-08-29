@@ -152,21 +152,25 @@ BEGIN
 END
 $$;
 
+-- Each name is paired with the relation 0001 declares it on, as 0001's own
+-- divergence check pairs them. A set membership would let `zone_lat_range`
+-- answer from `sync_run`, which is a constraint 0001 never wrote reported as
+-- the one it did.
 DO $$
 DECLARE
-    want text[] := ARRAY['zone_lat_range', 'zone_lon_range',
-                         'zone_takeovers_nonneg', 'sync_run_outcome_known'];
     lost text[];
 BEGIN
-    SELECT array_agg(w ORDER BY w) INTO lost
-      FROM unnest(want) AS w
+    SELECT array_agg(format('%s on %s', w.name, w.tbl) ORDER BY w.name) INTO lost
+      FROM (VALUES ('zone_lat_range'::text,   'public.zone'::text),
+                   ('zone_lon_range',         'public.zone'),
+                   ('zone_takeovers_nonneg',  'public.zone'),
+                   ('sync_run_outcome_known', 'public.sync_run')) AS w(name, tbl)
      WHERE NOT EXISTS (
              SELECT 1
-               FROM pg_constraint
-              WHERE conname  = w
-                AND contype  = 'c'
-                AND conrelid IN ('public.zone'::regclass,
-                                 'public.sync_run'::regclass));
+               FROM pg_constraint k
+              WHERE k.conname  = w.name
+                AND k.contype  = 'c'
+                AND k.conrelid = w.tbl::regclass);
 
     IF lost IS NOT NULL THEN
         RAISE EXCEPTION 'constraint(s) % are absent; 0001 is applied only in part.', lost;
@@ -179,17 +183,23 @@ DECLARE
     valid  boolean;
     method text;
 BEGIN
+    -- `indrelid` is pinned as well as the index's own schema, as 0001's
+    -- divergence check pins it. Name and namespace identify the index; they do
+    -- not say what it indexes, so a `zone_geom_gist` sitting on some other
+    -- table in `public` would answer here for the one `zone` does not have.
     SELECT i.indisvalid, am.amname
       INTO valid, method
       FROM pg_index i
       JOIN pg_class     c  ON c.oid  = i.indexrelid
       JOIN pg_am        am ON am.oid = c.relam
      WHERE c.relname      = 'zone_geom_gist'
-       AND c.relnamespace = 'public'::regnamespace;
+       AND c.relnamespace = 'public'::regnamespace
+       AND i.indrelid     = 'public.zone'::regclass;
 
     IF valid IS NULL THEN
         RAISE EXCEPTION
-            'the index zone_geom_gist does not exist. The corridor query and the nearest-neighbour query both fall back to a sequential scan of the whole zone table, which is the difference between a product and a timeout.';
+            'no index named zone_geom_gist exists on public.zone. The corridor query and the nearest-neighbour query both fall back to a sequential scan of the whole zone table, which is the difference between a product and a timeout.'
+            USING HINT = 'An index of that name on some other relation is reported here as absent, because that is what it is to the two queries it was created to serve. 0001''s own divergence check says the same of one on the wrong column.';
     END IF;
 
     IF NOT valid THEN
