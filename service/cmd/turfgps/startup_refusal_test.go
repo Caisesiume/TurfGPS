@@ -74,9 +74,20 @@ package main
 // is entered. The variant left uncaught is a process that holds the port for
 // the microseconds before it refuses and exits — it still serves nothing and
 // still plans no journey, so both criteria hold on it. Closing it would mean
-// occupying port 8080 to make the bind observable, which makes every case here
-// fail on a host where something already holds that port. The gap is named
-// instead, so nobody reads these assertions as proving an ordering they do not
+// occupying port 8080 to make the bind observable.
+//
+// THE COST OF DOING THAT IS NOT WHAT THIS COMMENT USED TO SAY IT WAS, and the
+// correction is recorded rather than the sentence quietly replaced. It argued
+// that occupying the address would make every case here fail on a host already
+// holding it — written when nothing in this file failed on such a host. AC3's
+// interlock assertion now does, deliberately and unconditionally, rather than
+// pass over a guarantee it did not establish. This file therefore already
+// declines to report success on that host, and the objection has stopped being
+// a difference in kind. What is left is a difference in degree nobody has
+// measured: how much further occupying the address would spread that failure.
+//
+// The gap is still named rather than closed, on that ground and not the one
+// above, so nobody reads these assertions as proving an ordering they do not
 // measure. What they do prove is that the process never began serving.
 //
 // ---------------------------------------------------------------------------
@@ -132,13 +143,31 @@ const (
 	// is up. It is the one line that establishes the interlock described at the
 	// top of this file, because it is printed on exactly the path AC1 and AC2
 	// assert the absence of.
-	servedMarker = "listening"
+	//
+	// IT CARRIES THE LEVEL AND NOT ONLY THE MESSAGE, and that is the whole of
+	// what stops it matching the other line. slog's default handler prints
+	// `<level> <message>` ahead of the attributes: measured on 30 August 2026,
+	// `INFO listening addr=[::]:8080` on the served path and `ERROR cannot
+	// listen addr=:8080 error=...` on the refused one.
+	//
+	// The bare word `listening` is a substring of any refusal reworded towards
+	// it, and `cannot start listening` is the reword that costs one word. Under
+	// that reword, on a host holding the address main binds, AC3 did not merely
+	// fail to go red — it read the ERROR line as the served line and turned the
+	// interlock failure below into a PASS. Measured, not reasoned. A level is
+	// the one thing no wording of a refusal can supply, so it is what holds the
+	// two apart by construction rather than by a coincidence of vocabulary.
+	servedMarker = "INFO listening"
 
 	// bindRefusedMarker is what main logs when the host refuses the bind. It
 	// proves execution reached net.Listen and nothing past that: the process
 	// never served, so it says nothing about what would have been printed had
 	// it.
-	bindRefusedMarker = "cannot listen"
+	//
+	// It carries its level for the reason servedMarker above gives. An ERROR
+	// marker cannot match an INFO line and an INFO marker cannot match this
+	// one, whatever either message is later reworded to.
+	bindRefusedMarker = "ERROR cannot listen"
 
 	// startupFixture is what this file supplies as a configured value. It is a
 	// PRESENCE FIXTURE and it is not a figure — see the note at the top of this
