@@ -8,7 +8,7 @@ path, the ports, the refresh interval and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
-**Accurate as of 28 August 2026**, against the tree that landed the scheduled
+**Accurate as of 29 August 2026**, against the tree that landed the scheduled
 zone sync. It is maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
@@ -84,11 +84,19 @@ and reports how current the local copy is — and a handler may import it.
 `internal/syncstore` writes, imports `internal/zonesync` for its port
 types, and no handler could usefully import it.
 
-**One pool serves both halves, and neither package owns it.** `internal/zonestore`
-carries the constructor that opens it and pins the settings the service holds it
-to; the composition root holds the only reference, hands that same pool to both
-halves, and closes it. Which settings, and why each is pinned, is on those
-constants in `service/internal/zonestore/zonestore.go` and is not repeated here.
+**One pool is opened, and the package that opens it does not hold it.**
+`internal/zonestore` carries the constructor that opens it and pins the settings
+the service holds it to; the composition root holds the only reference, and
+closes it. Which settings, and why each is pinned, is on those constants in
+`service/internal/zonestore/zonestore.go` and is not repeated here.
+
+**Today that pool reaches one half.** The root hands it to `internal/syncstore`
+and to nothing else: `zonestore.NewReader` and `Reader.Currency` are written and
+have **no callers**, and `internal/httpapi` imports neither store, so the read
+half is built and unreached. One pool serving both is what the split is *for* —
+the handler that eventually reads the currency takes the same reference rather
+than opening a second pool — but that is owed work rather than the built
+topology, and this file states it as owed.
 
 ## The database directory
 
