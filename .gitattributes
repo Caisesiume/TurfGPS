@@ -1,7 +1,7 @@
 # Line endings for the build and gate files.
 #
 # On a machine with core.autocrlf=true a plain checkout rewrites these to CRLF,
-# and each one breaks on the platform it is built for:
+# and each one breaks where it is used:
 #
 #   Makefile        GNU make hands every recipe line to sh with the trailing CR
 #                   still attached, and a backslash continuation followed by CR
@@ -9,6 +9,13 @@
 #                   that reads as a shell syntax error, not as a checkout.
 #   Dockerfile      every RUN carries a trailing CR into the shell it runs in.
 #   .dockerignore   a pattern with a trailing CR matches nothing, silently.
+#   *.sh            the loop's mutation suite proves an edit did something by
+#                   `sed -i`-ing a copy of claim.sh and `cmp`-ing it against the
+#                   original. MSYS2 sed writes a CRLF file back as LF, so the
+#                   copy differs on every line whatever the pattern matched, and
+#                   an edit that matched nothing is accepted as a real mutation.
+#                   Nothing goes red — the misapplication guard just stops
+#                   guarding.
 #
 # None of these is edited to break: the checkout does it, so the diff is empty
 # and the file that fails is one nobody touched. `service/.gitattributes` pins
@@ -20,3 +27,4 @@
 Makefile      text eol=lf
 Dockerfile    text eol=lf
 .dockerignore text eol=lf
+*.sh          text eol=lf
