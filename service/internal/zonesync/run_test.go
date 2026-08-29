@@ -40,9 +40,12 @@ func okStore() *fakeStore {
 	}
 }
 
-// TestEveryOutcomeIsReachableAndTheRowIsAlwaysWritten binds the instrument
-// itself: `sync_run` is the only durable record of what the sync has done, and a
-// record that cannot describe a failure describes nothing worth having.
+// TestEveryTerminalOutcomeIsReachableAndTheRowIsAlwaysWritten binds the
+// instrument itself: `sync_run` is the only durable record of what the sync has
+// done, and a record that cannot describe a failure describes nothing worth
+// having. TERMINAL is in the name because it is in the claim below, and the
+// name is what `go test -v` prints: which value that leaves out, and why, is
+// `Outcome`'s own doc in run.go and is not restated here.
 //
 // It asserts two things at once because they are one property. Each terminal
 // value in the vocabulary of `Architecture.md § The sync write path` is reached
@@ -50,7 +53,7 @@ func okStore() *fakeStore {
 // table cannot report — and each of those paths writes the row exactly once,
 // which is the second of the two writes `migrations/README.md § Recording a run`
 // puts on the worker.
-func TestEveryOutcomeIsReachableAndTheRowIsAlwaysWritten(t *testing.T) {
+func TestEveryTerminalOutcomeIsReachableAndTheRowIsAlwaysWritten(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {

@@ -53,8 +53,11 @@ import (
 // What it does measure is the whole of what the arrangement actually shares: a
 // request answered while a refresh sits inside its merge, over every coupling
 // that exists in this process. Today that set is empty, which is why the test
-// passes; it stops passing on the day a handler takes a lock, a channel or a
-// pooled connection that the merge is also holding. That is a real guard over a
+// passes; it stops passing on the day a handler takes a lock or a channel that
+// the merge is also holding. NOT A POOLED CONNECTION, which the paragraph above
+// has just finished retracting: these fakes own no pool, so that day cannot
+// arrive here however this test grows, and naming it in the future tense eight
+// lines below the retraction put it straight back. That is a real guard over a
 // growing surface, and it is a different and smaller claim than guarding the
 // four mechanisms named above.
 //

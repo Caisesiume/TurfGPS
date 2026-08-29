@@ -113,11 +113,17 @@ type Merged struct {
 	Inserted int
 	Updated  int
 
-	// CompletedAt is when the merge committed, read from the SERVER inside the
-	// merge's own transaction. It is both the instant every row the merge
-	// touched carries in last_changed_at and the instant the run records as
-	// completed_at, so the two cannot disagree — and neither is a reading of the
-	// clock of whichever host happened to be running the sync.
+	// CompletedAt is when the merge BEGAN, read from the server inside the
+	// merge's own transaction. Not when it committed, which is what this said
+	// and is not a thing the transaction can read of itself: the value is
+	// transaction_timestamp(), so the merge's whole duration is on the far side
+	// of it and the commit is later by that much.
+	//
+	// It is both the instant every row the merge touched carries in
+	// last_changed_at and the instant the run records as completed_at, so the
+	// two cannot disagree — and neither is a reading of the clock of whichever
+	// host happened to be running the sync. `internal/syncstore` is where it is
+	// read and where the choice is argued.
 	CompletedAt time.Time
 
 	// AbsentIDs are ids held in `zone` and missing from the response. They are

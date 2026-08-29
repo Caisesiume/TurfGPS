@@ -248,9 +248,21 @@ WHERE  id = $1`
 	// rows.
 	sinceLastAttemptSQL = `SELECT extract(epoch FROM now() - max(started_at)) FROM sync_run`
 
-	// serverNowSQL reads the instant the merge stamps and the run records. It is
-	// taken inside the merge's transaction, where now() is that transaction's
-	// own timestamp and is constant for its whole duration.
+	// serverNowSQL reads the instant the merge stamps and the run records.
+	//
+	// IT IS WHEN THE MERGE BEGAN AND NOT WHEN IT COMMITTED. now() is
+	// transaction_timestamp(), fixed for the whole of the transaction it is
+	// read in, so what completed_at carries is the start of the merge and every
+	// second the merge then takes is on the far side of it. That is what the
+	// column is worth to a reader and it is a bound rather than a reading: the
+	// merge committed at some instant after this one.
+	//
+	// It is taken here anyway, and being constant is the reason. This value is
+	// stamped on every row the merge touches AND recorded as the run's
+	// completed_at, and a commit instant is knowable to neither — the rows are
+	// written before it exists and the run's own writer is a second transaction.
+	// One instant both can carry is worth more here than a closer one only one
+	// of them could.
 	serverNowSQL = `SELECT now()`
 
 	// inspectSQL counts everything the staging assertions of

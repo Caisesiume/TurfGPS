@@ -80,9 +80,15 @@ const poolSearchPath = "pg_catalog, public, pg_temp"
 //
 // IT IS A FLOOR AND NOT A SETTING. An operator who sizes the pool up through
 // the DSN's pool_max_conns keeps their number; one who sizes it below this, or
-// leaves it unset, is raised to this. Unset is the case that matters, because
-// pgx's own default is max(4, NumCPU) — a property of the host the process
-// landed on, never a decision about this workload, and two on a small one.
+// leaves it unset, is raised to this.
+//
+// THE REACHABLE HAZARD IS AN EXPLICIT SMALL NUMBER AND NOT AN ABSENT ONE, which
+// is the way round this comment had it. pgx's own default is max(4, NumCPU) — a
+// property of the host the process landed on rather than a decision about this
+// workload, and the whole of what it gives a small host — but it is never below
+// four, so the pool the paragraph below describes is not one an unset DSN can
+// produce. `pool_max_conns=2` in the DSN produces it, and pgx takes that figure:
+// it refuses anything under one and nothing else.
 //
 // The floor exists because two connections are spoken for while a sync runs and
 // neither is available to a request. `internal/syncstore` takes the sync's
