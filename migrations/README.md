@@ -103,10 +103,22 @@ nowhere in the response:
 ### Four things the mapping fixes that a reader might otherwise decide
 
 **`geom` is never written by the worker.** It is a generated column, so an
-`INSERT` naming it is an error rather than an override. The axis order lives in
-DDL, in one line, and the write path has no opportunity to invert it — which is
-the whole reason it is a generated column and not a trigger or an application
-concern. `Architecture.md § Geometry, SRID, and the coordinate guard`.
+`INSERT` naming it is an error rather than an override. The **point's** axis
+order lives in DDL, in one line, and the write path has no opportunity to build
+the point wrongly — which is the whole reason it is a generated column and not a
+trigger or an application concern.
+`Architecture.md § Geometry, SRID, and the coordinate guard`.
+
+That is the point's construction, and it is not the whole of the axis question —
+which is why this item runs to two paragraphs and the heading above still counts
+four. Which *value* reaches which of the two columns is decided a second time, in
+the write path: `zoneColumns` in `service/internal/syncstore/syncstore.go` pairs
+each column with the field it is loaded from, and a crossed pair there leaves
+`geom` agreeing with its own columns exactly as before. Neither this migration
+nor its verification detects it — including the `ST_X`/`ST_Y` assertion, which
+passes under one. What pins it is `TestEveryColumnIsLoadedFromItsOwnField` in
+`service/internal/syncstore/columns_test.go`, and the reasoning is
+`Architecture.md § What the DDL cannot reach`.
 
 **`region` and `type` are flattened, not normalised.** There is no `region`
 table, no `area` table and no `country` dimension, and there cannot be one built

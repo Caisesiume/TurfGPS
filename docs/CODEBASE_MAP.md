@@ -87,8 +87,15 @@ types, and no handler could usefully import it.
 **One pool is opened, and the package that opens it does not hold it.**
 `internal/zonestore` carries the constructor that opens it and pins the settings
 the service holds it to; the composition root holds the only reference, and
-closes it. Which settings, and why each is pinned, is on those constants in
-`service/internal/zonestore/zonestore.go` and is not repeated here.
+closes it on every path but one. Which settings, and why each is pinned, is on
+those constants in `service/internal/zonestore/zonestore.go` and is not repeated
+here.
+
+**The exception is the stop-timeout branch**, where `service/cmd/turfgps/main.go`
+returns without closing — deliberately, to avoid blocking on the one connection
+that has not come back. It is not a leak to be tidied up; the reason in full is
+on that branch, and what it leaves behind for an operator reading `sync_run` is
+`Architecture.md § The sync write path`.
 
 **Today that pool reaches one half.** The root hands it to `internal/syncstore`
 and to nothing else: `zonestore.NewReader` and `Reader.Currency` are written and

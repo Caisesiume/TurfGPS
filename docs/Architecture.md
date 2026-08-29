@@ -579,7 +579,7 @@ Two further things that fixture pins, both silent failures otherwise. That 1.237
 
 ### The indexes
 
-Two on `zone`, two on `plan`, three on the sync log. That is all of them.
+Two on `zone`, two on `plan`, three on the sync log. That is all of them, and it is the **designed** set — the block below is written as this document decided each index, not as any migration builds it.
 
 ```sql
 -- zone
@@ -599,6 +599,10 @@ CREATE INDEX IF NOT EXISTS sync_run_started_at
 ```
 
 `zone_pkey` serves the upsert's conflict target in Q5 and the resolution of zone ids held in a stored plan. `zone_geom_gist` serves **both** Q1 and Q2 — the `ST_DWithin` containment and the `<->` nearest-neighbour ordering come off one index, which is a property of GiST on geography and not a coincidence to be relied on silently. `plan_expires_at_idx` serves Q3's predicate and Q4's sweep. The two on `sync_run` serve the worker rather than a request: one the currency read, one the rate limit's gate, and the argument for each — including why the second is not partial where the first is — is on the index in `migrations/0001_zone_store.sql` and is not repeated here.
+
+**Five of the seven are written by a migration and two are not.** `migrations/0001_zone_store.sql` creates `zone`, `sync_run`, and the three non-implicit indexes on them; there is no `plan` table in that file or in any other, so `plan_pkey` and `plan_expires_at_idx` above are design and have no DDL behind them anywhere.
+
+**One line above disagrees with the migration that implements it, and the disagreement is this document's to carry.** The `zone_geom_gist` line reads `CREATE INDEX CONCURRENTLY`; `0001_zone_store.sql` builds it as a plain `CREATE INDEX`, deliberately, and its decision 1 is where that is argued and is not repeated here. **This change is what created the divergence** — the migration did not exist before it, so nothing in this block was wrong until there was a file for it to be wrong against, and the block was not brought into agreement in the same diff. Reconciling it is owed and is deliberately not done here: the reconciliation this section actually needs is against an **applied** schema, and per *§ What is unproven* nothing has been applied, so the target to reconcile against does not exist yet either. Until then, read the block as design and the migration as the build.
 
 **Four indexes are deliberately not created**, and the reasoning is recorded because each looks obviously useful:
 
@@ -817,7 +821,7 @@ Volume is not a risk on the zone surface, and the figures are worth having so th
 Ten things. The first is the one that matters most, and it disqualifies this section from being anything but a proposal.
 
 1. **No `EXPLAIN` evidence exists for anything here.** There is no database. Every index claim above is a prediction, and the rule this project works to is that `CREATE INDEX` succeeding proves nothing — only `EXPLAIN` on the real query shape counts. **The first migration's acceptance must include `EXPLAIN (ANALYZE, BUFFERS)` output for Q1, Q2 and Q3 against a loaded copy**, and until it does, the index set is unverified. A corridor query falling back to a sequential scan over 154,845 rows is the difference between a product and a timeout, and nothing here rules it out.
-2. **The generated column's expression may not be accepted as `STORED`.** PostgreSQL requires it be `IMMUTABLE`, and `ST_SetSRID(ST_MakePoint(...), 4326)::geography` composes three PostGIS functions plus a cast. PostGIS marks them immutable, but this has not been run. If it is rejected, the axis order moves back into the write path and the three-assertion guard stops being a backstop and becomes the only defence.
+2. **The generated column's expression may not be accepted as `STORED`.** PostgreSQL requires it be `IMMUTABLE`, and `ST_SetSRID(ST_MakePoint(...), 4326)::geography` composes three PostGIS functions plus a cast. PostGIS marks them immutable, but this has not been run. If it is rejected, the **point's** axis order moves back into the write path and the three-assertion guard stops being a backstop and becomes the only defence of it. The other half of the axis question is unaffected either way: the binding of a value to a column is decided in the write path already, per *§ What the DDL cannot reach*.
 3. **KNN ordering on `geography` is assumed exact.** `ORDER BY geom <-> $point` returns true distance ordering on geography in PostGIS 2.2 and later; on older versions `<->` returns a bounding-box measure, and *the nearest 100* would be nearest-ish — silently, and plausibly. The PostGIS version is not chosen anywhere in this document, and Q2's correctness depends on it.
 4. **The plan payload size is estimated, not measured.** The candidate counts are real — 156 to 8,874 across the measured routes — but the bytes per candidate are invented, because the plan format does not exist. Every storage figure for plans moves linearly with that guess.
 5. **Sync churn is modelled, not observed.** The 941-per-half-hour and 1,840-per-hour figures are Poisson expectations derived from lifetime rates, which assume takeovers arrive uniformly in time. They do not — Turf is played in daylight and at weekends. The peak exceeds the mean by an unmeasured factor, and the write path must be sized against the peak rather than against these numbers.
