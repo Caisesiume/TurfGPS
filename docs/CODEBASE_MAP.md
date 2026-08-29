@@ -44,7 +44,7 @@ the HTTP server and the sync worker, and drains what is in flight on a signal.
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here |
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters` |
-| `internal/zonestore` | the read side of the synced zone store, and the owner of the pool |
+| `internal/zonestore` | the read side of the synced zone store, and where the connection pool is opened |
 | `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |
 | `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
 
@@ -83,6 +83,12 @@ The boundary itself: `internal/zonestore` answers questions — it opens the poo
 and reports how current the local copy is — and a handler may import it.
 `internal/syncstore` writes, imports `internal/zonesync` for its port
 types, and no handler could usefully import it.
+
+**One pool serves both halves, and neither package owns it.** `internal/zonestore`
+carries the constructor that opens it and pins the settings the service holds it
+to; the composition root holds the only reference, hands that same pool to both
+halves, and closes it. Which settings, and why each is pinned, is on those
+constants in `service/internal/zonestore/zonestore.go` and is not repeated here.
 
 ## The database directory
 

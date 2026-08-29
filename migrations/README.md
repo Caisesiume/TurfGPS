@@ -45,10 +45,15 @@ that wrote these files. The forward migration has not been applied, the
 rollback has not been demonstrated, and no `EXPLAIN` output exists for any
 query shape.
 
-`Architecture.md § What is unproven` item 1 makes `EXPLAIN` evidence against a
-loaded copy an acceptance condition of the first migration. **That condition is
-not met.** `0001_zone_store.verify.sql` part E is the instrument that meets it,
-and running it is owed before anything here is trusted.
+**Two conditions in `Architecture.md § What is unproven` bear on this migration
+and neither is met.** Item 1 makes `EXPLAIN` evidence against a loaded copy an
+acceptance condition of the first migration; `0001_zone_store.verify.sql` part E
+is the instrument that would meet it. Item 2 asks whether PostgreSQL accepts this
+table's generated column as `STORED` at all, and only applying this file answers
+that one — there is no instrument for it, because the migration either applies or
+it does not. What a rejection would cost is that item's to state and is not
+restated here. Both are owed before anything in this directory is trusted, and
+naming only the first read as though the second had been settled.
 
 ## The zone ingest field mapping
 
@@ -134,29 +139,28 @@ decided by it.
 
 ## Recording a run
 
-`sync_run` is the only durable record of what the sync has done. Its `outcome`
-vocabulary is recorded in `Architecture.md § The sync write path` and enforced
-by a `CHECK` in `0001_zone_store.sql`; what the **worker** owes is the write
-sequence, which is two writes rather than one:
+`sync_run` is the only durable record of what the sync has done. Both the
+`outcome` vocabulary and the two-write sequence a run is recorded by — the row
+inserted at the start, updated once at whatever end the run reaches — are
+`Architecture.md § The sync write path`'s, and the columns the second write fills
+are the table's own in `0001_zone_store.sql`. The vocabulary is enforced by a
+`CHECK` there. **None of that is restated here**, and it was: this section
+carried its own copy of the sequence, which is a second home that would have gone
+stale with nothing in this file moving to notice it.
 
-1. **At the start of the run**, insert a row with `started_at` and
-   `outcome = 'running'`. Keep its `id`.
-2. **At the terminal point, whatever it is**, update that row with the terminal
-   `outcome`, and with whatever else the run learned — `http_status`,
-   `response_bytes`, `zones_received`, the row counts, `absent_count` and
-   `absent_ids`. A successful merge also sets `completed_at`, which is the same
-   instant the merge stamps into `last_changed_at`.
+**What this file adds is an obligation on the worker rather than a description of
+the sequence.** The worker must actually make both writes, and must make the
+second one on **every** path out — including the ones it did not plan for. That
+is the half a schema cannot enforce: nothing in the DDL can require a row to be
+updated, so a run that ends without its second write leaves a record the table
+happily accepts and no reader can tell from a run that died.
 
-**The first write is not bookkeeping tidiness.** Why it exists, what a row left
-at `running` means, and what each terminal value covers are all in
-`Architecture.md § The sync write path`; the obligation this file adds is only
-that the worker actually makes both writes, and that it makes the second one on
-every path out — including the ones it did not plan for.
-
-`0001_zone_store.verify.sql` proves the schema's half of that: it inserts a row
-for each outcome carrying nothing but a start instant, and rolls each one back.
-If any of them is refused, a run that failed before it received anything cannot
-be recorded, and the assertion says so by name.
+`0001_zone_store.verify.sql` is written to prove the schema's half of that, and
+**has not proved it**: it inserts a row for each outcome carrying nothing but a
+start instant and rolls each one back, and it has never been run, per
+`§ State of proof` above. If any of those inserts is refused, a
+run that failed before it received anything cannot be recorded, and the assertion
+says so by name — which is what the script would establish and has not.
 
 **Absence is recorded and never acted on.** Ids present in `zone` and missing
 from the response go into `absent_ids`, and nothing is deleted on the strength

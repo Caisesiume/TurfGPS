@@ -173,8 +173,9 @@ SET LOCAL search_path = pg_catalog, public, pg_temp;
 -- --- Preconditions ----------------------------------------------------------
 --
 -- Two version floors. Neither chooses the PostGIS version — that is open under
--- `DEPLOYMENT.md § Still owed by this document` — and each is read off a floor
--- an existing section already states. The migration refuses a stack it is
+-- `DEPLOYMENT.md § Open questions owned by this document`, which owns the target
+-- host distribution and the PostGIS version it implies — and each is read off a
+-- floor an existing section already states. The migration refuses a stack it is
 -- known to be wrong on rather than applying and being quietly wrong on it.
 
 DO $$
