@@ -116,6 +116,20 @@ Two floors are not subject to selection:
 - **`@validation-agent` runs on every PR**, last and alone. It is machine evidence, and machine evidence is worthless if it depends on someone first deciding it was relevant.
 - **`@safety-sentinel` runs on every diff touching a safety path**, at every risk tier, never softened by a budget. A safety path does not become less dangerous because the diff is small.
 
+### Lanes are claimed before they are dispatched
+
+**The review ledger is a claim table written before the work starts, not a summary written after it.** Three clauses, each closing a failure observed across PRs #135, #140, #141 and #142 and recorded in issue #144:
+
+- **A lane is claimed before it is dispatched.** The judge writes every selected lane into the table first, and a lane with no claim row is not convened. A second dispatch against a claimed lane at the same head SHA is **refused**, not discouraged.
+- **A verdict is durable before its reviewer's pass ends.** The reviewer records the ruling into its own row, itself. A parent that then dies costs synthesis, not the review.
+- **The judge synthesises by reading the table.** Completeness is a property of the table and never of what happened to come back. That is what makes the absence of a verdict distinguishable from the absence of a dispatch, which is the confusion that put several judges on one PR.
+
+**A refusal from the table is an answer, and stopping is the correct response to it.** An agent that retries a refusal, or reads a nonzero status as a transient failure, reinstates the duplicate dispatch this exists to close and does it while reporting success. That is the one way the mechanism fails, and it fails that way because **the table cannot force a dispatch to ask first**: it is durable state, not a gate on the Agent tool. What enforces it is this rule and the caller-side obligations it delegates to.
+
+**A pause stops new claims and lets claimed lanes finish.** That is what a pause should mean, and it is enforceable here in the way a declared intention was not.
+
+The mechanics are `review-board-dispatch § The claim table`; the reviewer's own obligation is `review-verdicts § Record your verdict into its row before your pass ends`; the judge's two are `@pr-judge § Phase 4` and `@pr-judge § Phase 10`.
+
 ### Verdicts
 
 Each convened reviewer returns **`pass`**, **`revise`**, or **`blocker`**, with a confidence and severity-tagged findings. The schema and the evidence obligations are both in `review-verdicts`.
