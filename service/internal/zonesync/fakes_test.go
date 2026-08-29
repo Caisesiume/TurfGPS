@@ -127,7 +127,7 @@ func (f *fakeStore) Merge(context.Context) (Merged, error) {
 
 	// The real store always answers with the instant it stamped, so a fixture
 	// that did not set one is completed by the fake rather than modelling a
-	// merge that committed at the zero instant.
+	// merge that stamped the zero instant.
 	if merged.CompletedAt.IsZero() {
 		merged.CompletedAt = time.Now()
 	}

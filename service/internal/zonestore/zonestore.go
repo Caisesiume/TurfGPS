@@ -43,7 +43,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// currencySQL reads the completion instant of the latest successful run.
+// currencySQL reads the instant the latest successful run stamped — see
+// Currency.LastSuccessAt, which is where what that instant is worth is stated.
 //
 // IT ASKS `sync_run` WHAT HAPPENED AND NEVER WHAT WAS SCHEDULED. A schedule that
 // fired is not evidence that a copy was refreshed — the run behind it may have
@@ -115,8 +116,21 @@ const minPoolConns int32 = 8
 // the user — is `FR-024`, `FR-033` and `FR-034`, and none of it is decided here.
 // This type reports the observation and stops.
 type Currency struct {
-	// LastSuccessAt is when the latest successful run completed. It is
-	// meaningful only when EverSucceeded is true.
+	// LastSuccessAt is when the latest successful run's merge BEGAN, and not
+	// when it completed. The column behind it carries `now()`, which is
+	// transaction_timestamp() and is fixed for the whole of the transaction it
+	// is read in, so the merge's entire duration falls AFTER this instant and
+	// the commit is later by that much. `internal/syncstore` is where the value
+	// is read and where the choice is argued.
+	//
+	// It is therefore a LOWER BOUND on the commit rather than a reading of it,
+	// which decides the direction of the only error it can cause: `now -
+	// LastSuccessAt` OVERSTATES staleness by the merge's duration and can never
+	// understate it. A consumer bounding age against it is answered
+	// conservatively; one reporting age to a user is reporting a figure that is
+	// too large rather than too small.
+	//
+	// It is meaningful only when EverSucceeded is true.
 	LastSuccessAt time.Time
 
 	// EverSucceeded reports whether any run has ever merged.

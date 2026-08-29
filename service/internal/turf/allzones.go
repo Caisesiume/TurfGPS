@@ -222,11 +222,16 @@ func (c *Client) FetchAllZones(ctx context.Context) ([]byte, int, error) {
 //
 // THE bytes.MinRead SLACK IS NOT PADDING, and sizing to the body alone was worse
 // than not sizing at all. ReadFrom asks the buffer for MinRead bytes of room
-// before EVERY Read it issues, including the last — the one that returns EOF and
-// no bytes — so a buffer sized to the body exactly is reallocated and copied
-// whole on that final call, at the moment the body is complete and the copy is
-// at its most expensive. Room for one more MinRead is what lets that last Read
-// be answered by a reslice.
+// before EVERY Read it issues, and it RETURNS at the first Read reporting
+// io.EOF — so a trailing Read that returns EOF and no bytes is a property of
+// the READER rather than a guarantee of ReadFrom, and this sizing is not
+// entitled to assume one either way. WHERE there is one, a buffer sized to the
+// body exactly is reallocated and copied whole on that final call, at the
+// moment the body is complete and the copy is at its most expensive, and room
+// for one more MinRead is what lets it be answered by a reslice instead. Where
+// the reader instead delivers its last bytes together with io.EOF, the loop
+// ends without ever asking for that room and the slack is simply unused — one
+// MinRead of headroom, which is the cheaper of the two errors to be wrong in.
 //
 // The plus-one is a second byte of slack with a different job: the LimitReader
 // below allows the ceiling plus one so that a body past the ceiling can be

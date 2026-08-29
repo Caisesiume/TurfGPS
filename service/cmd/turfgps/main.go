@@ -204,8 +204,13 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 	// the end, and the two are ordered by the close of stopped: every write to
 	// it happens in a frame the deferred close is registered before, so the
 	// close cannot run until they are done. The waiter reads it only on the
-	// branch that saw that close — the timeout branch reads nothing, and has
-	// nothing to read, because a sync that has not stopped has not died.
+	// branch that saw that close — the timeout branch reads nothing because
+	// without the close there is no edge to read it across, WHICH IS NOT THE
+	// SAME AS THERE BEING NOTHING TO READ. A panicking run sets died in a
+	// handler that still has a stack to log and a stop() to call before the
+	// close can run, so "died, and not yet stopped" is a state that branch can
+	// genuinely find; what it returns there is a statement about what it
+	// observed rather than about what happened, which the branch itself says.
 	var died bool
 
 	go func() {

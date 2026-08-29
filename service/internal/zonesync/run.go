@@ -49,8 +49,8 @@
 // merge that never committed, which is why the invariant is stated over what a
 // reader sees rather than over what a failed run wrote.
 //
-// CURRENCY DOES NOT MOVE EITHER WAY, because it is the completion instant of the
-// latest `ok` run and a failed run has none — so the in-doubt case is reported
+// CURRENCY DOES NOT MOVE EITHER WAY, because it is the instant the latest `ok`
+// run stamped and a failed run stamps none — so the in-doubt case is reported
 // as a copy one interval staler than it is, never as one fresher. A store that
 // has never completed a run reports that distinctly rather than reporting a zero
 // instant, so "never synced" cannot be read as "synced long ago". What is done
