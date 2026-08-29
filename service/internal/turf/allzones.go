@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 )
 
@@ -29,6 +30,28 @@ import (
 // Enough for an API error object to be readable, short enough that a
 // full-corpus body arriving under a wrong status does not become a log line.
 const errorBodySnippet = 512
+
+// maxCeiling is the largest response ceiling this adapter can read within. It
+// bounds arithmetic rather than policy, and it is the bound the ceiling was
+// missing: refusing a figure below one is what NewClient already did, and every
+// figure above it was taken as given, up to MaxInt64.
+//
+// BOTH ENDS OF THAT RANGE BREAK read BELOW, in opposite directions. It sizes its
+// buffer from a Content-Length it has already held to the ceiling, so a ceiling
+// near MaxInt32 wraps that sum on a 32-bit build — int is 32 bits there — and
+// arrives at bytes.Buffer.Grow negative, which panics rather than returns. And
+// it reads through a limit of the ceiling PLUS ONE, so a ceiling near MaxInt64
+// wraps that addition negative instead, which makes io.LimitReader report EOF
+// before a byte is read: a fetch returning success over an empty corpus, which
+// is the shape the staging assertions downstream exist to refuse.
+//
+// The subtraction is what that sizing expression costs at the top of the range,
+// written out rather than rounded off, so this bound is exactly the arithmetic
+// it protects and moves if that expression moves. What a SENSIBLE ceiling is
+// stays `internal/config`'s decision and the figure it enforces is far below
+// this one; this is the bound that has to hold for any caller of an exported
+// constructor, including one that reads no configuration at all.
+const maxCeiling = math.MaxInt32 - 1 - bytes.MinRead
 
 // maxRedirects bounds the redirect chain.
 //
@@ -91,6 +114,10 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 
 	if maxBytes <= 0 {
 		return nil, fmt.Errorf("the response ceiling %d is not positive", maxBytes)
+	}
+
+	if maxBytes > maxCeiling {
+		return nil, fmt.Errorf("the response ceiling %d is above the %d this adapter can read within", maxBytes, maxCeiling)
 	}
 
 	return &Client{
@@ -181,19 +208,39 @@ func (c *Client) FetchAllZones(ctx context.Context) ([]byte, int, error) {
 // The sync write path` exist to catch, and manufacturing one here would be this
 // service producing the failure it is defending against.
 //
-// IT IS SIZED FROM THE RESPONSE RATHER THAN GROWN INTO. io.ReadAll starts at 512
-// bytes and grows by allocating twice the current capacity and copying, holding
-// both for the length of the copy — so reading a body this way peaks at about
-// half as much again as the body, for a body that then stays live through the
-// parse. Content-Length turns that into one allocation. The header is trusted
-// for the size of that allocation and for nothing else: it is ignored unless it
-// falls inside the ceiling, and the LimitReader is what enforces the ceiling, so
-// a header that lies costs a wrongly-sized buffer and cannot raise the bound.
+// IT IS SIZED FROM THE RESPONSE WHEN THE RESPONSE SAYS HOW BIG IT IS, AND THAT
+// BRANCH IS NARROWER THAN THE SENTENCE IT REPLACES ADMITTED. A buffer grown into
+// starts small and grows by allocating a larger slice and copying, holding the
+// old and the new together across the copy, for a body that then stays live
+// through the parse; a Content-Length inside the ceiling turns that into one
+// allocation. What the previous wording left out is the branch itself: net/http
+// negotiates gzip on our behalf — see the fetch above — and when it decompresses
+// transparently it DELETES Content-Length and sets ContentLength to -1, so on a
+// compressed response the condition below is false and this read is exactly the
+// grow-and-copy it was said to avoid. The sizing is an optimisation for the
+// uncompressed case, never a property of this function.
+//
+// THE bytes.MinRead SLACK IS NOT PADDING, and sizing to the body alone was worse
+// than not sizing at all. ReadFrom asks the buffer for MinRead bytes of room
+// before EVERY Read it issues, including the last — the one that returns EOF and
+// no bytes — so a buffer sized to the body exactly is reallocated and copied
+// whole on that final call, at the moment the body is complete and the copy is
+// at its most expensive. Room for one more MinRead is what lets that last Read
+// be answered by a reslice.
+//
+// The plus-one is a second byte of slack with a different job: the LimitReader
+// below allows the ceiling plus one so that a body past the ceiling can be
+// detected rather than truncated into, and this leaves that byte somewhere to
+// land. The header is trusted for the size of this allocation and for nothing
+// else: it is ignored unless it falls inside the ceiling, the LimitReader is
+// what enforces the ceiling, and the ceiling itself is bounded at both ends by
+// NewClient — see maxCeiling — so a header that lies costs a wrongly-sized
+// buffer and cannot raise the bound or wrap the arithmetic.
 func (c *Client) read(r io.Reader, contentLength int64) ([]byte, error) {
 	var buf bytes.Buffer
 
 	if contentLength > 0 && contentLength <= c.maxBytes {
-		buf.Grow(int(contentLength) + 1)
+		buf.Grow(int(contentLength) + 1 + bytes.MinRead)
 	}
 
 	if _, err := buf.ReadFrom(io.LimitReader(r, c.maxBytes+1)); err != nil {

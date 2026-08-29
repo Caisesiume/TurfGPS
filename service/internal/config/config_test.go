@@ -183,6 +183,12 @@ func TestAMalformedTunableIsRefusedRatherThanDefaulted(t *testing.T) {
 		"a ratio above one":          {EnvMinZoneRatio, "1.5"},
 		"a ratio of zero":            {EnvMinZoneRatio, "0"},
 		"a byte count that is not":   {EnvMaxResponseBytes, "lots"},
+
+		// The ceiling was bounded below and not above, so this value loaded
+		// and reached the adapter, where it is what breaks the read's own
+		// arithmetic. It is refused here as a malformed tunable and not as a
+		// large one: there is no reading of it the service can honour.
+		"a byte count above what one response is read into": {EnvMaxResponseBytes, "9223372036854775807"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

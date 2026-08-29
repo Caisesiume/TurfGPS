@@ -2,6 +2,7 @@ package turf
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -168,6 +169,15 @@ func TestAnEndpointIsRequired(t *testing.T) {
 
 	if _, err := NewClient("https://example.test/zones", 0); err == nil {
 		t.Error("a client with no response ceiling was built, want it refused")
+	}
+
+	// The other end of the same guard. A ceiling this size is not a large
+	// ceiling, it is one read cannot compute with — see maxCeiling — and the
+	// two failures it produces are a panic and a fetch that succeeds over an
+	// empty body, neither of which is reachable from a constructor that
+	// refuses it.
+	if _, err := NewClient("https://example.test/zones", math.MaxInt64); err == nil {
+		t.Error("a client with a response ceiling above what it can read within was built, want it refused")
 	}
 }
 

@@ -90,6 +90,24 @@ const (
 	// lives and where it will move.
 	defaultMaxResponseBytes int64 = 128 << 20
 
+	// maxResponseBytesCeiling is the largest ceiling this package accepts from
+	// an operator. The variable was bounded below and not above, so every figure
+	// from one byte past the default to MaxInt64 was taken as given.
+	//
+	// WHY AN UNBOUNDED CEILING IS UNSAFE IS NOT ARGUED HERE. `internal/turf`
+	// sizes a buffer from this figure and reads through a limit of this figure
+	// plus one, so it is that package's arithmetic an absurd value breaks, and
+	// its own constant is where that is stated. This bound exists so the refusal
+	// names the variable an operator set and the value they set it to, at load,
+	// rather than arriving as a constructor failing over a number nothing names.
+	//
+	// The figure is 512 MiB, and the note above is the reason to stay far under
+	// it rather than a reason it is safe: that note is why the default is not
+	// 512 MiB, and its argument does not stop holding because the figure was
+	// chosen by hand. This is where the package stops honouring the request, not
+	// a size it promises the process survives.
+	maxResponseBytesCeiling int64 = 512 << 20
+
 	// defaultMinZoneRatio is the floor the staged row count is held to against
 	// the rows already in `zone`, for the first assertion of `Architecture.md §
 	// The sync write path`. That section requires a floor and states no figure,
@@ -189,7 +207,7 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 		return nil, err
 	}
 
-	if cfg.MaxResponseBytes, err = positiveBytes(lookup, EnvMaxResponseBytes, cfg.MaxResponseBytes); err != nil {
+	if cfg.MaxResponseBytes, err = positiveBytes(lookup, EnvMaxResponseBytes, cfg.MaxResponseBytes, maxResponseBytesCeiling); err != nil {
 		return nil, err
 	}
 
@@ -256,7 +274,11 @@ func positiveDuration(lookup LookupFunc, name string, fallback time.Duration) (t
 	return d, nil
 }
 
-func positiveBytes(lookup LookupFunc, name string, fallback int64) (int64, error) {
+// positiveBytes reads a byte count, and holds it inside (0, ceiling]. Both ends
+// are refusals rather than clamps, for the reason every tunable in this file is
+// refused rather than defaulted: a figure silently replaced is a figure the
+// operator believes they set.
+func positiveBytes(lookup LookupFunc, name string, fallback, ceiling int64) (int64, error) {
 	raw, ok := lookup(name)
 	if !ok || raw == "" {
 		return fallback, nil
@@ -269,6 +291,10 @@ func positiveBytes(lookup LookupFunc, name string, fallback int64) (int64, error
 
 	if n <= 0 {
 		return 0, fmt.Errorf("%s=%q is not positive", name, raw)
+	}
+
+	if n > ceiling {
+		return 0, fmt.Errorf("%s=%q is above the %d bytes this service will read one response into", name, raw, ceiling)
 	}
 
 	return n, nil
