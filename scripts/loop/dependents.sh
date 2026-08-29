@@ -70,6 +70,11 @@ GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 # boundary out to awk. The cost is stated rather than hidden: the hermetic suite
 # stubs `gh` and so cannot execute this program, leaving it guarded by the live
 # board and by review, not by a fixture.
+# THE LABEL PREFIX IS THE STRIP'S TOO, and the note below says so from its side: the
+# `Blocked by` in that select and the strip's `^ *[*]*Blocked by` are one grammar in
+# two dialects, so a label widened here is widened there in the same commit. Widened
+# here alone, a line crosses the boundary the strip cannot match — `Blocks: #7 · #41`
+# reaches the awk, the strip declines it, no `#` opens `rest`, and it yields no edge.
 lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
   .[]
   | select(.body != null)
