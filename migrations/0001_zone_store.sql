@@ -373,9 +373,14 @@ CREATE TABLE IF NOT EXISTS public.zone (
 -- value arrives in the `latitude` column declared below and which in
 -- `longitude` is decided in Go before a byte reaches this table; the merge then
 -- carries that pair into `zone` unchanged, and `zone.geom` is generated from it
--- faithfully. Nothing here detects that — not the absent constraints, and not
--- the absent generated column, neither of which would catch it if it were
--- present. That binding is pinned by `TestEveryColumnIsLoadedFromItsOwnField`
+-- faithfully. Nothing here detects that reliably. Were `zone`'s two range
+-- checks present on this table they would abort a table-wide crossing only on
+-- the rows it pushes outside a declared range — nearly none of the corpus, and
+-- none at all in the primary markets:
+-- `Architecture.md § Geometry, SRID, and the coordinate guard` measures both.
+-- Were the generated column present it would derive the point faithfully from
+-- the crossed pair and catch none of it. That binding is pinned by
+-- `TestEveryColumnIsLoadedFromItsOwnField`
 -- in `service/internal/syncstore/columns_test.go`; see the note on `geom` above
 -- and `Architecture.md § What the DDL cannot reach`.
 
