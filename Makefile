@@ -65,7 +65,7 @@ IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
 .PHONY: help gates web-gates d8-claims fmt vet lint test build image clean \
-        web-build web-lint web-test
+        web-install web-build web-lint web-test
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
@@ -81,6 +81,7 @@ help:
 	@echo '  make image   container image $(IMAGE), context $(GO_DIR)/'
 	@echo '  make clean   remove ./$(BIN_DIR)/'
 	@echo ''
+	@echo '  make web-install  npm ci — the lockfile exactly, never re-resolved'
 	@echo '  make web-build  npm run build — tsc --noEmit, then vite build'
 	@echo '  make web-lint   npm run lint, warnings failing it too'
 	@echo '  make web-test   npm run test — vitest, one run, no watcher'
@@ -156,6 +157,19 @@ web-lint:
 # finds no test files, so this gate cannot pass having run nothing.
 web-test:
 	cd $(WEB_DIR) && npm run test
+
+# The lock-honoring install, and the only one this repository sanctions.
+#
+# `npm install` re-resolves the ^ ranges in package.json and may write a new
+# package-lock.json, replacing the reviewed dependency set — integrity hashes
+# and all — with one nothing has looked at, in a file the run itself edits.
+# `npm ci` installs exactly what the lock pins and fails when the lock and the
+# manifest disagree, so the tree the gates above measure is the tree review saw.
+#
+# Not a prerequisite of `web-gates`: that would reinstall on every gate run.
+# This is the step for a fresh checkout, and for after the lock changes.
+web-install:
+	cd $(WEB_DIR) && npm ci
 
 # `local-gates § Documentation gates` gate 2, for the one fact this repository
 # has already had restated thirteen times: what a Go command does when it is
