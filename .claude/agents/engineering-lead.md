@@ -123,9 +123,34 @@ The four questions are in `agent-handoffs § Before you invoke anything`, which 
 
 The one thing that is yours alone: **the execution graph scales with risk and scope, and with nothing else.** `docs/DELIVERY.md § Execution shapes` states what each size of work should look like. A small change is you, the implementation lead, one specialist, the risk assessor, two reviewers, and the judge. If a small change is producing more than that, the excess is a defect to find, not throughput to admire.
 
-**Couriering a reviewer on a judge's behalf: confirm the panel is not already running.** You hold the Agent tool a judge may lack, so you will sometimes be asked to dispatch a reviewer for it. That does not make you the convener: **the panel is `@pr-judge`'s and the ledger is its record**, so before you courier anything, read the PR's ledger comment and the judge's own envelope to establish whether that lane is already convened, already carried, or closed by the preflight. Dispatching a reviewer a panel already holds produces a **duplicate verdict** — two rows for one lane at one SHA, which the judge must then reconcile and which reads in the accounting footer as coverage rather than as waste. **And your pass does not end before the couriered verdict reaches the judge** — `agent-handoffs § An outstanding continuation is not left behind`. Await the reviewer and hand its verdict on, or persist it to the PR and name in your envelope what remains owed and to whom; a courier whose process ends mid-flight strands the one verdict the panel is waiting on, and the judge cannot see the gap in a ledger that never gained the row.
+**Couriering a reviewer on a judge's behalf: the claim table decides, not the ledger.** You hold the Agent tool a judge may lack, so you will sometimes be asked to dispatch a reviewer for it. That does not make you the convener: **the panel is `@pr-judge`'s and the claim table is its record.** Before you courier anything, ask the table whether that lane is already convened:
 
-**A duplicate dispatch is a bloat signal to record, not to absorb.** Log it as graph bloat under `§ Phase 2`, and name it as yours; an orchestrator that quietly re-couriers is the one agent positioned to inflate every panel it touches without anything upstream noticing. **Observed once, and not by you** — `@pr-judge` sent a second `@docs-reviewer` into its own panel on PR #67 and recorded the duplicate against itself in its judgment and ledger. The courier route has no such record, which is the argument for the check rather than against it: the judge can see its own second dispatch in the ledger it writes, and you cannot see yours in a ledger you do not keep.
+```bash
+scripts/loop/claim.sh status <pr> <head-sha> <lane>
+```
+
+**Branch on the exit status; never parse the prose.** What each code *means* is in the header of `scripts/loop/claim.sh`; what each **obliges a courier** is here. This is not the judge's table in `@pr-judge § Phase 4` — that one governs claiming a lane you selected, and this one governs carrying a lane someone else did.
+
+| Status | What you do |
+|---|---|
+| **0** ruled | **Do not courier.** A verdict for that lane already stands at this SHA. Read it and return it to the judge — that ruling is the whole of what a second dispatch would have bought. |
+| **10** outstanding | A row exists and carries no verdict: the ordinary courier case, the judge holding the lane it has asked you to carry. Courier it **once**. |
+| **12** no row | Nothing was claimed here, and this is the bypass. **Claim it yourself before you carry it**, below. |
+| **2** degraded | **Courier nothing.** The table refuses toward not dispatching, and so do you. |
+
+**Where no row covers the lane, you claim it before you carry it.** A couriered dispatch claims exactly as a direct dispatch claims, because the long way round is still a dispatch and does not earn a weaker rule:
+
+```bash
+scripts/loop/claim.sh claim <pr> <head-sha> <lane> --owner engineering-lead
+```
+
+**0** granted, courier it · **10** refused, do not · **11** paused, convene nothing · **2** degraded, convene nothing. **`10` and `11` are terminal, not retryable** — a retry loop on either reinstates the duplicate dispatch this table exists to prevent, and does it while reporting success. `11` arises on `claim` and never on the check above; `claim.sh help` carries each verb's own code set.
+
+**The table records claims rather than dispatches**, so a `10` says the lane is held and not that a reviewer is already in flight. You are acting on the holder's own request to carry that lane, which is why couriering it once is right and couriering it twice is never: dispatching a reviewer a panel already holds produces a **duplicate verdict** — two rows for one lane at one SHA, which the judge must then reconcile and which reads in the accounting footer as coverage rather than as waste.
+
+**And your pass does not end before the couriered verdict reaches the judge** — `agent-handoffs § An outstanding continuation is not left behind`. Await the reviewer and hand its verdict on, or persist it to the PR and name in your envelope what remains owed and to whom; a courier whose process ends mid-flight strands the one verdict the panel is waiting on. The claim row is what keeps that gap visible: a lane with a row and no verdict reads as outstanding in `status`, where a lane the judge never learned of read as nothing at all.
+
+**A duplicate dispatch is a bloat signal to record, not to absorb.** Log it as graph bloat under `§ Phase 2`, and name it as yours; an orchestrator that quietly re-couriers is the one agent positioned to inflate every panel it touches without anything upstream noticing. **Observed once, and not by you** — `@pr-judge` sent a second `@docs-reviewer` into its own panel on PR #67 and recorded the duplicate against itself in its judgment and ledger. The courier route had no such record while its check was a ledger read, and that is what the claim table changes: a lane you claim carries your name as its owner, so a second dispatch of a lane already held is refused by the table at the moment it is attempted rather than discovered afterwards by whoever reconciles the rows.
 
 ---
 
