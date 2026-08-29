@@ -365,7 +365,19 @@ CREATE TABLE IF NOT EXISTS public.zone (
 -- recorded in the section cited above.
 --
 -- It carries no `geom` either: `zone.geom` is generated from the merged
--- scalars, so the staging table has nothing to derive and nothing to invert.
+-- scalars, so the staging table has no point to derive.
+--
+-- THAT IS THE DERIVATION, AND IT IS NOT THE AXIS QUESTION. This is in fact the
+-- one relation where a crossed WRITE PATH physically lands. The sync COPYs into
+-- the column list derived from `syncstore.zoneColumns`, positionally, so which
+-- value arrives in the `latitude` column declared below and which in
+-- `longitude` is decided in Go before a byte reaches this table; the merge then
+-- carries that pair into `zone` unchanged, and `zone.geom` is generated from it
+-- faithfully. Nothing here detects that — not the absent constraints, and not
+-- the absent generated column, neither of which would catch it if it were
+-- present. That binding is pinned by `TestEveryColumnIsLoadedFromItsOwnField`
+-- in `service/internal/syncstore/columns_test.go`; see the note on `geom` above
+-- and `Architecture.md § What the DDL cannot reach`.
 
 CREATE UNLOGGED TABLE IF NOT EXISTS public.zone_incoming (
     id               integer,

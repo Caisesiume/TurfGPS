@@ -18,7 +18,7 @@ and nothing here is compiled into the Go module.
 | `NNNN_name.verify.sql` | the assertions that make the migration falsifiable |
 
 `0001_zone_store.sql` creates the synced zone store: `zone`, the `zone_incoming`
-staging table, `sync_run`, and the one index on `zone`.
+staging table, `sync_run`, one index on `zone` and two on `sync_run`.
 
 ## Applying one
 
@@ -48,7 +48,14 @@ query shape.
 **Two conditions in `Architecture.md § What is unproven` bear on this migration
 and neither is met.** Item 1 makes `EXPLAIN` evidence against a loaded copy an
 acceptance condition of the first migration; `0001_zone_store.verify.sql` part E
-is the instrument that would meet it. Item 2 asks whether PostgreSQL accepts this
+is the instrument that would meet it, and it would not meet the whole of it.
+Item 1 names Q1, Q2 **and** Q3. Part E probes Q1 and Q2 against `zone_geom_gist`
+and carries no `sync_run` query at all, so the two indexes on `sync_run` stay
+unproven even after part E has run against a loaded copy; Q3 reads the plan
+table this migration does not create, and is owed by the migration that does.
+Both gaps are stated where they arise — beside part E's own `EXPLAIN`
+statements, and above the `sync_run` indexes in `0001_zone_store.sql` — and are
+not restated further here. Item 2 asks whether PostgreSQL accepts this
 table's generated column as `STORED` at all, and only applying this file answers
 that one — there is no instrument for it, because the migration either applies or
 it does not. What a rejection would cost is that item's to state and is not
