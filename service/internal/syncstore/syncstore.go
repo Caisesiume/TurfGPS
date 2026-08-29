@@ -17,13 +17,30 @@
 // it says so and why, at the statement.
 //
 // ---------------------------------------------------------------------------
-// NEVER EXECUTED, AND THIS PACKAGE CARRIES NO TESTS.
+// NEVER EXECUTED: NOT ONE SQL STATEMENT BELOW HAS RUN.
 //
-// Not one SQL statement below has been sent to a PostgreSQL server. There is no
-// test file in this directory, nothing in the suite calls a method on this type,
-// and no database was provisioned to author it — so the transaction shape, the
-// staging load, the assertions, the advisory lock, the conflict target and the
-// counts written to `sync_run` are all argued and none of them is measured.
+// Nothing in this file has been sent to a PostgreSQL server, no method on this
+// type is called anywhere in the suite, and no database was provisioned to
+// author it — so the transaction shape, the staging load, the assertions, the
+// advisory lock, the conflict target and the counts written to `sync_run` are
+// all argued and none of them is measured.
+//
+// THE MARKER COVERS THE SQL HALF ONLY, AND IT CLAIMED MORE THAN THAT UNTIL
+// columns_test.go LANDED BESIDE IT. It also read "and this package carries no
+// tests", with "there is no test file in this directory" beneath it — two
+// sentences this package's own test file falsified while leaving every line
+// above them true. What that file measures is decided inside this process
+// before any statement is sent: which value `zoneColumns` binds to which column
+// name, and the text buildMergeSQL derives from it. It opens no pool, fakes
+// none, and sends nothing, so it reaches none of what is unverified here.
+//
+// READ THAT AGAINST `internal/zonestore`, WHICH STILL CARRIES BOTH HALVES. Its
+// marker says it has no test file, and that is still true, so the two no longer
+// read alike — deliberately, and this line is where that is said rather than
+// left to be noticed. A marker outliving the condition it describes is worse
+// than no marker: a reader cannot tell one that was measured from one that was
+// merely never revisited, and for one cycle this package was the counter-example
+// that made the other unreadable.
 //
 // THE MARKER IS HERE BECAUSE THE PROSE ABOVE AND BELOW READS EXACTLY LIKE THE
 // PROSE IN THE PACKAGES WHOSE TESTS RUN. Every comment in this file states what
@@ -45,7 +62,9 @@
 //
 // WHAT DISCHARGES IT IS A DATABASE. `Architecture.md § What is unproven` item 1
 // names the evidence owed against this schema; the run that produces it is also
-// the run that can first put a test under this package.
+// the first run that can put a test under the statements below. Tests over what
+// this process decides before they are sent need no database and are already
+// here, which is exactly the line the narrowing above draws.
 // ---------------------------------------------------------------------------
 package syncstore
 

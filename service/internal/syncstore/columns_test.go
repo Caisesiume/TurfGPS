@@ -11,14 +11,25 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// THIS FILE IS DATABASE-FREE AND LEAVES THIS PACKAGE'S NEVER-EXECUTED MARKER
-// STANDING. Read that marker at the top of syncstore.go before adding to this
-// file. Nothing here sends a statement to a server, opens a pool, or fakes one:
-// what is unverified there is what PostgreSQL does with these statements, and
-// that is not what this file claims to have measured. What it measures is a
-// question decided entirely inside this process, before any statement is sent —
-// which value is bound to which column name — and that question has an answer
-// whether or not a database exists.
+// THIS FILE IS DATABASE-FREE AND LEAVES THE SQL HALF OF THIS PACKAGE'S
+// NEVER-EXECUTED MARKER STANDING. It falsified the other half. Read that marker
+// at the top of syncstore.go before adding to this file, and read which of its
+// two claims this file is on each side of:
+//
+//   - STANDING, and this file does not touch it: not one statement in
+//     syncstore.go has been sent to a PostgreSQL server. Nothing here sends one,
+//     opens a pool, or fakes one, so what PostgreSQL does with those statements
+//     is exactly as unmeasured as it was before this file existed.
+//   - FALSIFIED, by this file's existence: the marker also said the package
+//     carried no tests and that there was no test file in this directory. Those
+//     sentences were narrowed away when this file landed, rather than left to be
+//     read as the standing half.
+//
+// The distinction is the file's whole licence to be here. What it measures is a
+// question decided inside this process, before any statement is sent — which
+// value is bound to which column name — and that question has an answer whether
+// or not a database exists. What it must never do is let a green run here be
+// read as evidence about the half above it that is still standing.
 //
 // THE BINDING IS THE ONE ERROR NO GUARD OVER THE WRITTEN ZONES CAN SEE, and it
 // is worth being exact about why, because four of them stand over the
@@ -66,7 +77,11 @@ type pinnedColumn struct {
 // EVERY VALUE DIFFERS FROM EVERY OTHER, which is the property that makes a
 // crossing visible at all. Two same-typed columns carrying the same probe value
 // would swap undetected, so this is a constraint on the literals and not a
-// stylistic choice: check it before changing one.
+// stylistic choice. It is asserted by TestEveryPinnedValueDiffersFromEveryOther
+// rather than left to whoever edits this slice next: a property that only the
+// comments hold is a property that degrades on the one edit nobody re-reads the
+// comments for, and it degrades silently — every test in this file still passes
+// while the crossing it exists to catch walks through.
 func pinnedColumns() []pinnedColumn {
 	return []pinnedColumn{
 		{"id", int32(1001)},
@@ -89,8 +104,11 @@ func pinnedColumns() []pinnedColumn {
 // probeZone carries the same fourteen literals, stated against Go field names.
 //
 // The coordinate is Göteborg's, and is a real pair on purpose: 11.97 is a valid
-// latitude and 57.7 a valid longitude, so a crossed pair is not out of range,
-// raises nothing anywhere, and lands the zone in the Baltic.
+// latitude and 57.7 a valid longitude, so a crossed pair is not out of range and
+// raises nothing anywhere. It lands the zone at 11.97°N 57.7°E — the Arabian
+// Sea, some 5,600 km away — which is the point: the crossing is undetectable by
+// range and glaring by position, and no constraint in the schema looks at
+// position.
 func probeZone() zonesync.Zone {
 	return zonesync.Zone{
 		ID:             1001,
@@ -126,6 +144,47 @@ func show(v any) string {
 	}
 
 	return fmt.Sprintf("%#v", v)
+}
+
+// TestEveryPinnedValueDiffersFromEveryOther asserts the precondition every
+// other test in this file rests on, and which pinnedColumns' doc had only
+// declared.
+//
+// WITHOUT IT THE NET DEGRADES SILENTLY, WHICH IS THE ONLY REASON IT IS A TEST
+// AND NOT A COMMENT. Give two same-typed columns the same probe value — the
+// obvious thing to do when adding a column and reaching for a literal — and
+// TestEveryColumnIsLoadedFromItsOwnField still passes, because a crossing
+// between those two loads each of them with the value the other was pinned to
+// and both comparisons succeed. Nothing goes red. The pair simply stops being
+// covered, and the file goes on reporting that it covers all fourteen.
+//
+// PINNING IS ENOUGH, AND THE PROBE DOES NOT NEED ITS OWN CHECK. probeZone
+// carries the same fourteen literals, and the test below compares what each
+// accessor loads out of the probe against the pinned value — so two probe
+// fields sharing a value while their pinned values differ is already a failure
+// there. Distinctness over the pinned set therefore carries the probe with it,
+// and a second loop over probeZone would assert the same property twice.
+//
+// The comparison is reflect.DeepEqual, the same one the binding test uses, so
+// this measures indistinguishability by the standard actually applied. That
+// matters for the four nullable columns: DeepEqual follows pointers, so two
+// distinct *int16 addresses holding the same number count as the same value
+// here, which is right — the address is not what a crossing would swap.
+func TestEveryPinnedValueDiffersFromEveryOther(t *testing.T) {
+	t.Parallel()
+
+	pinned := pinnedColumns()
+
+	for i := range pinned {
+		for j := i + 1; j < len(pinned); j++ {
+			if !reflect.DeepEqual(pinned[i].value, pinned[j].value) {
+				continue
+			}
+
+			t.Errorf("the %q and %q columns are both pinned to %s — a crossing between them loads each with the value the other expects, so every assertion in this file passes and neither column is covered any more; give them different values",
+				pinned[i].name, pinned[j].name, show(pinned[i].value))
+		}
+	}
 }
 
 // TestEveryColumnIsLoadedFromItsOwnField is the assertion the file header
@@ -189,8 +248,10 @@ func TestTheMergeStatementIsExactlyAsPinned(t *testing.T) {
 
 	gotLines, wantLines := strings.Split(got, "\n"), strings.Split(wantMergeSQL, "\n")
 
+	var differing int
+
 	for i := 0; i < len(gotLines) || i < len(wantLines); i++ {
-		g, w := "<the statement ends here>", "<the statement ends here>"
+		g, w := beyondTheStatement, beyondTheStatement
 
 		if i < len(gotLines) {
 			g = gotLines[i]
@@ -200,14 +261,40 @@ func TestTheMergeStatementIsExactlyAsPinned(t *testing.T) {
 			w = wantLines[i]
 		}
 
-		if g != w {
-			t.Fatalf("the merge statement differs from the pinned text at line %d:\n got: %q\nwant: %q\nthe statement is built from zoneColumns, so this means the ingest column set, its order, or the columns the merge assigns and tests for change have moved — which is a schema change and moves migrations/0001_zone_store.sql with it",
-				i+1, g, w)
+		if g == w {
+			continue
 		}
+
+		differing++
+
+		t.Errorf("the merge statement differs from the pinned text at line %d:\n got: %q\nwant: %q",
+			i+1, g, w)
 	}
 
-	t.Fatal("the merge statement differs from the pinned text, but every line of it agrees — the difference is in the line count alone")
+	if differing == 0 {
+		t.Errorf("the merge statement differs from the pinned text, but every line of it agrees and the two have the same length — a line of one of them is the literal %q",
+			beyondTheStatement)
+	}
+
+	// Reported once, after every differing line, and the two halves do
+	// different work. The count says how far the change reaches: one line is a
+	// column renamed, thirty is the set or its order rebuilt, and a reader who
+	// was shown only the first difference cannot tell those apart. The
+	// statement itself is what makes the repair one pass — a break that is
+	// legitimate is repaired by replacing wantMergeSQL with the text below,
+	// where before it was repaired by rebuilding the constant a line at a time
+	// and rerunning to find the next difference.
+	//
+	// Printed raw rather than quoted, because it is meant to be pasted between
+	// the backticks of wantMergeSQL, and %q would have to be unescaped first.
+	t.Errorf("%d line(s) differ. The statement is built from zoneColumns, so this means the ingest column set, its order, or the columns the merge assigns and tests for change have moved — which is a schema change and moves migrations/0001_zone_store.sql with it. Read the derived statement against that migration before pinning it; if it is right, this is the text to pin:\n%s",
+		differing, got)
 }
+
+// beyondTheStatement stands in for a line one statement has and the other does
+// not, so a length difference is reported as a differing line like any other
+// rather than falling out of the comparison.
+const beyondTheStatement = "<the statement ends here>"
 
 // wantMergeSQL is the statement as it stands, captured from buildMergeSQL and
 // read against migrations/0001_zone_store.sql line by line before being pinned.
