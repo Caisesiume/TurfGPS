@@ -52,6 +52,9 @@ cat > "$FIX/list" <<'FIXTURE'
 218 Blocked by: #7 AND #41
 219 Blocked by: #7#41
 220 **Blocked by:** #7, #41
+221 Blocked by: #7 — #41 both must land
+222 Blocked by: #41 — see #142
+223 Blocked by: none.
 FIXTURE
 
 # `gh issue view <n> --json state,stateReason,url --jq '.url + " " + .state + …'`.
@@ -189,6 +192,36 @@ run 7;   check  "a parenthetical aside is not a reason"     0 "eligible: #217"
 run 7;   check  "an uppercase conjunction is still glue"    0 "#218 (blockers: #41 open)"
 run 7;   check  "adjacent references need no glue at all"   0 "#219 (blockers: #41 open)"
 run 7;   check  "a bold label strips like a plain one"      0 "#220 (blockers: #41 open)"
+
+# (iv) The dash, in both directions. `turfgps-board-ops § The dependency
+# representation` gives one row per shape; this pins a fixture to each of the two the
+# dash owns, and does not restate the rule. Three cycles moved this boundary and each
+# swing was found only afterwards, from whichever shapes that cycle happened to
+# consider — a row carrying no fixture of its own is how that kept happening. Both
+# assertions name the DECLARED LIST rather than a symptom, and the closing `)` is
+# load-bearing: it ends the printed list, so one extra member fails the substring.
+#   #221 is asked from #7, which is satisfied and therefore never printed — the story
+#   is in this report at all only because #7 is in its declared list, and `#41 open`
+#   proves the member on the far side of the dash survived with it. Read as a reason,
+#   the list is {7} and #221 moves to `eligible:` carrying an open blocker: the
+#   under-read direction, and what reds here.
+#   #222 is the mirror, the reference behind the dash NOT declared, and it is asked
+#   from #41 so the whole list prints. #142 is open, so reading that reference as a
+#   member prints it inside the parentheses and reds. #136 and #206 carry this shape
+#   already, but every reference on both of those lines is satisfied, so neither can
+#   print a list that separates the two readings — they can assert only an absence.
+run 7;   check  "a dash between two references loses neither"  0 "#221 (blockers: #41 open)"
+run 41;  check  "and a reference behind one is still a reason" 0 "#222 (blockers: #41 open)"
+
+# (v) The empty list without a dash — the shape live story #41 carries today, and the
+# one (i) does not reach: there the dash-cut empties the line, here the label strip
+# alone must. Said here rather than left to be discovered: no neutralisation of
+# today's parser reds this, because the line carries no `#` for any reading of it to
+# find. It is present because the shape table has a row for it and a row without a
+# fixture is the defect above, and it pins that row against a parser declaring an edge
+# from the LABEL rather than from a reference — the over-read direction, which is the
+# only direction this shape has ever failed in.
+run 41;  absent "a bare none declares nothing at all"       "#223" "#208 (blockers: #41 open, #142 open)"
 
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
