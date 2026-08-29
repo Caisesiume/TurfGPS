@@ -142,8 +142,13 @@
 --      different expression is therefore not caught here.
 --
 --   7. A second index, on `sync_run`, for the currency read. `zonestore` asks
---      for the completion instant of the latest successful run, and that is
---      the one question about this store that a request may reach. Against
+--      for the `completed_at` of the latest successful run — which is the
+--      instant that run's merge BEGAN and not the instant it finished, because
+--      the column carries `now()`, and `now()` is `transaction_timestamp()`,
+--      fixed for the whole of the transaction the merge runs in. It is a lower
+--      bound on the commit, and `zonestore.Currency.LastSuccessAt` is where
+--      what that is worth to a reader is stated. It is also the one question
+--      about this store that a request may reach. Against
 --      the primary key alone it is a sequential scan and a sort over every
 --      run ever recorded — a table that grows by roughly 17,500 rows a year
 --      and is never pruned. `sync_run_completed_at_ok` is partial on
@@ -331,8 +336,15 @@ CREATE TABLE IF NOT EXISTS public.zone (
     -- `Architecture.md § Geometry, SRID, and the coordinate guard` measures how
     -- much of the corpus a table-wide swap leaves inside both ranges, and the
     -- answer is nearly all of it — including every one of the primary markets.
-    -- The real guard is the generated column above and the three assertions in
-    -- `0001_zone_store.verify.sql`.
+    -- What guards the DDL is the generated column above and the three
+    -- assertions in `0001_zone_store.verify.sql` — and that is the half of the
+    -- question SQL can reach. A swap in the WRITE PATH, the longitude value
+    -- bound to the `latitude` column, leaves the generated point agreeing with
+    -- the two columns it was generated from and passes every one of those
+    -- assertions. That binding is pinned in Go, by
+    -- `TestEveryColumnIsLoadedFromItsOwnField` in
+    -- `service/internal/syncstore/columns_test.go`; see the note on `geom`
+    -- above and `Architecture.md § What the DDL cannot reach`.
     CONSTRAINT zone_lat_range        CHECK (latitude  BETWEEN  -90 AND  90),
     CONSTRAINT zone_lon_range        CHECK (longitude BETWEEN -180 AND 180),
     CONSTRAINT zone_takeovers_nonneg CHECK (total_takeovers >= 0)
@@ -454,8 +466,10 @@ CREATE INDEX IF NOT EXISTS zone_geom_gist ON public.zone USING gist (geom);
 -- matches the query's own exactly and the LIMIT 1 needs no sort above it.
 --
 -- Creating it proves nothing here either, for the reason the paragraph above
--- gives about the GiST index. Part E of `0001_zone_store.verify.sql` is what
--- would.
+-- gives about the GiST index — and nothing in this repository has EXPLAINed
+-- it. Part E of `0001_zone_store.verify.sql` probes `zone_geom_gist` and
+-- carries no `sync_run` query at all, so this index and the one below it stay
+-- unproven even after part E has run against a loaded copy.
 
 CREATE INDEX IF NOT EXISTS sync_run_completed_at_ok
     ON public.sync_run (completed_at DESC)

@@ -20,7 +20,10 @@
 -- `Architecture.md § What is unproven` item 1 makes part E — EXPLAIN against a
 -- loaded copy — an acceptance condition of the first migration. That condition
 -- is NOT met. Until part E has run and its output is in the PR, the index set
--- is a prediction.
+-- is a prediction — and running it is necessary rather than sufficient. Part E
+-- probes `zone_geom_gist` on the two spatial shapes and carries no `sync_run`
+-- query at all, so the two indexes on `sync_run` are still a prediction on the
+-- far side of it.
 -- ----------------------------------------------------------------------------
 --
 -- Part A  the column set, in both directions
