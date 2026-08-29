@@ -273,14 +273,42 @@ ensure_readable() {
 
 is_paused() { [ -e "$TABLE/PAUSED" ]; }
 
+# THE SECOND ATOMIC PRIMITIVE: a record is committed by renaming the DIRECTORY
+# that already holds it onto the name readers look for. The name therefore never
+# exists without its payload, so no reader can observe a half-written record and
+# no interruption can leave one — there is nothing between the two states.
+#
+# `-T` is load-bearing and its absence is silent. Measured on this host on
+# 2026-08-29, plain `mv stage dest` with `dest` an existing directory does not
+# fail: it moves the source INSIDE, producing `dest/stage/row`, which reads as a
+# ruled lane holding no verdict. `mv -T` renames, and refuses with "Directory
+# not empty" when the destination already holds a record — which is exactly the
+# mutual exclusion wanted, decided by the kernel rather than by a test-then-set.
+#
+# It succeeds onto an EMPTY destination, and that is deliberate rather than
+# tolerated: an empty `verdict.d` is the wreckage this primitive exists to stop
+# creating, so a table carrying one from before this change is repaired by the
+# next verdict instead of staying wedged.
+commit_staged() { # commit_staged <stage-dir> <destination>
+  mv -T "$1" "$2" 2>/dev/null
+}
+
 field() { # field <key> <file>
   [ -r "$2" ] || return 0
   grep "^$1: " "$2" 2>/dev/null | head -1 | cut -d' ' -f2-
 }
 
 # claimed · ruled · ruling-incomplete · free. `ruling-incomplete` is a verdict
-# directory holding no row: a reviewer died mid-write. It is reported rather than
-# repaired, and it counts as outstanding — visible debt, which is the whole point.
+# directory holding no READABLE row, and it counts as outstanding — visible
+# debt, which is the whole point.
+#
+# No path in this file can now produce one. A ruling is committed by renaming a
+# directory that already holds its row, so `verdict.d` never exists empty; the
+# state remains reachable only from a table written before that change, from an
+# unreadable row, or from a hand-edit. It is kept because those are real, and
+# because a reader that cannot name the state it is looking at will call it
+# something else — but it is no longer a state an interruption can create, and
+# `release` now clears it rather than calling it finished.
 row_state() { # row_state <row-dir>
   if [ -d "$1/verdict.d" ]; then
     if [ -r "$1/verdict.d/row" ]; then echo ruled; else echo ruling-incomplete; fi
@@ -429,33 +457,59 @@ cmd_verdict() {
     exit 2
   }
 
-  # Same primitive as the claim, for the same reason: one ruling per lane per
-  # SHA, decided by the kernel. Two judges ruled on #141 sixteen seconds apart
-  # with contradictory packets; under this gate the second one is refused and
-  # the first stays of record.
-  if mkdir "$row/verdict.d" 2>/dev/null; then
-    unclaimed=false
-    [ -d "$row/holder" ] || unclaimed=true
-    tmp="$row/verdict.d/.row.$$"
-    {
-      printf 'lane: %s\n'     "$LANE"
-      printf 'pr: %s\n'       "$PR"
-      printf 'sha: %s\n'      "$SHA"
-      printf 'verdict: %s\n'  "$V"
-      printf 'confidence: %s\n' "$conf"
-      printf 'findings: %s\n' "$findings"
-      printf 'artifact: %s\n' "$artifact"
-      printf 'note: %s\n'     "$note"
-      printf 'owner: %s\n'    "$(field owner "$row/holder/row")"
-      printf 'unclaimed: %s\n' "$unclaimed"
-      printf 'ruled_at: %s\n' "$NOW"
-    } > "$tmp" 2>/dev/null && mv -f "$tmp" "$row/verdict.d/row" 2>/dev/null || {
-      rm -f "$tmp" 2>/dev/null
-      printf 'verdict: NOT RECORDED\nreason: degraded — row not writable\n'
-      printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
-      printf 'direction: carry this verdict in your handoff; the table does not hold it\n'
-      exit 2
-    }
+  # THE GATE, AND IT IS THE RENAME RATHER THAN A MKDIR.
+  #   The row is written inside a private staging directory and the whole
+  #   directory is committed onto `verdict.d`, so the name every reader tests
+  #   for comes into existence WITH its payload already inside it.
+  #
+  #   A `mkdir` gate followed by a write is two steps, and a process that died
+  #   between them — #144's failure class 1, verbatim — left `verdict.d` present
+  #   and empty. That state absorbed the lane: `claim` refused it as ruled,
+  #   `verdict` refused it as already ruled, `status` counted it outstanding
+  #   forever, and `release` refused it saying a lane that has ruled "is
+  #   finished, not stranded", which asserted the opposite of the truth. Four
+  #   verbs refusing forever, and the only recovery was `rm -rf` of the ledger:
+  #   an unaudited hand-edit of the artefact whose integrity is the point. One
+  #   rename has no between, so the state has no way to arise.
+  #
+  #   The mutual exclusion is unchanged and still the kernel's: one ruling per
+  #   lane per SHA. Two judges ruled on #141 sixteen seconds apart with
+  #   contradictory packets; under this gate the second is refused and the first
+  #   stays of record. Six concurrent verdicts were measured against the mkdir
+  #   gate as exactly one `recorded` and five refusals, and `commit_staged`
+  #   above records why the rename holds the same line.
+  stage="$row/.verdict-staging.$$"
+  rm -rf "$stage" 2>/dev/null
+  mkdir "$stage" 2>/dev/null || {
+    printf 'verdict: NOT RECORDED\nreason: degraded — could not stage the ruling\n'
+    printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+    printf 'direction: carry this verdict in your handoff; the table does not hold it\n'
+    exit 2
+  }
+  unclaimed=false
+  [ -d "$row/holder" ] || unclaimed=true
+  holder_owner="$(field owner "$row/holder/row")"
+  {
+    printf 'lane: %s\n'     "$LANE"
+    printf 'pr: %s\n'       "$PR"
+    printf 'sha: %s\n'      "$SHA"
+    printf 'verdict: %s\n'  "$V"
+    printf 'confidence: %s\n' "$conf"
+    printf 'findings: %s\n' "$findings"
+    printf 'artifact: %s\n' "$artifact"
+    printf 'note: %s\n'     "$note"
+    printf 'owner: %s\n'    "${holder_owner:--}"
+    printf 'unclaimed: %s\n' "$unclaimed"
+    printf 'ruled_at: %s\n' "$NOW"
+  } > "$stage/row" 2>/dev/null || {
+    rm -rf "$stage" 2>/dev/null
+    printf 'verdict: NOT RECORDED\nreason: degraded — row not writable\n'
+    printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+    printf 'direction: carry this verdict in your handoff; the table does not hold it\n'
+    exit 2
+  }
+
+  if commit_staged "$stage" "$row/verdict.d"; then
     printf 'verdict: recorded\nlane: %s\npanel: pr-%s @ %s\nruling: %s\nruled_at: %s\n' \
       "$LANE" "$PR" "$SHA" "$V" "$NOW"
     if [ "$unclaimed" = true ]; then
@@ -468,6 +522,9 @@ cmd_verdict() {
     exit 0
   fi
 
+  # The commit refused, so the staged ruling is not of record and must not be
+  # left behind looking like one.
+  rm -rf "$stage" 2>/dev/null
   printf 'verdict: refused\nreason: already ruled\n'
   printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
   if [ -r "$row/verdict.d/row" ]; then
@@ -476,6 +533,7 @@ cmd_verdict() {
       "$(field findings "$row/verdict.d/row")" "$(field ruled_at "$row/verdict.d/row")"
   else
     printf 'of_record: unreadable — a ruling is in flight or was interrupted\n'
+    printf 'direction: carry this verdict in your handoff; `claim.sh release` clears the lane\n'
   fi
   exit 10
 }
@@ -506,12 +564,47 @@ cmd_release() {
   ensure_writable || { printf 'release: refused\nreason: degraded — table not writable\n'; exit 2; }
   row="$TABLE/pr-$PR/$SHA/$LANE"
 
+  # A lane that has RULED is finished, not stranded, and release refuses it. A
+  # verdict directory holding no readable row has NOT ruled — it is the wreckage
+  # of a ruling interrupted mid-write, and it is precisely the lane `pr-judge`
+  # Phase 10 sends here. This test used to be on the DIRECTORY, so release
+  # answered "a lane that has ruled is finished" about a lane that had not ruled
+  # and could not be recovered by any verb. The distinction is now the ROW, so
+  # the instruction that names release as the remedy is true of the state it
+  # names. The wreckage is moved aside as an audit row and never deleted: it is
+  # evidence that a reviewer reached a ruling, and it is the one trace of it.
+  cleared_ruling=false
   if [ -d "$row/verdict.d" ]; then
-    printf 'release: refused\nreason: ruled — a lane that has ruled is finished, not stranded\n'
-    printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
-    exit 10
+    if [ -r "$row/verdict.d/row" ]; then
+      printf 'release: refused\nreason: ruled — a lane that has ruled is finished, not stranded\n'
+      printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+      printf 'of_record: %s\n' "$(field verdict "$row/verdict.d/row")"
+      exit 10
+    fi
+    vdst="$row/released-verdict-$STAMP-$$"
+    mv "$row/verdict.d" "$vdst" 2>/dev/null || {
+      printf 'release: refused\nreason: degraded — could not move the incomplete ruling aside\n'
+      printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+      exit 2
+    }
+    { printf 'lane: %s\npr: %s\nsha: %s\n' "$LANE" "$PR" "$SHA"
+      printf 'state: released-ruling-incomplete\n'
+      printf 'note: a verdict directory with no readable row — a ruling interrupted mid-write\n'
+      printf 'released_at: %s\n' "$NOW"
+      printf 'release_reason: %s\n' "$reason"
+    } > "$vdst/row" 2>/dev/null || true
+    cleared_ruling=true
   fi
   if [ ! -d "$row/holder" ]; then
+    if [ "$cleared_ruling" = true ]; then
+      # The incomplete ruling was the whole of the strand: there is no claim
+      # left to hand back, and the recovery still happened. Reporting 12 here
+      # would say nothing was done about a lane this call just unwedged.
+      printf 'release: done\nlane: %s\npanel: pr-%s @ %s\nreason: %s\n' "$LANE" "$PR" "$SHA" "$reason"
+      printf 'cleared: ruling-incomplete — the interrupted verdict was moved aside as an audit row\n'
+      printf 'note: the lane is claimable again\n'
+      exit 0
+    fi
     printf 'release: refused\nreason: no claim to release\n'
     printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
     exit 12
@@ -543,6 +636,8 @@ cmd_release() {
     } > "$dst/row" 2>/dev/null || true
   fi
   printf 'release: done\nlane: %s\npanel: pr-%s @ %s\nreason: %s\n' "$LANE" "$PR" "$SHA" "$reason"
+  [ "$cleared_ruling" = false ] || \
+    printf 'cleared: ruling-incomplete — the interrupted verdict was moved aside as an audit row\n'
   printf 'note: the lane is claimable again\n'
   exit 0
 }
