@@ -225,11 +225,11 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 		// TRADED ONE FAILURE FOR A QUIETER ONE. Keeping the process up after this
 		// loop is gone keeps nothing that matters: nothing here restarts it, the
 		// request surface is one static route that answers 200 whether the copy
-		// is minutes or months stale, and the log line below is the entire
-		// signal. That is a service reporting healthy while the only thing it
-		// was doing has stopped — indefinitely, and invisibly to anything that
-		// polls it — where an ordinary crash would at least have been replaced
-		// by a supervisor within seconds.
+		// is minutes or months stale, and the log line below would be the whole
+		// of the signal. That is a service reporting healthy while the only
+		// thing it was doing has stopped — indefinitely, and invisibly to
+		// anything that polls it — where an ordinary crash would at least have
+		// been replaced by a supervisor within seconds.
 		//
 		// So the root context is cancelled instead. serve returns, drains what is
 		// in flight rather than severing it, and main exits nonzero so a
