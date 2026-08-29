@@ -66,9 +66,23 @@
 #     <table>/pr-<n>/<sha>/<lane>/released-verdict-<stamp>/row  an interrupted ruling, cleared
 #
 #   This script never reads GH_JUDGE_TOKEN, never invokes gh, and never records
-#   the environment. Free-text fields are additionally scrubbed of token-shaped
-#   substrings before they are written, so a caller who pastes a credential into
-#   --note or --artifact cannot put it into the table either.
+#   the environment. That is the guarantee, it is structural, and it is the only
+#   one made here.
+#
+#   The scrub over free text is a BACKSTOP AND NOT A SECOND GUARANTEE, and this
+#   header used to claim otherwise: it said a caller who pastes a credential
+#   into --note or --artifact "cannot put it into the table either". Measured on
+#   2026-08-29, fourteen credential shapes passed through it unredacted — AWS
+#   access keys, `sk-ant-api03-…`, `xoxb-…`, `glpat-…`, PEM headers,
+#   `user:password@` URLs, `Bearer eyJ…`, and `GHP_` in upper case, `sed -E`
+#   being case-sensitive. What it actually removes is lower-case GitHub token
+#   prefixes — `ghp_ gho_ ghu_ ghs_ ghr_` and `github_pat_` — and nothing else.
+#
+#   The defect was the sentence rather than the net, and the sentence is the
+#   dangerous half: a header promising a guarantee the regex cannot deliver is
+#   how a caller comes to believe the table is safe to paste into. It is not.
+#   Do not paste a credential into a field; the scrub catches one shape of one
+#   mistake.
 #
 # Usage: scripts/loop/claim.sh <subcommand> [args…]   —  `claim.sh help` prints the surface
 
@@ -230,12 +244,23 @@ norm_lane() {
   printf '%s' "$s"
 }
 
-# One line, no control characters, capped, and with anything token-shaped removed.
-# The pattern is matched, not compared against a value: this script does not read
-# GH_JUDGE_TOKEN, so it cannot leak it by accident of comparison either.
+# One line, no control characters, capped, and with lower-case GitHub token
+# prefixes removed. What the token pattern does and does not cover is argued in
+# the header — do not restate it here as a guarantee. The pattern is matched, not
+# compared against a value: this script does not read GH_JUDGE_TOKEN, so it
+# cannot leak it by accident of comparison either.
+#
+# The control strip is `[:cntrl:]` and not `\r\n`. CR and LF are what break the
+# one-line record format, so they were all that got removed — and ANSI escapes
+# were therefore stored raw, `od`-confirmed. A stored escape survives the round
+# trip and repaints the terminal of the human reading the panel, so the row is
+# intact and the reader's view of it is not, which is the one attack a ledger
+# whose whole purpose is being believed cannot afford. Under the `LC_ALL=C` set
+# at the top of this file the class is the ASCII control range and nothing else;
+# ordinary text, including UTF-8, is untouched.
 scrub() {
   printf '%s' "${1:-}" \
-    | tr -d '\r\n' \
+    | tr -d '[:cntrl:]' \
     | sed -E 's/(gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,})/[redacted]/g' \
     | cut -c1-200
 }
