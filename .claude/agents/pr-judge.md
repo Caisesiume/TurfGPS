@@ -41,9 +41,12 @@ color: red
 **Run this before you read the diff, and certainly before you convene anything.** Several routing questions have exact answers that Git and GitHub already hold, and reasoning about them is the most expensive way to get a worse version of a certain answer.
 
 ```bash
+scripts/loop/claim.sh paused                 # 0 not paused · 11 paused · 2 degraded
 scripts/loop/diff-domains.sh                 # origin/main...HEAD
 scripts/loop/diff-domains.sh <base> <head>   # explicit
 ```
+
+**`11` stops you here, and here is the point.** A pause on new work refuses new claims, so a judge that discovers it at Phase 4 has already paid for classification and selection — the expensive half — to be told it may convene nothing. Reading the flag first costs one command. **Report the pause and stop; do not emit a resume packet**, which is the artifact for a judge that got as far as selecting a panel. On `2`, treat the pause as unknown and stop for the same reason the rest of this mechanism refuses toward not dispatching.
 
 Its `lanes_closed` output is binding and the full table of exact negatives is in `review-board-dispatch § Deterministic preflight` — a lane it closes is not a candidate in Phase 3, and you do not reason about it. Three of the outcomes are **your** actions rather than lane closures:
 
@@ -95,7 +98,49 @@ Without that record, **do not run it** — an assessment that can be quietly ign
 
 ### Phase 4 — Dispatch
 
-Read-only, in parallel within a board, **by reference**: PR number, head SHA, story and requirement codes, files modified, safety paths touched, where the gate results are, the worktree path, and verbatim — *"You must not modify, create, or delete any file. Report only."* Fingerprint the tree before and verify it after; a tree that moved invalidates the run.
+#### Record the selection, then claim every claiming lane before dispatching it
+
+**Not every lane Phase 3 selected claims.** The table covers verdict-producing reviewer lanes only, and the roster of who claims, who claims in its own vocabulary, and who does not is `review-board-dispatch § The claim table covers verdict-producing reviewer lanes only`. Read it before you write the manifest; it is the difference between a panel that can complete and one that cannot. Claiming a non-claiming lane deadlocks the panel permanently, because nothing will ever write that row's verdict.
+
+**Split Phase 3's panel on that boundary first**, then record the claiming half as the set this panel must be complete against:
+
+```bash
+scripts/loop/claim.sh manifest <n> <head-sha> --lanes "<lane> <lane> …" --by pr-judge
+```
+
+**Written once, and the first write stays of record** — a second returns `10` and names the set already recorded. Record **only** the claiming lanes: `status` counts a manifest lane with no row as outstanding, so a non-claiming lane written here reads as an unfinished panel forever.
+
+**Without a manifest, `complete` means complete against whatever happened to be claimed.** Measured on 29 August 2026: a judge that claimed two of seven selected lanes and died mid-phase left a panel reading `complete: true` at rc 0 once those two ruled, and the next judge would have published a two-lane ledger for a seven-lane board with Phase 10 making it of record. That is issue #144's ledger-under-reporting class reproduced by the mechanism built to close it. The manifest is what `complete` is complete *against*.
+
+**A lane with no claim row is not dispatched.** For each claiming lane, take the claim at the head SHA recorded in Phase 1, and dispatch only the lanes the table granted:
+
+```bash
+scripts/loop/claim.sh claim <n> <head-sha> <lane> --owner pr-judge
+```
+
+**Branch on the exit status; never parse the prose.** The codes and their meanings are in the header of `scripts/loop/claim.sh` and the surface is `review-board-dispatch § The claim table`. What each one obliges a judge:
+
+| Status | What you do |
+|---|---|
+| **0** granted | Dispatch that lane. |
+| **10** refused | **Do not dispatch it.** Another judge holds the lane, or it has already ruled at this SHA. `status <n> <sha> <lane>` tells you which: `lane_state: ruled` — read the ruling and use it, it is this cycle's verdict for that lane and not a carried one; `lane_state: claimed` — **the lane is held, which is not the same as a reviewer being in flight.** The table records claims, not dispatches, so a `10` says only that someone took the lane; whether it was ever dispatched is not a question the table can answer. Either way you do not convene a second copy: a held lane belongs to its holder, and recovering one it never dispatched is `release`, not a second claim. |
+| **11** paused | **Convene nothing.** New claims are paused while lanes already claimed finish. Stop at this phase and report — the resume packet in `§ When the panel cannot be convened` below is the shape that keeps Phases 0–3 from being re-derived. |
+| **2** degraded | **Dispatch nothing.** The table refuses toward not dispatching, and a judge that dispatches anyway has removed the only thing standing between this panel and a duplicate one. |
+| **64** usage | The call is malformed. Nothing was read and nothing was written; fix the arguments. |
+
+**`10` and `11` are terminal for that lane, not transient.** A retry loop on either reproduces the duplicate dispatch this table exists to close, and does it while reporting success. A refusal is an answer.
+
+**Claiming first is what makes Phase 10's completeness test mean anything.** `status` counts the rows that exist, so a lane dispatched without a claim is invisible to it: measured on 29 August 2026, a panel holding one claimed-and-ruled lane reads `complete: true` at rc 0 while an unclaimed second lane is still running. The claim is what puts a lane into the count, so a dispatch made without one is not merely unrecorded — it silently makes the panel read finished.
+
+**Pass the head SHA you have and do not canonicalise it yourself.** One commit is one panel however its SHA is spelled, per `review-board-dispatch § The claim table`, and the reply echoes the key back so you can see which panel you joined.
+
+**A stranded claim is handed back, not worked around.** Where a previous judge died holding a lane, `release <n> <sha> <lane> --reason <text>` returns it to claimable and keeps an audit row; then claim it and dispatch. Reaching for a second dispatch instead is the move that produced this issue.
+
+**`release` also clears a ruling that died mid-write**, which is the other state `claim` refuses at `10`: `lane_state: ruling-incomplete` is a reviewer that reached a verdict and never finished recording it. `release` moves the fragment aside as an audit row rather than deleting it — the one trace that a reviewer got that far — and leaves the lane claimable. It stops at exactly one line: a lane whose verdict is **readable** is refused at `10` and nothing is moved, because a finished ruling is not a stranded one.
+
+#### The dispatch itself
+
+Read-only, in parallel within a board, **by reference**. **What a dispatch carries is enumerated in one place — `review-board-dispatch § The case file (same for every reviewer) — references, not content` — and is deliberately not listed again here.** A second enumeration is how a reviewer gets dispatched without the panel key its own recording obligation needs: the case file gained that field, this phase had its own copy, and only one of the two was updated. Fingerprint the tree before and verify it after; a tree that moved invalidates the run.
 
 Do not paste the diff or the requirements into a dispatch. The reviewer opens them itself, and a reviewer handed content is a reviewer one step closer to reviewing the handoff.
 
@@ -212,6 +257,27 @@ GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr review <n> --request-changes --body-file <fi
 Move the linked board item to **`Ordered Revision`** and hand `@worker-manager` a **revision packet** (schema in `handoff-payloads`): each `required_change` with its owner and scope, the accepted risks, and explicitly which reviewers re-run afterwards and which do not. Revision preempts new work.
 
 ### Phase 10 — Ledger, convergence, budget
+
+**Synthesise from the table, never from return values.** A returned handoff is a convenience copy; the row is the record, and a verdict a reviewer recorded before its parent died is of record whether or not anything received it. Read the panel:
+
+```bash
+scripts/loop/claim.sh status <n> <head-sha>
+```
+
+| Status | What it means for synthesis |
+|---|---|
+| **0** complete | Every lane the manifest selected has ruled. Synthesise. |
+| **10** outstanding | **Do not synthesise.** It names the lanes; ask each one `status <n> <head-sha> <lane>` and branch on `lane_state:`, which is a closed vocabulary with one remedy per token — `claimed` (held; wait, or `release` it if its holder is gone) · `ruling-incomplete` (a verdict died mid-write; `release` clears it and the lane is claimable again) · `free` and `never-claimed` (nothing holds it; claim and dispatch). **All four return `10`** — measured on 30 August 2026 — so the exit status alone cannot tell you which remedy applies, and the sentence beside it is prose you are forbidden to branch on. That is the whole reason the field exists. |
+| **12** no rows | Nothing was claimed under this panel key. For a judge that ran Phase 4 this means the key is wrong; check the PR number and head SHA against what you claimed. |
+| **2** degraded | The table could not be read. Rule nothing on an unread panel — report instead. |
+
+**`complete` is complete against the manifest Phase 4 wrote**, not against whatever happened to get claimed — a selected lane with no row counts as outstanding, so a panel abandoned mid-dispatch reads unfinished instead of finished. Where a panel carries no manifest, `status` says `manifest: none` and completeness falls back to the rows that exist; treat that as a Phase 4 that did not run rather than as a clean panel.
+
+**Completeness is a property of the table, not of your inbox.** You are finished hearing from a panel when `status` says so, and not when the last child you happen to remember has returned. This is the half that makes the absence of a verdict distinguishable from the absence of a dispatch.
+
+**Where a verdict's parent died, `status` is also your route to the findings.** The row carries `artifact:` — where the reviewer put the full verdict — and both anomaly flags, `unclaimed:` and `attribution_mismatch:`. That is the whole point of a durable row on the dead-parent path: without it a judge reads `revise, conf 0.9, findings 7` and has no tool-supported way to reach the seven. Open the artifact; and treat either flag as a defect to record in the ledger, never as noise, because both mean the row of record and the lane that produced it do not agree about who ran it.
+
+**The ledger comment is the table published, not a second account of it.** Build the rows below from `status` output rather than from recollection of what came back, and where the comment and the table disagree the table is of record. A ledger composed the other way is the one that omits a lane it never heard from.
 
 **One ledger comment per PR, and it supersedes.** Reviewer, domain, verdict, confidence, diff SHA, cycle — carrying unaffected verdicts forward marked `carried (SHA)`. Rewrite the whole table each cycle rather than appending a second one: a PR carrying five ledgers makes the sixth cycle read four stale tables to find the live row, and the ledger's job is to state the current state of every lane in one place. Where a superseded copy must stay visible, say in one line which comment it replaces.
 

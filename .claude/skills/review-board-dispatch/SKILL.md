@@ -31,6 +31,49 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 **The judge's disposition, stated so the next judge does not over-correct.** A reviewer that ran a gate has **exceeded its dispatch**, and that is noted on the PR and in the ledger. It has not, by that act alone, invalidated its verdict. Where the tree verified clean and the measurement proved load-bearing, **the verdict stands and the lapse is recorded** — `pr-judge § Phase 5` asks whether a verdict is *evidenced*, and a verdict whose evidence held is not improved by discarding it. Discard it where the **tree moved**, which is the clause above and a different failure. Observed once, on a `@docs-reviewer`, and disposed of exactly this way.
 
+## The claim table
+
+**A claiming lane is claimed before it is dispatched, and its verdict is written by the reviewer that reached it.** Which lanes claim is `§ The claim table covers verdict-producing reviewer lanes only` below. The mechanism is `scripts/loop/claim.sh` — deterministic, LLM-free, no network, no GitHub read. `docs/DELIVERY.md § Lanes are claimed before they are dispatched` is the law; this section is how a panel is convened under it.
+
+**Who runs which verb, and when — the arguments each takes are in `claim.sh help` and are deliberately not copied here**, for the reason `local-gates § When these activate` gives about commands with one home:
+
+| Verb | Who runs it | When |
+|---|---|---|
+| `manifest` | the judge | once per panel, recording the claiming lanes it selected, before it claims any of them |
+| `claim` | the judge; **and `@engineering-lead` when it couriers a lane no row covers** | once per selected claiming lane, before anything is dispatched |
+| `verdict` | the reviewer that ran the lane | before its own pass ends |
+| `release` | a judge recovering a stranded lane, or clearing a ruling interrupted mid-write | when a claim or a ruling outlived the process holding it |
+| `status` | the judge; **and `@engineering-lead` before it couriers**, which is the check that route turns on | to learn that the panel is complete, or what one lane's state is |
+| `pause` · `resume` | `@engineering-lead`, when a pause on new work is declared or lifted | `engineering-lead § A stop on new work is entered into the claim table` |
+| `paused` | the judge, in its preflight | `@pr-judge § Phase 0 — Deterministic preflight, before anything else` |
+| `list` · `help` | any caller | the panel index, and the surface itself |
+
+**A verb appearing against two callers is one obligation stated at two callers, and what a code obliges differs between them.** `@pr-judge § Phase 4` governs claiming a lane you selected; `engineering-lead § Before you invoke anything` governs carrying a lane someone else selected, and its `status` codes require something different from the judge's. Read the caller's own table, not this column, for what a code requires of you.
+
+### The claim table covers verdict-producing reviewer lanes only
+
+*Ruled by `@engineering-lead` on 30 August 2026, on `@docs-reviewer` `DOC-01` and `@linus-architecture-critic` `LA-04`, which reached it independently. It is a boundary and not an exemption: leaving it unstated is what deadlocked the high tier.*
+
+- **Claim and record: every registry reviewer that returns a `verdict:`.** The claim is the judge's and the record is the reviewer's own, per `review-verdicts § Record your verdict into its row before your pass ends`.
+- **Claim and record, in its own vocabulary: `@validation-agent`.** It returns a machine result rather than a verdict, so it records `pass` or `fail`. The table enforces no vocabulary of its own — verified on 30 August 2026, both words recording and reading back as themselves at exit 0 — and its obligation is written at `validation-agent § Record your result into its row before your pass ends`, because its contract carries no instruction to load a verdict skill that could carry it.
+- **Do not claim: `@confidence-assessor`, `@craft-review-summarizer`, `@linus-review-summarizer`, `@go-review-summarizer`, `@change-risk-assessor`.** None returns a `verdict:` — the first four weigh verdicts others reached, the last sets a risk tier. The first four also carry `tools: Read, Grep, Glob` and no Bash, verified in their frontmatter on 30 August 2026, so they could not execute the verb at all.
+
+**Completeness is computed over the claimed set, so a lane that does not claim can never deadlock a panel.** That was the failure and it was not hypothetical: `@confidence-assessor` is mandatory at every high tier, its row would stay `claimed` forever, `status` counts it outstanding, and `@pr-judge § Phase 10` forbids synthesising at `10`. No high-tier panel could complete — including the one convened over this mechanism. On PR #135 the lane returned `insufficient_evidence` naming exactly that tool set, which is the same boundary arriving as a live result rather than a code reading.
+
+**A non-claiming lane is handed its inputs, because it cannot fetch them.** A lane without Bash reads neither this table nor the PR ledger comment, which `turfgps-board-ops` makes a comment by design. The judge therefore sends such a lane the verdicts it is convened to weigh rather than a reference to them. That is the one place the send-the-reference rule of `agent-handoffs § The context escalation ladder` is inverted, and it is inverted for the only reason that could justify it: a reference the receiver cannot open is not a reference.
+
+**Every caller branches on the exit status and none parses the prose:** `0` OK · `10` REFUSED · `11` PAUSED · `12` NO_ROW · `2` DEGRADED · `64` USAGE. What each code *means* is in the header of `scripts/loop/claim.sh`; what each **obliges** differs by caller and is stated at the caller — `@pr-judge § Phase 4` for claiming, `@pr-judge § Phase 10` for synthesis, `review-verdicts § Record your verdict into its row before your pass ends` for recording. **`10` and `11` are answers, not failures to retry.** An agent that treats either as a transient error and calls again has reinstated the duplicate dispatch the table exists to prevent — and it will do so while reporting success, which is why the obligation is written wherever a caller meets a code and not only here.
+
+**The two verbs fail in opposite directions, deliberately.** `claim` closes toward refusing to dispatch; `verdict` closes toward loudly not recording. The script's header argues why that asymmetry is the only safe pair. What it means at the call site is short: a nonzero `claim` means *do not convene*, and a nonzero `verdict` means *the table does not hold this, so carry it yourself*. A caller that collapses both into "it failed, try again" loses in one direction or the other.
+
+**One commit is one panel however its SHA is spelled.** `git rev-parse HEAD` and `git log --oneline` reach the same row rather than two, and a PR number sheds its leading zeros the same way — the script canonicalises both keys and echoes them back, so the reply names the panel actually joined. **Pass the head SHA you have and do not canonicalise it yourself:** a caller that invents its own key is how one commit became two panels that could not see each other.
+
+**The pause is a real stop, taking effect at the next hop.** `pause` refuses new claims while lanes already claimed continue and still record their verdicts. It is the mechanism a declared pause previously lacked — issue #144's fifth failure class, where a pause existed only in one agent's behaviour and could not reach work already in motion.
+
+**A mechanism nobody is obliged to call closes that class no better than the behaviour did**, which is why the two rows above cite an obligation rather than a permission: the declaring half is `engineering-lead § A stop on new work is entered into the claim table` and the reading half is `@pr-judge § Phase 0 — Deterministic preflight, before anything else`. A pause the loop can decline to enter into the table is still a pause that exists only in one agent's behaviour.
+
+**The table is machine-local durable state**, under `.claude/state/review-claims/`, inside the entry `.gitignore` already carries. It coordinates the judges and reviewers running on one machine, which is where every duplicate dispatch on record happened; it is not a cross-machine lock and it is not published. What makes a panel visible to a human is the PR ledger comment, defined in `§ Incremental review validity` below.
+
 ## Sequencing
 
 1. Convened critics run **parallel within a board**; boards may run in parallel with each other.
@@ -39,7 +82,7 @@ If the tree changed, the board run is **invalid**: restore, identify the mutatin
 
 ## The case file (same for every reviewer) — references, not content
 
-PR number and the story it links · acceptance criteria and requirement codes · the head SHA under review · files modified · **safety paths touched** (see `safety-path-checklist`) · where the gate results are (see `local-gates`) · the review worktree path · the read-only clause · **on cycle 2 and later, the scope** — the findings this revision discharged and the sites that discharged them, per `§ Scoped re-review`.
+PR number and the story it links · acceptance criteria and requirement codes · the head SHA under review · files modified · **safety paths touched** (see `safety-path-checklist`) · where the gate results are (see `local-gates`) · the review worktree path · **the lane name its verdict is recorded under**, which with the PR number and head SHA above is the panel key it needs to write its own row per `review-verdicts § Record your verdict into its row before your pass ends` · the read-only clause · **on cycle 2 and later, the scope** — the findings this revision discharged and the sites that discharged them, per `§ Scoped re-review`.
 
 **Send the references; the reviewer opens the artifacts itself.** Pasting the diff, the requirement text, or the PR body into the dispatch pays for the same bytes twice and hands the reviewer a copy that can already be stale. It also quietly invites the failure the next section exists to prevent.
 
@@ -199,6 +242,8 @@ These agents stay registered and stay distinct — **the rule is a convening con
 Convergence — cycle 2: previous 5 · resolved 4 · new 0 · remaining 1 ·
 risk 0.61 → 0.31 · confidence 0.77 → 0.94 · converging: true
 ```
+
+**The ledger is rendered from the claim table, not composed from what came back.** The table is where the panel actually lives — `§ The claim table` above — and `@pr-judge § Phase 10` requires this comment to be built from `status` output, with the table of record where the two disagree. A ledger composed from a judge's recollection of its returns is the one that omits a lane it never heard from, which is issue #144's fourth failure class.
 
 A row marked **`carried (SHA)`** states plainly that nobody looked at this cycle's diff for that lane, and on whose earlier evidence the merge will rest. That is the point: carried validity is a claim, and a claim someone who was not there can check is worth more than one they must trust.
 
