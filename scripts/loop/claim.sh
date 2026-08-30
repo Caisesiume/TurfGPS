@@ -1094,10 +1094,12 @@ is durable the instant it exists. No LLM, no network, no judgement.
 
   status  <pr> <sha> [lane]
           The panel. 0 complete — synthesise. 10 lanes outstanding. 12 no rows.
-          2 degraded. With a <lane> it also prints `lane_state:`, one of
-          ruled · claimed · ruling-incomplete · free · never-claimed — three of
-          those return 10 and have three different remedies, so branch on that
-          field rather than on the sentence beside it.
+          2 degraded. With a <lane> it also prints `lane_state:`, one of SIX:
+          ruled (0) · claimed, ruling-incomplete, free, never-claimed (all 10)
+          · no-row (12). Four states share 10 and have four different remedies,
+          so branch on that field rather than on the sentence beside it. The
+          sixth, no-row, is a lane this panel has never heard of; a lane the
+          manifest selected but nothing claimed reads never-claimed instead.
 
   list    [pr]                Every panel, or one PR's. 0 always, 2 degraded.
   pause   [--reason <text>]   No new claims. Held lanes still record. 0.
