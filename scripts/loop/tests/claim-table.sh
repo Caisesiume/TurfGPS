@@ -424,7 +424,7 @@ fi
 # A verdict for a lane no claim covers is DURABLE FIRST and loud second. Refusing
 # it would lose the work in order to enforce a rule about dispatch.
 fresh
-run verdict $PR $SHA orphan rejected --note 'no claim covered this'
+run verdict $PR $SHA orphan rejected --artifact 'https://github.com/x/pull/144#orphan'
 check 'an unclaimed verdict is still recorded'                12 'verdict: recorded'
 check '  and is loud about the anomaly'                       12 'anomaly: no claim row covered'
 is '  and the row is on disk' \
@@ -569,14 +569,14 @@ is '  and redacted in the row on disk' \
 is '  leaving a redaction marker in its place' \
    "$(grep -c 'redacted' "$(row_of $PR $SHA secret)/holder/row" 2>/dev/null | tr -d ' ')" 1
 
-run verdict $PR $SHA secret approved --note "leaked $TOK here"
-is 'a token-shaped note is redacted in the row' \
+run verdict $PR $SHA secret approved --artifact "leaked $TOK here"
+is 'a token-shaped artifact is redacted in the row' \
    "$(grep -c "$TOK" "$(row_of $PR $SHA secret)/verdict.d/row" 2>/dev/null | tr -d ' ')" 0
 
 fresh
 run claim $PR $SHA forge --owner j1
-run verdict $PR $SHA forge pending --note "$(printf 'x\nverdict: approved-by-injection')"
-check 'a note carrying a newline is accepted'                 0  'verdict: recorded'
+run verdict $PR $SHA forge pending --artifact "$(printf 'x\nverdict: approved-by-injection')"
+check 'an artifact carrying a newline is accepted'            0  'verdict: recorded'
 is '  but cannot forge a second verdict line' \
    "$(grep -c '^verdict: ' "$(row_of $PR $SHA forge)/verdict.d/row" 2>/dev/null | tr -d ' ')" 1
 is '  and the ruling of record is the real one' \
@@ -680,7 +680,7 @@ is '  a main SUBDIRECTORY resolves the same one'              "$wt2" "$wt1"
 is '  the LINKED WORKTREE resolves the same one'              "$wt3" "$wt1"
 is '  and a linked-worktree subdirectory too'                 "$wt4" "$wt1"
 
-OUT="$(at "$WTLINK" claim 7 abc1234 shared --owner reviewer-in-worktree)"; RC=$?
+OUT="$(at "$WTLINK" claim 7 abc1234 shared --owner reviewer-in-worktree --for reviewer-in-worktree)"; RC=$?
 check 'a claim taken from the linked worktree is granted'     0  'claim: granted'
 OUT="$(at "$WTREPO" claim 7 abc1234 shared --owner judge-in-main)"; RC=$?
 check '  and the SAME lane from the main checkout is refused' 10 'reason: held'
@@ -893,17 +893,17 @@ section 'a verdict names who FILED it, not only who held the lane'
 # exists: the likely case was the silent one. Four values, each asserted in the
 # row on disk, because a flag no reader can tell apart is not a flag.
 fresh
-run claim $PR $SHA agree --owner alice
+run claim $PR $SHA agree --owner alice --for alice
 run verdict $PR $SHA agree approved --by alice
 check 'a verdict filed by the holder is recorded'             0  'verdict: recorded'
 check '  naming its filer'                                    0  'filed_by: alice'
 is '  and the row records the check as having passed' \
    "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA agree)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: false'
 
-run claim $PR $SHA differ --owner alice
+run claim $PR $SHA differ --owner judge --for alice
 run verdict $PR $SHA differ approved --by mallory
 check 'a verdict filed by someone OTHER than the holder is 12' 12 'anomaly: filed by mallory'
-check '  naming both identities'                              12 'the lane is held by alice'
+check '  naming both identities'                              12 'expects its verdict from alice (held by judge)'
 check '  and it is RECORDED, never discarded to enforce that' 12 'verdict: recorded'
 is '  flagged in the row itself' \
    "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA differ)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: true'
@@ -927,6 +927,137 @@ run status $PR $SHA no-holder
 check '  and a read verb surfaces THAT anomaly too'           0  'unclaimed: true'
 
 # ---------------------------------------------------------------------------
+section 'the holder and the expected filer are two identities, not one'
+# ---------------------------------------------------------------------------
+# SEC-01's first remedy checked `--by` against `owner:` and so fired on the
+# ORDINARY path. `pr-judge` Phase 4 claims each selected lane ON THE REVIEWER'S
+# BEHALF before dispatching it, and `engineering-lead` couriers the same way, so
+# the judge is always the holder and the reviewer is always the filer: every
+# honest verdict this table will ever see recorded `attribution_mismatch: true`
+# at exit 12. The normal case reported as the anomaly, which is how a signal
+# becomes noise and then gets switched off by the third reader.
+#
+# NOTHING ABOVE COULD SEE IT. The section before this one pins a holder filing
+# into its own lane — a shape the courier design never produces — so the suite
+# stayed green while the flag fired on every real dispatch, and the defect was
+# caught by hand instead. That absent assertion is why this section exists, and
+# the clean ordinary path is therefore pinned FIRST and as a DIRECTION:
+# `anomaly` must be ABSENT from it, not merely outnumbered inside it.
+fresh
+run claim $PR $SHA docs-reviewer --owner pr-judge
+check 'a judge claims a lane on its reviewer behalf'          0  'claim: granted'
+check '  the row naming who HOLDS it'                         0  'owner: pr-judge'
+check '  and, separately, who it EXPECTS to file'             0  'expects: docs-reviewer'
+is '  the second identity defaulting to the lane, unpassed' \
+   "$(grep '^expects: ' "$(row_of $PR $SHA docs-reviewer)/holder/row" 2>/dev/null | head -1)" 'expects: docs-reviewer'
+
+run verdict $PR $SHA docs-reviewer approved --by docs-reviewer
+check '(a) the lane own reviewer files: RECORDED at 0'        0  'verdict: recorded'
+refute '  and the ORDINARY path is never called an anomaly'      'anomaly'
+refute '  nor flagged a mismatch in the caller own output'       'mismatch'
+is '  the row recording the check as PASSED, not as absent' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: false'
+is '  while the holder stays distinct from the filer on disk' \
+   "$(grep '^owner: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" 'owner: pr-judge'
+
+# (b) The attack the flag exists for, which must still fire once the ordinary
+# path is quiet — a flag made quiet by being switched off detects nothing either.
+run claim $PR $SHA sec-reviewer --owner pr-judge
+run verdict $PR $SHA sec-reviewer approved --by mallory
+check '(b) a lane filed by ANOTHER hand is 12'                12 'anomaly: filed by mallory'
+check '  naming the identity expected, and the holder too'    12 'expects its verdict from sec-reviewer (held by pr-judge)'
+check '  and RECORDED, never discarded to enforce the rule'   12 'verdict: recorded'
+is '  flagged true in the row itself' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA sec-reviewer)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: true'
+
+# (c) and (d), the two values that are neither pass nor attack, kept apart
+# because a flag whose four values collapse to two is evidence of nothing.
+run claim $PR $SHA quiet-l --owner pr-judge
+run verdict $PR $SHA quiet-l approved
+check '(c) no --by at all is recorded at 0'                   0  'verdict: recorded'
+refute '  and an unchecked filer is not reported as an attack'   'anomaly'
+is '  the row saying its own writer is unknown' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA quiet-l)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: unrecorded'
+
+run verdict $PR $SHA never-claimed-l approved --by docs-reviewer
+check '(d) no claim row at all is 12'                         12 'anomaly: no claim row covered'
+is '  distinguished from a wrong filer by its own token' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA never-claimed-l)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: no-holder'
+
+# ONE AGENT IS ONE NAME, HOWEVER IT IS SPELLED.
+# `norm_lane` folds a lane; `--by` is free text and is not folded, so without
+# `agent_key` the same false anomaly walks back in through the SPELLING rather
+# than through the field. Measured on this tree before `agent_key` existed:
+# `--by @docs-reviewer` against a lane-derived `expects: docs-reviewer` was rc
+# 12. A live direction, not a hypothetical, and all four spellings a dispatch
+# actually uses are pinned rather than one standing for the rest.
+for spelling in 'docs-reviewer' '@docs-reviewer' 'Docs-Reviewer' '@Docs-Reviewer'; do
+  fresh
+  run claim $PR $SHA "$spelling" --owner pr-judge
+  run verdict $PR $SHA docs-reviewer approved --by "$spelling"
+  check "a filer spelled [$spelling] is the identity expected"  0  'verdict: recorded'
+  refute "  and is never an anomaly on the spelling alone"         'anomaly'
+done
+# The fold is for the COMPARISON only. A row that quietly rewrites the name it
+# was handed is not evidence of what it was handed.
+is '  yet the row stores the spelling its caller passed' \
+   "$(grep '^filed_by: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" 'filed_by: @Docs-Reviewer'
+# and the fold does not make every name agree — a different one still fires.
+fresh
+run claim $PR $SHA docs-reviewer --owner pr-judge
+run verdict $PR $SHA docs-reviewer approved --by '@Mallory'
+check '  while a genuinely different name still fires at 12'  12 'anomaly: filed by @Mallory'
+
+# `--for`, the override, for a lane dispatched to a name other than its own.
+fresh
+run claim $PR $SHA lane-x --owner pr-judge --for docs-reviewer
+check 'a lane may expect a filer other than its own name'     0  'expects: docs-reviewer'
+run verdict $PR $SHA lane-x approved --by docs-reviewer
+check '  and that filer is the one it accepts'                0  'verdict: recorded'
+refute '  without an anomaly'                                    'anomaly'
+run claim $PR $SHA lane-y --owner pr-judge --for docs-reviewer
+run verdict $PR $SHA lane-y approved --by lane-y
+check '  while the LANE NAME is no longer the one expected'   12 'anomaly: filed by lane-y'
+
+# A claim row written before `expects:` existed carries none. It must fall back
+# to the same default `claim` records, or an upgrade flags every honest verdict
+# in an older table — the regression above, arriving a second time by data age.
+fresh
+run claim $PR $SHA legacy-l --owner pr-judge
+sed -i '/^expects: /d' "$(row_of $PR $SHA legacy-l)/holder/row" 2>/dev/null
+is '  a pre-expects claim row really carries no expects' \
+   "$(grep -c '^expects: ' "$(row_of $PR $SHA legacy-l)/holder/row" 2>/dev/null | tr -d ' ')" 0
+run verdict $PR $SHA legacy-l approved --by legacy-l
+check 'a legacy row falls back to the lane name, at 0'        0  'verdict: recorded'
+refute '  and is not flagged merely for predating the field'     'anomaly'
+is '  recording the check as passed against the fallback' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA legacy-l)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: false'
+fresh
+run claim $PR $SHA legacy-m --owner pr-judge
+sed -i '/^expects: /d' "$(row_of $PR $SHA legacy-m)/holder/row" 2>/dev/null
+run verdict $PR $SHA legacy-m approved --by mallory
+check '  yet a legacy row still catches a wrong filer'        12 'anomaly: filed by mallory'
+
+# ---------------------------------------------------------------------------
+section 'the deleted --note is a usage error, not a silent no-op'
+# ---------------------------------------------------------------------------
+# LA-10 asked that each free-text flag name an obliged caller or go. `--note`
+# could not, so it was deleted. A deleted flag quietly ACCEPTED and dropped is
+# worse than one that never existed: the caller believes the table holds text it
+# does not hold. It must refuse, and refuse at 64 — nothing read, nothing
+# written — which is the same direction every other malformed call takes here.
+fresh
+run claim $PR $SHA gone-l --owner pr-judge
+run verdict $PR $SHA gone-l approved --by gone-l --note 'seven findings'
+check 'verdict --note is a usage error at 64'                 64 'usage: claim.sh verdict'
+refute '  and never reads as recorded'                           'verdict: recorded'
+refute '  the usage line no longer offering the flag'            '--note'
+is '  and nothing was written for it' \
+   "$([ -e "$(row_of $PR $SHA gone-l)/verdict.d" ] && printf yes || printf no)" no
+run help
+refute 'nor does help name the flag any more'                    '--note'
+
+# ---------------------------------------------------------------------------
 section 'status answers in a field a caller can branch on'
 # ---------------------------------------------------------------------------
 # `status <lane>` returned 10 for held, for free and for ruling-incomplete alike
@@ -936,8 +1067,8 @@ section 'status answers in a field a caller can branch on'
 # here; the sixth this suite can produce, `no-row`, is pinned beside them.
 fresh
 run manifest $PR $SHA --lanes 'ruled-l claimed-l inflight-l free-l never-l'
-run claim $PR $SHA ruled-l --owner j1
-run verdict $PR $SHA ruled-l approved --by j1 --artifact 'https://github.com/x/pull/154#note-1' --note 'seven findings'
+run claim $PR $SHA ruled-l --owner j1 --for j1
+run verdict $PR $SHA ruled-l approved --by j1 --artifact 'https://github.com/x/pull/154#note-1'
 run claim $PR $SHA claimed-l --owner j2
 run claim $PR $SHA inflight-l --owner j3
 mkdir -p "$(row_of $PR $SHA inflight-l)/verdict.d"
@@ -947,7 +1078,6 @@ run release $PR $SHA free-l --reason 'its judge died'
 run status $PR $SHA ruled-l
 check 'lane_state ruled'                                      0  'lane_state: ruled'
 check '  and the ruled lane offers its route to the findings' 0  'artifact: https://github.com/x/pull/154'
-check '  and the note beside it'                              0  'note: seven findings'
 check '  and who filed it'                                    0  'filed_by: j1'
 run status $PR $SHA claimed-l
 check 'lane_state claimed'                                    10 'lane_state: claimed'
@@ -979,8 +1109,8 @@ fresh
 ESC="$(printf '\033')"
 U8="$(printf '\303\245\303\244\303\266')"
 run claim $PR $SHA ansi --owner "$(printf 'a\033[31mj1\033[0m')"
-run verdict $PR $SHA ansi approved --note "$(printf 'x\033[2Jy\001z\tw ')$U8"
-check 'a note carrying ANSI escapes is accepted'              0  'verdict: recorded'
+run verdict $PR $SHA ansi approved --artifact "$(printf 'x\033[2Jy\001z\tw ')$U8"
+check 'an artifact carrying ANSI escapes is accepted'         0  'verdict: recorded'
 is '  and no escape byte reaches the verdict row on disk' \
    "$(grep -c "$ESC" "$(row_of $PR $SHA ansi)/verdict.d/row" 2>/dev/null | tr -d ' ')" 0
 is '  nor any other control byte' \
@@ -998,12 +1128,12 @@ section 'the table enforces no verdict vocabulary'
 # verdict it did not recognise, losing the work this script exists to keep — so
 # both record, and both read back as themselves rather than as a judgement.
 fresh
-run claim $PR $SHA vpass --owner v1
+run claim $PR $SHA vpass --owner v1 --for v1
 run verdict $PR $SHA vpass pass --by v1
 check 'a verdict of `pass` is recorded'                       0  'ruling: pass'
 is '  and reads back as itself' \
    "$(grep '^verdict: ' "$(row_of $PR $SHA vpass)/verdict.d/row" 2>/dev/null | head -1)" 'verdict: pass'
-run claim $PR $SHA vfail --owner v1
+run claim $PR $SHA vfail --owner v1 --for v1
 run verdict $PR $SHA vfail fail --by v1
 check 'a verdict of `fail` is recorded, not refused'          0  'ruling: fail'
 is '  and it too reads back as itself' \
