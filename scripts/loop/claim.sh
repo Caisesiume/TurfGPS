@@ -933,9 +933,11 @@ cmd_status() {
   # for held, for free and for ruling-incomplete alike — three states with three
   # different remedies — and callers are told to branch on the exit status and
   # never on the prose, which left them nothing to branch on. This field is a
-  # closed vocabulary of five tokens: ruled · claimed · ruling-incomplete · free
-  # · never-claimed. It is a record field in the format every row in this table
-  # already uses, not a sentence, and `field lane_state` reads it.
+  # closed vocabulary of six tokens: ruled · claimed · ruling-incomplete · free
+  # · never-claimed · no-row — the last being a lane this panel has never heard
+  # of, which the line below returns at 12. It is a record field in the format
+  # every row in this table already uses, not a sentence, and `field lane_state`
+  # reads it.
   if [ -n "$ONE" ]; then
     printf 'lane: %s\n' "$ONE"
     printf 'lane_state: %s\n' "${one_state:-no-row}"
