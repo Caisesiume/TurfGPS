@@ -29,8 +29,8 @@
 #   11  PAUSED    new claims are paused. Rows already held may still record.
 #   12  NO_ROW    nothing was claimed here — no such panel, lane or manifest; or
 #                 the claim does not cover the verdict that arrived (recorded
-#                 anyway, flagged): no claim at all, or one held by someone
-#                 other than the filer.
+#                 anyway, flagged): no claim at all, or a filer who is not the
+#                 one the claim recorded as expected.
 #   2   DEGRADED  state could not be read, written, or locked.
 #   64  USAGE     malformed arguments. Nothing was read and nothing was written.
 #
@@ -252,6 +252,24 @@ norm_lane() {
   printf '%s' "$s"
 }
 
+# ONE AGENT IS ONE NAME, HOWEVER IT IS SPELLED
+#   `docs-reviewer` and `@Docs-Reviewer` are the two ordinary ways an agent
+#   name is written down, and dispatches use the second: `norm_lane` above
+#   strips the `@` and folds the case for exactly that reason. A name arriving
+#   through `--by`, `--for` or `--owner` gets no such fold — those are free
+#   text and may honestly read `unnamed` — so a filer spelled `@docs-reviewer`
+#   against a lane-derived `expects: docs-reviewer` would differ as strings and
+#   agree as identities. That is the false anomaly `cmd_claim` below exists to
+#   remove, walking back in through the spelling instead of through the field,
+#   and it is the same shape as the two SHA spellings that once split a panel.
+#
+#   The fold is applied to the COMPARISON and never to what is stored. Each row
+#   keeps the name its caller passed, because an audit row that quietly rewrites
+#   what it was told is not evidence of what it was told.
+agent_key() {
+  printf '%s' "${1:-}" | tr -d '@' | tr 'A-Z' 'a-z'
+}
+
 # One line, no control characters, capped, and with lower-case GitHub token
 # prefixes removed. What the token pattern does and does not cover is argued in
 # the header — do not restate it here as a guarantee. The pattern is matched, not
@@ -354,21 +372,52 @@ row_state() { # row_state <row-dir>
 
 # ---------------------------------------------------------------------------
 # claim — the atomic gate. Everything else in this file is bookkeeping.
+#
+# TWO IDENTITIES, BECAUSE THE HOLDER IS NEVER THE FILER ON THE ORDINARY PATH
+#   A claim used to record one name, and the verdict then checked its filer
+#   against it. That check fired on every honest verdict this table will ever
+#   see: `pr-judge` Phase 4 claims each selected lane ON THE REVIEWER'S BEHALF
+#   before dispatching it, so the judge is always the holder and the reviewer
+#   is always the filer. Measured on 2026-08-30: a lane claimed by pr-judge
+#   and ruled by its own reviewer recorded `attribution_mismatch: true` at
+#   exit 12 — the normal case reported as the anomaly, which is how a signal
+#   becomes noise and then gets switched off.
+#
+#   The holder cannot become the reviewer to fix it. `engineering-lead`'s
+#   courier check reads `holder:` and couriers only when it is the judge that
+#   asked, so a claim naming the reviewer would break the one check standing
+#   between a panel and a lane carried out from under its owner. And the flag
+#   cannot be dropped: a verdict written by anyone at all, attributed of
+#   record to the claimant, is #140's ledger-corruption class.
+#
+#   So the row carries BOTH: `owner:` is who holds the claim, `expects:` is
+#   who the lane's verdict is expected to come from. `verdict` checks its
+#   `--by` against the SECOND. The two questions were always different and
+#   one field could only ever answer them both wrong.
 # ---------------------------------------------------------------------------
 cmd_claim() {
-  [ $# -ge 3 ] || usage_die 'claim <pr> <sha> <lane> [--owner <who>]'
+  [ $# -ge 3 ] || usage_die 'claim <pr> <sha> <lane> [--owner <who>] [--for <who>]'
   PR="$(norm_pr "$1")"     || usage_die 'claim <pr> <sha> <lane> — <pr> must be digits'
   SHA="$(norm_sha "$2")"   || usage_die 'claim <pr> <sha> <lane> — <sha> must be 7-40 hex'
   LANE="$(norm_lane "$3")" || usage_die 'claim <pr> <sha> <lane> — <lane> must be [a-z0-9._-]'
   shift 3
-  owner="unnamed"
+  owner="unnamed"; expects=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --owner) [ $# -ge 2 ] || usage_die 'claim … --owner <who>'; owner="$(scrub "$2")"; shift 2 ;;
-      *)       usage_die 'claim <pr> <sha> <lane> [--owner <who>]' ;;
+      --for)   [ $# -ge 2 ] || usage_die 'claim … --for <who>';   expects="$(scrub "$2")"; shift 2 ;;
+      *)       usage_die 'claim <pr> <sha> <lane> [--owner <who>] [--for <who>]' ;;
     esac
   done
   [ -n "$owner" ] || owner="unnamed"
+  # The default is the LANE NAME, and it is a default rather than a required
+  # flag on purpose: a lane is named for the reviewer that rules it —
+  # `norm_lane` strips a leading `@` precisely because dispatches name lanes
+  # as `@agent-name`, and the case file hands a reviewer the lane name its
+  # verdict is recorded under. So every call site already in the corpus
+  # records the right expectation without changing a character, and `--for`
+  # exists only for a lane dispatched to a name other than its own.
+  [ -n "$expects" ] || expects="$LANE"
   say_table
 
   ensure_writable || {
@@ -424,6 +473,7 @@ cmd_claim() {
       printf 'sha: %s\n'        "$SHA"
       printf 'state: claimed\n'
       printf 'owner: %s\n'      "$owner"
+      printf 'expects: %s\n'    "$expects"
       printf 'claimed_at: %s\n' "$NOW"
     } > "$row/holder/row" 2>/dev/null || {
       # The directory is held and its row could not be written. The directory
@@ -434,8 +484,8 @@ cmd_claim() {
       printf 'note: the lane is held and undispatched; release it with `claim.sh release`\n'
       exit 2
     }
-    printf 'claim: granted\nlane: %s\npanel: pr-%s @ %s\nowner: %s\nclaimed_at: %s\n' \
-      "$LANE" "$PR" "$SHA" "$owner" "$NOW"
+    printf 'claim: granted\nlane: %s\npanel: pr-%s @ %s\nowner: %s\nexpects: %s\nclaimed_at: %s\n' \
+      "$LANE" "$PR" "$SHA" "$owner" "$expects" "$NOW"
     exit 0
   fi
 
@@ -522,8 +572,14 @@ cmd_verdict() {
   unclaimed=false
   [ -d "$row/holder" ] || unclaimed=true
   holder_owner="$(field owner "$row/holder/row")"
+  holder_expects="$(field expects "$row/holder/row")"
+  # A claim row written before `expects:` existed carries none, and so does the
+  # degraded claim whose directory was taken and whose row was never written.
+  # The fallback is the SAME default `claim` records, so an older table judges
+  # attribution by one rule rather than flagging every honest verdict in it.
+  [ -n "$holder_expects" ] || holder_expects="$LANE"
 
-  # WHO FILED IT, AS DISTINCT FROM WHO HELD IT.
+  # WHO FILED IT, AGAINST WHO THE LANE EXPECTED IT FROM.
   #   `owner:` is copied out of the claim, so before `--by` existed a verdict
   #   written by anyone at all was attributed of record to the claimant, and the
   #   writer's identity was not merely unrecorded but unrecordable — there was
@@ -531,24 +587,36 @@ cmd_verdict() {
   #   produced a row reading `verdict / owner: <the reviewer that never ran>`,
   #   exit 0, panel complete, synthesise. `unclaimed` never fired, because it
   #   only fires when NO holder exists — so the likely case was the silent one.
-  #   That is #140's ledger-corruption class inside the mechanism built to close
-  #   it, and the mechanism cannot close it while the two identities are one
-  #   field.
+  #
+  #   THE COMPARISON IS AGAINST `expects:` AND NOT AGAINST `owner:`. Checking
+  #   the filer against the holder flagged the ordinary path — the judge holds
+  #   every lane it claims on a reviewer's behalf, so holder and filer differ
+  #   on every honest verdict, and a flag that fires on all of them detects
+  #   nothing. `cmd_claim` above argues why both names are recorded and why
+  #   neither may collapse into the other.
   #
   #   Four values, each meaning exactly one thing, because conflating them is
   #   how the field stops being evidence:
-  #     false        checked, and the filer is the holder
+  #     false        checked, and the filer is the one the claim expected,
+  #                  compared by `agent_key` so a spelling cannot fake either
+  #                  answer
   #     true         checked, and they differ — the anomaly, reported at 12
   #     unrecorded   no `--by` was passed, so nothing could be checked
   #     no-holder    there is no claim row to check against; see `unclaimed`
   #   `unrecorded` is not a pass. It is the row saying its own writer is unknown,
   #   which is strictly more than the old row said and is the audit signal when
-  #   a caller has not been taught to pass `--by` yet.
+  #   a caller has not been taught to pass `--by` yet; it exits 0, because
+  #   refusing a verdict over a missing flag loses the work this file exists
+  #   to keep.
   mismatch=unrecorded
   if [ "$unclaimed" = true ]; then
     mismatch=no-holder
   elif [ -n "$by" ]; then
-    if [ "$by" = "$holder_owner" ]; then mismatch=false; else mismatch=true; fi
+    if [ "$(agent_key "$by")" = "$(agent_key "$holder_expects")" ]; then
+      mismatch=false
+    else
+      mismatch=true
+    fi
   fi
   {
     printf 'lane: %s\n'     "$LANE"
@@ -559,6 +627,7 @@ cmd_verdict() {
     printf 'findings: %s\n' "$findings"
     printf 'artifact: %s\n' "$artifact"
     printf 'owner: %s\n'    "${holder_owner:--}"
+    printf 'expects: %s\n'  "$holder_expects"
     printf 'filed_by: %s\n' "${by:-unrecorded}"
     printf 'attribution_mismatch: %s\n' "$mismatch"
     printf 'unclaimed: %s\n' "$unclaimed"
@@ -586,8 +655,8 @@ cmd_verdict() {
       exit 12
     fi
     if [ "$mismatch" = true ]; then
-      printf 'anomaly: filed by %s, but the lane is held by %s — the verdict is stored and flagged `attribution_mismatch`\n' \
-        "$by" "${holder_owner:--}"
+      printf 'anomaly: filed by %s, but this lane expects its verdict from %s (held by %s) — the verdict is stored and flagged `attribution_mismatch`\n' \
+        "$by" "$holder_expects" "${holder_owner:--}"
       exit 12
     fi
     exit 0
@@ -894,8 +963,9 @@ cmd_status() {
         [ -z "$art" ] || [ "$art" = "-" ] || printf '      artifact: %s\n' "$art"
         # A durable flag no read verb surfaces is a flag nobody acts on.
         [ "$(field attribution_mismatch "$d/verdict.d/row")" != true ] || \
-          printf '      attribution_mismatch: true — filed_by %s, holder %s\n' \
-            "$(field filed_by "$d/verdict.d/row")" "$(field owner "$d/verdict.d/row")"
+          printf '      attribution_mismatch: true — filed_by %s, expected %s (holder %s)\n' \
+            "$(field filed_by "$d/verdict.d/row")" "$(field expects "$d/verdict.d/row")" \
+            "$(field owner "$d/verdict.d/row")"
         [ "$(field unclaimed "$d/verdict.d/row")" != true ] || \
           printf '      unclaimed: true — no claim row covered this lane\n'
         ;;
@@ -941,8 +1011,14 @@ cmd_status() {
     printf 'lane_state: %s\n' "${one_state:-no-row}"
     if [ "$one_state" = claimed ]; then
       printf 'holder: %s\n' "$(field owner "$panel/$ONE/holder/row")"
+      # The second identity, surfaced beside the first. A courier reads
+      # `holder:` to check the judge that asked it; who the lane expects its
+      # verdict from is the other half of the same question, and a field no
+      # read verb surfaces is a field nobody can act on.
+      printf 'expects: %s\n' "$(field expects "$panel/$ONE/holder/row")"
     elif [ "$one_state" = ruled ]; then
       printf 'filed_by: %s\n' "$(field filed_by "$panel/$ONE/verdict.d/row")"
+      printf 'expects: %s\n'  "$(field expects "$panel/$ONE/verdict.d/row")"
       printf 'artifact: %s\n' "$(field artifact "$panel/$ONE/verdict.d/row")"
     fi
   fi
@@ -1066,18 +1142,29 @@ cmd_help() {
 claim.sh — the review claim table. A lane is claimed before dispatch; its verdict
 is durable the instant it exists. No LLM, no network, no judgement.
 
-  claim   <pr> <sha> <lane> [--owner <who>]
+  claim   <pr> <sha> <lane> [--owner <who>] [--for <who>]
           Take the lane atomically. 0 granted — dispatch it. 10 held or already
           ruled — do NOT dispatch. 11 paused. 2 degraded, refused.
+          TWO identities, and they are not the same one. --owner is who HOLDS
+          the claim: the judge or courier making it, and what a courier checks
+          against the judge that asked it. --for is who the lane's verdict is
+          expected FROM, recorded as `expects:` and checked by `verdict --by`.
+          It defaults to the lane name, which is the reviewer's own name, so
+          pass it only for a lane dispatched to a name other than its own.
 
   verdict <pr> <sha> <lane> <ruling> [--by <who>] [--conf <x>] [--findings <n>]
                                      [--artifact <ref>]
           Record the ruling into the lane's own row, once. 0 recorded. 10 already
           ruled, the first stays of record. 12 recorded but the claim does not
-          cover it — no claim at all, or one held by someone other than --by.
-          2 NOT recorded — carry it in your handoff. A pause does not block this.
-          Pass --by: without it the row records `filed_by: unrecorded`, which is
-          the row saying its own writer is unknown.
+          cover it — no claim row at all, or a --by that is not the name the
+          claim recorded as `expects:`. 2 NOT recorded — carry it in your
+          handoff. A pause does not block this.
+          Pass --by, and pass YOUR OWN LANE NAME. It is checked against the
+          claim's `expects:` and never against its holder, so the ordinary case
+          — a judge claiming the lane on your behalf and you filing into it —
+          is clean at 0. Without --by the row records `filed_by: unrecorded`,
+          which is the row saying its own writer is unknown; that is not a pass,
+          and it still exits 0.
 
   release <pr> <sha> <lane> --reason <text>
           Hand a stranded claim back so the lane can be re-dispatched, and clear
