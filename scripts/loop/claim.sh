@@ -79,7 +79,7 @@
 #
 #   The scrub over free text is a BACKSTOP AND NOT A SECOND GUARANTEE, and this
 #   header used to claim otherwise: it said a caller who pastes a credential
-#   into --note or --artifact "cannot put it into the table either". Measured on
+#   into --artifact "cannot put it into the table either". Measured on
 #   2026-08-29, fourteen credential shapes passed through it unredacted — AWS
 #   access keys, `sk-ant-api03-…`, `xoxb-…`, `glpat-…`, PEM headers,
 #   `user:password@` URLs, `Bearer eyJ…`, and `GHP_` in upper case, `sed -E`
@@ -458,22 +458,21 @@ cmd_claim() {
 # exists. A pause does not block it: in-flight work completes.
 # ---------------------------------------------------------------------------
 cmd_verdict() {
-  [ $# -ge 4 ] || usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]'
+  [ $# -ge 4 ] || usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>]'
   PR="$(norm_pr "$1")"     || usage_die 'verdict <pr> … — <pr> must be digits'
   SHA="$(norm_sha "$2")"   || usage_die 'verdict <pr> <sha> … — <sha> must be 7-40 hex'
   LANE="$(norm_lane "$3")" || usage_die 'verdict <pr> <sha> <lane> … — <lane> must be [a-z0-9._-]'
   V="$(scrub "$4")"
   [ -n "$V" ] || usage_die 'verdict <pr> <sha> <lane> <verdict> — <verdict> may not be empty'
   shift 4
-  conf="-"; findings="-"; artifact="-"; note="-"; by=""
+  conf="-"; findings="-"; artifact="-"; by=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --by)                [ $# -ge 2 ] || usage_die 'verdict … --by <who>';     by="$(scrub "$2")";       shift 2 ;;
       --conf|--confidence) [ $# -ge 2 ] || usage_die 'verdict … --conf <x>';     conf="$(scrub "$2")";     shift 2 ;;
       --findings)          [ $# -ge 2 ] || usage_die 'verdict … --findings <n>'; findings="$(scrub "$2")"; shift 2 ;;
       --artifact)          [ $# -ge 2 ] || usage_die 'verdict … --artifact <ref>'; artifact="$(scrub "$2")"; shift 2 ;;
-      --note)              [ $# -ge 2 ] || usage_die 'verdict … --note <text>';  note="$(scrub "$2")";     shift 2 ;;
-      *) usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>] [--note <text>]' ;;
+      *) usage_die 'verdict <pr> <sha> <lane> <verdict> [--by <who>] [--conf <x>] [--findings <n>] [--artifact <ref>]' ;;
     esac
   done
   say_table
@@ -559,7 +558,6 @@ cmd_verdict() {
     printf 'confidence: %s\n' "$conf"
     printf 'findings: %s\n' "$findings"
     printf 'artifact: %s\n' "$artifact"
-    printf 'note: %s\n'     "$note"
     printf 'owner: %s\n'    "${holder_owner:--}"
     printf 'filed_by: %s\n' "${by:-unrecorded}"
     printf 'attribution_mismatch: %s\n' "$mismatch"
@@ -946,7 +944,6 @@ cmd_status() {
     elif [ "$one_state" = ruled ]; then
       printf 'filed_by: %s\n' "$(field filed_by "$panel/$ONE/verdict.d/row")"
       printf 'artifact: %s\n' "$(field artifact "$panel/$ONE/verdict.d/row")"
-      printf 'note: %s\n'     "$(field note "$panel/$ONE/verdict.d/row")"
     fi
   fi
 
@@ -1074,7 +1071,7 @@ is durable the instant it exists. No LLM, no network, no judgement.
           ruled — do NOT dispatch. 11 paused. 2 degraded, refused.
 
   verdict <pr> <sha> <lane> <ruling> [--by <who>] [--conf <x>] [--findings <n>]
-                                     [--artifact <ref>] [--note <text>]
+                                     [--artifact <ref>]
           Record the ruling into the lane's own row, once. 0 recorded. 10 already
           ruled, the first stays of record. 12 recorded but the claim does not
           cover it — no claim at all, or one held by someone other than --by.
