@@ -134,9 +134,11 @@ scripts/loop/claim.sh status <pr> <head-sha> <lane>
 | Status | What you do |
 |---|---|
 | **0** ruled | **Do not courier.** A verdict for that lane already stands at this SHA. Read it and return it to the judge — that ruling is the whole of what a second dispatch would have bought. |
-| **10** outstanding | A row exists and carries no verdict: the ordinary courier case, the judge holding the lane it has asked you to carry. Courier it **once**. |
+| **10** outstanding | **Four states share this code.** Read `lane_state:` and branch on it, never on the sentence beside it. `claimed` is the ordinary courier case — and check `holder:` first, below. `ruling-incomplete` is a verdict that died mid-write: **do not courier**, tell the judge, and let it `release`. `free` and `never-claimed` mean nothing holds the lane at all — treat them exactly as `12` below. |
 | **12** no row | Nothing was claimed here, and this is the bypass. **Claim it yourself before you carry it**, below. |
 | **2** degraded | **Courier nothing.** The table refuses toward not dispatching, and so do you. |
+
+**On `claimed`, check that `holder:` is the judge that asked you.** `status` prints the field; compare it to the requester and courier only on a match. **A mismatch is not a lane to carry — it is a report to make**, to the judge that asked and against the holder's name, because a request to courier a lane a *different* judge holds is either two judges on one panel or a lane being carried out from under its owner. Both are the duplicate-dispatch class this route exists to close, arriving through the courier instead of past it. The check costs a field read, and skipping it reopens the bypass the route was hardened against from the second side: `12` closes the case where nothing holds the lane, and this closes the case where the wrong thing does.
 
 **Where no row covers the lane, you claim it before you carry it.** A couriered dispatch claims exactly as a direct dispatch claims, because the long way round is still a dispatch and does not earn a weaker rule:
 
@@ -204,6 +206,21 @@ When the loop genuinely cannot proceed — a §21 condition, a judge deadlock, a
 **Two categories always reach the human**, per `docs/DELIVERY.md`, and are never settled by agent consensus: requirements whose verification method is human judgement, and any change touching safety rules or accessibility classification.
 
 **Onboarding note for humans:** remote control cannot be enabled from project settings — each user runs `/config` once and enables *"Enable Remote Control for all sessions"* (plus the push-notification toggles). Tell them this the first time you interact with a new session that isn't remote-controllable.
+
+### A stop on new work is entered into the claim table
+
+**Step 3 above parks one thread; this is the other kind of stop, and only this one reaches the table.** When the Owner declares a pause on new work, or you declare one, **you enter it — nobody else does**, and you lift it:
+
+```bash
+scripts/loop/claim.sh pause --reason "<who declared it, and for what>"
+scripts/loop/claim.sh resume
+```
+
+**Do not run these for a parked thread.** A `pause` refuses *every* new claim on the machine, which is the opposite of step 3's instruction to keep independent lanes turning. It is for a stop on new work as such, and the two are not the same stop however alike they read.
+
+**A pause the loop is not obliged to enter is the failure it was built to fix, wearing a mechanism.** Issue #144's fifth failure class is a stop declared at 21:45:53Z that could not reach work already in motion because it **existed only in this agent's behaviour** — every contract obliges a handoff, so one pre-pause dispatch cascaded indefinitely. A flag nobody is required to set leaves the stop exactly where it was: in your behaviour. Setting it is what makes the pause a fact about the machine that the next judge's own preflight will find.
+
+**It stops the next hop, not the current one**, and that is deliberate: lanes already claimed continue and still record their verdicts, so a pause costs no work in flight. Reviewers with a claim finish; nothing new is convened. `paused` reads the flag and is the judge's preflight check, per `@pr-judge § Phase 0 — Deterministic preflight, before anything else`.
 
 ---
 
