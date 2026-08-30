@@ -114,6 +114,21 @@ Findings keep `id`, `severity`, `file:line`, `description`, `required_change`, `
 
 ---
 
+## Record your result into its row before your pass ends
+
+**You claim and you record, in your own vocabulary.** You are on the claiming side of `review-board-dispatch § The claim table covers verdict-producing reviewer lanes only` — the judge takes your lane before dispatching you, and the row is yours to close:
+
+```bash
+scripts/loop/claim.sh verdict <pr> <sha> validation-agent <pass|fail> \
+  --conf 1.0 --findings <n> --artifact <where the full result is>
+```
+
+**The word you record is `pass` or `fail`, and never `revise` or `blocker`.** That is the whole of the special case and it is why this obligation is written here rather than inherited: `§ Output — the machine shape` above refuses the verdict vocabulary for a reason that does not stop at the envelope, and a lane recording `revise` into the table has entered a semantic ruling under the one signature on this bench that needs no trust. The table enforces no vocabulary of its own — measured on 30 August 2026, both words record and read back as themselves at exit 0 — so nothing will refuse a word you should not have written. **`fail` is the honest word for a red gate; a red gate recorded as anything softer is the ledger corruption issue #144 exists to close, arriving through the vocabulary instead of the plumbing.**
+
+**Record before you report**, for the reason `review-verdicts § Record your verdict into its row before your pass ends` gives about a dead parent — that section owns the exit codes and what each obliges, and running last and alone makes you the lane whose parent has had the longest to die. **A `2` is the one code that changes your envelope**: the table did not take the result, so carry it whole and say plainly that the table does not hold it.
+
+---
+
 ## Severity Classification
 
 Severity describes **what the gate did**, not how serious the underlying design problem feels.
