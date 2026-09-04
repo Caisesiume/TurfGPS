@@ -1,17 +1,21 @@
 ---
 name: handoff-payloads
-description: The role-specific payloads that fill the TurfGPS handoff envelope — worker completion with its red demonstration, the revision packet a remand produces, the escalation packet that is the only shape reaching the human, the risk assessment, structured uncertainty when another domain must decide, and the dependency finding and graph update. Load alongside `agent-handoffs`, which holds the envelope itself, its limit and the output caps; the reviewer verdict and the evidence law are in `review-verdicts`.
+description: The role-specific payloads that fill the TurfGPS handoff envelope — worker completion with its red demonstration, the revision packet a remand produces, the escalation packet that is the only shape reaching the human, the risk assessment, the confidence assessment and its unassessed case, structured uncertainty when another domain must decide, and the dependency finding and graph update. Load alongside `agent-handoffs`, which holds the envelope itself, its limit and the output caps; the reviewer verdict and the evidence law are in `review-verdicts`.
 ---
 
 # Handoff payloads — the schemas that fill the envelope
 
 *Split out of `agent-handoffs` on 28 August 2026. That skill holds the envelope every payload extends, the size limit, and the output caps. **The reviewer verdict is not one of these payloads** — it, and the evidence law it is measured against, are in `review-verdicts`. None of either is restated here. Load the payload your role actually returns; an agent that reports work does not need the graph schemas, and an agent that repairs the graph does not need the escalation packet.*
 
+**Every payload here opens with its structured block, and licensed prose — where there is any — comes after it**, per `agent-handoffs § The structured block comes first`. A payload whose artifact holds a row in `agent-handoffs § The cap table` declares `artifact:` and `prose_licence:` as its first two keys; the shape rule and both key definitions live there and are not restated here.
+
 ## Worker completion
 
 Returned by any implementation specialist to `@worker-manager`.
 
 ```yaml
+artifact: worker_envelope
+prose_licence: none
 status: completed
 issue: ENG-142
 changes:
@@ -33,6 +37,8 @@ requires_review:
   - testing
 confidence: 0.93
 ```
+
+**Mandatory keys:** `artifact` · `prose_licence` · `status` · `issue` · `changes` · `files_changed` · `tests` · `risks` · `requires_review` · `confidence`. `risks: [none_known]` is an answer; an absent `risks` is not.
 
 `requires_review` is a **hint from the person who wrote the code** about where it is weakest. It informs selection; it does not decide it — the registry and the risk assessment do, because an author's sense of where their own work is weak is exactly the thing under review.
 
@@ -90,6 +96,46 @@ Produced by `@change-risk-assessor`, consumed by `@worker-manager` at intake and
 
 `review_not_required` in that assessment is a **hard negative**, not a hint — see `review-board-dispatch § Negative routing`.
 
+## Confidence assessment
+
+Produced by `@confidence-assessor`, consumed by `@pr-judge`. It weighs the verdicts and never the change; the lane's own limits are in that agent's definition and are not restated here.
+
+```yaml
+artifact: worker_envelope
+prose_licence: none
+agent: confidence-assessor
+aggregate_confidence: 0.71        # a number, or `unassessed`
+evidence_quality: adequate        # strong | adequate | weak | unknown
+conflicts:
+  - between: [linus-security-critic, go-quality-critic]
+    about: SEC-02 — whether the input is already validated upstream
+coverage_gaps:
+  - testing lane required by risk assessment, no verdict present
+followup:
+  reviewer: linus-security-critic
+  question: does the upstream validation the pass relies on exist in this diff, or was it assumed?
+recommendation: targeted_followup # decide_now | targeted_followup | insufficient_evidence
+```
+
+**Mandatory keys:** `artifact` · `prose_licence` · `agent` · `aggregate_confidence` · `evidence_quality` · `conflicts` · `coverage_gaps` · `followup` · `recommendation`. Where the evidence is sufficient, `followup: none` and `recommendation: decide_now` — **said plainly, as a row.** A meta-reviewer that always finds something to check is as useless as one that never does, and it is more expensive.
+
+### Unknown is not weak
+
+**`evidence_quality: unknown` means unassessed** — the lane could not reach the verdicts at all. `weak` means it read them and they are thin. The law separating the two, and the incident that made it a rule, are in `review-verdicts § Insufficient evidence is not low confidence` and are not restated here. What this payload adds is the shape `unknown` obliges:
+
+```yaml
+evidence_quality: unknown
+aggregate_confidence: unassessed
+recommendation: insufficient_evidence
+evidence_gap:
+  what: the collected verdicts
+  why: tooling                    # tooling | access | artifact_absent | out_of_scope
+  closable_by: a dispatch carrying the verdict bodies inline
+followup: none
+```
+
+**`unknown`, `unassessed`, `insufficient_evidence` and `evidence_gap` move together, and no three of them are a valid payload.** `unknown` beside a numeric `aggregate_confidence` is the conflation this vocabulary exists to prevent, wearing the form that licenses it; `unknown` without `evidence_gap` tells the judge a lane failed without telling it what would make the lane run.
+
 ## Structured uncertainty (blocked)
 
 *§48.* An agent that needs another domain's judgement does not open a conversation with that domain. It **stops and returns**:
@@ -127,6 +173,8 @@ dependency_finding:
 Returned by `@backlog-dependency-planner`. Edges, not prose: no story text, no requirement text, no account of the pass.
 
 ```yaml
+artifact: graph_update
+prose_licence: none
 graph_update:
   stories_examined: [41, 43, 46, 47]
   added:   [{blocked: 46, prerequisite: 43, type: hard, reason: "consumes the persisted classification"}]
