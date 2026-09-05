@@ -127,8 +127,11 @@ d8-claims:
 	@bash scripts/gates/tests/d8-root-run-claims-recall.sh
 	@bash scripts/gates/d8-root-run-claims.sh
 
-# `agent-handoffs § Output caps` is the one home of every cap in this
-# repository, and this is where an artifact is held to one BEFORE it is posted.
+# Every capped artifact is capped in `agent-handoffs § Output caps`, and this is
+# where one is held to its cap BEFORE it is posted. That claim is narrower than
+# "the one home of every cap", which this comment used to make: the ~300-token
+# handoff limit and the per-field caps both sit in `agent-handoffs` outside that
+# section, so only the artifacts this gate measures are capped there.
 #
 # The paths arrive in ARTIFACTS rather than from a glob, because what this
 # measures is a comment, a verdict or a PR body — written to a file on its way
@@ -155,9 +158,19 @@ d8-claims:
 # Neither line carries a directory, for the reason the `d8-claims` comment above
 # gives about its own two: no Go toolchain is invoked, and each script resolves
 # what it reads from its own path rather than from where this recipe stands.
+#
+# EACH PATH IS QUOTED, AND THE LIST IS NOT. Bare `$(ARTIFACTS)` hands the shell
+# a line to re-interpret: a path holding a glob character is expanded against
+# the caller's directory, and a path shaped like `name=value` was, until #163
+# cycle 1, taken by awk as a variable assignment — the gate then read stdin
+# instead of the artifact and either measured nothing and reported clean, or
+# blocked forever. The script no longer offers that operand to anything, and
+# this line no longer offers the shell anything to expand. Quoting the whole
+# variable instead would collapse the documented multi-path interface above
+# into one unreadable path, so `foreach` quotes the words make already split.
 output-caps:
 	@bash scripts/gates/tests/output-caps-recall.sh
-	@bash scripts/gates/output-caps.sh $(ARTIFACTS)
+	@bash scripts/gates/output-caps.sh $(foreach p,$(ARTIFACTS),"$(p)")
 
 # gofmt -l names the files it would reformat and exits 0 whether or not it
 # names any, so the list is the result and has to be tested, not merely
