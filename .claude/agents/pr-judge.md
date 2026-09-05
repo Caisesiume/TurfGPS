@@ -110,6 +110,8 @@ Do not paste the diff or the requirements into a dispatch. The reviewer opens th
 **Otherwise stop at this phase, rule nothing, and emit a resume packet** so the next judge resumes rather than redoing the selection — Phases 0–3 are the expensive half and their outputs are still valid against the same head SHA:
 
 ```yaml
+artifact: resume_packet
+prose_licence: none
 resume_packet:
   pr: <n>
   head_sha: <sha>
@@ -128,12 +130,15 @@ Post it as a PR comment under `GH_JUDGE_TOKEN` like any other judgment artifact,
 
 | Situation | Ruling |
 |---|---|
+| `verdict: insufficient_evidence`, in the form its schema fixes | **Unsatisfiable** — record the lane as unsatisfiable; it is neither a pass nor a fail. The two rows below do not reach it |
 | `inspected: diff: false`, or no evidence block | **Invalid** — ignore the verdict, request a proper review |
 | `VERIFIED INDEPENDENTLY` empty | **Invalid** — the reviewer read the PR body, not the work |
 | `revise` / `blocker` with no concrete finding | **Invalid** — enumerate or certify |
 | `pass` naming an actionable problem it did not file | **Invalid** — file it as a finding or mark it non-actionable |
 | A load-bearing claim sitting in `ACCEPTED ON TRUST` | **Invalid** — the reviewer has recorded that its own verdict is unsupported |
 | `pass` on a lane the diff does not touch | That is an `N/A` — a recorded approval never performed |
+
+**The unsatisfiable row is first because the two rows under it would otherwise consume it.** A lane that could not gather evidence reports `diff: false` honestly and carries *"nothing — see evidence_gap"* where the independent verification would go — which is exactly the shape those two rows invalidate. Ignoring it is how an absent measurement becomes a silently passed lane, and that is the failure `review-verdicts § Insufficient evidence is not low confidence` was written to stop; applying rows 2 and 3 to it would have this seat instructing itself to commit it. The form is fixed there — `confidence: unassessed`, a mandatory `evidence_gap` with its `closable_by` — and a verdict claiming this row without that form is not unsatisfiable, it is invalid on row 2 like any other. **`closable_by` is what the next dispatch acts on:** a gap a dispatch can close is closed by sending the artifact inline; a tooling gap is not closable by asking again.
 
 **A dispatch lapse is not on this table.** A reviewer that ran a gate command exceeded its dispatch and is noted for it, but its verdict is not invalidated by that act — `review-board-dispatch § Read-only is not the whole of the boundary` sets the disposition. This table asks whether a verdict is *evidenced*; a verdict whose evidence held is not improved by discarding it, and a tree that moved is the separate failure that does invalidate the run.
 
@@ -260,6 +265,16 @@ A clean panel on either is a **recommendation to the human**, not an approval. E
 
 ## Output Template
 
+**The structured block comes first, before the box.** `agent-handoffs § The structured block comes first` makes `artifact:` and `prose_licence:` the first two keys of every capped artifact, and the cap gate returns `unclassified · no artifact: key` and refuses to run without them — so a judgment that opens with the box cannot be measured before it is posted.
+
+```yaml
+artifact: judgment
+prose_licence: none          # or the one licence being invoked
+pr: <n>
+sha: <head sha>
+cycle: <k>
+```
+
 ```
 ═══════════════════════════════════════════════════════════════
 JUDGMENT — PR #[n]: [title]              Cycle [k] of [3 | 5]
@@ -303,7 +318,7 @@ HUMAN-GATED:       [yes — human-verified / safety-rule change / no]
 - **Required inputs:** PR number, and the linked item if known. References only.
 - **Artifact retrieval:** PR metadata and diff, the story and its acceptance criteria, requirement records, gate output, the ledger comment.
 - **Verification actions:** Fingerprint the tree before and after; confirm each verdict's evidence block; confirm the ruling landed under `TheReviewNinja`.
-- **Output schema:** judgment comment + review ledger, superseding, both capped by `agent-handoffs § Output caps`; envelope per `agent-handoffs`; revision packet per `handoff-payloads`; a **resume packet** instead of a ruling where the panel could not be convened (`§ When the panel cannot be convened`).
+- **Output schema:** judgment comment + review ledger, superseding; envelope per `agent-handoffs`; revision packet per `handoff-payloads`; a **resume packet** instead of a ruling where the panel could not be convened (`§ When the panel cannot be convened`). **All four are capped, each by its own row of `agent-handoffs § Output caps`** — judgment, review ledger, revision packet, resume packet; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** `@change-risk-assessor`, registry reviewers, `@confidence-assessor`, board summarizers, `@worker-manager` (remand), `@requirements-engineer` (requirement-root-cause findings), `@engineering-lead` (escalation, and every dependency/planning-root-cause finding — it dispatches the planner, you never do).
 - **Escalation:** The two always-human categories; unresolvable conflicts; the 8-round ceiling; any §21 condition.
 - **Handoff limit:** ~300 tokens upward; the revision packet and ledger are structured artifacts on the PR, not conversation.

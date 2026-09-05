@@ -1,6 +1,6 @@
 ---
 name: review-verdicts
-description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
+description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, the unsatisfiable verdict that keeps insufficient evidence distinct from low confidence, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
 ---
 
 # Review verdicts — the schema and the evidence law
@@ -11,9 +11,13 @@ description: What a convened TurfGPS reviewer returns, and the standard that ver
 
 Returned by every convened reviewer to `@pr-judge`.
 
+**The block comes first and any licensed prose comes after it**, per `agent-handoffs § The structured block comes first`, which is also where `artifact:` and `prose_licence:` are defined.
+
 ```yaml
+artifact: reviewer_verdict
+prose_licence: none
 reviewer: security
-status: valid_review
+status: valid_review       # valid_review | unsatisfiable
 inspected:
   diff: true
 files_inspected:
@@ -26,8 +30,8 @@ findings:
     description: refresh tokens can be reused after rotation
     required_change: invalidate the old refresh token on successful rotation
     root_cause: implementation
-verdict: revise            # pass | revise | blocker | N/A
-confidence: 0.96
+verdict: revise            # pass | revise | blocker | insufficient_evidence | N/A
+confidence: 0.96           # a number, or `unassessed` — never a number standing in for one
 residual_risk:
 needs_followup: false
 evidence: |
@@ -37,11 +41,49 @@ evidence: |
     · …
 ```
 
-**`inspected: diff: false` makes the verdict automatically invalid** and the judge ignores it. That flag is the floor; the standard is the `evidence` block, defined in the next section.
+**Mandatory keys:** `artifact` · `prose_licence` · `reviewer` · `status` · `inspected` · `files_inspected` · `findings` · `verdict` · `confidence` · `evidence`. An empty `findings: []` is an answer; an absent `findings` is not, and the judge cannot tell it from a lane that never looked.
+
+**`inspected: diff: false` makes the verdict automatically invalid** and the judge ignores it — unless the verdict is the unsatisfiable one defined in `§ Insufficient evidence is not low confidence` below, which is the one shape that reports `false` honestly. That flag is the floor; the standard is the `evidence` block, defined in `§ The report block`.
 
 Return decision-relevant data only. Deep internal analysis is welcome; only its conclusions enter the parent's context.
 
 **Every finding a reviewer files will be resolved by the judge into exactly one of five outcomes** — `required_change` · `accepted_risk` · `invalid_finding` · `future_work` · `informational`. A reviewer does not resolve its own findings, but knowing the vocabulary changes how it writes them: a finding filed as though everything must block is a finding the judge has to reclassify, and one filed as a passing remark is one that disappears. The five are defined in `docs/DELIVERY.md § Findings and their owners`.
+
+### Insufficient evidence is not low confidence
+
+**A lane that could not gather evidence and a lane that gathered weak evidence are different results, and one field cannot carry both.** `verdict: insufficient_evidence` says the review could not be performed. A low `confidence` says it was performed and the reviewer does not trust the answer. Collapsing the first into the second hands the judge a number where there was no measurement — and the judge then weighs an unrun lane against a run one, which is #144's ledger-corruption class arriving through vocabulary instead of through a missing row.
+
+A lane that cannot be satisfied returns:
+
+```yaml
+artifact: reviewer_verdict
+prose_licence: none
+reviewer: security
+status: unsatisfiable
+inspected:
+  diff: false
+files_inspected: []
+findings: []
+verdict: insufficient_evidence
+confidence: unassessed
+evidence_gap:
+  what: the diff — the PR body was reachable, the patch was not
+  why: tooling                # tooling | access | artifact_absent | out_of_scope
+  closable_by: a dispatch carrying the patch, or a lane holding repository access
+evidence: |
+  VERIFIED INDEPENDENTLY:
+    · nothing — see evidence_gap
+  ACCEPTED ON TRUST:
+    · nothing was accepted; no verdict was formed
+```
+
+**`confidence: unassessed` is mandatory with this verdict and a number is forbidden.** Any number offered here is manufactured, and manufacturing one is the failure a reviewer exists to catch in others.
+
+**`evidence_gap` is mandatory too, and `closable_by` is the load-bearing field.** It is what separates a gap a dispatch can close — send the artifact inline — from one it cannot: **a follow-up question cannot close a tooling gap**, and a judge that does not know which it is facing will spend a cycle asking.
+
+**The judge records an unsatisfiable lane as unsatisfiable and converts it into neither a pass nor a fail.** Ignoring it, as `§ Reviewer verdict` above has the judge ignore an ordinary `diff: false`, is how an absent measurement becomes a silently passed lane; reading `unassessed` as a low number is how it becomes a weak one. Both are the same error in opposite directions, and the ledger row carries the word rather than a value.
+
+**The class was first recorded on PR #135, 29 August 2026.** `@confidence-assessor` holds `Read, Grep, Glob` and no Bash or GitHub access, so it could not read the verdicts it had been convened to weigh; it checked for a local mirror before reporting the gap, then returned `evidence_quality: unknown` — *"not weak — unassessed"* — with `followup: none`, *"a reviewer follow-up doesn't fix a tooling gap."* The cycle-3 ruling recorded the lane **unsatisfiable, not low**. That vocabulary is this section, and the payload half of it is `handoff-payloads § Confidence assessment`.
 
 ## A reviewer does not accept a claim it could check
 
