@@ -74,13 +74,19 @@ Column 4 is normative and is **not** machine-read; the checker ignores it, and a
 | `reviewer_verdict` | `1200` | `body` | the evidence block is **≤ 10 bullets, one line each** |
 | `judgment` | `6000` | `body` | the per-finding resolution table is the excluded part |
 | `review_ledger` | `2000` | `whole` | it **supersedes** — one table per PR, rewritten each cycle, never appended |
+| `revision_packet` | `3000` | `whole` | `@pr-judge` on remand; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
+| `resume_packet` | `1500` | `whole` | `@pr-judge` where the panel could not be convened — only what is expensive to re-derive, per `pr-judge § When the panel cannot be convened` |
 | `worker_envelope` | `1500` | `whole` | every worker completion, and every meta-review payload that fills the same envelope |
+| `worker_report` | `2000` | `body` | a worker's PR body, and its comment reporting a revision cycle; the criteria-and-evidence table is the excluded part |
 | `graph_update` | `1200` | `whole` | — |
 | `orchestrator_dispatch` | `1200` | `whole` | an `@engineering-lead` dispatch |
 | `orchestrator_comment` | `1200` | `own` | every other `@engineering-lead` comment on an issue or PR — courier, relay, status |
 | `owner_report` | `2000` | `whole` | — |
+| `supersession_notice` | `1200` | `own` | any role, over its own artifact: what is superseded, by what, and where the record of record is |
 
-**`own` is the one row where the measurement is a floor rather than the whole answer**, and it is said here rather than discovered: the checker sees only the unfenced text, so a comment that fences ordinary prose measures small and is under-reported. Fencing prose to sit under a cap is a finding in its own right, and it is the reader who catches it — an instrument whose limit is written down is not the same as one that lies.
+**`own` is the rule whose measurement is a floor rather than the whole answer**, and it is said here rather than discovered: the checker sees only the unfenced text, so an artifact that fences ordinary prose measures small and is under-reported. Fencing prose to sit under a cap is a finding in its own right, and it is the reader who catches it — an instrument whose limit is written down is not the same as one that lies.
+
+**`supersession_notice` inherits that floor and adds one condition of its own.** Fencing the retained copy is what `own` is for, and it is equally what removes that copy from the notice's own measurement — so the copy has to be counted somewhere, against the row *it* declares. A retention whose payload was never posted under a row of its own is then measured nowhere at all. **That case is already in the record**: measured on 5 September 2026, the 27,757-char comment on PR #140 is a 933-char notice standing over a judgment and its revision packet that appear in no other comment on that PR. **Retain it fenced and under its own `artifact:` id**, or the notice has made a large artifact invisible by quoting it.
 
 #### Prose is licensed, and the artifact names its licence
 
