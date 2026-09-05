@@ -37,7 +37,7 @@ The documentation set depends on three mechanical properties. Each has been brok
    **The narrow form could not condemn the defect that widened it, and that is the whole argument for widening it.** The stale sentence repaired in gate 1 above stated which files hold the pattern check's licence — a fact about a convention, not a formula, a constant, or a threshold — so this gate as written passed it on the day it was written and on every day it was wrong. Checking for one sentence appearing in two documents still finds the coarsest violations; it is no longer the whole of the check.
 3. **Every mermaid diagram parses.** A diagram that fails to render is invisible on GitHub and nobody notices until a reader reports a blank block.
 
-> **One runner exists and it covers one duplication class; every other part of every gate is still run by hand.** `make d8-claims` fails on a restatement of the root-run model that gate 2 requires to be cited instead. That is **one class inside gate 2** — not gate 2, and nothing at all of gates 1 and 3 — and the script's own header records what it cannot see, which is to be read before its result is reported. The by-hand gates were last run in full on 31 July 2026 and returned: 0 unresolved references, 1 intentional cross-document repeat (the reference-convention line each preamble carries), 7/7 diagrams parsing. **Building the rest is owed work** — until it exists, state in the PR body how each gate was checked and what it returned. An unstated gate is an unrun gate.
+> **One runner exists for the three gates above, and it covers one duplication class; every other part of each of them is still run by hand.** `make d8-claims` fails on a restatement of the root-run model that gate 2 requires to be cited instead. That is **one class inside gate 2** — not gate 2, and nothing at all of gates 1 and 3 — and the script's own header records what it cannot see, which is to be read before its result is reported. The by-hand gates were last run in full on 31 July 2026 and returned: 0 unresolved references, 1 intentional cross-document repeat (the reference-convention line each preamble carries), 7/7 diagrams parsing. **Building the rest is owed work** — until it exists, state in the PR body how each gate was checked and what it returned. An unstated gate is an unrun gate.
 >
 > **The 31 July 2026 run recorded above is not a gate 1 pass, and this is the gate saying so rather than a reader discovering it.** It predates the citation convention, which was recorded on 4 August 2026 in `2ea7395`; its "0 unresolved" answers whether references resolved under the rule of the day and says nothing about token form, so it cannot be carried forward. **No set-wide gate 1 run has been recorded since**, so a clean gate line on a PR is evidence about that PR's files and about nothing else.
 >
@@ -96,6 +96,26 @@ npm resolves a script against the nearest `package.json`, and there is none at t
 **The Makefile is the commands' one home, and every other file names the target instead.** Ten agent files carried these commands inline, every one of them without the working directory, because they were copied before `Architecture.md § D8` existed and nothing pulled them forward when it did — the ten had gone stale in the same commit that made this file correct. They now **name the gate they must pass and cite this skill for how to run it**. A file that reproduces a gate command is a defect on sight, however correct the copy looks on the day it is written: a second home for the model outlives whoever checked it, and the commands have moved once already — out of this file, which was their home only for as long as there was no Makefile. Reproducing them is licensed in exactly one case — a **reviewer quoting the one check it performs itself**, as an instrument of its own review rather than as the gate — and such a file says inline why the copy is there and cites this skill for the rest.
 
 The root is the right home for it — `make` has no notion of a module, so the one file can drive both stacks — and **every recipe sets its own working directory**, which is a standing requirement on that file rather than a task that was completed once. A recipe that invokes the Go toolchain without one puts that gate back at the root, where `§ Backend (Go)` above records what each of the five actually reports, with the `cd` no longer visible to notice missing. The Makefile's value here is that it encodes each directory once, in the only place that cannot silently be run from somewhere else.
+
+---
+
+## Artifact caps
+
+**Live now**, and required of every capped artifact before it is posted.
+
+**It is not one of the gates above and belongs to neither stack.** Those measure the tree a PR changed; this measures what an agent is about to write into a comment, a PR body or an issue. It therefore runs on the way out, at the moment the artifact is written and while it can still be cut.
+
+**Run it through the Makefile, from the repository root**, naming the artifacts:
+
+```bash
+make output-caps ARTIFACTS="<path>..."
+```
+
+`agent-handoffs § Output caps` is the one home of every cap and of the rule for counting each artifact; this section says only how the check is run, and the Makefile holds the commands, per `§ When these activate`. **The artifact declares its own id as its first key**, per `agent-handoffs § The structured block comes first`, so which cap applies is decided by the file rather than by whoever typed the command: write the artifact to a file, measure it, post it once its line reads `under`.
+
+The recall corpus runs first and make stops if it fails, exactly as `make d8-claims` does — no verdict from an instrument whose recall was not just demonstrated. **The script's own header records what it cannot see**, which is to be read before its result is reported.
+
+**Zero artifacts is not a clean run, and neither is an artifact it could not classify.** Neither is ever reported as clean — the exit statuses live in the script's header — and the reason is the one `§ Documentation gates` gate 1 gives for reporting `n/a` rather than omitting a line: a check that did not run and a check that found nothing must not print the same thing. `§ The law` law 1 governs the line this prints as it governs every other gate line — paste what the run printed.
 
 ---
 
