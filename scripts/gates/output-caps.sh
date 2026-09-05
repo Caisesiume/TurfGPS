@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # output-caps.sh — is a capped artifact within the cap its row sets? (#158)
 #
-# The enforcement point for `agent-handoffs § Output caps`. That section is the
-# one home of every cap in this repository and of the rule for counting each
-# one; this file holds neither. It reads the table, looks up the id the artifact
+# The enforcement point for `agent-handoffs § Output caps`. Every capped
+# artifact is capped there, and the rule for counting each one is there; this
+# file holds neither. It reads the table, looks up the id the artifact
 # declared, counts characters, and compares. Adding a capped artifact is a row
 # there, never a change here.
+#
+# That claim is narrower than "the one home of every cap", which this line used
+# to make and which is false: the ~300-token handoff limit and the per-field
+# caps both sit in `agent-handoffs` OUTSIDE `§ Output caps`. Only the artifacts
+# this instrument measures are capped there.
 #
 # WHAT IT KNOWS ABOUT AGENTS: NOTHING, and that is a property to keep rather
 # than a stage it is at. An artifact self-identifies through the mandatory
@@ -45,16 +50,32 @@
 #
 #   - a findings row is a line whose FIRST character is `|`. An indented one is
 #     ordinary text, because a table being quoted inside prose is prose.
-#   - the `findings:` exclusion ends at the next key at that same indentation
-#     and that key is COUNTED. It does not run to end of file: a verdict whose
-#     findings block is followed by three paragraphs would otherwise measure
-#     almost nothing and report clean.
+#   - a blank line inside a `findings:` block decides nothing and stays inside
+#     it. The block's boundaries are the table's rule and are not restated here;
+#     what the table does not decide is what an empty line between two findings
+#     means, and treating one as a boundary would end the block there and resume
+#     counting the rest of it.
 #   - a fence is a line whose first non-blank characters are three backticks,
 #     and it is excluded with the block it delimits. A rule that counted the
 #     delimiter of the thing it excludes would be measuring punctuation.
 #   - the final newline is a character in the file and is counted. A character
 #     count has no reason to hold an opinion about which character is last, and
 #     a file that does not end in one is measured without inventing it.
+#   - A MEASUREMENT OF ZERO IS NOT A MEASUREMENT, and is cannot-run. This is the
+#     one refusal below that the table does not reach, so it is argued here.
+#     Zero is under every cap in the table, which makes it the single value that
+#     turns a failure to measure into a clean line — and it is reachable with no
+#     failure at all: an `own` artifact posted entirely inside one fence, the
+#     canonical shape `agent-handoffs § The structured block comes first`
+#     prescribes, measures exactly zero. This instrument refused a set of zero
+#     ARTIFACTS from the start; it refuses zero CHARACTERS for the same reason.
+#
+# TWO FURTHER REFUSALS BELOW ARE THE TABLE'S RULES AND NOT THIS FILE'S, and are
+# implemented rather than argued here: an `own` artifact whose fences do not
+# balance is unmeasurable, and a row-shaped line in the cap table that does not
+# parse is named rather than skipped. `agent-handoffs § The cap table` carries
+# both, with the reasoning; what is written here would go false the day either
+# one moved, which is the whole reason it is not written here.
 #
 # WHAT IT CANNOT SEE, so that no reader takes a clean line for more than it is:
 #
@@ -81,10 +102,13 @@
 # Exit:  0  every artifact measured is within the cap its row sets
 #        1  at least one is over it; each is printed with what it measured
 #        2  cannot run — an artifact declaring no id, an id no row defines, a
-#           path it could not read, zero artifacts measured, or a cap table it
-#           could not find or parse. "I could not measure you" and "you wrote
-#           too much" are different sentences and only one of them is the
-#           author's fault, so they are different statuses. Cannot-run outranks
+#           path it could not read, zero artifacts measured, an artifact
+#           measuring zero characters, an `own` artifact whose fences do not
+#           balance, or a cap table it could not find, could not parse, or
+#           holds a row-shaped line that does not parse. "I could not measure
+#           you" and "you wrote too much" are different sentences and only one
+#           of them is the author's fault, so they are different statuses.
+#           Cannot-run outranks
 #           over-cap when both occur, and the outranked line is still printed:
 #           precedence is about the status, never about stopping looking.
 #           Never reported as clean.
@@ -120,12 +144,42 @@ fi
 
 # The table's own binding contract, as `agent-handoffs § The cap table` fixes
 # it: three code spans, one snake_case id, a bare integer, one lowercase token.
-# A row that does not match is not read, and a table where nothing matches is a
-# source of truth this script does not have.
-ROWS="$(awk '/^\| `[a-z_]+` \| `[0-9]+` \| `[a-z]+` \|/ {
-                split($0, f, "|"); a=f[2]; b=f[3]; c=f[4]
-                gsub(/[` ]/, "", a); gsub(/[` ]/, "", b); gsub(/[` ]/, "", c)
-                print a, b, c }' "$TABLE")"
+#
+# WHICH LINES ARE ROWS IS DECIDED BY POSITION, not by whether they parse. The
+# table is entered at its header and left at the first line that is not a table
+# line, and every line between them other than the alignment separator is a row
+# this script must be able to read. That is what lets a row-shaped line that
+# does NOT parse be named — a fail-open where it is dropped instead is the whole
+# of MAINT-01, and it is invisible from the table's own file. Deciding by the
+# contract alone cannot do it: the two-column `prose_licence` table below fails
+# the same contract and is not a broken row, and the header row fails it too.
+#
+# Each emitted line is tagged `+` for a row that parsed and `-` for one that did
+# not, because command substitution returns one stream and the two answers must
+# stay separable within it.
+ROWTEXT="$(awk '
+  /^\| `artifact` \| `cap_chars` \| `counts` \|/ { in_table = 1; next }
+  in_table && /^\|[-: |]+\|[ \t]*$/             { next }
+  in_table && /^\|/ {
+    if ($0 ~ /^\| `[a-z_]+` \| `[0-9]+` \| `[a-z]+` \|/) {
+      split($0, f, "|"); a=f[2]; b=f[3]; c=f[4]
+      gsub(/[` ]/, "", a); gsub(/[` ]/, "", b); gsub(/[` ]/, "", c)
+      printf "+ %s %s %s\n", a, b, c
+    } else printf "- %s\n", $0
+    next
+  }
+  in_table { in_table = 0 }' < "$TABLE")"
+
+BADROWS="$(printf '%s\n' "$ROWTEXT" | sed -n 's/^- //p')"
+ROWS="$(printf '%s\n' "$ROWTEXT" | sed -n 's/^+ //p')"
+
+if [ -n "$BADROWS" ]; then
+  printf 'output-caps: cannot run — a row of the cap table in %s does not parse under its own binding contract:\n' "$TABLE" >&2
+  printf '%s\n' "$BADROWS" | while IFS= read -r bad; do
+    printf 'output-caps:   %s\n' "$bad" >&2
+  done
+  cannot=1; finish
+fi
 if [ -z "$ROWS" ]; then
   printf 'output-caps: cannot run — no row in %s parses under the binding contract of the cap table\n' "$TABLE" >&2
   cannot=1; finish
@@ -146,8 +200,14 @@ function indent_of(s) { if (match(s, /^[ \t]*/)) return RLENGTH; return 0 }
   keep = 1
   if (mode == "body") {
     if (in_findings) {
-      if (indent_of($0) == find_indent && $0 ~ /^[ \t]*[A-Za-z_][A-Za-z0-9_.-]*[ \t]*:/) in_findings = 0
-      else keep = 0
+      # Membership, not termination. A line deeper than the key is inside the
+      # block; a `-` item at that same indent is inside it; a blank line is
+      # held inside, so that one empty line between two findings is not a
+      # boundary. Anything else is outside, and falls through to be counted.
+      if ($0 ~ /^[ \t]*$/) keep = 0
+      else if (indent_of($0) > find_indent) keep = 0
+      else if (indent_of($0) == find_indent && $0 ~ /^[ \t]*-([ \t]|$)/) keep = 0
+      else in_findings = 0
     }
     if (keep) {
       if ($0 ~ /^\|/) keep = 0
@@ -166,6 +226,19 @@ END {
 
 digits_of() { local s="$1"; printf '%s' "${s//[!0-9]/}"; }
 
+# EVERY FILE IS FED ON STDIN AND NEVER AS AN OPERAND. awk consumes a bare
+# operand matching `name=value` as a variable assignment and reads stdin
+# instead, so a path such as `v=1.md` — which `make output-caps ARTIFACTS=...`
+# can deliver — measured 0 characters and reported clean with stdin closed, and
+# hung the gate forever with stdin open. `pipefail` cannot see either: awk
+# exited 0, having done exactly what it was told. sed and tail take the same
+# operand and, path-leading `-` aside, want the same treatment for the same
+# reason — the redirection is the shell resolving the path, which is the one
+# place in this pipeline that cannot reinterpret it.
+fences_of() { # fences_of <path> — how many fence lines the file holds
+  LC_ALL=C awk '/^[ \t]*```/ { n++ } END { print n + 0 }' < "$1"
+}
+
 measure() { # measure <path> <counts token> — prints characters, or nothing
   local f="$1" mode="$2" nonl=0 b c
   # EVERY PIPELINE'S STATUS IS TESTED, and `set -o pipefail` above is what makes
@@ -180,13 +253,13 @@ measure() { # measure <path> <counts token> — prints characters, or nothing
     c="$(LC_ALL=C tr -dc '\200-\277' < "$f" | LC_ALL=C wc -c)" || return 1
   else
     if [ -s "$f" ]; then
-      case "$(LC_ALL=C tail -c 1 "$f" | LC_ALL=C od -An -to1 | tr -d '[:space:]')" in
+      case "$(LC_ALL=C tail -c 1 < "$f" | LC_ALL=C od -An -to1 | tr -d '[:space:]')" in
         012) ;;
         *) nonl=1 ;;
       esac
     fi
-    b="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" "$f" | LC_ALL=C wc -c)" || return 1
-    c="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" "$f" | LC_ALL=C tr -dc '\200-\277' | LC_ALL=C wc -c)" || return 1
+    b="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" < "$f" | LC_ALL=C wc -c)" || return 1
+    c="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" < "$f" | LC_ALL=C tr -dc '\200-\277' | LC_ALL=C wc -c)" || return 1
   fi
   b="$(digits_of "$b")"; c="$(digits_of "$c")"
   [ -n "$b" ] && [ -n "$c" ] || return 1
@@ -205,7 +278,7 @@ for f in "$@"; do
   fi
 
   # The FIRST declaration, and only it. `head -1` is the whole of that rule.
-  id="$(sed -n 's/^artifact:[[:space:]]*\([A-Za-z0-9_][A-Za-z0-9_]*\).*$/\1/p' "$f" | head -1)"
+  id="$(sed -n 's/^artifact:[[:space:]]*\([A-Za-z0-9_][A-Za-z0-9_]*\).*$/\1/p' < "$f" | head -1)"
   if [ -z "$id" ]; then
     printf 'unclassified · no artifact: key · %s\n' "$f"
     unclassified=$((unclassified + 1)); cannot=1; continue
@@ -223,12 +296,31 @@ for f in "$@"; do
        unclassified=$((unclassified + 1)); cannot=1; continue ;;
   esac
 
+  # An unbalanced fence is refused BEFORE anything is measured, because the
+  # number a toggle produces from one is not a floor, a ceiling or an estimate —
+  # it is the measurement of whichever region the inversion happened to select.
+  if [ "$mode" = own ]; then
+    nf="$(fences_of "$f")"; nf="$(digits_of "$nf")"
+    if [ -z "$nf" ] || [ $(( nf % 2 )) -ne 0 ]; then
+      printf 'unclassified · %s fence lines do not balance, so the counted region is not decidable · %s\n' "${nf:-unreadable}" "$f"
+      unclassified=$((unclassified + 1)); cannot=1; continue
+    fi
+  fi
+
   n="$(measure "$f" "$mode")"
   case "$n" in
     ''|*[!0-9]*)
       printf 'unclassified · could not count the characters of this artifact · %s\n' "$f"
       unclassified=$((unclassified + 1)); cannot=1; continue ;;
   esac
+
+  # Zero is under every cap in the table, so it is the one value that turns a
+  # failure to measure into a clean line. This instrument refused a set of zero
+  # artifacts from the start; it refuses zero characters for the same reason.
+  if [ "$n" -eq 0 ]; then
+    printf 'unclassified · measured zero characters, which is not a measurement this gate will vouch for · %s\n' "$f"
+    unclassified=$((unclassified + 1)); cannot=1; continue
+  fi
 
   if [ "$n" -gt "$cap" ]; then verdict=over; over=$((over + 1)); else verdict=under; fi
   printf '%s · %s · %s · %s · %s\n' "$id" "$n" "$cap" "$verdict" "$f"

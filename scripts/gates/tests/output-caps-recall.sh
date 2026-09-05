@@ -65,10 +65,16 @@
 #                included, per the row's `counts` token:
 #                  whole — every character of the file.
 #                  body  — every character except lines beginning with `|`, and
-#                          lines from a `findings:` key up to the next key at the
-#                          same indentation. THE EXCLUSION ENDS AT THAT KEY; it
-#                          does not run to EOF, and FIXTURE 3 fails a checker
-#                          that lets it.
+#                          the `findings:` key together with ITS BLOCK: the lines
+#                          indented deeper than the key, and the `-` items at the
+#                          key's own indent. THE BLOCK ENDS AT THE FIRST LINE
+#                          THAT IS NEITHER, and that line is counted. There is no
+#                          terminating key to look for — an exclusion that
+#                          scanned for one ran to EOF when none followed, which
+#                          made the cap opt-out by key ordering. FIXTURE 3 fails
+#                          a checker that excludes to EOF unconditionally; the
+#                          case where membership and termination disagree is not
+#                          this fixture's.
 #                  own   — every character outside fenced blocks. The fence lines
 #                          are part of the block they delimit and are excluded
 #                          with it: a rule that counts the delimiter of the thing
@@ -357,11 +363,15 @@ check_has "whole · ... and reported as over"                    "$(report_of wo
 
 # ---------------------------------------------------------------------------
 # FIXTURE 3 — `body`, and the half of the rule a checker is most likely to get
-# wrong. The exclusion runs from `findings:` to the NEXT KEY AT THE SAME
-# INDENTATION, not to EOF. Everything after `confidence:` here is counted, and
-# it is nearly the whole artifact — so a checker that excludes to EOF measures
-# far under and reports this one CLEAN. The verdict, not just the number, is
-# what fails.
+# wrong. The exclusion covers the `findings:` key and ITS BLOCK, and nothing
+# else: `confidence:` here is outside the block, so everything from it onward is
+# counted, and that is nearly the whole artifact. A checker that excludes to EOF
+# measures far under and reports this one CLEAN. The verdict, not just the
+# number, is what fails.
+#
+# What this fixture does NOT ask is what happens when NO line follows the block
+# at all — it always supplies `confidence:`, so membership and any search for a
+# terminator give the same answer here. That is the gap `LQ-05` fills.
 # ---------------------------------------------------------------------------
 need_row reviewer_verdict body
 VCAP="$(cap_of reviewer_verdict)"
