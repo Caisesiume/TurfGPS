@@ -49,6 +49,8 @@ Where an acceptance criterion is `test`-verified, the completion also carries th
 Produced by `@pr-judge` on remand, consumed by `@worker-manager`.
 
 ```yaml
+artifact: revision_packet
+prose_licence: none
 revision:
   issue: PR-381
   cycle: 2

@@ -185,9 +185,16 @@ These agents stay registered and stay distinct — **the rule is a convening con
 
 ## Incremental review validity
 
-**A verdict is issued against a specific diff state, so it must be recorded against one.** The judge keeps a **review ledger** as a structured comment on the PR, updated every cycle:
+**A verdict is issued against a specific diff state, so it must be recorded against one.** The judge keeps a **review ledger** as a structured comment on the PR, updated every cycle. It is a capped artifact and **opens with its structured block**, per `agent-handoffs § The structured block comes first` — the cap gate returns `unclassified · no artifact: key` and refuses to run on a ledger that opens with its heading:
 
 ```markdown
+artifact: review_ledger
+prose_licence: none
+pr: <n>
+sha: <head sha>
+cycle: <k>
+supersedes: <the comment this rewrite replaces>
+
 ## Review ledger — PR #<n>
 
 | reviewer | domain | verdict | conf | diff SHA | cycle |
