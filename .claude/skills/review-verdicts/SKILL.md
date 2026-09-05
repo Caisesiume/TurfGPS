@@ -1,6 +1,6 @@
 ---
 name: review-verdicts
-description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, the unsatisfiable verdict that keeps insufficient evidence distinct from low confidence, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
+description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, the unsatisfiable status that keeps insufficient evidence distinct from low confidence, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
 ---
 
 # Review verdicts — the schema and the evidence law
@@ -30,7 +30,7 @@ findings:
     description: refresh tokens can be reused after rotation
     required_change: invalidate the old refresh token on successful rotation
     root_cause: implementation
-verdict: revise            # pass | revise | blocker | insufficient_evidence | N/A
+verdict: revise            # pass | revise | blocker | N/A
 confidence: 0.96           # a number, or `unassessed` — never a number standing in for one
 residual_risk:
 needs_followup: false
@@ -41,9 +41,11 @@ evidence: |
     · …
 ```
 
-**Mandatory keys:** `artifact` · `prose_licence` · `reviewer` · `status` · `inspected` · `files_inspected` · `findings` · `verdict` · `confidence` · `evidence`. An empty `findings: []` is an answer; an absent `findings` is not, and the judge cannot tell it from a lane that never looked.
+**Mandatory keys:** `artifact` · `prose_licence` · `reviewer` · `status` · `inspected` · `files_inspected` · `findings` · `confidence` · `evidence`. An empty `findings: []` is an answer; an absent `findings` is not, and the judge cannot tell it from a lane that never looked.
 
-**`inspected: diff: false` makes the verdict automatically invalid** and the judge ignores it — unless the verdict is the unsatisfiable one defined in `§ Insufficient evidence is not low confidence` below, which is the one shape that reports `false` honestly. That flag is the floor; the standard is the `evidence` block, defined in `§ The report block`.
+**`verdict` is mandatory under `status: valid_review` and absent under `status: unsatisfiable`**, which is the one thing `status` decides and the reason it is a field rather than a formality. A lane that could not be satisfied has no judgement to record, so it records none — it does not record a fourth kind of judgement. The shape is fixed in `§ Insufficient evidence is not low confidence` below.
+
+**`inspected: diff: false` makes the verdict automatically invalid** and the judge ignores it — unless the return carries `status: unsatisfiable` in the form `§ Insufficient evidence is not low confidence` below fixes, which is the one shape that reports `false` honestly. That flag is the floor; the standard is the `evidence` block, defined in `§ The report block`.
 
 Return decision-relevant data only. Deep internal analysis is welcome; only its conclusions enter the parent's context.
 
@@ -51,7 +53,9 @@ Return decision-relevant data only. Deep internal analysis is welcome; only its 
 
 ### Insufficient evidence is not low confidence
 
-**A lane that could not gather evidence and a lane that gathered weak evidence are different results, and one field cannot carry both.** `verdict: insufficient_evidence` says the review could not be performed. A low `confidence` says it was performed and the reviewer does not trust the answer. Collapsing the first into the second hands the judge a number where there was no measurement — and the judge then weighs an unrun lane against a run one, which is #144's ledger-corruption class arriving through vocabulary instead of through a missing row.
+**A lane that could not gather evidence and a lane that gathered weak evidence are different results, and one field cannot carry both.** `status: unsatisfiable`, with no `verdict` at all, says the review could not be performed. A low `confidence` says it was performed and the reviewer does not trust the answer. Collapsing the first into the second hands the judge a number where there was no measurement — and the judge then weighs an unrun lane against a run one, which is #144's ledger-corruption class arriving through vocabulary instead of through a missing row.
+
+**It is `status` that carries this and never `verdict`, and the two are different kinds of statement.** `pass` · `revise` · `blocker` are judgements about the code; *I could not measure* is a statement about the lane. **A fourth verdict value was tried and withdrawn** — the Owner ruled on 6 September 2026, on #158, that `insufficient_evidence` is not a verdict, that an unassessable lane is expressed through `status:` with `verdict:` absent, and that the capability motivating the fourth value is preserved by the shape below rather than lost. The enum kept in `docs/DELIVERY.md § Verdicts` was left untouched by that ruling, and the rules that invalidate a verdict reach this shape no differently for it: **a lane that produced no verdict is not a weak verdict, and there is nothing here to invalidate.**
 
 A lane that cannot be satisfied returns:
 
@@ -64,7 +68,7 @@ inspected:
   diff: false
 files_inspected: []
 findings: []
-verdict: insufficient_evidence
+# no verdict key — the absence is the statement, per the paragraph above
 confidence: unassessed
 evidence_gap:
   what: the diff — the PR body was reachable, the patch was not
@@ -77,7 +81,7 @@ evidence: |
     · nothing was accepted; no verdict was formed
 ```
 
-**`confidence: unassessed` is mandatory with this verdict and a number is forbidden.** Any number offered here is manufactured, and manufacturing one is the failure a reviewer exists to catch in others.
+**`confidence: unassessed` is mandatory with this status and a number is forbidden.** Any number offered here is manufactured, and manufacturing one is the failure a reviewer exists to catch in others.
 
 **`evidence_gap` is mandatory too, and `closable_by` is the load-bearing field.** It is what separates a gap a dispatch can close — send the artifact inline — from one it cannot: **a follow-up question cannot close a tooling gap**, and a judge that does not know which it is facing will spend a cycle asking.
 
