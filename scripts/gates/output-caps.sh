@@ -55,9 +55,12 @@
 #     what the table does not decide is what an empty line between two findings
 #     means, and treating one as a boundary would end the block there and resume
 #     counting the rest of it.
-#   - a fence is a line whose first non-blank characters are three backticks,
-#     and it is excluded with the block it delimits. A rule that counted the
-#     delimiter of the thing it excludes would be measuring punctuation.
+#   - a fence delimiter is excluded with the block it delimits, both ends of it.
+#     A rule that counted the delimiter of the thing it excludes would be
+#     measuring punctuation. WHICH lines are delimiters is not this file's to
+#     decide: `agent-handoffs § The cap table` sets when a fence opens and what
+#     run length closes one, and `FENCE` below implements that rule without
+#     restating it.
 #   - the final newline is a character in the file and is counted. A character
 #     count has no reason to hold an opinion about which character is last, and
 #     a file that does not end in one is measured without inventing it.
@@ -188,6 +191,26 @@ fi
 cap_of()    { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $2 }'; }
 counts_of() { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $3 }'; }
 
+# THE FENCE RULE IS `agent-handoffs § The cap table`'s, and this implements it
+# rather than restating it: `fence_run` answers one question — how long is this
+# line's leading backtick run — and returns 0 where there is none. The two
+# callers below hold the comparison the table prescribes.
+#
+# ONE variable, because the line filter and the balance check both need that
+# answer and a second copy could disagree with the first. Length is what a bare
+# toggle lacked: firing on every backtick-leading line, it read a four-backtick
+# relay wrapping a payload of its own three-backtick blocks as FOUR delimiters —
+# an even number, so the balance refusal never fired — and inverted the region
+# between them, reporting a 103-character notice at 4834, the payload it quoted.
+FENCE='
+function fence_run(s,   n) {
+  if (s !~ /^[ \t]*```/) return 0
+  sub(/^[ \t]*/, "", s)
+  n = 0
+  while (substr(s, n + 1, 1) == "`") n++
+  return n
+}'
+
 # The line filter. It emits the counted region of an artifact and nothing else,
 # so the counting below is one arithmetic rule over whatever it is handed.
 #
@@ -214,8 +237,14 @@ function indent_of(s) { if (match(s, /^[ \t]*/)) return RLENGTH; return 0 }
       else if ($0 ~ /^[ \t]*findings[ \t]*:/) { in_findings = 1; find_indent = indent_of($0); keep = 0 }
     }
   } else if (mode == "own") {
-    if ($0 ~ /^[ \t]*```/) { keep = 0; in_fence = !in_fence }
-    else if (in_fence) keep = 0
+    # Three cases, not two. A line with no backtick run is text and the fence
+    # state decides it; a run outside a fence opens one and records its length;
+    # a run inside a fence is dropped either way, and only a run at least as
+    # long as the opener also closes it.
+    frun = fence_run($0)
+    if (frun == 0) { if (in_fence) keep = 0 }
+    else if (!in_fence) { keep = 0; in_fence = 1; open_run = frun }
+    else { keep = 0; if (frun >= open_run) in_fence = 0 }
   }
   if (seen && prev_keep) printf "%s\n", prev
   prev = $0; prev_keep = keep; seen = 1
@@ -235,8 +264,17 @@ digits_of() { local s="$1"; printf '%s' "${s//[!0-9]/}"; }
 # operand and, path-leading `-` aside, want the same treatment for the same
 # reason — the redirection is the shell resolving the path, which is the one
 # place in this pipeline that cannot reinterpret it.
-fences_of() { # fences_of <path> — how many fence lines the file holds
-  LC_ALL=C awk '/^[ \t]*```/ { n++ } END { print n + 0 }' < "$1"
+# fences_of <path> — how many fence DELIMITERS the file holds, under the rule
+# above and not one backtick-leading line more. Each delimiter flips the state,
+# so an odd count and "the file ends inside an open fence" are the same fact,
+# which is what lets the caller decide balance by parity alone.
+fences_of() {
+  LC_ALL=C awk "$FENCE"'
+    { frun = fence_run($0)
+      if (frun == 0) next
+      if (!in_fence) { in_fence = 1; open_run = frun; n++ }
+      else if (frun >= open_run) { in_fence = 0; n++ } }
+    END { print n + 0 }' < "$1"
 }
 
 measure() { # measure <path> <counts token> — prints characters, or nothing
@@ -258,8 +296,8 @@ measure() { # measure <path> <counts token> — prints characters, or nothing
         *) nonl=1 ;;
       esac
     fi
-    b="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" < "$f" | LC_ALL=C wc -c)" || return 1
-    c="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FILTER" < "$f" | LC_ALL=C tr -dc '\200-\277' | LC_ALL=C wc -c)" || return 1
+    b="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FENCE$FILTER" < "$f" | LC_ALL=C wc -c)" || return 1
+    c="$(LC_ALL=C awk -v mode="$mode" -v nonl="$nonl" "$FENCE$FILTER" < "$f" | LC_ALL=C tr -dc '\200-\277' | LC_ALL=C wc -c)" || return 1
   fi
   b="$(digits_of "$b")"; c="$(digits_of "$c")"
   [ -n "$b" ] && [ -n "$c" ] || return 1
@@ -302,7 +340,7 @@ for f in "$@"; do
   if [ "$mode" = own ]; then
     nf="$(fences_of "$f")"; nf="$(digits_of "$nf")"
     if [ -z "$nf" ] || [ $(( nf % 2 )) -ne 0 ]; then
-      printf 'unclassified · %s fence lines do not balance, so the counted region is not decidable · %s\n' "${nf:-unreadable}" "$f"
+      printf 'unclassified · %s fence delimiters do not balance, so the counted region is not decidable · %s\n' "${nf:-unreadable}" "$f"
       unclassified=$((unclassified + 1)); cannot=1; continue
     fi
   fi
