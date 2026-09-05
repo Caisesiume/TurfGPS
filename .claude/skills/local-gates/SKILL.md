@@ -111,7 +111,7 @@ The root is the right home for it — `make` has no notion of a module, so the o
 make output-caps ARTIFACTS="<path>..."
 ```
 
-`agent-handoffs § Output caps` is the one home of every cap and of the rule for counting each artifact; this section says only how the check is run, and the Makefile holds the commands, per `§ When these activate`. **The artifact declares its own id as its first key**, per `agent-handoffs § The structured block comes first`, so which cap applies is decided by the file rather than by whoever typed the command: write the artifact to a file, measure it, post it once its line reads `under`.
+**Every capped artifact is capped in `agent-handoffs § Output caps`**, along with the rule for counting each one; this section says only how the check is run, and the Makefile holds the commands, per `§ When these activate`. That claim is narrower than *the one home of every cap*, which this line used to make and which is false — the ~300-token handoff limit and the per-field caps table both sit in `agent-handoffs` outside that section, so a reader sent here for *every* cap would not find two of them. **The artifact declares its own id as its first key**, per `agent-handoffs § The structured block comes first`, so which cap applies is decided by the file rather than by whoever typed the command: write the artifact to a file, measure it, post it once its line reads `under`.
 
 The recall corpus runs first and make stops if it fails, exactly as `make d8-claims` does — no verdict from an instrument whose recall was not just demonstrated. **The script's own header records what it cannot see**, which is to be read before its result is reported.
 
