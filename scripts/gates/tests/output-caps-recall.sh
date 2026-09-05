@@ -74,7 +74,7 @@
 #                          made the cap opt-out by key ordering. FIXTURE 3 fails
 #                          a checker that excludes to EOF unconditionally; the
 #                          case where membership and termination disagree is not
-#                          this fixture's.
+#                          this fixture's but FIXTURE 3A's.
 #                  own   — every character outside fenced blocks. The fence lines
 #                          are part of the block they delimit and are excluded
 #                          with it: a rule that counts the delimiter of the thing
@@ -167,6 +167,28 @@ ROWS="$(awk '/^\| `[a-z_]+` \| `[0-9]+` \| `[a-z]+` \|/ {
                 gsub(/[` ]/, "", a); gsub(/[` ]/, "", b); gsub(/[` ]/, "", c)
                 print a, b, c }' "$TABLE")"
 [ -n "$ROWS" ] || die "no row in $TABLE parses under the table's own binding contract; this corpus has no ground to stand on"
+
+# THE NUMBER OF ROWS THE TABLE HOLDS IS NOT THE NUMBER THAT PARSE, and the
+# coverage printed at the bottom is counted against the first of those. A
+# denominator taken from the rows that parsed lets a row broken into
+# unreadability IMPROVE the figure this corpus reports: the row stops asking for
+# a fixture at the same moment it stops being measurable, so the report gets
+# better as the table gets worse. That is `MAINT-01` seen from this side of it.
+#
+# Rows are therefore counted the way the table says they are FOUND — from its
+# header to the first line that leaves it, every line but the alignment
+# separator — which is a count of row-shaped lines and does not care whether one
+# parses. A disagreement between the two numbers is a stop rather than a
+# subtraction: the checker refuses to run at all while any row is unreadable, so
+# every assertion below would be measuring that refusal instead of its subject.
+ROWS_HELD="$(awk '
+  /^\| `artifact` \| `cap_chars` \| `counts` \|/ { in_table = 1; next }
+  in_table && /^\|[-: |]+\|[ \t]*$/             { next }
+  in_table && /^\|/                             { n++; next }
+  in_table                                      { in_table = 0 }
+  END { print n + 0 }' "$TABLE")"
+ROWS_PARSED="$(printf '%s\n' "$ROWS" | grep -c .)"
+[ "$ROWS_HELD" = "$ROWS_PARSED" ] || die "the cap table holds $ROWS_HELD rows and $ROWS_PARSED of them parse. Repair the row, never the denominator: a coverage figure counted over what survived reports the breakage as an improvement, and the checker refuses to run while any row is unreadable."
 
 cap_of()    { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $2 }'; }
 counts_of() { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $3 }'; }
@@ -371,7 +393,8 @@ check_has "whole · ... and reported as over"                    "$(report_of wo
 #
 # What this fixture does NOT ask is what happens when NO line follows the block
 # at all — it always supplies `confidence:`, so membership and any search for a
-# terminator give the same answer here. That is the gap `LQ-05` fills.
+# terminator give the same answer here. That gap was raised as `LQ-05` and is
+# FIXTURE 3A below.
 # ---------------------------------------------------------------------------
 need_row reviewer_verdict body
 VCAP="$(cap_of reviewer_verdict)"
@@ -401,6 +424,81 @@ pad_to $((VCAP + 1))
 run "$TMP/rv-terminates.md"
 check_rc  "body · the findings exclusion ends at the next key, not at EOF"  1
 check_has "body · ... so one character over the cap is still over"          "$(report_of reviewer_verdict $((VCAP + 1)))"
+
+# ---------------------------------------------------------------------------
+# FIXTURE 3A — WHERE MEMBERSHIP AND TERMINATION DISAGREE, which is the only
+# place the `body` rule is ever actually decided.
+#
+# FIXTURE 3 supplies `confidence:` after the block, so an exclusion that ends at
+# the block and one that scans forward for a key stop in the same place and that
+# fixture cannot tell them apart. It proved the rule where a terminator happened
+# to be available; here there is NO KEY AFTER THE BLOCK AT ALL. What ends the
+# block is a line of prose, prose is what the rest of the file is, and every
+# character of it counts.
+#
+# A checker that scans for a terminating key finds none, runs to end of file,
+# measures the four header lines and reports this artifact CLEAN. That is `LQ-01`
+# in one file: the cap made opt-out by key ordering, and key ordering is the
+# writer's. Nothing below may hand such a checker a rescue, and nothing does —
+# `pad_to` fills with a line holding no colon.
+# ---------------------------------------------------------------------------
+art_new rv-no-terminator.md
+put 'artifact: reviewer_verdict'
+put 'prose_licence: none'
+put 'lane: testing'
+put 'verdict: request_changes'
+put_block_x <<'EX'
+findings:
+  - id: T-03
+    severity: high
+    text: the findings key is the last key anywhere in this artifact
+  - id: T-04
+    severity: medium
+    text: what follows the block is prose, and prose terminates nothing
+EX
+put 'The block above is the last structured key in this verdict, and every'
+put 'character from here to the end of the file is the reviewer writing.'
+pad_to $((VCAP + 1))
+
+run "$TMP/rv-no-terminator.md"
+check_rc    "membership · a findings block with no terminating key ends where the BLOCK ends"  1
+check_has   "membership · ... so the prose after it is counted, and one over the cap is over"  "$(report_of reviewer_verdict $((VCAP + 1)))"
+check_lacks "membership · ... where a search for a terminator would have reported this clean"  "clean · "
+
+# ---------------------------------------------------------------------------
+# FIXTURE 3B — AN INDENTED `|` IS ORDINARY TEXT.
+#
+# An excluded findings row is a line whose FIRST character is `|`. A table quoted
+# inside prose is prose, and a verdict that quotes the row it is asking for has
+# not thereby made those characters free. Both halves are here: a table at column
+# zero, which is excluded, and the same table indented two spaces, which is
+# counted — and counted to the character, because the artifact is built to sit
+# exactly one over its cap and the indented rows are what put it there. A checker
+# matching the first NON-BLANK character drops them and reports this under.
+# ---------------------------------------------------------------------------
+art_new rv-indented-table.md
+put 'artifact: reviewer_verdict'
+put 'prose_licence: none'
+put 'lane: maintainability'
+put 'verdict: request_changes'
+put_block_x <<'EX'
+| id | severity | required |
+|---|---|---|
+| M-02 | medium | the rule this table states has no assertion standing behind it |
+EX
+put_block <<'EX'
+The row asked for above is quoted here, indented, the way prose quotes one.
+
+  | id | severity | required |
+  |---|---|---|
+  | M-02 | medium | an indented row is text, and text is counted |
+EX
+pad_to $((VCAP + 1))
+
+run "$TMP/rv-indented-table.md"
+check_rc    "indented pipe · a quoted table is prose, and prose is counted"                  1
+check_has   "indented pipe · ... to the character, one over the cap"                         "$(report_of reviewer_verdict $((VCAP + 1)))"
+check_lacks "indented pipe · ... where dropping it would have reported this artifact clean"  "clean · "
 
 # ---------------------------------------------------------------------------
 # FIXTURE 4 — `own`, the fenced relay, and the classifier's adversarial case.
@@ -657,6 +755,70 @@ check_has   "table · ... and the table is named"                             "S
 check_lacks "table · ... and it never reports a clean set"                   "clean · "
 
 # ---------------------------------------------------------------------------
+# FIXTURE 11 — THE REFUSALS NOTHING HAD EVER FIRED.
+#
+# Each of these is a value the instrument once REPORTED rather than refused, and
+# each was found by reading the script rather than by running it — which is the
+# whole objection. A refusal no fixture reaches is a branch whose next edit
+# nobody will notice, and the three below sit on the only path by which this
+# gate can say "clean" about something it never measured.
+# ---------------------------------------------------------------------------
+
+# ZERO CHARACTERS. An `own` artifact posted entirely inside one fence is the
+# canonical shape `agent-handoffs § The structured block comes first` prescribes,
+# it takes no failure of any kind to reach, and it measures exactly nothing. Zero
+# is under every cap in the table, so it is the single value that turns a failure
+# to measure into a clean line. It was measured at `orchestrator_comment · 0 ·
+# 1200 · under`, and that string is what the third check below requires absent.
+art_new oc-all-fenced.md
+put_x '```yaml'
+put_x 'artifact: orchestrator_comment'
+put_x 'prose_licence: none'
+put_x 'relaying: worker_envelope'
+put_x '```'
+[ "$(counted)" = 0 ] || die "construction: the all-fenced courier counts $(counted) of its own words, and this fixture is only the zero case at 0"
+
+run "$TMP/oc-all-fenced.md"
+check_rc    "zero characters · an artifact measuring nothing is cannot-vouch, not under"  2
+check_has   "zero characters · ... and it says that is what it measured"                  "measured zero characters"
+check_lacks "zero characters · ... and it is never reported beneath its cap"              "orchestrator_comment · 0 · "
+check_lacks "zero characters · ... and never says clean"                                  "clean · "
+
+# A `counts` token this instrument does not implement. The row PARSES — the
+# table's binding contract admits any lowercase token in that column — so the
+# refusal is the script's own and not the table's, and the artifact must be named
+# rather than measured under whichever rule happened to be the fallthrough.
+stage tok
+TOK_ROW='| `probe_artifact` | `137` | `sideways` | fixture-only row, appended by the recall corpus |'
+awk -v n="$last" -v row="$TOK_ROW" 'NR == n { print; print row; next } { print }' \
+  "$TABLE" > "$TMP/tok/.claude/skills/agent-handoffs/SKILL.md"
+
+OUT="$(bash "$TMP/tok/scripts/gates/output-caps.sh" "$TMP/probe-at-cap.md" 2>&1)"; RC=$?
+check_rc    "counts token · a counting rule this instrument does not have is cannot-vouch"  2
+check_has   "counts token · ... and both the row and its token are named"                   "the row for probe_artifact counts sideways"
+check_lacks "counts token · ... and never says clean"                                       "clean · "
+
+# A MEASURING PIPELINE THAT DIES. No artifact an author can write reaches this
+# branch: it fires when the FILTER itself fails, which the checker's own header
+# records as having once been live — a filter that would not parse wrote nothing,
+# nothing counted as zero characters, and zero was under every cap. So the corpus
+# stages a checker whose filter will not parse, because the alternative is a
+# refusal that has never once been observed to fire. It is the instrument's
+# behaviour under its own failure that is asserted here, and there is no other
+# way to ask it.
+stage brk
+cp "$TABLE" "$TMP/brk/.claude/skills/agent-handoffs/SKILL.md"
+sed 's/^function indent_of(s) .*$/function indent_of(s) { ( {/' "$SCRIPT" \
+  > "$TMP/brk/scripts/gates/output-caps.sh"
+cmp -s "$SCRIPT" "$TMP/brk/scripts/gates/output-caps.sh" &&
+  die "construction: the staged checker is byte-identical to the one under test — the filter line this fixture corrupts has moved, and a mutant that mutates nothing proves nothing"
+
+OUT="$(bash "$TMP/brk/scripts/gates/output-caps.sh" "$TMP/j-5992-ascii.md" 2>&1)"; RC=$?
+check_rc    "filter died · a measurement that could not be made is cannot-vouch"  2
+check_has   "filter died · ... and it is not silently rounded down to zero"       "could not count the characters"
+check_lacks "filter died · ... and never says clean"                              "clean · "
+
+# ---------------------------------------------------------------------------
 # COVERAGE — PRINTED, NEVER ASSERTED, and computed from the table rather than
 # kept by hand. `d8-root-run-claims-recall.sh` records what a hand-kept second
 # statement of a measured number does: it drifted for a whole cycle while every
@@ -666,7 +828,11 @@ check_lacks "table · ... and it never reports a clean set"                   "c
 # thing anyone reaches for is a fixture that exercises a row without testing it.
 # ---------------------------------------------------------------------------
 all_ids="$(printf '%s\n' "$ROWS" | awk '{print $1}' | sort)"
-n_all="$(printf '%s\n' "$all_ids" | grep -c .)"
+# The denominator is what the TABLE HOLDS and not what parsed, for the reason
+# argued where the two numbers are established. The ground-truth check up there
+# is what keeps them equal; this line is what keeps the figure right if they
+# ever are not.
+n_all="$ROWS_HELD"
 n_used="$(printf '%s' "$USED" | tr ' ' '\n' | grep -c .)"
 unexercised=''
 for id in $all_ids; do
