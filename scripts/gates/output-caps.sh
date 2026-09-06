@@ -9,7 +9,7 @@
 #
 # That claim is narrower than "the one home of every cap", which this line used
 # to make and which is false: the ~300-token handoff limit and the per-field
-# caps both sit in `agent-handoffs` OUTSIDE `§ Output caps`. Only the artifacts
+# caps both sit OUTSIDE `agent-handoffs § Output caps`. Only the artifacts
 # this instrument measures are capped there.
 #
 # WHAT IT KNOWS ABOUT AGENTS: NOTHING, and that is a property to keep rather
