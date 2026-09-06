@@ -1096,9 +1096,12 @@ Affects:        FR-095. NFR-013, which is the bound that makes this
 ```
 Date:           2026-08-28
 Decided-by:     the Owner, ratified on PR #135 and relayed by
-                `@engineering-lead`. This entry records a ruling made
-                elsewhere; it is not a ladder resolution, and `§ Entry format`
-                states the variant it takes.
+                `@engineering-lead`. `#issuecomment-5457129534` carries the
+                ruling and is cited here because that comment directs this
+                entry be recorded citing it; RD-037 cites it alongside the
+                follow-on comment for the same reason. This entry records a
+                ruling made elsewhere; it is not a ladder resolution, and
+                `§ Entry format` states the variant it takes.
 Question:       A stored plan is reopened, possibly months later, and the zone
                 data underneath may have moved: a stop's access classification
                 may have changed, or an exclusion may now apply that did not
