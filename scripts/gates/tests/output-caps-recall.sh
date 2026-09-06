@@ -607,6 +607,78 @@ check_rc  "floor · a 27,757-character artifact measuring 933 PASSES"   0
 check_has "floor · ... and the floor is what was reported"             "$(report_of supersession_notice 933)"
 
 # ---------------------------------------------------------------------------
+# FIXTURE 6A — A FENCE CLOSES ONLY ON A RUN AT LEAST AS LONG AS THE ONE THAT
+# OPENED IT, which is where the `own` rule is actually decided.
+#
+# FIXTURE 6 fences its retention in one run of backticks, so a length-blind
+# toggle and the rule the cap table states agree there and that fixture cannot
+# tell them apart. The retention shape `agent-handoffs § The cap table`
+# prescribes is what separates them: a notice retaining a judgment retains
+# fenced YAML, so its own outer fence MUST be four backticks over the payload's
+# three. The delimiter count is EVEN either way — this is not the unbalanced
+# case and the refusal below never fires — and a toggle that flips on any
+# backtick-leading line closes the outer block at the payload's first inner
+# fence, then counts the INSIDE of that block as though it were outside.
+#
+# That is measured, not hypothesised: it is `LQ-07`, observed on this instrument
+# as `supersession_notice · 4834 · over` where the notice's own words are 103
+# characters. Both numbers are asserted below — the true one as the report, the
+# inverted one as a string that must not appear in it.
+# ---------------------------------------------------------------------------
+SN_OWN=103
+SN_RELAYED=4731   # inside the outer fence; what an inverting toggle counts instead
+SN_INVERTED=$(( SN_OWN + SN_RELAYED ))
+[ "$SN_OWN" -le "$SCAP" ] && [ "$SN_INVERTED" -gt "$SCAP" ] || die "LQ-07 measured 103 own against an inverted 4834, and the pair only discriminates when 103 is within the supersession_notice cap and 4834 is not. The table now reads $SCAP. Re-ground the fixture; do not edit these numbers."
+
+art_new sn-nested-relay.md
+put 'artifact: supersession_notice'
+put 'prose_licence: predecessor_corrected'
+put 'supersedes: 5458230029'
+pad_to "$SN_OWN"   # the notice's own words end here; everything below is retained
+put_x '````yaml'
+put_x 'artifact: judgment'
+put_x 'prose_licence: none'
+put_x 'ruling: remanded'
+put_x '```'
+fill_x "$SN_RELAYED"
+put_x '```'
+put_x 'the rest of the retained judgment, still inside the outer fence'
+put_x '````'
+[ "$(counted)" = "$SN_OWN" ] || die "construction: the nested relay's own words count $(counted) and the fixture claims $SN_OWN"
+
+run "$TMP/sn-nested-relay.md"
+check_rc    "nested fence · a four-backtick relay over a three-backtick payload is still measured at the notice's own words"  0
+check_has   "nested fence · ... which is the floor, and not the region between the inner fences"                             "$(report_of supersession_notice "$SN_OWN")"
+check_lacks "nested fence · ... so the inverted region is never what was reported"                                           "· $SN_INVERTED ·"
+
+# THE SAME RULE, AT THE SECOND PLACE IT IS IMPLEMENTED. Whether the fences
+# balance is decided by its own pass over the same rule, and a length-blind pass
+# THERE refuses a file whose counted region is perfectly decidable — the
+# artifact above cannot see that, because counting every inner run as a
+# delimiter leaves its total even. The case that separates them is the courier's
+# ordinary one: what it retains is an artifact whose OWN fence was never closed.
+# That is the retained artifact's defect, it is refused under its own row where
+# it was posted, and the outer four-backtick fence closes regardless — so this
+# notice is decidable, and is measured. Counted length-blind there are three
+# delimiters, and three is odd.
+art_new sn-relay-broken-payload.md
+put 'artifact: supersession_notice'
+put 'prose_licence: predecessor_corrected'
+put 'supersedes: 5458230029'
+pad_to "$SN_OWN"
+put_x '````'
+put_x 'retained below, unedited: the artifact whose own fence never closed'
+put_x '```yaml'
+put_x 'artifact: judgment'
+put_x 'ruling: remanded'
+put_x '````'
+[ "$(counted)" = "$SN_OWN" ] || die "construction: the broken-payload relay's own words count $(counted) and the fixture claims $SN_OWN"
+
+run "$TMP/sn-relay-broken-payload.md"
+check_rc  "nested fence · a retained payload whose own fence never closed leaves the notice decidable"  0
+check_has "nested fence · ... because what closes the outer fence is a run as long as the outer one"    "$(report_of supersession_notice "$SN_OWN")"
+
+# ---------------------------------------------------------------------------
 # FIXTURE 7 — THE COMPOSITE, and the boundary of what this instrument claims.
 #
 # The #140 shape: a notice standing over a judgment standing over a revision
@@ -700,6 +772,7 @@ check_lacks "zero · ... and never says clean"                         "clean ·
 
 run "$TMP/there-is-no-such-artifact.md"
 check_rc    "zero · a path it cannot read is not silently skipped"    2
+check_has   "zero · ... and the reason is the path, not the missing declaration inside it"  "unreadable path"
 check_has   "zero · ... and the path is named"                        "there-is-no-such-artifact.md"
 check_lacks "zero · ... and never says clean"                         "clean · "
 
@@ -754,13 +827,50 @@ check_rc    "table · an unparseable cap table is 'cannot run', not 'clean'"  2
 check_has   "table · ... and the table is named"                             "SKILL.md"
 check_lacks "table · ... and it never reports a clean set"                   "clean · "
 
+# A table with EXACTLY ONE broken row, which is the case `mal` cannot reach.
+# `mal` mangles every row, so nothing parses and the instrument lands on the
+# refusal for a table holding no readable row at all; the PER-ROW refusal is
+# never exercised there, and removing it outright leaves this corpus green while
+# a row-shaped line that does not parse goes back to being silently dropped.
+# Here the rest of the table is intact and the artifact declares a row that
+# still parses, so a checker that drops the broken one has everything it needs
+# to measure it, report `under` and print the clean sentinel. That is what the
+# three checks below deny it.
+#
+# The broken row is chosen at run time and is never the one the artifact
+# declares: a fixture that broke the judgment's own row would be refused for
+# having no row to look up, would exit 2 either way, and would prove nothing.
+stage one
+BROKEN_ID="$(printf '%s\n' "$ROWS" | awk '$1 != "judgment" { print $1; exit }')"
+[ -n "$BROKEN_ID" ] || die "the cap table holds no row but the judgment's, so a table with exactly one broken row cannot be staged without breaking the row this fixture's own artifact declares"
+ONE_TABLE="$TMP/one/.claude/skills/agent-handoffs/SKILL.md"
+awk -v id="$BROKEN_ID" '
+  !done && $0 ~ "^\\| `" id "` \\|" { gsub(/`/, ""); done = 1 }
+  { print }' "$TABLE" > "$ONE_TABLE"
+[ "$(grep -c '^| `[a-z_]*` | `[0-9]*` | `[a-z]*` |' "$ONE_TABLE")" = "$((ROWS_PARSED - 1))" ] || die "construction: the staged table must hold exactly one row fewer than the $ROWS_PARSED that parse in the real one, or it is the every-row case above and not this one"
+grep -q "^| $BROKEN_ID | " "$ONE_TABLE" || die "construction: the row for $BROKEN_ID was not left row-shaped, and a line that no longer begins a row is left out by position rather than named"
+
+OUT="$(bash "$TMP/one/scripts/gates/output-caps.sh" "$TMP/j-5992-ascii.md" 2>&1)"; RC=$?
+check_rc    "one broken row · a single unreadable row stops the run rather than being skipped"  2
+check_has   "one broken row · ... and the row itself is named, not merely the file holding it"  "| $BROKEN_ID | "
+check_lacks "one broken row · ... and the artifact beside it is never reported clean"           "clean · "
+
+# A table that is NOT THERE, which is a different sentence from one that will
+# not parse, and is the shape of a checker moved without its source of truth.
+# `stage` makes the directory the table lives in and copies nothing into it.
+stage gone
+OUT="$(bash "$TMP/gone/scripts/gates/output-caps.sh" "$TMP/j-5992-ascii.md" 2>&1)"; RC=$?
+check_rc    "table · a cap table that is not there is 'cannot run'"          2
+check_has   "table · ... and the instrument says it could not READ it"       "not readable"
+check_lacks "table · ... and it never reports a clean set"                   "clean · "
+
 # ---------------------------------------------------------------------------
 # FIXTURE 11 — THE REFUSALS NOTHING HAD EVER FIRED.
 #
 # Each of these is a value the instrument once REPORTED rather than refused, and
 # each was found by reading the script rather than by running it — which is the
 # whole objection. A refusal no fixture reaches is a branch whose next edit
-# nobody will notice, and the three below sit on the only path by which this
+# nobody will notice, and the four below sit on the only path by which this
 # gate can say "clean" about something it never measured.
 # ---------------------------------------------------------------------------
 
@@ -783,6 +893,37 @@ check_rc    "zero characters · an artifact measuring nothing is cannot-vouch, n
 check_has   "zero characters · ... and it says that is what it measured"                  "measured zero characters"
 check_lacks "zero characters · ... and it is never reported beneath its cap"              "orchestrator_comment · 0 · "
 check_lacks "zero characters · ... and never says clean"                                  "clean · "
+
+# FENCES THAT DO NOT BALANCE. An `own` artifact that opens a fence and never
+# closes it is not thereby a small artifact: the state inverts at the opener and
+# every character after it is dropped, so the number that comes out is the
+# measurement of whichever region the inversion happened to select. The rule is
+# `agent-handoffs § The cap table`'s and this refusal is what keeps a file whose
+# counted region is not decidable from being given a number at all.
+#
+# The unfenced head here is deliberately NOT empty. With the refusal removed
+# this artifact measures something, is reported under its cap and prints the
+# clean sentinel — which is this branch's failure mode, and not the zero case
+# above that would otherwise catch it.
+art_new oc-odd-fence.md
+put 'artifact: orchestrator_comment'
+put 'prose_licence: none'
+put 'to: test-engineer'
+put 'issue: 158'
+put '```yaml'
+put 'artifact: worker_envelope'
+put 'status: completed'
+put '```'
+put 'and the packet it was carrying, whose fence is never closed:'
+put '```yaml'
+put 'artifact: revision_packet'
+put 'cycle: 2'
+[ "$(grep -c '^```' "$CUR")" = 3 ] || die "construction: the unbalanced courier holds $(grep -c '^```' "$CUR") fence lines, and it is only the odd case at 3"
+
+run "$TMP/oc-odd-fence.md"
+check_rc    "unbalanced · fences that do not balance are refused before anything is measured"  2
+check_has   "unbalanced · ... and the reason is named"                                         "do not balance"
+check_lacks "unbalanced · ... and never says clean"                                            "clean · "
 
 # A `counts` token this instrument does not implement. The row PARSES — the
 # table's binding contract admits any lowercase token in that column — so the
