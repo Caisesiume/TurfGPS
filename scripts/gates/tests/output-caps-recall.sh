@@ -227,8 +227,8 @@ put_block()   { local t; t="$(cat)"; printf '%s\n' "$t" >> "$CUR"; }
 put_block_x() { local t n; t="$(cat)"; printf '%s\n' "$t" >> "$CUR"
                 n="$(printf '%s\n' "$t" | wc -c | tr -d ' \t\r\n')"; EXCL=$(( EXCL + n )); }
 
-# EVERY FIXTURE IS NEWLINE-TERMINATED AND THE FINAL NEWLINE IS PART OF THE
-# COUNT. It is a character in the file and there is no reason for a character
+# EVERY FIXTURE BUT ONE IS NEWLINE-TERMINATED, AND THE FINAL NEWLINE IS PART OF
+# THE COUNT. It is a character in the file and there is no reason for a character
 # count to hold an opinion about which one it is — and the alternative costs
 # more than it looks: `body` and `own` are line-oriented rules, so an
 # implementation that filters lines and reassembles them re-adds a terminator
@@ -237,6 +237,12 @@ put_block_x() { local t n; t="$(cat)"; printf '%s\n' "$t" >> "$CUR"
 # an instrument whose whole claim is that it counts characters. Fixing it here
 # costs a newline. The three PR #141 judgments are 5,992 / 6,048 / 6,059
 # characters either way; what moves is only which character is last.
+#
+# The one exception is FIXTURE 3C, which is the case this convention would
+# otherwise hide: it writes its final line with no terminator, on purpose, and
+# is the only fixture below that does. The helpers here are not what builds it —
+# every write path in this block terminates in a newline, and 3C appends past
+# them — so a reader looking for the exception looks there and not here.
 fill_nl() { local n="$1"; while [ "$n" -ge 64 ]; do printf '%s\n' "$L63"; n=$((n - 64)); done
             [ "$n" -gt 0 ] && printf '%*s\n' "$((n - 1))" ''; return 0; }
 fill_x()  { fill_nl "$1" >> "$CUR"; EXCL=$(( EXCL + $1 )); }
@@ -500,6 +506,49 @@ run "$TMP/rv-indented-table.md"
 check_rc    "indented pipe · a quoted table is prose, and prose is counted"                  1
 check_has   "indented pipe · ... to the character, one over the cap"                         "$(report_of reviewer_verdict $((VCAP + 1)))"
 check_lacks "indented pipe · ... where dropping it would have reported this artifact clean"  "clean · "
+
+# ---------------------------------------------------------------------------
+# FIXTURE 3C — AN ARTIFACT THAT DOES NOT END IN A NEWLINE.
+#
+# Every other fixture here is newline-terminated, for the reason the
+# construction header gives, and that convention is what left this branch with
+# nothing standing behind it. `body` and `own` are line-oriented: the filter
+# keeps lines and writes them back out, and writing them back out is where a
+# terminator the file never held would get added to the last one. The checker
+# declines to add it — a trailing-byte probe arms `nonl`, and the filter's END
+# prints the final line bare — and a rule with no fixture is a rule that can be
+# deleted while every check still passes.
+#
+# The artifact is built to sit EXACTLY AT its cap, so an invented character is
+# not merely a different number: it carries the artifact over, and the verdict
+# goes with it. That is what makes this fixture discriminate on the exit status
+# as well as on the reported quadruple.
+#
+# `body`, and not `whole`, because the whole-file rule takes its count straight
+# from the file and never enters the filter — a fixture built on a `whole` row
+# would exercise neither site. Everything written here is ASCII, so the file's
+# byte count is its character count, and the guard below asserts the one the
+# checks are grounded in.
+# ---------------------------------------------------------------------------
+need_row reviewer_verdict body
+RV_TAIL='and the paste ended here, mid-sentence, with nothing after it'
+
+art_new rv-no-final-newline.md
+put 'artifact: reviewer_verdict'
+put 'prose_licence: none'
+put 'lane: testing'
+put 'verdict: approve'
+pad_to $(( VCAP - ${#RV_TAIL} ))
+printf '%s' "$RV_TAIL" >> "$CUR"
+[ "$(bytes_of "$CUR")" = "$VCAP" ] || die "construction: the unterminated verdict is $(bytes_of "$CUR") bytes and the fixture claims $VCAP — the number asserted below IS the file's own length, so a file that is not that length asserts nothing"
+case "$(LC_ALL=C tail -c 1 < "$CUR" | LC_ALL=C od -An -to1 | tr -d '[:space:]')" in
+  012) die "construction: rv-no-final-newline.md ends in a newline, which is the case every other fixture in this corpus already covers and the one case this fixture cannot be built from" ;;
+esac
+
+run "$TMP/rv-no-final-newline.md"
+check_rc    "no final newline · a file not ending in one is measured at its own length, which is exactly its cap"  0
+check_has   "no final newline · ... at the file's own length, and not one character more"                         "$(report_of reviewer_verdict "$VCAP")"
+check_lacks "no final newline · ... so a terminator the file does not hold is never counted"                      "$(report_of reviewer_verdict $((VCAP + 1)))"
 
 # ---------------------------------------------------------------------------
 # FIXTURE 4 — `own`, the fenced relay, and the classifier's adversarial case.
