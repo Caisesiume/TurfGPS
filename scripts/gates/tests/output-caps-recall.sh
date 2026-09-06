@@ -188,8 +188,15 @@ ROWS_HELD="$(awk '
   in_table && /^\|/                             { n++; next }
   in_table                                      { in_table = 0 }
   END { print n + 0 }' "$TABLE")"
-ROWS_PARSED="$(printf '%s\n' "$ROWS" | grep -c .)"
-[ "$ROWS_HELD" = "$ROWS_PARSED" ] || die "the cap table holds $ROWS_HELD rows and $ROWS_PARSED of them parse. Repair the row, never the denominator: a coverage figure counted over what survived reports the breakage as an improvement, and the checker refuses to run while any line the region still holds fails the form."
+# THE SECOND NUMBER IS POSITION-BLIND, and naming it for what the checker
+# PARSED was the defect this name replaces: `ROWS` is a pattern match over the
+# whole file, while the checker finds rows by position. A row indented out of
+# the region is therefore missing from BOTH counts, and what the comparison
+# below detects is only a row that still matches the form while standing
+# outside the region. Which drops that leaves uncaught is
+# `agent-handoffs § The cap table`'s to state, and it states it there.
+ROWS_MATCHING="$(printf '%s\n' "$ROWS" | grep -c .)"
+[ "$ROWS_HELD" = "$ROWS_MATCHING" ] || die "the table's row region holds $ROWS_HELD rows while $ROWS_MATCHING lines match the row form somewhere in the file. Repair the row, never the denominator: a coverage figure counted over what survived reports the breakage as an improvement, and the checker refuses to run while any line the region still holds fails the form."
 
 cap_of()    { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $2 }'; }
 counts_of() { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $3 }'; }
@@ -897,7 +904,7 @@ ONE_TABLE="$TMP/one/.claude/skills/agent-handoffs/SKILL.md"
 awk -v id="$BROKEN_ID" '
   !done && $0 ~ "^\\| `" id "` \\|" { gsub(/`/, ""); done = 1 }
   { print }' "$TABLE" > "$ONE_TABLE"
-[ "$(grep -c '^| `[a-z_]*` | `[0-9]*` | `[a-z]*` |' "$ONE_TABLE")" = "$((ROWS_PARSED - 1))" ] || die "construction: the staged table must hold exactly one row fewer than the $ROWS_PARSED that parse in the real one, or it is the every-row case above and not this one"
+[ "$(grep -c '^| `[a-z_]*` | `[0-9]*` | `[a-z]*` |' "$ONE_TABLE")" = "$((ROWS_MATCHING - 1))" ] || die "construction: the staged table must match the row form exactly one time fewer than the $ROWS_MATCHING times the real one does, or it is the every-row case above and not this one"
 grep -q "^| $BROKEN_ID | " "$ONE_TABLE" || die "construction: the row for $BROKEN_ID was not left row-shaped, and a line that no longer begins a row is left out by position rather than named"
 
 OUT="$(bash "$TMP/one/scripts/gates/output-caps.sh" "$TMP/j-5992-ascii.md" 2>&1)"; RC=$?
