@@ -28,7 +28,7 @@ prose_licence: none           # or the one licence being invoked
 
 `artifact:` is what lets a checker measure a comment it knows nothing else about: the artifact names itself, rather than the instrument guessing from the author or the wording. `prose_licence:` is how the licence rule below is enforced rather than merely stated.
 
-**The rest of the mandatory keys are per role, and each schema states its own** — `review-verdicts § Reviewer verdict` for a convened reviewer, and the payloads in `handoff-payloads` for every other role. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
+**The rest of the mandatory keys are per role, and every role that has a producing schema states its own there** — `review-verdicts § Reviewer verdict` for a convened reviewer, and the payloads in `handoff-payloads` for the roles those cover. **A cap-table row is not a producing schema**, and one artifact currently has only a row: `worker_report` is capped below and is written from no schema, so the two keys above are the whole of what binds it until one exists. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
 
 ## The limit
 
