@@ -579,7 +579,7 @@ cmd_verdict() {
     printf 'verdict: NOT RECORDED\nreason: paused — no row exists here, and a pause creates none\n'
     printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
     [ -r "$TABLE/PAUSED" ] && sed 's/^/  /' "$TABLE/PAUSED" 2>/dev/null
-    printf 'direction: carry this verdict in your handoff; `claim.sh resume` and record it then\n'
+    printf 'direction: carry this verdict in your handoff; @engineering-lead holds the pause, and this records once it is lifted\n'
     exit 11
   fi
 
