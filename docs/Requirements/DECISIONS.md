@@ -1677,3 +1677,55 @@ Affects:        FR-118, which carries it in a statement limb, a fourth
                 closes; that finding's sequencing limb is
                 `@engineering-lead`'s and is untouched here.
 ```
+
+## RD-040 — Does NFR-013 carry a criterion per limb, as RD-038's corroboration states?
+
+```
+Date:           2026-09-06
+Question:       RD-038's `Rung` corroborates its reading at rung 4 with the
+                statement that NFR-013 is conjunctive as authored *and each
+                limb carries its own criterion*. NFR-013's `Acceptance` holds
+                two criteria: one measuring a stored plan's scheduled expiry,
+                and one measuring attempts to move that plan's creation time
+                or absolute expiry. Does either limb carry a criterion of its
+                own? Raised as `DOC-12` on PR #135 cycle 3 by
+                `@docs-reviewer`.
+Interpretation: **No limb carries a criterion of its own, and that half of the
+                corroboration is superseded.** RD-038's ruling stands entirely
+                and its decisive rung is untouched. What survives at rung 4 is
+                that NFR-013 is conjunctive as authored: its statement obliges
+                both limits, and its first criterion's threshold names both,
+                so a stored plan breaching either limb fails that criterion.
+                What does not survive is *each limb carries its own criterion*
+                — the first criterion measures the scheduled expiry against
+                both limits together, and the second measures attempts to move
+                the absolute limit rather than the rolling one, so neither
+                limb has a criterion to itself. The correction narrows what
+                the corroboration may be cited for and changes nothing it was
+                cited to support. `§ Entry format` forbids repairing an entry
+                in place, so this is the compliant form of that repair, on
+                RD-038's own precedent; it is the fourth supersession this log
+                has recorded, and like the three before it, it supersedes a
+                statement rather than a decision.
+Rung:           4 — existing requirements, decisive, and the question is
+                settled by inspection rather than by reading. NFR-013's own
+                `Acceptance` block is the artefact: it holds two criteria, the
+                first measuring a stored plan's scheduled expiry against the
+                absolute limit from creation and the rolling limit from the
+                most recent retrieval together, the second measuring attempts
+                that succeed in moving that plan's creation time or absolute
+                expiry. Neither is a limb's criterion. No other rung is
+                reached or claimed: nothing outside the record decides how the
+                record's own criteria are laid out.
+Affects:        RD-038, one statement of which is superseded and whose ruling,
+                decisive rung 2 and `Affects` all stand — rung 2 rests on
+                `Architecture.md § Persistence and cross-device transfer`
+                stating both clocks and stating that they are independent, and
+                verifies without the corroboration. NFR-013 and NFR-014,
+                unchanged; the misdescription was of NFR-013's criteria and
+                not in them. FR-094, unchanged.
+                `README.md § ID allocation ledger`, whose account of the `C.3`
+                rejection repeats the same statement as one of three recorded
+                grounds and is corrected in this same diff. `DOC-12` on PR
+                #135, which it closes.
+```
