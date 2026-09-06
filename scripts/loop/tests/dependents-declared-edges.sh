@@ -133,7 +133,9 @@ run 7;   check  "multi-blocker list: #7 done, #41 still blocks"  0 "#202 (blocke
 run 7;   check  "an unenumerated separator loses no declared blocker" 0 "#207 (blockers: #41 open)"
 
 # A story's several `Blocked by:` lines are ONE declared list, joined in the order the
-# body gives them — 12 of 96 live stories carried more than one when #147 was judged.
+# body gives them — a shape the live board carries and not a hypothetical one. How many
+# such lines there are and how many stories they span is a live-board count that moves,
+# so it has one home carrying an as-of basis, `ADR-0003 § A6`, and is not restated here.
 # #208 is the only fixture with two lines, so it is the only one that can separate an
 # accumulating join from a last-line-wins or a first-line-wins one. It is asked from BOTH
 # ends because the join and the membership scan are separate mechanisms: the first query
