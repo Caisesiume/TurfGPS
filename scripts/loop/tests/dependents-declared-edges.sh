@@ -134,8 +134,8 @@ run 7;   check  "an unenumerated separator loses no declared blocker" 0 "#207 (b
 
 # A story's several `Blocked by:` lines are ONE declared list, joined in the order the
 # body gives them — a shape the live board carries and not a hypothetical one. How many
-# such lines there are and how many stories they span is a live-board count that moves,
-# so it has one home carrying an as-of basis, `ADR-0003 § A6`, and is not restated here.
+# stories those lines span is a live-board count that moves, so it has one home carrying
+# an as-of basis, `ADR-0003 § A6`, and is not restated here.
 # #208 is the only fixture with two lines, so it is the only one that can separate an
 # accumulating join from a last-line-wins or a first-line-wins one. It is asked from BOTH
 # ends because the join and the membership scan are separate mechanisms: the first query
@@ -211,8 +211,12 @@ run 7;   check  "a bold label strips like a plain one"      0 "#220 (blockers: #
 #   #222 is the mirror, the reference behind the dash NOT declared, and it is asked
 #   from #41 so the whole list prints. #142 is open, so reading that reference as a
 #   member prints it inside the parentheses and reds. #136 and #206 carry this shape
-#   already, but every reference on both of those lines is satisfied, so neither can
-#   print a list that separates the two readings — they can assert only an absence.
+#   already, and neither pins it here. Every reference on #136's line is satisfied, so no
+#   reading of it prints a list at all and only an absence can be asserted of it. #206's
+#   reason names #41, which is OPEN, so the over-read does print `#206 (blockers: #41
+#   open)` — but the two assertions standing on it are an `eligible:` line and an absence,
+#   so neither pins a printed list. This fixture is asked from a DECLARED open blocker,
+#   which is what puts the over-read member inside the parentheses where `)` catches it.
 run 7;   check  "a dash between two references loses neither"  0 "#221 (blockers: #41 open)"
 run 41;  check  "and a reference behind one is still a reason" 0 "#222 (blockers: #41 open)"
 
@@ -221,9 +225,7 @@ run 41;  check  "and a reference behind one is still a reason" 0 "#222 (blockers
 # alone must. Said here rather than left to be discovered: no neutralisation of
 # today's parser reds this, because the line carries no `#` for any reading of it to
 # find. It is present because the shape table has a row for it and a row without a
-# fixture is the defect above, and it pins that row against a parser declaring an edge
-# from the LABEL rather than from a reference — the over-read direction, which is the
-# only direction this shape has ever failed in.
+# fixture is the defect above.
 run 41;  absent "a bare none declares nothing at all"       "#223" "#208 (blockers: #41 open, #142 open)"
 
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
