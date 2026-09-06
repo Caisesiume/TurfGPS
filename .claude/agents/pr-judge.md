@@ -110,6 +110,14 @@ scripts/loop/claim.sh manifest <n> <head-sha> --lanes "<lane> <lane> …" --by p
 
 **Written once, and the first write stays of record** — a second returns `10` and names the set already recorded. Record **only** the claiming lanes: `status` counts a manifest lane with no row as outstanding, so a non-claiming lane written here reads as an unfinished panel forever.
 
+**And write-once has a recovery verb, which is the half a judge meeting a wedged panel needs.** A lane this manifest selected that nothing ever claimed counts outstanding forever — `status` reads `never-claimed` beside it, returns `10`, `complete` never arrives, and Phase 10 forbids synthesising at `10`. A plain second `--lanes` will not take it back out; that is the `10` above. The set is amended **out loud** instead:
+
+```bash
+scripts/loop/claim.sh manifest <n> <head-sha> --lanes "<the corrected set>" --amend --reason "<why>" --by pr-judge
+```
+
+**A reason is required and the call is refused at `64` without one**, the new row cites the set it replaced by name and by count, and the prior set is kept whole as an audit row whose path the call prints. Measured on this host on 6 September 2026: a two-lane manifest with one lane never claimed read `outstanding: 1 · complete: false` at rc 10, and the amendment that dropped that lane left the panel `complete: true` at rc 0 with the two-lane set kept and its path printed. **Use it to drop a lane that was never dispatched, not to shrink a set to fit what happened to rule** — the reason and the kept prior are what make the difference legible afterwards, and they are the only things that do. Everything you take out of the set you say out loud, and Phase 10's ledger is read against the amended manifest.
+
 **Without a manifest, `complete` means complete against whatever happened to be claimed.** Measured on 29 August 2026: a judge that claimed two of seven selected lanes and died mid-phase left a panel reading `complete: true` at rc 0 once those two ruled, and the next judge would have published a two-lane ledger for a seven-lane board with Phase 10 making it of record. That is issue #144's ledger-under-reporting class reproduced by the mechanism built to close it. The manifest is what `complete` is complete *against*.
 
 **A lane with no claim row is not dispatched.** For each claiming lane, take the claim at the head SHA recorded in Phase 1, and dispatch only the lanes the table granted:

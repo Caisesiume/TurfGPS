@@ -130,6 +130,13 @@ Two floors are not subject to selection:
 
 **A pause stops new claims and lets claimed lanes finish.** That is what a pause should mean, and it is enforceable here in the way a declared intention was not — but only because someone is obliged to declare it into the table and someone else to read it. A flag with no obliged caller is a declared intention with extra steps.
 
+**The mechanism has two falsifiers and this is where they are named**, because a suite nothing in the corpus cites is a suite nobody is obliged to run — and an unrun falsifier leaves every clause above asserted rather than verified. Both live under `scripts/loop/tests/`:
+
+- **`claim-table.sh`, the assertion suite.** It runs **whole**: it takes no id argument and there is no subset of it. Any change to `scripts/loop/claim.sh` runs it.
+- **`claim-table-mutations.sh`, the falsifier.** It is how `§ Proof that a test can fail` above is discharged for this script rather than claimed — it neutralises one behaviour in a copy, runs the suite against the copy, and requires the named assertion to be among the failures. A mutation that survives, or that no longer applies to the line it aimed at, is a **failure of the harness** and never a pass.
+
+**Which run is owed depends on what moved.** The **full matrix** is owed whenever the change could alter which mutations apply or which assertions exist — a behaviour added or removed in `claim.sh`, an assertion added or retired, a mutation re-aimed — and it is the only run that reports the assertions no mutation made fail. It is a background gate rather than an inner-loop one; its cost is in the harness's own header and is not repeated here. A **named-id run**, the harness taking mutation ids as arguments, is owed when a single behaviour changed and the mutation aimed at it must be shown red again without paying for the whole matrix; the pull request names the ids it ran. **A named-id run never stands in for the matrix**: it deliberately prints no undemonstrated list, so it says nothing whatever about the mutations it was not asked for, and reporting one as though it were the matrix would claim exactly that.
+
 The mechanics are `review-board-dispatch § The claim table`; the reviewer's own obligation is `review-verdicts § Record your verdict into its row before your pass ends` and `@validation-agent`'s is `validation-agent § Record your result into its row before your pass ends`; the judge's two are `@pr-judge § Phase 4` and `@pr-judge § Phase 10`; the pause is declared at `engineering-lead § A stop on new work is entered into the claim table`.
 
 ### Verdicts
