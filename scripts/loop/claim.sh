@@ -26,7 +26,8 @@
 #   0   OK        claim granted · verdict recorded · panel complete · flag set
 #   10  REFUSED   the lane is already held, or already ruled; or the panel is not
 #                 complete yet. An expected, ordinary "no".
-#   11  PAUSED    new claims are paused. Rows already held may still record.
+#   11  PAUSED    new claims are paused, and no NEW row is created while they
+#                 are. A row that already exists still records its verdict.
 #   12  NO_ROW    nothing was claimed here — no such panel, lane or manifest; or
 #                 the claim does not cover the verdict that arrived (recorded
 #                 anyway, flagged): no claim at all, or a filer who is not the
@@ -68,10 +69,13 @@
 #
 #     <table>/PAUSED                                 flag: no new claims while it exists
 #     <table>/pr-<n>/<sha>/.manifest.d/row           the selected lane set, written once
+#     <table>/pr-<n>/<sha>/.manifest-superseded-<stamp>/row  a selection amended, kept as audit
 #     <table>/pr-<n>/<sha>/<lane>/holder/row         the claim
 #     <table>/pr-<n>/<sha>/<lane>/verdict.d/row      the verdict, written once, immutable
 #     <table>/pr-<n>/<sha>/<lane>/released-<stamp>/row   a claim given back, kept as audit
 #     <table>/pr-<n>/<sha>/<lane>/released-verdict-<stamp>/row  an interrupted ruling, cleared
+#     <table>/pr-<n>/<sha>/<lane>/.verdict-staging.<pid>/row  a ruling that could NOT be
+#                                                    committed, kept on disk and NOT of record
 #
 #   This script never reads GH_JUDGE_TOKEN, never invokes gh, and never records
 #   the environment. That is the guarantee, it is structural, and it is the only
@@ -266,8 +270,20 @@ norm_lane() {
 #   The fold is applied to the COMPARISON and never to what is stored. Each row
 #   keeps the name its caller passed, because an audit row that quietly rewrites
 #   what it was told is not evidence of what it was told.
+#
+#   THE STRIP IS ANCHORED, AND THE ENDS ARE TRIMMED. Both are defects this line
+#   used to carry. `tr -d '@'` deleted EVERY `@`, so `a@b` and `ab` produced one
+#   key — two different names comparing EQUAL, which is the mismatch flag
+#   answering `false` about a filer it never saw. That is the accept direction,
+#   and it is the one this field cannot afford. A leading `@` is the only one a
+#   dispatch writes and the only one `norm_lane` strips, so the strip is
+#   anchored to match it: one rule, one identity. The trim closes the same hole
+#   from the other end — `field` returns everything after `<key>: `, so a name
+#   stored with a trailing space compared unequal to the name that wrote it and
+#   flagged an honest verdict as an anomaly.
 agent_key() {
-  printf '%s' "${1:-}" | tr -d '@' | tr 'A-Z' 'a-z'
+  _ak="$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+  printf '%s' "${_ak#@}"
 }
 
 # One line, no control characters, capped, and with lower-case GitHub token
@@ -534,6 +550,30 @@ cmd_verdict() {
   }
 
   row="$TABLE/pr-$PR/$SHA/$LANE"
+
+  # A PAUSE STOPS THE TABLE GROWING, AND `mkdir -p` IS HOW IT GREW ANYWAY.
+  #   `verdict` is deliberately not pause-gated, and that is right: a lane
+  #   already dispatched has to be able to record, which is the whole of what a
+  #   pause means. But `-p` creates `pr-<n>/`, the SHA directory and the lane out
+  #   of nothing, so a verdict naming a panel nobody had opened BUILT one under
+  #   the pause and then filled its only row — after which `list` prints that
+  #   panel `complete` and `status` calls it complete against no manifest, off a
+  #   single unclaimed verdict no judge ever dispatched. A pause is precisely the
+  #   state in which the least should be believed about coverage.
+  #
+  #   So the gate is on CREATION and never on recording. A row that already
+  #   exists — held, released, or carrying wreckage — records exactly as it did
+  #   before; only a row this call would have to invent is refused, and it is
+  #   refused the way `verdict` always refuses: saying it did not record, and
+  #   telling the caller to carry it rather than believe the table holds it.
+  if [ ! -d "$row" ] && is_paused; then
+    printf 'verdict: NOT RECORDED\nreason: paused — no row exists here, and a pause creates none\n'
+    printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+    [ -r "$TABLE/PAUSED" ] && sed 's/^/  /' "$TABLE/PAUSED" 2>/dev/null
+    printf 'direction: carry this verdict in your handoff; `claim.sh resume` and record it then\n'
+    exit 11
+  fi
+
   mkdir -p "$row" 2>/dev/null || {
     printf 'verdict: NOT RECORDED\nreason: degraded — could not create row %s\n' "$row"
     printf 'direction: carry this verdict in your handoff; the table does not hold it\n'
@@ -577,6 +617,22 @@ cmd_verdict() {
   # degraded claim whose directory was taken and whose row was never written.
   # The fallback is the SAME default `claim` records, so an older table judges
   # attribution by one rule rather than flagging every honest verdict in it.
+  #
+  # AND THE ROW SAYS WHICH OF THE TWO IT IS.
+  #   The fallback is an inference this call makes. It is not something a claim
+  #   recorded, and written into the row unmarked it read identically to one
+  #   that was: `expects: docs-reviewer` beside `attribution_mismatch: false`
+  #   says "checked, and the filer is the one the claim expected" about a claim
+  #   that expected nothing and, on the degraded branch of `cmd_claim`, about a
+  #   claim row that was never written at all. Two different states collapsing
+  #   into the one that reads clean is the direction this file refuses
+  #   everywhere else — an absent `--by` reads `unrecorded` on `filed_by`
+  #   rather than passing quietly, and this is the same rule applied to the
+  #   same row. `recorded` means the value came out of the claim's own row;
+  #   `inferred` means no claim row carried one and the lane name is standing
+  #   in. Neither refuses anything: the verdict is durable either way, and the
+  #   difference is on disk where a reader can act on it.
+  if [ -n "$holder_expects" ]; then expects_source=recorded; else expects_source=inferred; fi
   [ -n "$holder_expects" ] || holder_expects="$LANE"
 
   # WHO FILED IT, AGAINST WHO THE LANE EXPECTED IT FROM.
@@ -628,6 +684,7 @@ cmd_verdict() {
     printf 'artifact: %s\n' "$artifact"
     printf 'owner: %s\n'    "${holder_owner:--}"
     printf 'expects: %s\n'  "$holder_expects"
+    printf 'expects_source: %s\n' "$expects_source"
     printf 'filed_by: %s\n' "${by:-unrecorded}"
     printf 'attribution_mismatch: %s\n' "$mismatch"
     printf 'unclaimed: %s\n' "$unclaimed"
@@ -662,8 +719,42 @@ cmd_verdict() {
     exit 0
   fi
 
-  # The commit refused, so the staged ruling is not of record and must not be
-  # left behind looking like one.
+  # THE COMMIT REFUSED, AND WHY IT REFUSED DECIDES EVERYTHING BELOW.
+  #   `mv -T` refuses onto a non-empty directory, and that refusal IS the mutual
+  #   exclusion this gate is built on. But it refuses for other reasons too: a
+  #   PLAIN FILE standing where `verdict.d` belongs, a destination the
+  #   filesystem will not accept, a directory that cannot be written. None of
+  #   those is one-ruling-per-lane; each is a table that could not take the
+  #   ruling. Read as the ordinary refusal they reported `already ruled` at 10 —
+  #   permanently, because nothing about a file in the way changes on a retry —
+  #   while the staged row, the only copy of that verdict, had already been
+  #   `rm -rf`'d one line above. `release`, which the message below names as the
+  #   remedy, clears the lane; it cannot bring back what was deleted. That is a
+  #   verdict destroyed by the verb whose one job is durability.
+  #
+  #   So the destination is asked what it actually IS before anything is
+  #   removed. A ruling directory is the only thing that means `already ruled`.
+  #   Anything else is degraded and takes the direction `verdict` takes
+  #   everywhere else — say plainly that it was NOT recorded, exit nonzero, and
+  #   KEEP the staged row, naming its path exactly as `release` names
+  #   `ruling_is_at` and for the same reason. A verdict left on disk where a
+  #   human can read it and re-file it is worth more than a tidy table.
+  if [ ! -d "$row/verdict.d" ]; then
+    printf 'verdict: NOT RECORDED\nreason: degraded — the ruling could not be committed and no ruling directory stands here\n'
+    printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
+    if [ -e "$row/verdict.d" ]; then
+      printf 'blocked_by: %s exists and is not a ruling directory\n' "$row/verdict.d"
+    else
+      printf 'blocked_by: the ruling directory could not be created at %s\n' "$row/verdict.d"
+    fi
+    printf 'staged_ruling_is_at: %s\n' "$stage"
+    printf 'direction: carry this verdict in your handoff; the staged row above is on disk and is NOT of record\n'
+    exit 2
+  fi
+
+  # A ruling directory does stand here, so this is the ordinary refusal: one
+  # ruling per lane per SHA, and the first stays of record. The staged copy is
+  # not of record and must not be left behind looking like one.
   rm -rf "$stage" 2>/dev/null
   printf 'verdict: refused\nreason: already ruled\n'
   printf 'lane: %s\npanel: pr-%s @ %s\n' "$LANE" "$PR" "$SHA"
@@ -825,24 +916,60 @@ cmd_release() {
 # invent a set nobody recorded, and it will not start refusing panels written by
 # a caller that has not been taught to select yet.
 #
+# WRITTEN ONCE — AND AMENDABLE ONLY OUT LOUD.
+#   Write-once with no recovery verb is a panel that can WEDGE. A lane the
+#   manifest selected and nothing ever claimed counts outstanding forever:
+#   `status` refuses at 10, `complete` never arrives, and no verb here could
+#   take that lane back out of the set. A selection typed with a lane that does
+#   not exist, or one a judge later un-selected, left `rm -rf` of the ledger as
+#   the only recovery — the unaudited hand-edit of the artefact whose integrity
+#   is the point, which is the same corner `verdict` was in before `release`.
+#
+#   So `--amend --reason` may rewrite the set. What stops that being the silent
+#   shrink write-once was protecting against is NOT immutability: it is that a
+#   reason is required and refused at 64 when absent, that the new row cites the
+#   selection it replaced by name and by count, and that the prior set is kept
+#   whole at `.manifest-superseded-<stamp>/` rather than deleted. A shrink is
+#   still possible. A shrink nobody can see is not, and that was the property
+#   worth keeping. Plain `--lanes` is unchanged and still refuses at 10 while a
+#   selection stands, so nothing amends by accident.
+#
+#   The roster stays OUT of this file. The table still does not know which lanes
+#   a board owes, only which set it was told — an amendment is the caller
+#   saying so on the record, not this script forming an opinion about coverage.
+#
 # It lives at `.manifest.d/`, a leading dot, which no lane can ever be called:
 # `norm_lane` refuses a name beginning with `.`, and the lane globs do not match
 # one either. The name is unreachable rather than merely unused — the same
 # reasoning that keeps `PAUSED` upper-case, one level up.
 # ---------------------------------------------------------------------------
 cmd_manifest() {
-  [ $# -ge 2 ] || usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]'
+  [ $# -ge 2 ] || usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>] [--amend --reason <text>]'
   PR="$(norm_pr "$1")"   || usage_die 'manifest <pr> <sha> — <pr> must be digits'
   SHA="$(norm_sha "$2")" || usage_die 'manifest <pr> <sha> — <sha> must be 7-40 hex'
   shift 2
-  lanes=""; by=""; writing=false
+  lanes=""; by=""; writing=false; amend=false; reason=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --lanes) [ $# -ge 2 ] || usage_die 'manifest … --lanes "<lane> …"'; lanes="$2"; writing=true; shift 2 ;;
       --by)    [ $# -ge 2 ] || usage_die 'manifest … --by <who>'; by="$(scrub "$2")"; shift 2 ;;
-      *)       usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]' ;;
+      --amend) amend=true; shift ;;
+      --reason) [ $# -ge 2 ] || usage_die 'manifest … --amend --reason <text>'; reason="$(scrub "$2")"; shift 2 ;;
+      *)       usage_die 'manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>] [--amend --reason <text>]' ;;
     esac
   done
+  # An amendment must say what the set BECOMES and why; a reason with no
+  # amendment is a caller who believes it changed something. Both refuse at 64,
+  # which is the one exit that has read nothing and written nothing.
+  if [ "$amend" = true ] && [ "$writing" = false ]; then
+    usage_die 'manifest <pr> <sha> --lanes "<lane> …" --amend --reason <text> — an amendment must name the new set'
+  fi
+  if [ "$amend" = true ] && [ -z "$reason" ]; then
+    usage_die 'manifest … --amend --reason <text> — an amendment requires a reason'
+  fi
+  if [ "$amend" = false ] && [ -n "$reason" ]; then
+    usage_die 'manifest … --reason <text> means nothing without --amend'
+  fi
   say_table
   panel="$TABLE/pr-$PR/$SHA"
 
@@ -854,6 +981,16 @@ cmd_manifest() {
       printf 'count: %s\n'       "$(field count "$panel/.manifest.d/row")"
       printf 'selected_by: %s\n' "$(field selected_by "$panel/.manifest.d/row")"
       printf 'selected_at: %s\n' "$(field selected_at "$panel/.manifest.d/row")"
+      # A set that replaced another one says so here. An amendment kept only in
+      # the superseded row would be an audit nobody reading the manifest sees,
+      # and the set of record is exactly where a reader asks the question.
+      am="$(field amend_reason "$panel/.manifest.d/row")"
+      if [ -n "$am" ]; then
+        printf 'amended: yes — supersedes %s (count %s)\n' \
+          "$(field supersedes "$panel/.manifest.d/row")" \
+          "$(field supersedes_count "$panel/.manifest.d/row")"
+        printf 'amend_reason: %s\n' "$am"
+      fi
       exit 0
     fi
     printf 'manifest: none\n'
@@ -866,14 +1003,33 @@ cmd_manifest() {
   # the whole set at 64 and writes nothing: a manifest that silently dropped a
   # lane would be a set asserting coverage it does not have, which is the exact
   # defect this verb exists to close. The split here is deliberate word
-  # splitting — the one place in this file that wants it.
+  # splitting — the one place in this file that wants it, and it wants ONLY the
+  # split. Unquoted, `$lanes` is also glob-expanded: `--lanes '*'` expanded
+  # against the CALLER'S CWD and recorded whatever files happened to be sitting
+  # there as the selected panel — a lane set derived from a directory listing,
+  # written once, that `complete` is then measured against for the life of the
+  # panel. `set -f` turns pathname expansion off for exactly this loop and it
+  # goes straight back on, so no other expansion in this file changes.
   sel=""; nsel=0
+  set -f
   for l in $lanes; do
     nl="$(norm_lane "$l")" || usage_die 'manifest … --lanes — each lane must be [a-z0-9._-]'
     sel="$sel $nl"; nsel=$((nsel + 1))
   done
+  set +f
   [ "$nsel" -gt 0 ] || usage_die 'manifest … --lanes "<lane> …" — the set may not be empty'
   sel="${sel# }"
+
+  # Asked before anything is created, so an amendment with nothing to amend
+  # leaves the table exactly as it found it. `--lanes` alone is how a first
+  # selection is recorded, and saying so is more use than writing one silently
+  # under a flag that claims to be replacing something.
+  if [ "$amend" = true ] && [ ! -d "$panel/.manifest.d" ]; then
+    printf 'manifest: NOT RECORDED\nreason: nothing to amend — this panel records no selection\n'
+    printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+    printf 'direction: record it without --amend; there is nothing here to supersede\n'
+    exit 12
+  fi
 
   ensure_writable || {
     printf 'manifest: NOT RECORDED\nreason: degraded — table not writable\n'
@@ -890,16 +1046,92 @@ cmd_manifest() {
     printf 'manifest: NOT RECORDED\nreason: degraded — could not stage the selection\n'
     exit 2
   }
+  # The name the prior selection is kept under, fixed before the row is written
+  # because the row CITES it. A superseding set that does not name what it
+  # replaced is the silent shrink this verb refuses to be. The `-$$` is the same
+  # collision guard `released-<stamp>` carries: two amendments inside one second
+  # must not land on one name, and `mv` onto an existing directory nests rather
+  # than failing — the lesson `commit_staged` above was written for.
+  prior=".manifest-superseded-$STAMP-$$"
+  prior_count=""; prior_lanes=""
+  if [ "$amend" = true ]; then
+    prior_count="$(field count "$panel/.manifest.d/row")"
+    prior_lanes="$(field lanes "$panel/.manifest.d/row")"
+  fi
+
   { printf 'pr: %s\nsha: %s\n' "$PR" "$SHA"
     printf 'lanes: %s\n' "$sel"
     printf 'count: %s\n' "$nsel"
     printf 'selected_by: %s\n' "${by:--}"
     printf 'selected_at: %s\n' "$NOW"
+    if [ "$amend" = true ]; then
+      printf 'supersedes: %s\n' "$prior"
+      printf 'supersedes_count: %s\n' "${prior_count:--}"
+      printf 'amend_reason: %s\n' "$reason"
+    fi
   } > "$stage/row" 2>/dev/null || {
     rm -rf "$stage" 2>/dev/null
     printf 'manifest: NOT RECORDED\nreason: degraded — row not writable\n'
     exit 2
   }
+
+  if [ "$amend" = true ]; then
+    # The prior set is moved aside FIRST, because `commit_staged` will not
+    # rename onto a name that already holds a record — that refusal is the
+    # write-once gate and it stays exactly as it is. The order is chosen so the
+    # window between the two states is a panel holding the prior set under its
+    # audit name and nothing at `.manifest.d`, which reads as `manifest: none`:
+    # `status` then counts only the rows that exist and says so, rather than
+    # measuring against a set it is halfway through replacing.
+    pdst="$panel/$prior"
+    mv "$panel/.manifest.d" "$pdst" 2>/dev/null || {
+      rm -rf "$stage" 2>/dev/null
+      printf 'manifest: NOT RECORDED\nreason: degraded — the prior selection could not be moved aside\n'
+      printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+      printf 'read_before: %s\n' "$prior_lanes"
+      # What this call did NOT do is the only thing it can honestly assert. It
+      # wrote nothing; whether the set above is still of record it cannot say,
+      # since a second amendment taking the directory first fails exactly here.
+      printf 'direction: this call amended nothing; read the set of record with `manifest <pr> <sha>`\n'
+      exit 2
+    }
+    # The audit row says it was superseded, under keys of its own. `amend_reason`
+    # is the reason a set was WRITTEN and this is the reason one was REPLACED, so
+    # a manifest amended twice would answer the first question with the second's
+    # text if both used one key. Appended rather than rewritten: every key here
+    # is new, and `field` takes the first match of the key it is asked for.
+    { printf 'superseded_at: %s\n' "$NOW"
+      printf 'superseded_by: %s\n' "${by:--}"
+      printf 'superseded_reason: %s\n' "$reason"
+    } >> "$pdst/row" 2>/dev/null || true
+
+    if commit_staged "$stage" "$panel/.manifest.d"; then
+      printf 'manifest: amended\npanel: pr-%s @ %s\ncount: %s\nlanes: %s\n' "$PR" "$SHA" "$nsel" "$sel"
+      printf 'reason: %s\n' "$reason"
+      printf 'superseded: %s (count %s)\n' "$prior_lanes" "${prior_count:--}"
+      printf 'prior_is_at: %s\n' "$pdst"
+      exit 0
+    fi
+
+    # The new set could not be committed, so the prior goes back and the
+    # amendment refuses. The direction that never leaves a panel measuring
+    # `complete` against nothing: a selection of record is worth more than the
+    # replacement that failed, and both are named rather than either assumed.
+    if commit_staged "$pdst" "$panel/.manifest.d"; then
+      rm -rf "$stage" 2>/dev/null
+      printf 'manifest: NOT RECORDED\nreason: degraded — the amendment could not be committed\n'
+      printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+      printf 'of_record: %s\n' "$(field lanes "$panel/.manifest.d/row")"
+      printf 'direction: the prior selection was put back and stays of record\n'
+      exit 2
+    fi
+    printf 'manifest: NOT RECORDED\nreason: degraded — the amendment failed and the prior could not be put back\n'
+    printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+    printf 'prior_is_at: %s\n' "$pdst"
+    printf 'staged_amendment_is_at: %s\n' "$stage"
+    printf 'direction: this panel has NO selection of record; do not read `complete` as coverage\n'
+    exit 2
+  fi
 
   if commit_staged "$stage" "$panel/.manifest.d"; then
     printf 'manifest: recorded\npanel: pr-%s @ %s\ncount: %s\nlanes: %s\n' "$PR" "$SHA" "$nsel" "$sel"
@@ -907,11 +1139,15 @@ cmd_manifest() {
   fi
   # Written once, like a verdict, and for the same reason: a selection that can
   # be rewritten after the fact is a selection that can be shrunk to fit what
-  # actually ruled.
+  # actually ruled. `--amend --reason` above is the one way past this, and it
+  # buys the same protection differently — a required reason and a kept prior
+  # set, rather than a refusal — so an ordinary second `--lanes` still refuses
+  # here and a shrink still cannot happen quietly.
   rm -rf "$stage" 2>/dev/null
   printf 'manifest: refused\nreason: already recorded — the first selection stays of record\n'
   printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
   printf 'of_record: %s\n' "$(field lanes "$panel/.manifest.d/row")"
+  printf 'note: `manifest … --lanes "<set>" --amend --reason <text>` replaces it and keeps this one as audit\n'
   exit 10
 }
 
@@ -968,6 +1204,15 @@ cmd_status() {
             "$(field owner "$d/verdict.d/row")"
         [ "$(field unclaimed "$d/verdict.d/row")" != true ] || \
           printf '      unclaimed: true — no claim row covered this lane\n'
+        # An expectation nobody recorded, surfaced beside the flag it qualifies.
+        # `attribution_mismatch: false` on such a row means the filer matched a
+        # name this table inferred from the lane, not one a claim asked for, and
+        # a reader that cannot see the difference will read it as the stronger
+        # of the two. Held rows reach this state too — the claim whose directory
+        # was taken and whose row was never written has a holder and no
+        # expectation — so `unclaimed` does not cover it.
+        [ "$(field expects_source "$d/verdict.d/row")" != inferred ] || \
+          printf '      expects_source: inferred — no claim row recorded an expectation; the lane name stood in\n'
         ;;
       claimed)
         outstanding="$outstanding $lane"
@@ -1019,6 +1264,11 @@ cmd_status() {
     elif [ "$one_state" = ruled ]; then
       printf 'filed_by: %s\n' "$(field filed_by "$panel/$ONE/verdict.d/row")"
       printf 'expects: %s\n'  "$(field expects "$panel/$ONE/verdict.d/row")"
+      # Recorded by a claim, or inferred from the lane name because no claim row
+      # carried one. A row written before this field existed answers neither, and
+      # `unrecorded` is the honest reading of that rather than a guess at it.
+      es="$(field expects_source "$panel/$ONE/verdict.d/row")"
+      printf 'expects_source: %s\n' "${es:-unrecorded}"
       printf 'artifact: %s\n' "$(field artifact "$panel/$ONE/verdict.d/row")"
     fi
   fi
@@ -1155,10 +1405,17 @@ is durable the instant it exists. No LLM, no network, no judgement.
   verdict <pr> <sha> <lane> <ruling> [--by <who>] [--conf <x>] [--findings <n>]
                                      [--artifact <ref>]
           Record the ruling into the lane's own row, once. 0 recorded. 10 already
-          ruled, the first stays of record. 12 recorded but the claim does not
-          cover it — no claim row at all, or a --by that is not the name the
-          claim recorded as `expects:`. 2 NOT recorded — carry it in your
-          handoff. A pause does not block this.
+          ruled — a ruling directory stands here and the first stays of record.
+          12 recorded but the claim does not cover it — no claim row at all, or a
+          --by that is not the name the claim recorded as `expects:`; the row
+          also says whether that name was recorded by a claim or inferred from
+          the lane, so `attribution_mismatch: false` can be read for what it is.
+          2 NOT recorded — carry it in your handoff; where a ruling could not be
+          committed the staged row is KEPT and its path named, so nothing is
+          deleted to tidy up a failure. 11 NOT recorded — the table is paused and
+          this lane has no row. A pause never blocks a row that already exists;
+          it only stops one being invented, because a panel a verdict built under
+          a pause reads `complete` off its single row.
           Pass --by, and pass YOUR OWN LANE NAME. It is checked against the
           claim's `expects:` and never against its holder, so the ordinary case
           — a judge claiming the lane on your behalf and you filing into it —
@@ -1173,10 +1430,18 @@ is durable the instant it exists. No LLM, no network, no judgement.
           and nothing needed clearing. 2 degraded.
 
   manifest <pr> <sha> [--lanes "<lane> …"] [--by <who>]
+                      [--lanes "<lane> …" --amend --reason <text>]
           With --lanes, record the selected lane set, once: `complete` then
           means complete against it. 0 recorded. 10 already recorded, the first
           stays of record. 64 a malformed lane — nothing is written. 2 degraded.
           Without --lanes, read it back. 0 present · 12 this panel has none.
+          With --amend, REPLACE the recorded set — the one way past the refusal
+          above, and the recovery for a panel wedged by a lane it selected that
+          nothing will ever claim. The reason is required, the new row cites the
+          set it replaced, and the prior set is kept whole as
+          `.manifest-superseded-<stamp>/`. 0 amended · 12 nothing to amend · 64
+          no --lanes or no --reason. A set can still be shrunk; it cannot be
+          shrunk quietly, which is the property write-once was protecting.
 
   status  <pr> <sha> [lane]
           The panel. 0 complete — synthesise. 10 lanes outstanding. 12 no rows.
@@ -1199,7 +1464,13 @@ same row and not two. A <pr> sheds leading zeros for the same reason. Both are
 echoed back canonical, so the reply names the panel you actually joined.
 
 Exit codes: 0 OK · 10 REFUSED · 11 PAUSED · 12 NO_ROW · 2 DEGRADED · 64 USAGE.
-Every ambiguous state refuses. State lives under .claude/state/review-claims/
+Every ambiguous state refuses, with ONE exception that runs the other way: two
+DIFFERENT commits whose SHAs share their first seven hex characters, under one
+<pr>, are one panel — and the second is ACCEPTED into the first's rows rather
+than refused, because the key cannot tell them apart. That is the 28 bits a
+seven-character key buys, traded against the handful of head SHAs one PR ever
+carries; if it ever bites the answer is a longer key, not a lookup.
+State lives under .claude/state/review-claims/
 beside the repository's common git directory, so every worktree of one checkout
 resolves ONE table; CLAIM_TABLE_DIR overrides the location. Every verb echoes
 the table it resolved as its first line — if two agents disagree about a panel,
