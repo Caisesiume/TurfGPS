@@ -56,6 +56,12 @@
 #     means, and treating one as a boundary would end the block there and resume
 #     counting the rest of it.
 #   - a fence delimiter is excluded with the block it delimits, both ends of it.
+#     THIS IS `own`'s RULE AND NOT `body`'s: the `own` branch below is the only
+#     one that reads fences at all, so under `body` a fenced block is counted in
+#     full, minus whatever the `|` and `findings:` rules above already drop.
+#     Measured on 6 September 2026 on one 400-character fenced payload declared
+#     twice: `worker_report` counts `body` and measured 445 of a 445-byte file,
+#     `orchestrator_comment` counts `own` and measured 43 of 452.
 #     A rule that counted the delimiter of the thing it excludes would be
 #     measuring punctuation. The RUN LENGTH that opens a fence and the one that
 #     closes it are `agent-handoffs § The cap table`'s, and `FENCE` below
