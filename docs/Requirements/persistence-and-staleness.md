@@ -752,11 +752,12 @@ Statement:    The system shall re-evaluate, on each reopening of a stored
               plan, the access classification of the stops that stored plan
               uses and the enforceable exclusions under
               `SPECIFICATION.md § Enforceable exclusions`, shall tell the
-              user, offering a re-solve, where that re-evaluation completes
-              and finds a stop no longer accessible or a stop an exclusion now
-              removes, and shall present the stored plan and tell the user
-              which of its stops it could not re-verify where that
-              re-evaluation cannot complete for one or more of them.
+              user, offering a re-solve, where that re-evaluation completed
+              for a stop that stored plan uses and found that stop no longer
+              accessible or an exclusion now removing it, and shall present
+              the stored plan and tell the user which of its stops it could
+              not re-verify where that re-evaluation cannot complete for one
+              or more of them.
 Category:     Persistence and staleness
 Source:       SPECIFICATION.md § Stored routes go stale;
               SPECIFICATION.md § Enforceable exclusions
@@ -768,17 +769,22 @@ Verification: test — a stored plan whose re-evaluation completes, reopened
               completes for every stop it uses and finds a stop more
               accessible or an exclusion on one lifted carries neither; a plan
               whose telling the user does not act on is still there,
-              unchanged, afterwards; and one reopened where the re-evaluation
+              unchanged, afterwards; one reopened where the re-evaluation
               cannot complete for one or more of the stops it uses, on each of
               the two causes `DECISIONS.md § RD-037` names, presents the
               stored plan carrying a telling that names the stops left
               unchecked and does not require a re-solve before the plan can be
               used, both where the re-evaluation completed for that plan's
-              other stops and where it completed for none
-Acceptance:   given a stored plan reopened where the re-evaluation completes
-              and finds a stop it uses no longer accessible, or an exclusion
-              now removing one, when the plan is presented, then the user is
-              told so with it and is offered a re-solve
+              other stops and where it completed for none; and one reopened
+              where that re-evaluation completed for one stop it uses and
+              found that stop no longer accessible while it could not complete
+              for another carries both tellings together, the adverse one with
+              its offer of a re-solve
+Acceptance:   given a stored plan reopened where the re-evaluation completed
+              for a stop it uses and found that stop no longer accessible, or
+              an exclusion now removing it, when the plan is presented, then
+              the user is told so with it and is offered a re-solve, whether
+              or not that re-evaluation completed for the plan's other stops
               given a stored plan reopened where the re-evaluation completes
               for every stop it uses and finds none of them inaccessible and
               no exclusion newly removing one, when the plan is presented,
