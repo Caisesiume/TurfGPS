@@ -57,10 +57,12 @@
 #     counting the rest of it.
 #   - a fence delimiter is excluded with the block it delimits, both ends of it.
 #     A rule that counted the delimiter of the thing it excludes would be
-#     measuring punctuation. WHICH lines are delimiters is not this file's to
-#     decide: `agent-handoffs § The cap table` sets when a fence opens and what
-#     run length closes one, and `FENCE` below implements that rule without
-#     restating it.
+#     measuring punctuation. The RUN LENGTH that opens a fence and the one that
+#     closes it are `agent-handoffs § The cap table`'s, and `FENCE` below
+#     implements that rule without restating it. WHERE the run has to sit is
+#     this file's own edge, decided nowhere else and recorded here: a run
+#     counts only at the start of its line, leading spaces and tabs allowed —
+#     so an INDENTED run is a delimiter, and one appearing mid-line is not.
 #   - the final newline is a character in the file and is counted. A character
 #     count has no reason to hold an opinion about which character is last, and
 #     a file that does not end in one is measured without inventing it.
