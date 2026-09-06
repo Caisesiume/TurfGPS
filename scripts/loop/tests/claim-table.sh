@@ -27,6 +27,12 @@
 # who held the lane · `lane_state`, the field a caller may branch on · and a
 # control-character strip a stored ANSI escape cannot survive.
 #
+# Then cycle 3's findings, in the same form: a ruling the table CANNOT commit
+# kept on disk and named rather than deleted · a pause that stops the table
+# growing without stopping an already-opened lane recording · a manifest amended
+# out loud, keeping the set it replaced whole · and an expectation this table
+# INFERRED marked apart from one a claim recorded, in both status views.
+#
 # BOTH FAILURE DIRECTIONS ARE PINNED SEPARATELY, and that is the part that earns
 # the suite. `claim` must fail toward REFUSING to dispatch; `verdict` must fail
 # toward loudly NOT recording. An inversion of either is silent at runtime and
@@ -207,6 +213,27 @@ run verdict $PR $SHA early approved --conf 0.8
 check 'an ALREADY-CLAIMED lane still records under pause'     0  'verdict: recorded'
 refute '  and is not refused for being paused'                   'reason: paused'
 
+# A PAUSE STOPS THE TABLE GROWING, AND `mkdir -p` GREW IT ANYWAY.
+# `verdict` is deliberately not pause-gated, which is right — a lane already
+# dispatched must be able to record. But `mkdir -p "$row"` built `pr-<n>/`, the
+# SHA directory and the lane out of nothing, so a verdict naming a panel NOBODY
+# HAD OPENED created one under the pause and then filled its only row; `list`
+# then printed that panel `complete` off a single unclaimed verdict no judge
+# ever dispatched, in the one state where the least should be believed about
+# coverage. The gate is on CREATION and never on recording, so both halves are
+# pinned: the row that exists still records (above), and the row this call would
+# have to invent is refused.
+run verdict $PR $SHA ghost approved --conf 0.5
+check 'a verdict into a lane with NO row is refused under pause' 11 'verdict: NOT RECORDED'
+refute '  and never reads as recorded'                              'verdict: recorded'
+check '  telling the caller to carry it rather than lose it'     11 'carry this verdict in your handoff'
+is '  and inventing no row for the lane it refused' \
+   "$([ -e "$(row_of $PR $SHA ghost)" ] && printf exists || printf absent)" absent
+run verdict 999 abc1234 ghost approved --conf 0.5
+check '  nor a PANEL for a pr this table never opened'           11 'verdict: NOT RECORDED'
+is '  which stays off the table entirely' \
+   "$([ -e "$CLAIM_TABLE_DIR/pr-999" ] && printf exists || printf absent)" absent
+
 run pause --reason 'second halt'
 check 'a second pause is idempotent'                          0  'already paused'
 is '  and the FIRST pause stands' \
@@ -222,6 +249,8 @@ run resume
 check 'resume lifts it'                                       0  'paused: false'
 run claim $PR $SHA late --owner reviewer
 check '  and the refused lane is now claimable'               0  'claim: granted'
+run verdict $PR $SHA ghost approved --conf 0.5
+check '  and the verdict the pause refused records once lifted' 12 'verdict: recorded'
 run resume
 check 'resume when not paused is a no-op, not an error'       0  'was not paused'
 run paused
@@ -817,6 +846,44 @@ is '  with the sweep reaching the commit window at all' \
    "$([ $((swept_landed + swept_wrecked)) -ge 1 ] && printf reached || printf missed)" reached
 
 # ---------------------------------------------------------------------------
+section 'a ruling that CANNOT be committed is kept, never deleted'
+# ---------------------------------------------------------------------------
+# `mv -T` refuses onto a non-empty directory, and that refusal IS the write-once
+# gate. It also refuses for reasons that are not that gate — a plain FILE
+# standing where `verdict.d` belongs is the one this suite can construct — and
+# every one of them was read as `already ruled` at 10, permanently, because
+# nothing about a file in the way changes on a retry. The staged row, the only
+# copy of that verdict, had been `rm -rf`'d one line above the message telling
+# the caller to run `release`, which clears a lane and cannot bring back what
+# was deleted. A verdict destroyed by the verb whose one job is durability.
+#
+# THE EXIT CODE IS THE SMALL HALF OF THIS. What made it a lost verdict rather
+# than a wrong answer is the deletion, so the assertions below follow the
+# printed path onto disk and read the ruling out of it.
+fresh
+run claim $PR $SHA blocked --owner pr-judge
+: > "$(row_of $PR $SHA blocked)/verdict.d"
+run verdict $PR $SHA blocked approved --conf 0.91 --by blocked
+check 'a ruling blocked by a FILE at verdict.d is NOT RECORDED'  2 'verdict: NOT RECORDED'
+refute '  and is never called the ordinary already-ruled refusal' 'reason: already ruled'
+refute '  nor read as recorded'                                   'verdict: recorded'
+check '  naming what actually stands in the way'                 2 'is not a ruling directory'
+check '  and naming where the ruling it could not commit is'     2 'staged_ruling_is_at:'
+STAGED="$(printf '%s' "$OUT" | sed -n 's/^staged_ruling_is_at: //p' | head -1)"
+is '  the path it printed being a directory that really exists' \
+   "$([ -d "$STAGED" ] && printf exists || printf absent)" exists
+is '  holding the ruling that was not committed' \
+   "$(grep '^verdict: ' "$STAGED/row" 2>/dev/null | head -1)" 'verdict: approved'
+is '  with the confidence its filer passed, re-fileable by hand' \
+   "$(grep '^confidence: ' "$STAGED/row" 2>/dev/null | head -1)" 'confidence: 0.91'
+# And it stays degraded on a retry rather than curdling into a permanent 10:
+# the blocking file does not change, so a caller that reads 10 here believes a
+# ruling of record exists and stops carrying its own.
+run verdict $PR $SHA blocked approved --conf 0.91 --by blocked
+check '  a retry says the same thing, and still not `already ruled`' 2 'verdict: NOT RECORDED'
+refute '  which is what a caller must never mistake for a ruling'    'of_record:'
+
+# ---------------------------------------------------------------------------
 section 'manifest — complete means complete AGAINST something'
 # ---------------------------------------------------------------------------
 # Nothing recorded which lanes were selected, so `complete` was a claim about
@@ -861,6 +928,63 @@ refute '  and does not report itself recorded'                   'manifest: reco
 check '  the first staying of record'                         10 'of_record: correctness security-critic docs'
 run status $PR $SHA
 check '  so the panel is still measured against seven'        10 'lanes: 7'
+
+# WRITTEN ONCE IS A PANEL THAT CAN WEDGE, AND `rm -rf` WAS THE ONLY WAY OUT.
+# A lane the manifest selected and nothing ever claimed counts outstanding
+# forever: `status` refuses at 10, `complete` never arrives, and no verb could
+# take that lane back out of the set — leaving the unaudited hand-edit of the
+# artefact whose integrity is the whole point, which is the corner `verdict` was
+# in before `release`. `--amend --reason` is the way out that leaves evidence.
+# What replaces immutability is not weaker, it is DIFFERENT: a reason refused at
+# 64 when absent, a new row citing what it replaced by name and by count, and
+# the prior set kept WHOLE rather than deleted. A shrink is still possible; a
+# shrink nobody can see is not, and that was the property worth keeping.
+run manifest $PR $SHA --lanes 'correctness security-critic' --amend
+check 'an amendment with no reason is a usage error'          64 'requires a reason'
+run manifest $PR $SHA --amend --reason 'docs was never dispatched'
+check 'an amendment naming no new set is a usage error'       64 'must name the new set'
+run manifest $PR $SHA --lanes 'correctness security-critic' --reason 'no flag'
+check 'a reason without --amend is a usage error'             64 'means nothing without --amend'
+is '  and not one of the three touched the set of record' \
+   "$(grep '^count: ' "$CLAIM_TABLE_DIR/pr-$PR/$SHA/.manifest.d/row" 2>/dev/null | head -1)" 'count: 7'
+
+run manifest $PR $SHA --lanes 'correctness security-critic' --amend --reason 'docs was never dispatched' --by judge-2
+check 'an amendment with a reason supersedes the selection'   0  'manifest: amended'
+check '  naming the set it replaced, and its count'           0  'superseded: correctness security-critic docs'
+check '  and where that set is kept'                          0  'prior_is_at:'
+PRIOR="$(printf '%s' "$OUT" | sed -n 's/^prior_is_at: //p' | head -1)"
+is '  the prior selection kept WHOLE, not deleted' \
+   "$(grep '^lanes: ' "$PRIOR/row" 2>/dev/null | head -1)" \
+   'lanes: correctness security-critic docs testing safety ux design'
+is '  under an audit key of its own, saying why it was replaced' \
+   "$(grep '^superseded_reason: ' "$PRIOR/row" 2>/dev/null | head -1)" \
+   'superseded_reason: docs was never dispatched'
+run status $PR $SHA
+check '  so the wedged panel completes against the new set'   0  'complete: true'
+refute '  and the dropped lane is outstanding no longer'         'outstanding: docs'
+run manifest $PR $SHA
+check '  the set of record being the amended one'             0  'count: 2'
+check '  which says out loud that it superseded another'      0  'amended: yes'
+check '  and why, where a reader of the manifest will see it' 0  'amend_reason: docs was never dispatched'
+
+# The shrink is still not available quietly: an ordinary second `--lanes`
+# refuses exactly as it did before, so nothing amends by accident.
+run manifest $PR $SHA --lanes 'correctness'
+check 'a plain second selection STILL refuses at 10'          10 'already recorded'
+refute '  and never reports itself amended'                      'manifest: amended'
+check '  naming the flag that is the only way past it'        10 '--amend --reason'
+is '  the amended set staying of record' \
+   "$(grep '^count: ' "$CLAIM_TABLE_DIR/pr-$PR/$SHA/.manifest.d/row" 2>/dev/null | head -1)" 'count: 2'
+
+# An amendment with nothing to amend is asked before anything is created, so it
+# leaves the table exactly as it found it rather than writing a first selection
+# under a flag that claims to be replacing one.
+fresh
+run manifest $PR $SHA --lanes 'correctness' --amend --reason 'nothing here yet'
+check 'an amendment on a panel with NO selection is refused'  12 'nothing to amend'
+refute '  and never reports itself recorded'                     'manifest: recorded'
+is '  having created no table at all' \
+   "$([ -e "$CLAIM_TABLE_DIR" ] && printf created || printf absent)" absent
 
 # One bad name refuses the whole set and writes nothing: a manifest that
 # silently dropped a lane would be a set asserting coverage it does not have.
@@ -1037,6 +1161,44 @@ run claim $PR $SHA legacy-m --owner pr-judge
 sed -i '/^expects: /d' "$(row_of $PR $SHA legacy-m)/holder/row" 2>/dev/null
 run verdict $PR $SHA legacy-m approved --by mallory
 check '  yet a legacy row still catches a wrong filer'        12 'anomaly: filed by mallory'
+
+# AN INFERENCE THIS TABLE MADE MUST NOT READ AS SOMETHING A CLAIM RECORDED.
+# The fallback above is right and stays, but written into the row unmarked it is
+# indistinguishable from an expectation a claim actually asked for:
+# `expects: docs-reviewer` beside `attribution_mismatch: false` says "checked,
+# and the filer is the one the claim expected" about a claim that expected
+# nothing — and, on `cmd_claim`'s degraded branch, about a claim row that was
+# never written at all. Two states collapsing into the one that reads clean is
+# what an absent `--by` reading `unrecorded` already refuses one field to the
+# left. Neither value refuses anything; the difference is on disk, where a
+# reader can act on it, and BOTH read verbs surface it.
+fresh
+run claim   $PR $SHA docs-reviewer --owner pr-judge
+run verdict $PR $SHA docs-reviewer approved --by docs-reviewer
+is 'a RECORDED expectation says where it came from, in the row' \
+   "$(grep '^expects_source: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" \
+   'expects_source: recorded'
+run status $PR $SHA docs-reviewer
+check '  and the single-lane view surfaces it'                0  'expects_source: recorded'
+run status $PR $SHA
+refute '  while the panel view stays quiet about the clean case' 'expects_source:'
+
+fresh
+run claim $PR $SHA docs-reviewer --owner pr-judge
+sed -i '/^expects: /d' "$(row_of $PR $SHA docs-reviewer)/holder/row" 2>/dev/null
+run verdict $PR $SHA docs-reviewer approved --by docs-reviewer
+check 'an INFERRED expectation still records at 0'            0  'verdict: recorded'
+is 'an INFERRED expectation says so in the row it wrote' \
+   "$(grep '^expects_source: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" \
+   'expects_source: inferred'
+is '  beside the flag it qualifies, which still reads false' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA docs-reviewer)/verdict.d/row" 2>/dev/null | head -1)" \
+   'attribution_mismatch: false'
+run status $PR $SHA docs-reviewer
+check '  the single-lane view naming it inferred'             0  'expects_source: inferred'
+run status $PR $SHA
+check '  and the WHOLE-PANEL view surfacing it too'           0  'expects_source: inferred'
+check '  in words, not merely a token a reader must decode'   0  'the lane name stood in'
 
 # ---------------------------------------------------------------------------
 section 'the deleted --note is a usage error, not a silent no-op'

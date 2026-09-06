@@ -27,23 +27,28 @@
 # assert a property of the suite rather than a behaviour of claim.sh, and no
 # mutation of claim.sh should be able to move them.
 #
-# A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND FOUR OF THEM WERE.
+# A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND FIVE OF THEM HAVE BEEN.
 # M02, M13 and M20 addressed lines the review board's fixes removed — the mkdir
 # verdict gate, the `\r\n` strip, the `mv -f` of a bare row file — and M38 the
 # one-line `else mismatch=true; fi` that SEC-01's rebuild in this same branch
-# replaced with a multi-line `if`. Each still
+# replaced with a multi-line `if`. M45 is the fifth: SEC-05 rewrote `agent_key`
+# into two statements and DELETED the `| tr -d '@' | tr 'A-Z' 'a-z'` pipeline the
+# edit aimed at, so the mutation stopped applying and the identity fold stopped
+# being demonstrated at the same head that hardened it. Each still
 # named a real behaviour, so each was re-aimed at the line that now carries it
 # rather than dropped; a mutation retired quietly is an assertion that stops
 # being demonstrated with nothing saying so. The `cmp -s` guard below is what
-# caught all four, which is the argument for keeping it.
+# caught all five, which is the argument for keeping it.
 #
 # Usage: scripts/loop/tests/claim-table-mutations.sh [id …]
 #        Exit: 0 every mutation killed · 1 any mutation survived or misapplied
-# The whole suite runs once per mutation. Measured on 2026-08-30 on the
-# reference host: one suite run is ~2 min and the full matrix of 47 an hour and
-# a half, so it is a background gate rather than an inner-loop one. Named
-# ids run a subset — `claim-table-mutations.sh M28 M33` — and that is how a
-# single behaviour is re-demonstrated after a change without paying for all 47.
+# The whole suite runs once per mutation, plus once for the baseline. Re-measured
+# on 2026-09-06 on the reference host, at 366 assertions: one suite run is 131 s,
+# and the full matrix of 51 is 52 of them — about two hours, so it is a background
+# gate rather than an inner-loop one. Named ids run a subset —
+# `claim-table-mutations.sh M28 M33` — and that is how a single behaviour is
+# re-demonstrated after a change without paying for all 51. A subset run does not
+# print the undemonstrated list; the block at the foot of this file says why.
 
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -58,7 +63,7 @@ Q="'"
 
 ALL='M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18
 M19 M20 M21 M22 M23 M24 M25 M26 M27 M28 M29 M30 M31 M32 M33 M34 M35 M36 M37
-M38 M39 M40 M41 M42 M43 M44 M45 M46 M47'
+M38 M39 M40 M41 M42 M43 M44 M45 M46 M47 M48 M49 M50 M51'
 WANT="${*:-$ALL}"
 
 # what each mutation neutralises
@@ -111,6 +116,10 @@ desc() {
     M45) printf 'agent_key stops folding, so one agent is two identities by spelling' ;;
     M46) printf 'a claim row predating expects no longer falls back to the lane name' ;;
     M47) printf 'the deleted --note is quietly accepted and dropped again' ;;
+    M48) printf 'a ruling the table cannot commit is deleted and called already-ruled' ;;
+    M49) printf 'a verdict builds a panel nobody ever opened, under a pause' ;;
+    M50) printf 'an amendment DELETES the selection it replaced instead of keeping it' ;;
+    M51) printf 'an expectation this table inferred reads as one a claim recorded' ;;
   esac
 }
 
@@ -165,6 +174,10 @@ kills() {
     M45) printf 'a filer spelled [@docs-reviewer] is the identity expected' ;;
     M46) printf 'a legacy row falls back to the lane name, at 0' ;;
     M47) printf 'verdict --note is a usage error at 64' ;;
+    M48) printf 'a ruling blocked by a FILE at verdict.d is NOT RECORDED' ;;
+    M49) printf 'a verdict into a lane with NO row is refused under pause' ;;
+    M50) printf 'the prior selection kept WHOLE, not deleted' ;;
+    M51) printf 'an INFERRED expectation says so in the row it wrote' ;;
   esac
 }
 
@@ -297,7 +310,17 @@ mutate() { # mutate <id> <file>
     # and `--by` is free text that is not folded. Without the fold the two agree
     # as identities and differ as strings, which is the shape of the two SHA
     # spellings that once split a panel.
-    M45) sed -i "s#| tr -d ${Q}@${Q} | tr ${Q}A-Z${Q} ${Q}a-z${Q}##" "$f" ;;
+    #
+    # RE-AIMED, because the line it removed no longer exists. SEC-05 anchored the
+    # strip and added a trim, splitting `agent_key` into two statements and taking
+    # `| tr -d '@' | tr 'A-Z' 'a-z'` out with it — so this edit matched nothing and
+    # M45 demonstrated nothing at the very head that hardened the function. The
+    # neutralisation is unchanged in SCOPE as well as in kind: both halves of the
+    # old pipeline are removed where they now live, one per expression, and the
+    # trim SEC-05 added is left alone because it is a different behaviour and
+    # neutralising it here would make the kill ambiguous between the two.
+    M45) sed -i -e "/^agent_key() {\$/,/^}\$/ s@ | tr ${Q}A-Z${Q} ${Q}a-z${Q}@@" \
+                -e '/^agent_key() {$/,/^}$/ s|"${_ak#@}"|"$_ak"|' "$f" ;;
     # And a third time, by DATA AGE: a claim row written before `expects:`
     # existed carries none, so without the fallback an upgraded table flags
     # every honest verdict already in it.
@@ -307,6 +330,32 @@ mutate() { # mutate <id> <file>
     # This is the shape of `--note` being put back by a caller that missed LA-10,
     # so the refusal is what must be demonstrated rather than assumed.
     M47) sed -i "/^cmd_verdict() {\$/,/^  done\$/ s@^      \*) usage_die@      --note) shift 2 ;;\n      *) usage_die@" "$f" ;;
+    # CLAIM-B, the verdict this mechanism DESTROYED. `mv -T` refuses onto a
+    # non-empty directory and that refusal is the write-once gate — but it also
+    # refuses onto a plain file standing where `verdict.d` belongs, and reading
+    # every refusal as the gate reported `already ruled` at 10 forever, after
+    # `rm -rf` had taken the only copy of the ruling. Making the test false is
+    # the whole neutralisation: control falls through to exactly the two lines
+    # that shipped, so the mutant IS the defect rather than a caricature of it.
+    M48) sed -i 's@^  if \[ ! -d "$row/verdict.d" \]; then$@  if [ -d "$row/verdict.d/never" ]; then@' "$f" ;;
+    # LQ-05. `verdict` is deliberately not pause-gated, so the gate is on
+    # CREATION and nothing else: making its first test false lets `mkdir -p`
+    # build `pr-<n>/`, the SHA and the lane out of nothing again, under the one
+    # state in which the least should be believed about coverage. `is_paused` is
+    # left in place so this cannot be confused with M07.
+    M49) sed -i 's@^  if \[ ! -d "$row" \] && is_paused; then$@  if [ -d "$row/never" ] \&\& is_paused; then@' "$f" ;;
+    # CLAIM-C, at the property that makes an amendable manifest safe. The
+    # amendment still happens, still requires its reason, and still cites the set
+    # it replaced by name and count — the prior is simply not THERE any more, so
+    # every word of the amendment is true and unverifiable. That is the silent
+    # shrink write-once existed to prevent, wearing the audit trail as a coat.
+    M50) sed -i 's@^    mv "$panel/.manifest.d" "$pdst" 2>/dev/null || {$@    rm -rf "$panel/.manifest.d" 2>/dev/null; mkdir -p "$pdst" 2>/dev/null || {@' "$f" ;;
+    # SEC-03. The row still carries the field, the read verbs still surface it,
+    # and it is always `recorded` — which is the state before the field existed
+    # with a label on it saying otherwise. An inference reading as something a
+    # claim asked for is the accept direction of the attribution check, arriving
+    # one field to the left of the flag it qualifies.
+    M51) sed -i 's@^  if \[ -n "$holder_expects" \]; then expects_source=recorded; else expects_source=inferred; fi$@  expects_source=recorded@' "$f" ;;
   esac
 }
 
@@ -380,18 +429,45 @@ done
 # Which assertions no mutation ever made fail. Reported, not failed: some of them
 # guard this suite's own hermeticity rather than a behaviour of claim.sh, and no
 # mutation of claim.sh should be able to move those.
+#
+# AND IT IS ONLY THAT REPORT AFTER A FULL RUN. `comm -23 all red` computes "every
+# assertion no mutation IN THIS RUN made fail", and under a named subset that is
+# very nearly every assertion in the suite. Measured on 2026-09-06 at this head:
+# `M28 M33` — the subset the usage line above recommends — kills both its
+# mutations and shows 11 of 366 assertions red, so the report as it stood named
+# the other 355 as undemonstrated. Not one of the 355 was a finding about the
+# suite; they are an artefact of what was asked for, printed in the imperative
+# voice of a finding, directly above the exit code. An alarm that fires on the
+# ordinary use of the tool is an alarm its reader learns to skip, and the
+# assertions it names after a FULL run are the ones that most need reading. So
+# the full matrix keeps the report and a subset states what it measured and
+# stops there. The comparison is on the SET of ids rather than on the string,
+# because naming all 51 explicitly is a full run and must not read as a partial.
 if [ -s "$TMP/all.labels" ]; then
   sort -u "$TMP/red.ord" > "$TMP/red.u"
   cut -f1 "$TMP/all.labels" | sort -u > "$TMP/all.u"
-  comm -23 "$TMP/all.u" "$TMP/red.u" > "$TMP/never.u"
-  printf '\n-- assertion coverage: %s of %s assertions were shown red\n' \
-    "$(wc -l < "$TMP/red.u" | tr -d ' ')" "$(wc -l < "$TMP/all.u" | tr -d ' ')"
-  nnever="$(wc -l < "$TMP/never.u" | tr -d ' ')"
-  if [ "$nnever" -gt 0 ]; then
-    printf '   %s never failed under any mutation, and are undemonstrated:\n' "$nnever"
-    while read -r o; do
-      printf '     %s\n' "$(awk -F'\t' -v k="$o" '$1==k{print $2}' "$TMP/all.labels")"
-    done < "$TMP/never.u"
+  nred="$(wc -l < "$TMP/red.u" | tr -d ' ')"
+  nall="$(wc -l < "$TMP/all.u" | tr -d ' ')"
+  want_set="$(printf '%s\n' $WANT | sort -u | tr '\n' ' ')"
+  all_set="$(printf '%s\n' $ALL  | sort -u | tr '\n' ' ')"
+  if [ "$want_set" = "$all_set" ]; then
+    comm -23 "$TMP/all.u" "$TMP/red.u" > "$TMP/never.u"
+    printf '\n-- assertion coverage: %s of %s assertions were shown red\n' "$nred" "$nall"
+    nnever="$(wc -l < "$TMP/never.u" | tr -d ' ')"
+    if [ "$nnever" -gt 0 ]; then
+      printf '   %s never failed under any mutation, and are undemonstrated:\n' "$nnever"
+      while read -r o; do
+        printf '     %s\n' "$(awk -F'\t' -v k="$o" '$1==k{print $2}' "$TMP/all.labels")"
+      done < "$TMP/never.u"
+    fi
+  else
+    printf '\n-- assertion coverage: PARTIAL. %s of %s assertions were shown red by the\n' "$nred" "$nall"
+    printf '   %s mutation(s) asked for:%s\n' "$(printf '%s\n' $WANT | wc -l | tr -d ' ')" \
+      "$(printf ' %s' $WANT)"
+    printf '   This says nothing about the other %s. The undemonstrated list is a claim\n' \
+      "$(( nall - nred ))"
+    printf '   about the whole suite and needs the whole matrix: run `%s` with no arguments.\n' \
+      "$(basename "$0")"
   fi
 fi
 
