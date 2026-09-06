@@ -349,20 +349,25 @@ Statement:    The system shall use, as the waypoint dispatched for each Turf
               stop of a portion for which a stopping position has been
               established under
               `SPECIFICATION.md § What establishes a stopping position`, that
-              stop's stopping position rather than the zone's coordinate, and
+              stop's stopping position rather than the zone's coordinate,
               shall not dispatch the zone's coordinate for a Turf stop for
-              which none has been established.
+              which none has been established, and shall tell the user, before
+              the hand-off is made, which Turf stops of that portion it does
+              not dispatch.
 Category:     Hand-off and dispatch
 Source:       DESIGN.md § Dispatching stop by stop;
-              SPECIFICATION.md § What establishes a stopping position
+              SPECIFICATION.md § What establishes a stopping position;
+              SPECIFICATION.md § Waypoints may be dropped without warning
 Priority:     MUST
 Verification: test — a portion whose Turf stops carry stopping positions
               distinct from their zones' coordinates hands off carrying those
               positions in the intermediate slots and in the destination slot,
               the same portion handed off carrying any of those zones'
-              coordinates fails, and a portion holding a Turf stop for which
-              no stopping position was established hands off that zone's
-              coordinate in no slot
+              coordinates fails, a portion holding a Turf stop for which no
+              stopping position was established hands off that zone's
+              coordinate in no slot, and that same portion carries, before the
+              hand-off is made, a telling that names that stop as one the
+              hand-off does not dispatch
 Acceptance:   given a dispatched portion whose Turf stops each carry a
               stopping position distinct from that zone's coordinate, when the
               portion is handed off, then the waypoint dispatched for each of
@@ -377,13 +382,21 @@ Acceptance:   given a dispatched portion whose Turf stops each carry a
               `SPECIFICATION.md § What establishes a stopping position`, when
               the portion is handed off, then that zone's coordinate is not
               dispatched as the waypoint for that stop
+              given a dispatched portion holding a Turf stop for which no
+              stopping position has been established under
+              `SPECIFICATION.md § What establishes a stopping position`, when
+              the hand-off is offered, then the user is told, before the
+              hand-off is made, that that stop is not dispatched, and that
+              stop is named
 Status:       to-build
 Depends-on:   FR-092;
               FR-110
 Volatility:   settled — the stopping position is already the point every
               access and exclusion decision is taken at, FR-086, FR-089 and
-              FR-092 fixing it there, and `DECISIONS.md § RD-028` records the
-              ruling that dispatch carries the same point
+              FR-092 fixing it there, `DECISIONS.md § RD-028` records the
+              ruling that dispatch carries the same point, and
+              `DECISIONS.md § RD-039` records the reading under which a stop
+              the hand-off does not dispatch is disclosed
 Risk:         The zone's coordinate is a point nothing in this corpus
               established as stoppable. FR-089 refuses a stopping position on
               a road the exclusions refuse and FR-092 refuses a manufactured
@@ -399,7 +412,16 @@ Risk:         The zone's coordinate is a point nothing in this corpus
               routes to uncertain rather than to exclusion, and the coordinate
               is the object an implementer meeting it reaches for, the plan by
               then already accepted — which is why the refusal is stated here
-              rather than left to follow from the positive limb.
+              rather than left to follow from the positive limb. Undisclosed,
+              the refusal costs more than the coordinate it refuses. The
+              driver hands off a route missing a stop they accepted during
+              review, with nothing on screen saying so and nothing
+              inconsistent with anything else, and learns of it by finishing
+              the drive without it — the failure
+              `SPECIFICATION.md § Waypoints may be dropped without warning`
+              names as the most expensive this product can ship, arriving from
+              the system's own side rather than from the target's, and
+              therefore from the one side the system can speak about.
 Rationale:    `DESIGN.md § Dispatching stop by stop` sizes a portion in stops
               and never says what a stop resolves to on the wire; this record
               closes that gap rather than reading it out of that section. What
@@ -429,8 +451,23 @@ Rationale:    `DESIGN.md § Dispatching stop by stop` sizes a portion in stops
               dispatched for that subclass instead is deliberately unauthored,
               and is owed to the batch scoped to
               `SPECIFICATION.md § Reconciling this with the absolute ceiling`,
-              where acceptance from the reserve pool is decided; the third
-              criterion carries only the refusal, which is the part statable
-              without deciding it.
+              where acceptance from the reserve pool is decided; the third and
+              fourth criteria carry the refusal and the telling, which are the
+              parts statable without deciding it. The telling is a limb of
+              this record rather than a record of its own because the refusal
+              alone produces no observable behaviour: a stop the hand-off
+              neither dispatches nor mentions has simply gone from the plan
+              the user accepted, so the record without it obliges the system
+              to drop that stop quietly. FR-113 carries the other half of the
+              same duty, and this limb is written against that record rather
+              than beside it — FR-113 discloses that the target may drop the
+              stops the hand-off carries, and this discloses a stop the
+              hand-off does not carry, so the two never speak about the same
+              stop. The telling decides nothing about what is dispatched
+              instead, which is why it is statable while that treatment is
+              deferred; `DECISIONS.md § RD-039` records the reading that
+              `SPECIFICATION.md § Waypoints may be dropped without warning`
+              reaches a stop the system itself omits, and the deferral above
+              stands unchanged by it.
 Resolved-by:  —
 ```

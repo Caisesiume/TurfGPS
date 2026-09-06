@@ -1616,3 +1616,64 @@ Affects:        RD-029, one statement of which is superseded and whose ruling
                 against RD-029 and are untouched by the widening. `DOC-10` on
                 PR #135, whose record half is FR-094's repair.
 ```
+
+## RD-039 — Does the hand-off's disclosure duty reach a stop the system itself omits?
+
+```
+Date:           2026-09-06
+Question:       FR-118's third criterion refuses the zone's coordinate for a
+                Turf stop carrying no established stopping position, and what
+                is dispatched for that stop instead is deferred to the batch
+                that decides acceptance from the reserve pool. Nothing then
+                obliges that the user learns the stop is not dispatched, so a
+                stop they accepted during review can leave the hand-off
+                silently. Is the disclosure owed now, or does it wait on the
+                deferred treatment? Raised as `SAFE-11` by `@safety-sentinel`
+                on PR #135 cycle 3.
+Interpretation: **It is owed now, and it does not wait.** A Turf stop the
+                hand-off does not dispatch is named to the user before the
+                hand-off is made. This entry settles the telling and nothing
+                else: what is dispatched for that stop instead stays deferred,
+                and the telling presupposes no answer to it — it holds
+                unchanged whichever way that ruling falls, and where the
+                ruling removes the case the telling simply never fires. FR-118
+                carries it as a statement limb and a fourth acceptance
+                criterion rather than as a record of its own, because a
+                refusal that produces no observable behaviour is not a
+                testable obligation: without the telling, the record obliges
+                the system to drop an accepted stop quietly.
+Rung:           1 — explicit specification, decisive.
+                `SPECIFICATION.md § Waypoints may be dropped without warning`
+                states the duty on the hand-off in its own words — the user is
+                told what the dispatch may drop, before they hand off — and
+                grounds it in the stance
+                `SPECIFICATION.md § Confidence and uncertainty` sets, that
+                material uncertainty is communicated rather than presented as
+                a result more complete than the system can vouch for. That
+                section's own case is the target dropping what the hand-off
+                carries, which FR-113 discharges, so whether the duty reaches
+                a stop the system itself omits is the reading settled here —
+                and the same document settles it twice on the very path that
+                produces such a stop:
+                `SPECIFICATION.md § Reconciling this with the absolute ceiling`
+                refuses an acceptance *with a plain statement of why*, and
+                where the bound is unset offers no reserve candidates *and
+                says so*. A silent refusal is nowhere that path's posture. 4
+                corroborates: FR-113 already obliges the telling for the drop
+                the system cannot control, so leaving undisclosed the drop it
+                does control would say least about the failure it can actually
+                see. 7 was not reached and is not claimed.
+Affects:        FR-118, which carries it in a statement limb, a fourth
+                acceptance criterion, a `Verification` case and its
+                `Volatility`, and whose deferral of what is dispatched for
+                such a stop stands unchanged. FR-113, unchanged — it discloses
+                that the target may drop the stops the hand-off carries, and
+                this reaches a stop the hand-off does not carry, so the two
+                never describe the same stop. RD-002, which routes a candidate
+                with no established stopping position to uncertain and so
+                makes the case reachable, and RD-028, which decides the point
+                dispatched and not what is said about a stop with none — both
+                unchanged. `SAFE-11` on PR #135, whose disclosure limb it
+                closes; that finding's sequencing limb is
+                `@engineering-lead`'s and is untouched here.
+```
