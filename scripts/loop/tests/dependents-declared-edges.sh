@@ -222,9 +222,7 @@ run 41;  check  "and a reference behind one is still a reason" 0 "#222 (blockers
 
 # (v) The empty list without a dash — the shape live story #41 carries today, and the
 # one (i) does not reach: there the dash-cut empties the line, here the label strip
-# alone must. Said here rather than left to be discovered: no neutralisation of
-# today's parser reds this, because the line carries no `#` for any reading of it to
-# find. It is present because the shape table has a row for it and a row without a
+# alone must. It is present because the shape table has a row for it and a row without a
 # fixture is the defect above.
 run 41;  absent "a bare none declares nothing at all"       "#223" "#208 (blockers: #41 open, #142 open)"
 
