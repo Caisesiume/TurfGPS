@@ -179,8 +179,9 @@ ROWS="$(awk '/^\| `[a-z_]+` \| `[0-9]+` \| `[a-z]+` \|/ {
 # header to the first line that leaves it, every line but the alignment
 # separator — which is a count of row-shaped lines and does not care whether one
 # parses. A disagreement between the two numbers is a stop rather than a
-# subtraction: the checker refuses to run at all while any row is unreadable, so
-# every assertion below would be measuring that refusal instead of its subject.
+# subtraction: the checker refuses to run at all while any line the region
+# still holds fails the form, so every assertion below would be measuring that
+# refusal instead of its subject.
 ROWS_HELD="$(awk '
   /^\| `artifact` \| `cap_chars` \| `counts` \|/ { in_table = 1; next }
   in_table && /^\|[-: |]+\|[ \t]*$/             { next }
@@ -188,7 +189,7 @@ ROWS_HELD="$(awk '
   in_table                                      { in_table = 0 }
   END { print n + 0 }' "$TABLE")"
 ROWS_PARSED="$(printf '%s\n' "$ROWS" | grep -c .)"
-[ "$ROWS_HELD" = "$ROWS_PARSED" ] || die "the cap table holds $ROWS_HELD rows and $ROWS_PARSED of them parse. Repair the row, never the denominator: a coverage figure counted over what survived reports the breakage as an improvement, and the checker refuses to run while any row is unreadable."
+[ "$ROWS_HELD" = "$ROWS_PARSED" ] || die "the cap table holds $ROWS_HELD rows and $ROWS_PARSED of them parse. Repair the row, never the denominator: a coverage figure counted over what survived reports the breakage as an improvement, and the checker refuses to run while any line the region still holds fails the form."
 
 cap_of()    { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $2 }'; }
 counts_of() { printf '%s\n' "$ROWS" | awk -v i="$1" '$1 == i { print $3 }'; }
