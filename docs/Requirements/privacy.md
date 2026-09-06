@@ -526,7 +526,20 @@ Rationale:    The obligation is the property and never a mechanism: no hash,
               because the property is of the derivation and not of any run: a
               search for the code across a limiter's state passes on any
               reversible encoding of it, and leaves the code recoverable by
-              whoever holds the store.
+              whoever holds the store. What the record of an attempt keeps and
+              for how long, and whether attempts are correlated across callers
+              at all, are deliberately not obliged here.
+              `README.md § ID allocation ledger` registers both as owed — the
+              first to the security architecture work and the second to the
+              observability work
+              `Architecture.md § Still owed by this document` records as
+              unwritten — and records that they pull opposite ways on this one
+              store, so neither is discharged without the other in view. The
+              pointer sits on the record and not only in that ledger because
+              an implementer builds the path this record names from the
+              record, and would otherwise pick a retention silently — the
+              class NFR-017 exists to prevent for the rate, arriving at the
+              store the rate creates.
 Resolved-by:  —
 ```
 
