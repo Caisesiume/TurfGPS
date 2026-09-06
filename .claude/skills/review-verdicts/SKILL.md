@@ -31,7 +31,7 @@ findings:
     required_change: invalidate the old refresh token on successful rotation
     root_cause: implementation
 verdict: revise            # pass | revise | blocker | N/A
-confidence: 0.96           # a number, or `unassessed` — never a number standing in for one
+confidence: 0.96           # a number; `unassessed` belongs to `unsatisfiable` and never here
 residual_risk:
 needs_followup: false
 evidence: |
