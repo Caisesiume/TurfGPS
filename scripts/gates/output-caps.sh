@@ -56,7 +56,7 @@
 #     means, and treating one as a boundary would end the block there and resume
 #     counting the rest of it.
 #   - a fence delimiter is excluded with the block it delimits, both ends of it.
-#     THIS IS `own`'s RULE AND NOT `body`'s: the `own` branch below is the only
+#     THIS IS `own`'s RULE AND NOT `body`'s: the `own` mode below is the only
 #     one that reads fences at all, so under `body` a fenced block is counted in
 #     full, minus whatever the `|` and `findings:` rules above already drop.
 #     Measured on 6 September 2026 on one 400-character fenced payload declared
