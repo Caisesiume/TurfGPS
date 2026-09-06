@@ -395,6 +395,26 @@ row_state() { # row_state <row-dir>
   fi
 }
 
+# THE AMENDMENT'S BETWEEN-STATE, WHICH IS NOT AN ABSENT SELECTION.
+# `manifest --amend` renames the prior set to `.manifest-superseded-<stamp>-<pid>`
+# before committing its replacement, because `commit_staged` refuses a name that
+# already holds a record. Between those two renames the superseded set exists and
+# `.manifest.d` does not, and every read verb tested only for `.manifest.d` — so
+# the window read as a panel that had never selected anything. Measured on this
+# host on 2026-09-06, on a three-lane manifest with two lanes ruled and one never
+# claimed: `status` answered `complete: false` at 10 outside the window and
+# `complete: true` at 0 inside it, and `list` printed that panel `complete` at 0.
+#
+# This predicate names the state so the read verbs can refuse it. One glob, and
+# nothing new on disk: the superseded name IS the marker, so an interruption
+# between the two renames leaves the state readable rather than invisible, and a
+# panel left there by the failure path in `cmd_manifest` reads the same way.
+amend_in_flight() { # amend_in_flight <panel-dir>
+  [ -e "$1/.manifest.d" ] && return 1
+  set -- "$1"/.manifest-superseded-*
+  [ -d "$1" ]
+}
+
 # ---------------------------------------------------------------------------
 # claim — the atomic gate. Everything else in this file is bookkeeping.
 #
@@ -1002,6 +1022,16 @@ cmd_manifest() {
       fi
       exit 0
     fi
+    # Between the two renames of an amendment there is a superseded set on disk
+    # and none of record. That is a set this verb cannot read rather than one the
+    # panel never had, and the two answers send a caller opposite ways, so it
+    # takes the degraded exit and its own name. See `amend_in_flight` above.
+    if amend_in_flight "$panel"; then
+      printf 'manifest: amend-in-flight\n'
+      printf 'reason: degraded — a superseded selection is on disk and no set is of record\n'
+      printf 'direction: retry; this panel is between two selections, not without one\n'
+      exit 2
+    fi
     printf 'manifest: none\n'
     printf 'note: this panel records no selected set; `complete` counts only the rows that exist\n'
     exit 12
@@ -1060,7 +1090,9 @@ cmd_manifest() {
   # replaced is the silent shrink this verb refuses to be. The `-$$` is the same
   # collision guard `released-<stamp>` carries: two amendments inside one second
   # must not land on one name, and `mv` onto an existing directory nests rather
-  # than failing — the lesson `commit_staged` above was written for.
+  # than failing — the lesson `commit_staged` above was written for. The
+  # `.manifest-superseded-` prefix is also the marker `amend_in_flight` globs
+  # for, so a rename of it un-names the between-state without changing a reader.
   prior=".manifest-superseded-$STAMP-$$"
   prior_count=""; prior_lanes=""
   if [ "$amend" = true ]; then
@@ -1087,11 +1119,13 @@ cmd_manifest() {
   if [ "$amend" = true ]; then
     # The prior set is moved aside FIRST, because `commit_staged` will not
     # rename onto a name that already holds a record — that refusal is the
-    # write-once gate and it stays exactly as it is. The order is chosen so the
-    # window between the two states is a panel holding the prior set under its
-    # audit name and nothing at `.manifest.d`, which reads as `manifest: none`:
-    # `status` then counts only the rows that exist and says so, rather than
-    # measuring against a set it is halfway through replacing.
+    # write-once gate and it stays exactly as it is. The window between the two
+    # renames is therefore a panel holding the prior set under its audit name
+    # with nothing at `.manifest.d`. No ordering of these two closes it, and
+    # reordering them only moves it; what makes it safe is that the window is
+    # NAMED — `amend_in_flight` above recognises it and every read verb refuses
+    # it as degraded rather than measuring `complete` against the rows it can
+    # still see.
     pdst="$panel/$prior"
     mv "$panel/.manifest.d" "$pdst" 2>/dev/null || {
       rm -rf "$stage" 2>/dev/null
@@ -1179,9 +1213,13 @@ cmd_status() {
 
   printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
   if is_paused; then printf 'paused: true\n'; else printf 'paused: false\n'; fi
+  amending=false
+  amend_in_flight "$panel" && amending=true
   mlanes=""
   [ -r "$panel/.manifest.d/row" ] && mlanes="$(field lanes "$panel/.manifest.d/row")"
-  if [ -n "$mlanes" ]; then printf 'manifest: %s\n' "$mlanes"; else printf 'manifest: none\n'; fi
+  if [ -n "$mlanes" ]; then printf 'manifest: %s\n' "$mlanes"
+  elif [ "$amending" = true ]; then printf 'manifest: amend-in-flight\n'
+  else printf 'manifest: none\n'; fi
 
   total=0; ruled=0; outstanding=""; one_state=""
   for d in "$panel"/*/; do
@@ -1288,6 +1326,20 @@ cmd_status() {
     fi
   fi
 
+  # A panel whose selection is mid-replacement is not a panel measured against
+  # nothing — it is one whose expected set cannot be read at all, and the rows
+  # above are the half of it that happens to be visible. Answered here, before
+  # either answer below, so the state has one exit of its own and can never be
+  # the 0 that tells a judge to synthesise.
+  if [ "$amending" = true ]; then
+    printf 'lanes: %s · ruled: %s · outstanding: %s\n' "$total" "$ruled" "$((total - ruled))"
+    printf 'manifest_state: amend-in-flight\n'
+    printf 'complete: false\n'
+    printf 'reason: degraded — a superseded selection is on disk and no set is of record\n'
+    printf 'direction: read the set of record with `manifest <pr> <sha>` and retry; do not read these rows as coverage\n'
+    exit 2
+  fi
+
   if [ "$total" -eq 0 ]; then
     printf 'lanes: 0\ncomplete: false\nnote: no claim row here — nothing was dispatched under this panel\n'
     exit 12
@@ -1314,7 +1366,7 @@ cmd_list() {
   ensure_readable || { printf 'list: degraded — table unreadable at %s\n' "$TABLE"; exit 2; }
   if is_paused; then printf 'paused: true\n'; else printf 'paused: false\n'; fi
 
-  found=0
+  found=0; degraded=0
   for p in "$TABLE"/pr-*/; do
     [ -d "$p" ] || continue
     n="$(basename "$p")"; n="${n#pr-}"
@@ -1344,6 +1396,16 @@ cmd_list() {
         [ -d "$s$l" ] && continue
         t=$((t + 1))
       done
+      # The between-state of an amendment, named rather than counted. It is
+      # tested BEFORE the empty-panel skip because the manifest is exactly what
+      # is unreadable in it: a panel listed on the strength of its selected
+      # lanes drops to zero here and would vanish from the index altogether,
+      # which is the same window reading as an absence one line further on.
+      if amend_in_flight "${s%/}"; then
+        found=$((found + 1)); degraded=$((degraded + 1))
+        printf '  pr-%-6s %-42s lanes %-3s ruled %-3s %s\n' "$n" "$sha" "$t" "$r" 'amend-in-flight'
+        continue
+      fi
       [ "$t" -gt 0 ] || continue
       found=$((found + 1))
       if [ "$t" -eq "$r" ]; then c=complete; else c=incomplete; fi
@@ -1353,6 +1415,13 @@ cmd_list() {
     done
   done
   [ "$found" -gt 0 ] || printf '  none\n'
+  # Callers are told to branch on the exit status and never on the prose, so a
+  # degraded panel in the index has to reach the status too — otherwise this
+  # verb reports the whole table clean while printing that one of them is not.
+  if [ "$degraded" -gt 0 ]; then
+    printf 'status: degraded — amend-in-flight on %s panel(s)\n' "$degraded"
+    exit 2
+  fi
   exit 0
 }
 
@@ -1457,7 +1526,9 @@ is durable the instant it exists. No LLM, no network, no judgement.
           With --lanes, record the selected lane set, once: `complete` then
           means complete against it. 0 recorded. 10 already recorded, the first
           stays of record. 64 a malformed lane — nothing is written. 2 degraded.
-          Without --lanes, read it back. 0 present · 12 this panel has none.
+          Without --lanes, read it back. 0 present · 12 this panel has none · 2
+          amend-in-flight, a superseded set on disk and none of record, which is
+          a set this verb cannot read and never a panel that selected nothing.
           With --amend, REPLACE the recorded set — the one way past the refusal
           above, and the recovery for a panel wedged by a lane it selected that
           nothing will ever claim. The reason is required, the new row cites the
@@ -1475,7 +1546,8 @@ is durable the instant it exists. No LLM, no network, no judgement.
           sixth, no-row, is a lane this panel has never heard of; a lane the
           manifest selected but nothing claimed reads never-claimed instead.
 
-  list    [pr]                Every panel, or one PR's. 0 always, 2 degraded.
+  list    [pr]                Every panel, or one PR's. 0 · 2 degraded, which
+                              includes any panel listed amend-in-flight.
   pause   [--reason <text>]   No new claims. Held lanes still record. 0.
   resume                      Lift the pause. 0.
   paused                      0 not paused · 11 paused · 2 degraded.
