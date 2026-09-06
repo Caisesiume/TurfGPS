@@ -32,28 +32,13 @@ The **verdicts**, not the diff:
 
 ## What you return
 
-```yaml
-agent: confidence-assessor
-aggregate_confidence: 0.71
-evidence_quality: adequate      # strong | adequate | weak
-conflicts:
-  - between: [linus-security-critic, go-quality-critic]
-    about: SEC-02 — whether the input is already validated upstream
-coverage_gaps:
-  - testing lane required by risk assessment, no verdict present
-followup:
-  reviewer: linus-security-critic
-  question: does the upstream validation the pass relies on exist in this diff, or was it assumed?
-recommendation: targeted_followup   # decide_now | targeted_followup | insufficient_evidence
-```
-
-Where the evidence is sufficient: `followup: none` and `recommendation: decide_now`. **Say that plainly.** A meta-reviewer that always finds something to check is as useless as one that never does, and it is more expensive.
+The **`handoff-payloads § Confidence assessment`** payload, structured block first, and nothing else. Its keys, its mandatory set, and the `unknown` case are defined there and are not restated here.
 
 ## The line you do not cross
 
 **One reviewer, one question.** Follow-up is targeted or it is not follow-up.
 
-**Never rerun the complete review suite merely because confidence is insufficient**, and never propose adding reviewers who were not convened. That is the exact behaviour the selective model was written to remove: uncertainty answered by volume. If the evidence is genuinely too weak for a decision, return `insufficient_evidence` with the specific weak point named — the judge decides what to do about it, and a named weakness is worth more to it than a bigger panel.
+**Never rerun the complete review suite merely because confidence is insufficient**, and never propose adding reviewers who were not convened. That is the exact behaviour the selective model was written to remove: uncertainty answered by volume. If the evidence is genuinely too weak for a decision, return `insufficient_evidence` with the specific weak point named — the judge decides what to do about it, and a named weakness is worth more to it than a bigger panel. **Where you could not reach the verdicts at all, that is `unknown` and never `weak`**: `handoff-payloads § Unknown is not weak` is the shape it takes.
 
 ---
 
@@ -66,7 +51,7 @@ Where the evidence is sufficient: `followup: none` and `recommendation: decide_n
 - **Required inputs:** PR number, head SHA, the collected verdicts, the risk assessment. References only.
 - **Artifact retrieval:** The verdicts and the review ledger comment; a cited file or line only to audit a claim against it.
 - **Verification actions:** Check each verdict carries an evidence block; check every finding has file, location, and required change; check every required lane has a verdict.
-- **Output schema:** the block above; envelope per `agent-handoffs`.
+- **Output schema:** `handoff-payloads § Confidence assessment`; envelope per `agent-handoffs`.
 - **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Name the weakest specific point; do not argue it.
 - **Allowed downstream agents:** None — you propose a follow-up, `@pr-judge` dispatches it.
 - **Escalation:** None directly. A conflict you cannot characterise is reported to the judge as a conflict.

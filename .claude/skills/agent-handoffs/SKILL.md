@@ -1,6 +1,6 @@
 ---
 name: agent-handoffs
-description: The shared envelope for every handoff between TurfGPS agents — the input-references/execution/verdict principle, the size limit with its per-field caps, the output caps every capped artifact is held to, the trigger block, the obligation not to end a pass with a continuation outstanding, the context-escalation ladder, tool-output discipline, and the four questions asked before any invocation. The role-specific payload schemas are in `handoff-payloads`; the reviewer verdict and the evidence law are in `review-verdicts`. Every agent that dispatches another agent or reports to one loads this before it writes a handoff.
+description: The shared envelope for every handoff between TurfGPS agents — the input-references/execution/verdict principle, the structured-block-first shape every artifact opens with, the size limit with its per-field caps, the output caps every capped artifact is held to, the trigger block, the obligation not to end a pass with a continuation outstanding, the context-escalation ladder, tool-output discipline, and the four questions asked before any invocation. The role-specific payload schemas are in `handoff-payloads`; the reviewer verdict and the evidence law are in `review-verdicts`. Every agent that dispatches another agent or reports to one loads this before it writes a handoff.
 ---
 
 # Agent handoffs — the envelope
@@ -14,6 +14,21 @@ Ratified in `docs/adr/ADR-0001-artifact-driven-agent-org.md § D8`, from the Own
 Agents operate like functions with explicit contracts, not like colleagues in a conversation. A handoff is the return value, not a report of the meeting.
 
 What follows from that, and is the whole point of this skill: **the receiving agent retrieves what it needs itself.** The board item, the diff, the requirement record, the architecture section — all of them are authoritative artifacts that the receiver can open. Copying them into a handoff produces a second, staler copy and pays for it twice, once in the sender's output and once in the receiver's input.
+
+## The structured block comes first
+
+**Every artifact this skill governs opens with its structured block, and licensed prose — where there is any — comes after it, never before it and never interleaved.** The consumer reads the block to learn *what happened* and reads the prose only to learn *why*. An artifact that leads with prose has asked the next agent to parse English for facts that were already available as keys, which is an LLM doing a parser's job at an LLM's price.
+
+**Two keys are mandatory in every capped artifact, and they are the first two:**
+
+```yaml
+artifact: worker_envelope     # the id from the cap table below
+prose_licence: none           # or the one licence being invoked
+```
+
+`artifact:` is what lets a checker measure a comment it knows nothing else about: the artifact names itself, rather than the instrument guessing from the author or the wording. `prose_licence:` is how the licence rule below is enforced rather than merely stated.
+
+**The rest of the mandatory keys are per role, and every role that has a producing schema states its own there** — `review-verdicts § Reviewer verdict` for a convened reviewer, and the payloads in `handoff-payloads` for the roles those cover. **A cap-table row is not a producing schema**, and five of the twelve rows below currently have only that: `worker_report`, `orchestrator_dispatch`, `orchestrator_comment`, `owner_report` and `supersession_notice` are capped below and are declared by no schema in `handoff-payloads`, `review-verdicts`, or any agent definition, so the two keys above are the whole of what binds them until one exists. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
 
 ## The limit
 
@@ -42,25 +57,70 @@ Where the reasoning matters and is retrievable, cite where it lives — `DECISIO
 
 **Every capped artifact is capped here, and this section is its one home.** A contract that produces one of these cites this table rather than restating a number. Characters rather than tokens, because a writer can count characters.
 
-| Artifact | Cap |
-|---|---|
-| reviewer verdict | **≤ 1,200 chars** plus its findings table; the evidence block **≤ 10 bullets, one line each** |
-| judgment | **≤ 6,000 chars** plus its per-finding resolution table |
-| review ledger | **≤ 2,000 chars**, and it **supersedes** — one table per PR, rewritten each cycle, never appended |
-| worker envelope | **≤ 1,500 chars** |
-| `graph_update` | **≤ 1,200 chars** |
-| an `@engineering-lead` dispatch | **≤ 1,200 chars** |
-| an Owner report | **≤ 2,000 chars** |
+#### The cap table
 
-**Prose inside a capped artifact is licensed for exactly four things:** a finding **overturned** · a conflict **dissolved** · a rule **renegotiated** · a predecessor **corrected**. In each of those the reasoning *is* the decision and cannot be recovered from the outcome. **A finding that simply holds gets a row, not a paragraph** — the row states it, the artifact the row names carries the rest, and a reader wanting the argument opens what it cites.
+**This table is the cap checker's input and its source of truth, and these numbers appear nowhere else in the repository.** The checker parses the table and holds **no knowledge of any agent**: an artifact declares its own `artifact:` id as its first key, per `§ The structured block comes first`, and the checker looks that id up here. Adding a capped artifact is therefore a row, never a change to the instrument.
+
+**The checker is `scripts/gates/output-caps.sh` and it is run as the gate `local-gates § Artifact caps` describes.** Naming it is not decoration: a section whose contract is *a machine reads this* and which names no machine cannot be checked by the person editing it, and the two things this table can be edited into — a row that stops parsing, a cap that stops matching what the instrument enforces — are both invisible from this file.
+
+**The first three columns are machine-read and their form is fixed.** Column 1 is the stable id, a code span holding one snake_case token. Column 2 is the cap in characters, a code span holding a bare integer — no separators, no bold, no `≤`. Column 3 says what to count, one of three tokens, each of which is a single textual rule the checker applies to any artifact without knowing what it is:
+
+- **`whole`** — every character of the artifact.
+- **`body`** — every character except the artifact's enumerated findings: lines beginning with `|`, and the `findings:` key together with **its block** — every line indented deeper than the key, and every `-` item at the key's own indent. The block ends at the first line that is neither, and that line is counted. **There is no terminating key to find**, which is the rule and not a gap in it: an exclusion that scanned for one ran to end of file when none followed, so a verdict whose findings block is followed by prose measured almost nothing and reported clean. The cap was then opt-out by key ordering, and key ordering is the writer's.
+- **`own`** — every character outside fenced blocks. That is where a verbatim relay of another capped artifact sits, and the relay is counted against its own row instead of twice.
+
+**Every row this table holds must parse, and one that does not is named rather than skipped.** A row-shaped line that fails the form above is a defect in the table, not a line the checker was never meant to read — and the failure it produces is silent in both directions at once: the artifact that row governs stops being measured at all, while the coverage the recall corpus prints *improves*, the destroyed row having stopped counting as one that wants a fixture. The checker therefore finds rows by position, from this table's header to the first line that leaves it, and refuses to run at all while any line it finds there fails the form. The two-column `prose_licence` table below is outside that region and is not judged against a contract that was never its own.
+
+**That refusal reaches only the lines the region still holds, and the guarantee that it holds all of them is the corpus's rather than the instrument's.** A row indented out of column zero is not a row-shaped line that failed to parse — it is the line that *leaves* the region, so it and every row beneath it are dropped, and the run reports `clean` at rc 0 with nothing named **for an artifact declaring a row that survived**. An artifact declaring the dropped id is named instead, and the run cannot vouch. Measured on 6 September 2026, `worker_envelope` indented by one space: five rows survive; an artifact declaring `judgment` measures 29 against 6000 and the run reports `clean` at rc 0, while one declaring `worker_envelope` prints `unclassified · no cap-table row for worker_envelope` and exits 2. **What holds this case is `scripts/gates/tests/output-caps-recall.sh`, and it holds part of it.** The corpus counts the rows the region holds against the lines matching the row form *anywhere* in the file, and stops red where the two disagree; a row surviving **beneath** a dropped one still matches that form after leaving the region, which is what makes them disagree. Measured on 6 September 2026: indenting `reviewer_verdict`, `worker_envelope` or `owner_report` holds `0`, `5` and `10` rows against `11` matching, and each stops the corpus at rc 1. A **last** row leaves nothing beneath it, so both counts fall to `11` together and that check is silent. Indenting `supersession_notice` — the last row, and one a fixture is grounded in — is caught instead by that grounding, at rc 1 with `the cap table has no row for 'supersession_notice'`; moving `owner_report` below it and indenting it there, a last row no fixture is grounded in, leaves the corpus `all passed` at rc 0 reporting `6 of 11`. **A dropped last row that no fixture is grounded in is caught by neither check.**
+
+Column 4 is normative and is **not** machine-read; the checker ignores it, and a reader does not.
+
+| `artifact` | `cap_chars` | `counts` | Scope — normative, not machine-read |
+|---|---|---|---|
+| `reviewer_verdict` | `1200` | `body` | the evidence block is **≤ 10 bullets, one line each** |
+| `judgment` | `6000` | `body` | the per-finding resolution table is the excluded part |
+| `review_ledger` | `2000` | `whole` | it **supersedes** — one table per PR, rewritten each cycle, never appended |
+| `revision_packet` | `3000` | `whole` | `@pr-judge` on remand; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
+| `resume_packet` | `1500` | `whole` | `@pr-judge` where the panel could not be convened — only what is expensive to re-derive, per `pr-judge § When the panel cannot be convened` |
+| `worker_envelope` | `1500` | `whole` | every worker completion, and every meta-review payload that fills the same envelope |
+| `worker_report` | `2000` | `body` | a worker's PR body, and its comment reporting a revision cycle; the criteria-and-evidence table is the excluded part |
+| `graph_update` | `1200` | `whole` | — |
+| `orchestrator_dispatch` | `1200` | `whole` | an `@engineering-lead` dispatch |
+| `orchestrator_comment` | `1200` | `own` | every other `@engineering-lead` comment on an issue or PR — courier, relay, status |
+| `owner_report` | `2000` | `whole` | — |
+| `supersession_notice` | `1200` | `own` | any role, over its own artifact: what is superseded, by what, and where the record of record is |
+
+**`own` is the rule whose measurement is a floor rather than the whole answer**, and it is said here rather than discovered: the checker sees only the unfenced text, so an artifact that fences ordinary prose measures small and is under-reported. Fencing prose to sit under a cap is a finding in its own right, and it is the reader who catches it — an instrument whose limit is written down is not the same as one that lies.
+
+**The floor holds in one direction only because the checker refuses the case where it would not.** A fence opens on a run of three or more backticks and closes only on a run **at least as long as the one that opened it**; a shorter run inside an open fence is content, not a delimiter. That length rule is what the toggle needs to be believed: a four-backtick wrapper around a relay carrying its own three-backtick blocks is **two** delimiters, and a state that flipped on all four of those lines balanced, passed the refusal below, and measured the relay as though it were the notice. Fence state is a toggle over the delimiters that rule admits, so an artifact ending inside an open fence has every region after the unmatched one inverted — the relay counted, the prose around it dropped — and that manufactures a false `over` as readily as a false `under`. An over-report is not a floor and no reader is warned by one, so an `own` artifact holding an odd number of fence delimiters, which is the same fact as ending inside an open one, is refused as unmeasurable rather than reported at whichever region the inversion selected.
+
+**`supersession_notice` inherits that floor and adds one condition of its own.** Fencing the retained copy is what `own` is for, and it is equally what removes that copy from the notice's own measurement — so the copy has to be counted somewhere, against the row *it* declares. A retention whose payload was never posted under a row of its own is then measured nowhere at all. **That case is already in the record**: measured on 5 September 2026, the 27,757-char comment on PR #140 is a 933-char notice standing over a judgment and its revision packet that appear in no other comment on that PR. **Retain it fenced and under its own `artifact:` id**, or the notice has made a large artifact invisible by quoting it.
+
+#### Prose is licensed, and the artifact names its licence
+
+**Prose inside a capped artifact is licensed for exactly four things, and the artifact declares in `prose_licence:` which one it is invoking.** In each of the four the reasoning *is* the decision and cannot be recovered from the outcome.
+
+| `prose_licence` | What it licenses prose to record |
+|---|---|
+| `finding_overturned` | a finding **overturned** |
+| `conflict_dissolved` | a conflict **dissolved** |
+| `rule_renegotiated` | a rule **renegotiated** |
+| `predecessor_corrected` | a predecessor **corrected** |
+| `none` | nothing — the artifact carries no prose beyond its own field values |
+
+**Nothing else licenses prose, and the licensed prose is ≤ 5 sentences in total** however many of the four apply at once. **A finding that simply holds gets a row, not a paragraph** — the row states it, the artifact the row names carries the rest, and a reader wanting the argument opens what it cites.
+
+**`none` is a value and not an omission.** An artifact that leaves the key out has not declared that it needed no licence; it has declared nothing, and an undeclared licence is indistinguishable from an unconsidered one. Naming the licence is what makes the rule checkable at all: an unnamed licence can be assumed after the fact by whoever wrote the paragraph.
 
 **The caps are what give the rule above teeth.** *Verbosity is a contract violation, not a style preference* named no number a writer could fail, and a rule nobody can fail is a preference. The cost being cut is not the artifact itself — issue #128 measured 35 judgment comments at about 120k tokens total, roughly 2% of the runs that produced them. It is the **re-read multiplier**: each cycle ingests its predecessors, so on PR #67 the fifth cycle could take in ~25k tokens of earlier prose before reading a line of the diff. A cap is paid once where it is written and refunded on every later pass.
 
 ## The envelope
 
-All handoffs use this shape. Extend it where an agent needs to; **do not populate irrelevant fields** — an empty field is noise that the next reader must still check.
+All handoffs use this shape. Extend it where an agent needs to; **do not populate irrelevant fields** — an empty field is noise that the next reader must still check. **That reaches the optional fields and never the mandatory ones**, which are kept with an explicit empty value however little they have to say: an optional field left out says the sender judged it irrelevant, and a mandatory one left out says nothing at all.
 
 ```yaml
+artifact: worker_envelope
+prose_licence: none
 task_id:
 agent:
 status: completed | blocked | failed | decision_required
@@ -99,7 +159,7 @@ trigger:
 This skill is the envelope. The schemas that fill it were split out on 28 August 2026, because it is loaded by nearly every agent in the organization and each of them was carrying every other role's payload to reach its own:
 
 - **`review-verdicts`** — the reviewer verdict schema, and the evidence law that verdict is measured against. Every convened reviewer loads it.
-- **`handoff-payloads`** — worker completion, the revision packet, the escalation packet, the risk assessment, structured uncertainty, and the dependency finding and graph update.
+- **`handoff-payloads`** — worker completion, the revision packet, the escalation packet, the risk assessment, the confidence assessment, structured uncertainty, and the dependency finding and graph update.
 
 Load the one your role returns, and cite it rather than restating it; neither is summarized here.
 
