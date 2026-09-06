@@ -27,21 +27,23 @@
 # assert a property of the suite rather than a behaviour of claim.sh, and no
 # mutation of claim.sh should be able to move them.
 #
-# A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND THREE OF THEM WERE.
+# A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND FOUR OF THEM WERE.
 # M02, M13 and M20 addressed lines the review board's fixes removed — the mkdir
-# verdict gate, the `\r\n` strip, the `mv -f` of a bare row file. Each still
+# verdict gate, the `\r\n` strip, the `mv -f` of a bare row file — and M38 the
+# one-line `else mismatch=true; fi` that SEC-01's rebuild in this same branch
+# replaced with a multi-line `if`. Each still
 # named a real behaviour, so each was re-aimed at the line that now carries it
 # rather than dropped; a mutation retired quietly is an assertion that stops
 # being demonstrated with nothing saying so. The `cmp -s` guard below is what
-# caught all three, which is the argument for keeping it.
+# caught all four, which is the argument for keeping it.
 #
 # Usage: scripts/loop/tests/claim-table-mutations.sh [id …]
 #        Exit: 0 every mutation killed · 1 any mutation survived or misapplied
 # The whole suite runs once per mutation. Measured on 2026-08-30 on the
-# reference host: one suite run is ~90s and the full matrix of 43 is a little
-# under an hour, so it is a background gate rather than an inner-loop one. Named
+# reference host: one suite run is ~2 min and the full matrix of 47 an hour and
+# a half, so it is a background gate rather than an inner-loop one. Named
 # ids run a subset — `claim-table-mutations.sh M28 M33` — and that is how a
-# single behaviour is re-demonstrated after a change without paying for all 43.
+# single behaviour is re-demonstrated after a change without paying for all 47.
 
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -56,7 +58,7 @@ Q="'"
 
 ALL='M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18
 M19 M20 M21 M22 M23 M24 M25 M26 M27 M28 M29 M30 M31 M32 M33 M34 M35 M36 M37
-M38 M39 M40 M41 M42 M43'
+M38 M39 M40 M41 M42 M43 M44 M45 M46 M47'
 WANT="${*:-$ALL}"
 
 # what each mutation neutralises
@@ -105,6 +107,10 @@ desc() {
     M41) printf 'no read verb surfaces the unclaimed flag' ;;
     M42) printf 'the table follows the caller cwd, so a subdirectory is its own panel' ;;
     M43) printf 'the table enforces a verdict vocabulary and refuses one it does not know' ;;
+    M44) printf 'the filer is checked against the HOLDER again, not against expects' ;;
+    M45) printf 'agent_key stops folding, so one agent is two identities by spelling' ;;
+    M46) printf 'a claim row predating expects no longer falls back to the lane name' ;;
+    M47) printf 'the deleted --note is quietly accepted and dropped again' ;;
   esac
 }
 
@@ -155,6 +161,10 @@ kills() {
     M41) printf 'and a read verb surfaces THAT anomaly too' ;;
     M42) printf 'a main SUBDIRECTORY resolves the same one' ;;
     M43) printf 'a verdict of `pass` is recorded' ;;
+    M44) printf 'and the ORDINARY path is never called an anomaly' ;;
+    M45) printf 'a filer spelled [@docs-reviewer] is the identity expected' ;;
+    M46) printf 'a legacy row falls back to the lane name, at 0' ;;
+    M47) printf 'verdict --note is a usage error at 64' ;;
   esac
 }
 
@@ -232,12 +242,34 @@ mutate() { # mutate <id> <file>
     M32) sed -i 's@^  mv -T "$1" "$2" 2>/dev/null$@  mv "$1" "$2" 2>/dev/null@' "$f" ;;
     # The two-step gate LA-02 filed, at its widest: the name readers test for
     # exists before the payload does, so an interruption leaves it empty.
-    M33) sed -i '/stage="\$row\/\.verdict-staging/i mkdir -p "$row/verdict.d" 2>/dev/null' "$f" ;;
+    #
+    # M33 IS THE ONE MUTATION WHOSE KILL IS ITSELF A RACE, and it lost that race
+    # three times in four. The assertion can only see this defect if the suite's
+    # `kill -9` lands between the directory appearing and its payload committing,
+    # and measured on 2026-08-30 that interval was a small enough slice of one
+    # verdict that the mutant SURVIVED three runs of four — the one kill catching
+    # 1 wrecked writer of 12. A demonstration that lands a quarter of the time is
+    # not a demonstration; it is a gate that goes red on the schedule instead of
+    # on the defect, and this harness's whole claim is to be checkable by anyone
+    # at any later date.
+    #
+    # The `sleep` HOLDS the mutant between the two steps rather than hoping the
+    # scheduler will. That is failure class 1 reproduced deliberately instead of
+    # waited for, and it neutralises nothing extra: `verdict.d` still comes into
+    # existence before its payload, which is the whole of what M33 asserts. The
+    # suite calibrates its kill delays against the MUTANT's own verdict time, so
+    # the window scales with the sleep rather than being outrun by it.
+    M33) sed -i '/stage="\$row\/\.verdict-staging/i mkdir -p "$row/verdict.d" 2>/dev/null; sleep 0.5' "$f" ;;
     M34) sed -i 's@\[ -d "$panel/$l" \] && continue@[ -e "$panel" ] \&\& continue@' "$f" ;;
     M35) sed -i 's@if commit_staged "$stage" "$panel/.manifest.d"; then@if rm -rf "$panel/.manifest.d" 2>/dev/null \&\& commit_staged "$stage" "$panel/.manifest.d"; then@' "$f" ;;
     M36) sed -i 's@printf .lane_state: %s.n. "${one_state:-no-row}"@printf "lane_state_omitted: %s\\n" "${one_state:-no-row}"@' "$f" ;;
     M37) sed -i 's@field artifact @field artifact-never @g' "$f" ;;
-    M38) sed -i 's@else mismatch=true; fi@else mismatch=false; fi@' "$f" ;;
+    # M38 used to aim at `else mismatch=true; fi`, a one-line form SEC-01's
+    # rebuild replaced with a multi-line `if`. Same neutralisation against the
+    # line that now carries it: the anomaly branch never sets the flag, so a
+    # verdict filed by another hand reads clean. Re-aimed rather than dropped,
+    # for the reason M02, M13 and M20 above were.
+    M38) sed -i 's@^      mismatch=true$@      mismatch=false@' "$f" ;;
     M39) sed -i "s@tr -d ${Q}\[:cntrl:\]${Q}@tr -d ${Q}\\\\r\\\\n${Q}@" "$f" ;;
     M40) sed -i '/^cmd_release() {$/,/^}$/ s@if \[ -r "$row/verdict.d/row" \]; then@if [ -d "$row/verdict.d" ]; then@' "$f" ;;
     M41) sed -i 's@field unclaimed @field unclaimed-never @g' "$f" ;;
@@ -252,6 +284,29 @@ mutate() { # mutate <id> <file>
     # the check, so this is the shape of the well-meant "fix" that would silently
     # start refusing `@validation-agent`'s own two words.
     M43) sed -i 's@^  \[ -n "$V" \] || usage_die@  case "$V" in pass|fail) usage_die "verdict — unrecognised ruling" ;; esac; [ -n "$V" ] || usage_die@' "$f" ;;
+    # M44 IS THE DEFECT THAT SHIPPED, and it shipped because nothing here could
+    # see it. SEC-01's first remedy compared `--by` against `owner:`; the judge
+    # holds every lane it claims on a reviewer's behalf, so that comparison
+    # flagged every honest verdict this table will ever see. It was caught by
+    # hand, on a throwaway table, after the commit. This mutation puts the
+    # comparand back exactly as it was, and the assertion it must kill is the
+    # one whose ABSENCE let it through — the clean ordinary path.
+    M44) sed -i 's@agent_key "$holder_expects"@agent_key "$holder_owner"@' "$f" ;;
+    # The same false anomaly, arriving through the SPELLING instead of the
+    # field: dispatches name agents `@docs-reviewer`, `norm_lane` folds a lane
+    # and `--by` is free text that is not folded. Without the fold the two agree
+    # as identities and differ as strings, which is the shape of the two SHA
+    # spellings that once split a panel.
+    M45) sed -i "s#| tr -d ${Q}@${Q} | tr ${Q}A-Z${Q} ${Q}a-z${Q}##" "$f" ;;
+    # And a third time, by DATA AGE: a claim row written before `expects:`
+    # existed carries none, so without the fallback an upgraded table flags
+    # every honest verdict already in it.
+    M46) sed -i 's@|| holder_expects="$LANE"@|| holder_expects="none-recorded"@' "$f" ;;
+    # A deleted flag that is quietly ACCEPTED and dropped is worse than one that
+    # never existed: the caller believes the table holds text it does not hold.
+    # This is the shape of `--note` being put back by a caller that missed LA-10,
+    # so the refusal is what must be demonstrated rather than assumed.
+    M47) sed -i "/^cmd_verdict() {\$/,/^  done\$/ s@^      \*) usage_die@      --note) shift 2 ;;\n      *) usage_die@" "$f" ;;
   esac
 }
 
