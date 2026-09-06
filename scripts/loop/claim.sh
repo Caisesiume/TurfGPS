@@ -1222,6 +1222,12 @@ cmd_status() {
         # expectation — so `unclaimed` does not cover it.
         [ "$(field expects_source "$d/verdict.d/row")" != inferred ] || \
           printf '      expects_source: inferred — no claim row recorded an expectation; the lane name stood in\n'
+        # The row saying it does not know its own writer. `cmd_verdict` above
+        # records `filed_by: unrecorded` when no `--by` arrives and states there
+        # that unrecorded is not a pass; until this line no read verb said it,
+        # so an unattributed ruling printed byte-identically to an attributed one.
+        [ "$(field filed_by "$d/verdict.d/row")" != unrecorded ] || \
+          printf '      filed_by: unrecorded — no --by was passed; this row does not record who wrote it\n'
         ;;
       claimed)
         outstanding="$outstanding $lane"
@@ -1316,12 +1322,18 @@ cmd_list() {
     for s in "$p"*/; do
       [ -d "$s" ] || continue
       sha="$(basename "$s")"
-      t=0; r=0
+      t=0; r=0; unattr=0
       for d in "$s"*/; do
         [ -d "$d" ] || continue
         case "$(basename "$d")" in .*) continue ;; esac   # bookkeeping, not a lane
         t=$((t + 1))
-        [ "$(row_state "$d")" = ruled ] && r=$((r + 1))
+        [ "$(row_state "$d")" = ruled ] || continue
+        r=$((r + 1))
+        # A ruling that does not record its own writer, counted because the one
+        # line below is all this verb prints of a panel and an unattributed
+        # ruling is indistinguishable inside it. `cmd_verdict` above writes the
+        # value and says there why unrecorded is not a pass.
+        [ "$(field filed_by "$d/verdict.d/row")" != unrecorded ] || unattr=$((unattr + 1))
       done
       # A manifest lane with no row is missing from the count above, and a panel
       # that reports complete while one is missing is the defect `manifest`
@@ -1336,6 +1348,8 @@ cmd_list() {
       found=$((found + 1))
       if [ "$t" -eq "$r" ]; then c=complete; else c=incomplete; fi
       printf '  pr-%-6s %-42s lanes %-3s ruled %-3s %s\n' "$n" "$sha" "$t" "$r" "$c"
+      [ "$unattr" -eq 0 ] || \
+        printf '      filed_by: unrecorded on %s of %s ruled row(s)\n' "$unattr" "$r"
     done
   done
   [ "$found" -gt 0 ] || printf '  none\n'
