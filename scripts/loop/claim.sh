@@ -61,11 +61,20 @@
 # STATE
 #   .claude/state/review-claims/ — inside the `/.claude/state/` entry .gitignore
 #   already carries, the established home for durable local control-plane state,
-#   alongside fingerprint.sh's per-consumer files. It is MACHINE-local and not
-#   checkout-local: every worktree of one repository resolves the same table, by
-#   the derivation argued at `table_root` below. CLAIM_TABLE_DIR overrides the
-#   location, which is how a test runs against a throwaway root rather than
-#   against the machine's real table. Every verb echoes the table it resolved.
+#   alongside fingerprint.sh's per-consumer files. It is CLONE-local and not
+#   checkout-local: its scope is one clone and every worktree of that clone,
+#   which is one level narrower than the machine. Every worktree of one clone
+#   resolves the same table, by the derivation argued at `table_root` below, but
+#   a SECOND CLONE of the same repository resolves a table of its own — two
+#   clones on one host are two tables that cannot see each other. Measured on
+#   this host on 6 September 2026, running `table_root` from five cwds: the main
+#   checkout, this linked worktree and a subdirectory of each all answered
+#   `/d/Website/TurfGPS/.claude/state/review-claims`, and a fresh clone answered
+#   its own path. CLAIM_TABLE_DIR overrides the location, which is how a test
+#   runs against a throwaway root rather than against the real table. Each of
+#   the nine table-touching verbs echoes the table it resolved, on the path
+#   where it acts; `help` resolves none and prints none, and a usage refusal
+#   exits 64 from `usage_die` before `say_table` is reached.
 #
 #     <table>/PAUSED                                 flag: no new claims while it exists
 #     <table>/pr-<n>/<sha>/.manifest.d/row           the selected lane set, written once
@@ -102,7 +111,7 @@ set -u
 LC_ALL=C
 export LC_ALL
 
-# THE TABLE IS MACHINE-LOCAL, NOT CHECKOUT-LOCAL
+# THE TABLE IS CLONE-LOCAL, NOT CHECKOUT-LOCAL
 #   A mutual-exclusion table two checkouts of one repository cannot both see is
 #   not a mutual-exclusion table. `--show-toplevel` answers with the caller's
 #   own worktree and a linked worktree is its own toplevel, so a judge in the
