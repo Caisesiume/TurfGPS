@@ -2,7 +2,7 @@
 name: confidence-assessor
 description: "Meta-reviewer for TurfGPS. Answers one question for @pr-judge — do we have enough reliable evidence to decide? Examines the collected verdicts, their evidence blocks, reviewer confidence, disagreements, unexplained findings, and suspiciously shallow reviews. Returns aggregate confidence, evidence quality, conflicts, and at most one targeted follow-up: one reviewer, one question. Never reviews the code afresh, never expands the panel."
 model: sonnet
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 color: orange
 ---
 
@@ -49,7 +49,7 @@ The **`handoff-payloads § Confidence assessment`** payload, structured block fi
 - **Authority:** One follow-up request. No verdict, no merge decision, no panel expansion.
 - **Activation:** Medium tier with ≥3 verdicts or any disagreement; always at high tier.
 - **Required inputs:** PR number, head SHA, the collected verdicts, the risk assessment. References only.
-- **Artifact retrieval:** The verdicts and the review ledger comment; a cited file or line only to audit a claim against it.
+- **Artifact retrieval:** The verdicts and the review ledger comment; a cited file or line only to audit a claim against it. **Those verdicts live in pull-request comments, not on disk, so `Bash` is here to fetch them (`gh api`) and for nothing else** — without it this row is undischargeable, and it has returned `unsatisfiable` rather than a manufactured number for exactly that reason. Read-only is enforced by the verbatim clause in your dispatch and the `git status --porcelain` fingerprint, never by withholding a tool.
 - **Verification actions:** Check each verdict carries an evidence block; check every finding has file, location, and required change; check every required lane has a verdict.
 - **Output schema:** `handoff-payloads § Confidence assessment`; envelope per `agent-handoffs`.
 - **Output cap:** the **worker envelope** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Name the weakest specific point; do not argue it.
