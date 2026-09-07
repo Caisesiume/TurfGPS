@@ -1111,6 +1111,54 @@ check 'in the window the manifest read verb is degraded, at 2' 2 'manifest: amen
 refute '  and never calls it a panel that selected nothing'      'manifest: none'
 check '  saying it is between two selections, not without one' 2 'not without one'
 
+# THE WRITE VERBS IN THE WINDOW, WHICH IS THE PATH THAT ACTUALLY SHIPPED. Every
+# assertion made INSIDE the window above this line is a read. A mutation matrix
+# scoring every one of them would still have passed a script whose WRITER walked
+# into the window, because nothing here had ever called `--lanes` or `--amend`
+# with the set of record moved aside — and the verb that opens this state is the
+# same verb that walks back into it.
+#
+# WHAT IS ASSERTED IS AGAIN THE CONSEQUENCE AND NOT THE GUARD. A case checking
+# only that a refusal is printed stays green against a script that prints one
+# and writes anyway, and green against one that refuses for an unrelated reason.
+# Both leave the panel answering `complete: true` over a set it has not
+# fulfilled, which is the failure this section exists to make unreachable. So
+# each refusal below is followed by asking `status` AGAIN and refuting
+# `complete: true` in the answer — the question a landed write gets wrong
+# whatever the verb that landed it printed on its way through.
+#
+# Measured on this host on 2026-09-07 against a copy whose `amend_in_flight`
+# always answers false, which is the state before the guard in `cmd_manifest`
+# and is what `claim-table-mutations.sh M54` restores, so these figures are
+# reproducible rather than remembered.
+#
+# The amendment goes first because it is the ROUTE and not merely a second door.
+# `--amend` in the window also finds nothing at the set of record, so before the
+# window check was ordered AHEAD of the nothing-to-amend check this verb
+# answered `nothing to amend` at 12 and directed the caller to record it without
+# `--amend`. Refuting that direction is what pins the order of the two checks; an
+# assertion on the refusal alone cannot see it, and a caller obeying the printed
+# direction is exactly how the write below was reached.
+run manifest $PR $SHA --lanes 'alpha beta' --amend --reason 'gamma stood down'
+check 'in the window an amendment is refused, at 2'           2  'manifest: NOT RECORDED'
+refute '  and never as a panel with nothing to amend'            'nothing to amend'
+run status $PR $SHA
+refute 'the refused amendment leaves NO complete: true behind'   'complete: true'
+
+# And the plain selection, which is where that direction sent the caller. It
+# answered `manifest: recorded` at 0 — `commit_staged` finds the name free, so
+# nothing downstream could refuse it — leaving the panel holding a two-lane set
+# with both lanes ruled, its three-lane set of record orphaned under the audit
+# name and cited in no `supersedes:`, and `status` turned from `complete: false`
+# at 10 into `complete: true` at 0. Failure class 4, reached through a writer.
+run manifest $PR $SHA --lanes 'alpha beta'
+check 'in the window a plain selection is refused too, at 2'  2  'manifest: NOT RECORDED'
+refute '  and never reports a set recorded'                      'manifest: recorded'
+check '  saying a set written here would orphan the one on disk' 2 'would orphan the one already on disk'
+run status $PR $SHA
+refute 'the refused selection leaves no complete: true either'   'complete: true'
+check '  the panel still measured incomplete, at 2'           2  'complete: false'
+
 # And the state is transient rather than sticky: the second rename lands and the
 # panel is an ordinary one again. A degraded state a panel cannot leave would be
 # a wedge of its own, and this one is defined by disk state on both sides.
