@@ -253,7 +253,7 @@ COMMENT_JQ='
 
 # ISO-8601 UTC sorts lexicographically, so `newest` is `sort | tail -1` and
 # "strictly after" is a string comparison. No date arithmetic is needed to decide
-# anything; it is needed only to PRINT the gap #172 criterion 1 asks for.
+# anything; it is needed only to PRINT the gaps #172 criterion 1 asks for.
 newer() { [ "$1" \> "$2" ]; }
 
 # ONE COMMIT IS ONE COMMIT HOWEVER ITS SHA IS SPELLED, which is
@@ -297,6 +297,13 @@ gap_days() {
       + substr(s,12,2) * 3600 + substr(s,15,2) * 60 + substr(s,18,2) }
     BEGIN { d = int((secs(b) - secs(a)) / 86400); print (d < 0 ? 0 : d) }'
 }
+
+# The run's own clock, read ONCE so that every age printed below is measured
+# from one instant rather than from wherever the loop had got to. `claim.sh`'s
+# shape, fallback included: a host whose `date` gives no UTC stamp says so in
+# the line instead of printing a number derived from nothing.
+NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
+case "$NOW" in ????-??-??T??:??:??Z) ;; *) NOW="" ;; esac
 
 n_owed=0; n_clear=0; n_undeclared=0; n_unreadable=0; n_read=0
 lines=""; owed_detail=""; undeclared_detail=""
@@ -384,8 +391,23 @@ EOF
     packet=undeclared; packet_why="no declared revision_packet"
   elif newer "$newest_packet" "$newest_commit"; then
     packet=owed
+    # BOTH gaps, each labelled with the two stamps it spans. #172 criterion 1
+    # asks for "the gap in days" and does not settle WHICH two stamps that is:
+    # its sentence describes packet-minus-commit, and the table printed under it
+    # reports now-minus-packet. #135's packet was ONE day past its newest commit
+    # and had been carried EIGHT when the survey found it, so on the issue's own
+    # headline instance the two readings differ eightfold — and this line used
+    # to print the smaller one under the larger one's name. Settling that text
+    # is @engineering-lead's (CORE-07, root cause `requirement`); until it is
+    # settled the line privileges neither reading, and neither number can be
+    # taken for the other.
+    if [ -n "$NOW" ]; then
+      carried="and has been carried $(gap_days "$newest_packet" "$NOW") day(s) since, to now $NOW (now-minus-packet)"
+    else
+      carried="and has been carried for a time this host cannot print: its \`date -u\` gave no UTC stamp"
+    fi
     owed_detail="$owed_detail
-  #$pr revision_packet $newest_packet is $(gap_days "$newest_commit" "$newest_packet") day(s) newer than the newest commit $newest_commit"
+  #$pr revision_packet posted $newest_packet is $(gap_days "$newest_commit" "$newest_packet") day(s) past the newest commit $newest_commit (packet-minus-commit), $carried"
   else
     packet=clear
   fi
