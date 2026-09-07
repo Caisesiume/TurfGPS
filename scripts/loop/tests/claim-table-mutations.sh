@@ -31,7 +31,7 @@
 # undemonstrated set as classes nothing could move — preconditions, tolerance
 # assertions, hermeticity guards, absences over deleted surface — and to leave it
 # there; that description was written once and it did not cover the set. Measured
-# at this head: **80 of 392 assertions are undemonstrated**, and by the section
+# at this head: **80 of 400 assertions are undemonstrated**, and by the section
 # they sit in they are 11 `manifest`, 10 filer-identity, 10 `release`, 7
 # condition 1, 6 condition 3, 4 exit-code contract, 4 filer-naming, 4
 # ruling-commit, and 3 each in the amendment between-state, worktree,
@@ -67,12 +67,12 @@
 # Usage: scripts/loop/tests/claim-table-mutations.sh [id …]
 #        Exit: 0 every mutation killed · 1 any mutation survived or misapplied
 # The whole suite runs once per mutation, plus once for the baseline. Re-measured
-# on 2026-09-07 on the reference host, at 392 assertions: the full matrix of 55
-# is 56 suite runs and took 150 min 06 s wall, so one run is about 161 s and this
+# on 2026-09-07 on the reference host, at 400 assertions: the full matrix of 55
+# is 56 suite runs and took 166 min 43 s wall, so one run is about 179 s and this
 # is a background gate rather than an inner-loop one. Named ids run a subset —
 # `claim-table-mutations.sh M28 M33` — and that is how a single behaviour is
 # re-demonstrated after a change without paying for all 55; that subset was
-# 8 min 56 s in the same session. A subset run does not print the undemonstrated
+# 9 min 43 s in the same session. A subset run does not print the undemonstrated
 # list; the block at the foot of this file says why.
 
 set -u
@@ -517,8 +517,8 @@ done
 # assertion no mutation IN THIS RUN made fail", and under a named subset that is
 # very nearly every assertion in the suite. Re-measured on 2026-09-07 at this
 # head: `M28 M33` — the subset the usage line above recommends — kills both its
-# mutations and shows 11 of 392 assertions red, so the report as it stood named
-# the other 381 as undemonstrated. Not one of them was a finding about the
+# mutations and shows 11 of 400 assertions red, so the report as it stood named
+# the other 389 as undemonstrated. Not one of them was a finding about the
 # suite; they are an artefact of what was asked for, printed in the imperative
 # voice of a finding, directly above the exit code. An alarm that fires on the
 # ordinary use of the tool is an alarm its reader learns to skip, and the
