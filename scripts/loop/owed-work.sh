@@ -112,8 +112,11 @@
 # An unreadable source outranks a finding because a run that cannot see the queue
 # cannot vouch for what it did see, which is `fingerprint.sh`'s rule for a
 # degraded component and `output-caps.sh`'s for cannot-run. Precedence governs the
-# STATUS only, never what is printed: every owed and every undeclared line found
-# before the failure is still printed. Silence and "nothing owed" must not look
+# STATUS only, never what is printed and never the counts: the classes are
+# counted independently, so a PR owed on one class and unanswerable on another is
+# in `owed` AND in `undeclared` and the counts need not sum to the PRs read —
+# every owed and every undeclared line found before the failure is still printed.
+# Silence and "nothing owed" must not look
 # identical (#172 criterion 3), so the summary line is printed on EVERY PATH THAT
 # READ SOMETHING — including every failure on one — and `owed 0` is only ever
 # reached by a run that read something.
@@ -461,17 +464,43 @@ EOJ
     fi
   fi
 
-  case "$packet$ruling$validation" in
-    *owed*)       state=owed;       n_owed=$((n_owed + 1)) ;;
-    *undeclared*) state=undeclared; n_undeclared=$((n_undeclared + 1))
+  # --- the three class states, then this PR's state and the counts -----------
+  # THE SUBSTRING INVARIANT, stated where it is relied on: each class token is
+  # fenced with `|` on both sides, so `*"|owed|"*` matches a WHOLE token and can
+  # never match across a join. The previous shape tested `$packet$ruling$valida-
+  # tion` — three tokens concatenated bare — where nothing but the accident of
+  # today's vocabulary kept a boundary from spelling one of them.
+  classes="|$packet|$ruling|$validation|"
+
+  # PRECEDENCE DECIDES THE PRINTED STATE. IT DOES NOT DECIDE THE COUNTS, and the
+  # old single `case` let it: one bucket per PR meant a PR owed on one class and
+  # unanswerable on another was counted `owed` and ONLY owed, so `n_undeclared`
+  # read 0 and the `undeclared:` line was never printed at all — while the
+  # precedence paragraph above promises precedence governs the status and never
+  # what is printed, and the consumer (`engineering-lead § Phase 1`) branches on
+  # those counts. Live on 2026-09-07, #181 and #135 both read `packet=undeclared`
+  # under `summary: ... undeclared 0`.
+  #
+  # So the classes are counted independently: a PR can appear in `owed` AND in
+  # `undeclared`, and the four counts therefore need not sum to the PRs read.
+  # The EXIT precedence 2 > 1 > 3 > 0 is untouched, and is where owed still
+  # outranks undeclared — one status per run, all the counts it was reached by.
+  state=clear
+  case "$classes" in
+    *"|owed|"*) state=owed; n_owed=$((n_owed + 1)) ;;
+  esac
+  case "$classes" in
+    *"|undeclared|"*)
+      [ "$state" = owed ] || state=undeclared
+      n_undeclared=$((n_undeclared + 1))
       # Named, because a state the script CANNOT ANSWER is the one a reader is
       # most likely to mistake for a clean one.
       miss="$packet_why"
       [ -z "$ruling_why" ] || miss="${miss:+$miss · }$ruling_why"
       undeclared_detail="$undeclared_detail
   #$pr $miss — cannot be judged; this is NOT \"nothing owed\"" ;;
-    *)            state=clear;      n_clear=$((n_clear + 1)) ;;
   esac
+  [ "$state" = clear ] && n_clear=$((n_clear + 1))
 
   add "$(printf '#%-5s %-11s packet=%-11s ruling=%-11s validation=%s' \
          "$pr" "$state" "$packet" "$ruling" "$validation")"
