@@ -98,7 +98,7 @@ scripts/loop/claim.sh verdict <pr> <sha> <lane> <ruling> --by <your own lane> \
   --conf <x> --findings <n> --artifact <where the full verdict is>
 ```
 
-**Running this verb does not breach the read-only clause your dispatch carries, which governs the repository's tracked tree** — the claim table is the clone-local ignored state `review-board-dispatch § The claim table` locates, so writing your row touches nothing that tree holds, and every tracked file stays exactly as untouchable as the clause reads.
+**Running this verb does not breach the read-only clause your dispatch carries, which governs what `git status --porcelain` reports and not the tracked tree alone: an untracked file lands in that report as `??` and invalidates the board run, per `review-board-dispatch § The read-only clause (learned the hard way)`** — the claim table is the clone-local ignored state `review-board-dispatch § The claim table` locates, so writing your row adds nothing to that report, and every tracked file stays exactly as untouchable as the clause reads.
 
 `<ruling>` is the verdict word from `§ Reviewer verdict` above; the table enforces no vocabulary of its own, so a word this skill does not define is a word nothing will refuse. **The dispatch carries the other three arguments** — PR number, head SHA, and your lane name — per `review-board-dispatch § The case file (same for every reviewer) — references, not content`. A dispatch that does not carry them convened you outside the table: record what you can, and say so in your verdict rather than guessing a panel key.
 
