@@ -493,10 +493,10 @@ EOF
   #
   # B1 IS NOT A TIME TEST, and the previous "a judgment strictly after the
   # panel" was not a convention this could lean on — it was the CONTRACT read
-  # backwards. `pr-judge § Phase 9` posts the judgment and `§ Phase 10` posts
-  # the ledger, in that order, so on a correctly ruled PR the ledger is ALWAYS
-  # the newer of the two and "judgment after panel" is false on every one of
-  # them. Measured across 9 of 9 ruled cycles (#163 x6, #154 x2, #135 x1):
+  # backwards. `pr-judge § Phase 9` posts the judgment and `pr-judge § Phase 10`
+  # posts the ledger, in that order, so on a correctly ruled PR the ledger is
+  # ALWAYS the newer of the two and "judgment after panel" is false on every one
+  # of them. Measured across 9 of 9 ruled cycles (#163 x6, #154 x2, #135 x1):
   # ledger strictly newer, zero counterexamples. #181 cycle 1 is judgment
   # 18:40:55Z, ledger 18:41:01Z, six seconds apart and in that order.
   # #178 criterion 2 asks for a ruling's EXISTENCE — "a convened panel with no
@@ -582,8 +582,13 @@ EOJ
   # unanswerable on another was counted `owed` and ONLY owed, so `n_undeclared`
   # read 0 and the `undeclared:` line was never printed at all — while the
   # precedence paragraph above promises precedence governs the status and never
-  # what is printed, and the consumer (`engineering-lead § Phase 1`) branches on
-  # those counts. Live on 2026-09-07, #181 and #135 both read `packet=undeclared`
+  # what is printed, and the counts are the branch surface this run publishes.
+  # NO CONSUMER IS DOCUMENTED YET: the block that would branch on these counts
+  # is deferred to #178, itself blocked by #182, so this comment names none
+  # rather than naming one that does not exist. They are per class regardless,
+  # because a status precedence has already spent on `owed` cannot answer "is
+  # any PR unanswerable?" — and that is the question the fourth state exists to
+  # answer. Live on 2026-09-07, #181 and #135 both read `packet=undeclared`
   # under `summary: ... undeclared 0`.
   #
   # So the classes are counted independently: a PR can appear in `owed` AND in

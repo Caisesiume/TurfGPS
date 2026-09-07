@@ -136,10 +136,11 @@
 #
 # AN OWED CLASS IS ASSERTED ON FOUR SURFACES, NOT ON ONE TABLE CELL: the class
 # pair in the PR's own line, the PR's STATE token, the run's EXIT STATUS, and the
-# SUMMARY COUNTS the consumer branches on (`engineering-lead § Phase 1`). A cell is
-# the cheapest of the four to get right by accident, and under the previous corpus
-# a detector that lost a whole condition moved exactly one of them. See the
-# S-block.
+# SUMMARY COUNTS, which are the branch surface the detector publishes — no
+# consumer is documented yet, that block being deferred to #178, blocked by
+# #182. A cell is the cheapest of the four to get right by accident, and under
+# the previous corpus a detector that lost a whole condition moved exactly one
+# of them. See the S-block.
 #
 # GREEN AGAINST THE REAL DETECTOR PROVES NOTHING, which is why this file takes an
 # optional argument and why `owed-work-stubs.sh` exists beside it.
@@ -1091,8 +1092,9 @@ state_is  "S5  an unreadable source is named on its own line"               930 
 check_rc  "S5  ... exit 2"                                                   2
 check_has "S5  ... summary unreadable 1"                                    "unreadable 1"
 
-# THE COUNTS ARE PER CLASS AND NEED NOT SUM TO THE PRs READ, which the consumer
-# branches on (`engineering-lead § Phase 1`) and the detector's header promises.
+# THE COUNTS ARE PER CLASS AND NEED NOT SUM TO THE PRs READ, which the detector's
+# header promises and which no documented consumer yet reads — that block is
+# deferred to #178, blocked by #182.
 # #913 is owed on A and unanswerable on B in one PR: a run that bucketed one state
 # per PR reports `undeclared 0` here and never prints the undeclared block at all.
 run 913
