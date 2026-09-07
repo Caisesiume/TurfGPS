@@ -28,7 +28,7 @@ prose_licence: none           # or the one licence being invoked
 
 `artifact:` is what lets a checker measure a comment it knows nothing else about: the artifact names itself, rather than the instrument guessing from the author or the wording. `prose_licence:` is how the licence rule below is enforced rather than merely stated.
 
-**The rest of the mandatory keys are per role, and every role that has a producing schema states its own there** — `review-verdicts § Reviewer verdict` for a convened reviewer, and the payloads in `handoff-payloads` for the roles those cover. **A cap-table row is not a producing schema**, and five of the twelve rows below currently have only that: `worker_report`, `orchestrator_dispatch`, `orchestrator_comment`, `owner_report` and `supersession_notice` are capped below and are declared by no schema in `handoff-payloads`, `review-verdicts`, or any agent definition, so the two keys above are the whole of what binds them until one exists. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
+**The rest of the mandatory keys are per role, and every role that has a producing schema states its own there** — `review-verdicts § Reviewer verdict` for a convened reviewer, and the payloads in `handoff-payloads` for the roles those cover. **A cap-table row is not a producing schema**, and five of the thirteen rows below currently have only that: `worker_report`, `orchestrator_dispatch`, `orchestrator_comment`, `owner_report` and `supersession_notice` are capped below and are declared by no schema in `handoff-payloads`, `review-verdicts`, or any agent definition, so the two keys above are the whole of what binds them until one exists. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
 
 ## The limit
 
@@ -88,6 +88,7 @@ Column 4 is normative and is **not** machine-read; the checker ignores it, and a
 | `orchestrator_dispatch` | `1200` | `whole` | an `@engineering-lead` dispatch |
 | `orchestrator_comment` | `1200` | `own` | every other `@engineering-lead` comment on an issue or PR — courier, relay, status |
 | `owner_report` | `2000` | `whole` | — |
+| `validation_result` | `1800` | `body` | `@validation-agent`'s own machine result, posted to the PR when it runs — **not a `reviewer_verdict`** and never carrying that vocabulary; it declares the `sha:` it measured, so a result at a superseded head is distinguishable from one at the tip. The gate lines are evidence and are counted; the `findings:` list is the excluded part |
 | `supersession_notice` | `1200` | `own` | any role, over its own artifact: what is superseded, by what, and where the record of record is |
 
 **`own` is the rule whose measurement is a floor rather than the whole answer**, and it is said here rather than discovered: the checker sees only the unfenced text, so an artifact that fences ordinary prose measures small and is under-reported. Fencing prose to sit under a cap is a finding in its own right, and it is the reader who catches it — an instrument whose limit is written down is not the same as one that lies.
