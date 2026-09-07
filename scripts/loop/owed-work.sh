@@ -8,8 +8,12 @@
 #             judge ruled, persisted, and ended on, that no worker ever received.
 #             Measured 2026-09-06: three of six open PRs had carried one for
 #             EIGHT DAYS, and nothing anywhere recorded that the hop was owed.
-#   B (#178)  a convened panel with no ruling after it, and a panel naming
-#             @validation-agent with no validation verdict after it. Measured on
+#   B (#178)  a convened panel with no ruling OF ITS OWN IDENTITY — the panel
+#             and its ruling both declare `sha:` and `cycle:`, and the ruling is
+#             matched to the panel by those and never by posting order, which
+#             the judge's own contract fixes the other way round (see B1 in the
+#             body) — and a panel naming @validation-agent with no validation
+#             verdict after it. Measured on
 #             #135 cycle 4, #135 cycle 5 and #154 cycle 6: the pass ended before
 #             the mandatory last lane, and each was caught only because a human
 #             noticed a silence.
@@ -37,7 +41,8 @@
 # Four declared ids are read, and what each one settles:
 #   revision_packet   the remand           — condition A
 #   review_ledger     the convened panel   — conditions B1 and B2
-#   judgment          the ruling           — discharges B1
+#   judgment          the ruling           — discharges B1 when the `sha:` and
+#                     `cycle:` it declares are the panel's own
 #   reviewer_verdict  a lane's verdict     — discharges B2 when its own
 #                     `reviewer:` key names validation-agent
 #
@@ -65,9 +70,11 @@
 # ---------------------------------------------------------------------------
 #   owed        a declared artifact, and nothing after it
 #   clear       a declared artifact, and something after it
-#   undeclared  NO declared artifact of that class on this PR. The script CANNOT
-#               ANSWER. Reported distinctly, NEVER printed as `clear`, and never
-#               folded into "nothing owed" (#172 criterion 3).
+#   undeclared  NO declared artifact of that class on this PR — or, where the
+#               class is matched by declared identity, none carrying one this
+#               script can match. The script CANNOT ANSWER. Reported distinctly,
+#               NEVER printed as `clear`, and never folded into "nothing owed"
+#               (#172 criterion 3).
 #
 # A FOURTH TOKEN, `n/a`, IS PRINTED IN THE `validation=` COLUMN AND IS NOT ONE OF
 # THE THREE ABOVE: it marks a class that does not apply to this PR rather than a
@@ -210,29 +217,69 @@ fi
 # not is reported as unreadable rather than answered from.
 #
 # Every field is space-free by construction — an ISO-8601 stamp, two captured
-# identifier tokens, a 0/1 flag — which is what makes a positional record safe
-# here at all, and what makes `overflow` an assertion rather than a formality.
-RECORD_FIELDS='ts id reviewer namesval'
+# identifier tokens, a 0/1 flag, hex, digits — which is what makes a positional
+# record safe here at all, and what makes `overflow` an assertion rather than a
+# formality.
+RECORD_FIELDS='ts id reviewer namesval sha cycle'
 
 # `\r` is stripped first: GitHub serves CRLF bodies, and a trailing carriage
 # return leaves `^artifact:` matching a line whose id then carries an invisible
 # character into every comparison below.
+#
+# `sha:` and `cycle:` are read under the SAME first-declaration rule as
+# `artifact:`, for the same reason: the first declaration is the comment's own
+# and a later one belongs to something it relays verbatim. A `sha:` that is not
+# 7-40 hex characters and a `cycle:` that is not digits are `-` — unusable for
+# identity rather than guessed at. Trailing prose after either value is ignored,
+# because judges write it (`cycle: 5 — last in budget`).
 COMMENT_JQ='
 .[]
 | ((.body // "") | gsub("\r"; "")) as $b
 | ($b | split("\n")) as $L
 | ([$L[] | select(test("^artifact:[ \t]*[A-Za-z0-9_]"))][0] // "") as $a
 | ([$L[] | select(test("^reviewer:[ \t]*[@A-Za-z0-9_-]"))][0] // "") as $r
+| ([$L[] | select(test("^sha:[ \t]*[0-9a-fA-F]{7,40}([^0-9a-fA-F]|$)"))][0] // "") as $s
+| ([$L[] | select(test("^cycle:[ \t]*[0-9]"))][0] // "") as $c
 | [ .created_at,
     (if $a == "" then "-" else ($a | capture("^artifact:[ \t]*(?<i>[A-Za-z0-9_]+)") | .i) end),
     (if $r == "" then "-" else ($r | capture("^reviewer:[ \t]*(?<i>[@A-Za-z0-9_-]+)") | .i) end),
-    (if ($b | test("(^|[^0-9A-Za-z_-])@?validation-agent([^0-9A-Za-z_-]|$)")) then "1" else "0" end)
+    (if ($b | test("(^|[^0-9A-Za-z_-])@?validation-agent([^0-9A-Za-z_-]|$)")) then "1" else "0" end),
+    (if $s == "" then "-" else ($s | capture("^sha:[ \t]*(?<i>[0-9a-fA-F]+)") | .i) end),
+    (if $c == "" then "-" else ($c | capture("^cycle:[ \t]*(?<i>[0-9]+)") | .i) end)
   ] | join(" ")'
 
 # ISO-8601 UTC sorts lexicographically, so `newest` is `sort | tail -1` and
 # "strictly after" is a string comparison. No date arithmetic is needed to decide
 # anything; it is needed only to PRINT the gap #172 criterion 1 asks for.
 newer() { [ "$1" \> "$2" ]; }
+
+# ONE COMMIT IS ONE COMMIT HOWEVER ITS SHA IS SPELLED, which is
+# `review-board-dispatch § The claim table`'s rule for a panel key and must hold
+# here too: judges declare `sha: d5f3a58` on one PR and the full 40-hex
+# `297632d4e4d7…` on another, and an identity test that called those different
+# would report a ruled panel unruled. Either may be the prefix of the other.
+# Both sides are validated as hex of at least 7 characters first — which also
+# keeps the `case` patterns literal — and anything else is refused rather than
+# matched loosely, so a malformed stamp leaves the question unanswered instead
+# of discharging it.
+sha_same() {
+  _a="$(printf '%s' "${1:-}" | tr 'ABCDEF' 'abcdef')"
+  _b="$(printf '%s' "${2:-}" | tr 'ABCDEF' 'abcdef')"
+  case "$_a" in ''|*[!0-9a-f]*) return 1 ;; esac
+  case "$_b" in ''|*[!0-9a-f]*) return 1 ;; esac
+  [ "${#_a}" -ge 7 ] && [ "${#_b}" -ge 7 ] || return 1
+  case "$_a" in "$_b"*) return 0 ;; esac
+  case "$_b" in "$_a"*) return 0 ;; esac
+  return 1
+}
+
+# Cycles are compared as numbers, so `07` and `7` are one cycle; a non-numeric
+# cycle is no cycle and is refused for the same reason a malformed sha is.
+cycle_same() {
+  case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+  case "${2:-}" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -eq "$2" ]
+}
 
 # The gap in whole days, from two `YYYY-MM-DDTHH:MM:SSZ` stamps. Pure awk
 # arithmetic over the civil calendar (the Julian-day formula), because `mktime`
@@ -276,8 +323,8 @@ for pr in $prs; do
     continue
   fi
 
-  newest_packet=""; newest_panel=""; newest_judgment=""; newest_val=""; panel_names_val=0
-  overflow=""
+  newest_packet=""; newest_panel=""; newest_val=""; panel_names_val=0
+  panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""
   # `$RECORD_FIELDS` is deliberately unquoted: splitting the ONE declared field
   # list is what makes it the one place the record's shape is written down. The
   # list holds nothing but names and spaces, so the split is exact.
@@ -286,9 +333,21 @@ for pr in $prs; do
     [ -n "${ts:-}" ] || continue
     [ -z "$overflow" ] || break
     case "$id" in
-      revision_packet) newer "$ts" "$newest_packet"   && newest_packet="$ts" ;;
-      judgment)        newer "$ts" "$newest_judgment" && newest_judgment="$ts" ;;
-      review_ledger)   if newer "$ts" "$newest_panel"; then newest_panel="$ts"; panel_names_val="$namesval"; fi ;;
+      revision_packet) newer "$ts" "$newest_packet" && newest_packet="$ts" ;;
+      judgment)
+        # Every ruling's identity is COLLECTED here and matched below, never
+        # matched here: the panel a ruling belongs to may still be later in the
+        # stream, and on a correctly ruled PR it always is (Phase 9 then 10).
+        # `judgment_seen` is kept apart from the identities so the undeclared
+        # line can say WHICH of the two absences it met.
+        judgment_seen=1
+        [ "$sha" = "-" ] || [ "$cycle" = "-" ] || judgment_ids="$judgment_ids
+$sha $cycle" ;;
+      review_ledger)
+        if newer "$ts" "$newest_panel"; then
+          newest_panel="$ts"; panel_names_val="$namesval"
+          panel_sha="$sha"; panel_cycle="$cycle"
+        fi ;;
       reviewer_verdict)
         # Only validation-agent's own verdict discharges B2, and it is its
         # declared `reviewer:` key that says so — never the author, never the prose.
@@ -311,9 +370,15 @@ EOF
   fi
   n_read=$((n_read + 1))
 
+  # Each class says WHY it could not be answered where it decides that it could
+  # not, rather than having the reason inferred back out of the token later:
+  # `undeclared` now has more than one cause, and a line that names the wrong
+  # one is exactly as misleading as no line.
+  packet_why=""; ruling_why=""
+
   # --- A (#172): a remand newer than the newest commit ----------------------
   if [ -z "$newest_packet" ]; then
-    packet=undeclared
+    packet=undeclared; packet_why="no declared revision_packet"
   elif newer "$newest_packet" "$newest_commit"; then
     packet=owed
     owed_detail="$owed_detail
@@ -322,17 +387,68 @@ EOF
     packet=clear
   fi
 
-  # --- B1 (#178): a convened panel with no ruling after it -------------------
+  # --- B1 (#178): a convened panel with no ruling FOR THAT PANEL -------------
   # --- B2 (#178): that panel names the mandatory last lane, which never ran --
+  #
+  # B1 IS NOT A TIME TEST, and the previous "a judgment strictly after the
+  # panel" was not a convention this could lean on — it was the CONTRACT read
+  # backwards. `pr-judge § Phase 9` posts the judgment and `§ Phase 10` posts
+  # the ledger, in that order, so on a correctly ruled PR the ledger is ALWAYS
+  # the newer of the two and "judgment after panel" is false on every one of
+  # them. Measured across 9 of 9 ruled cycles (#163 x6, #154 x2, #135 x1):
+  # ledger strictly newer, zero counterexamples. #181 cycle 1 is judgment
+  # 18:40:55Z, ledger 18:41:01Z, six seconds apart and in that order.
+  # #178 criterion 2 asks for a ruling's EXISTENCE — "a convened panel with no
+  # ruling" — so dropping the temporal strengthening restores the criterion
+  # rather than relaxing it.
+  #
+  # A ruling is matched to its panel by the IDENTITY BOTH ARTIFACTS DECLARE:
+  # `sha:` and `cycle:`. #135's cycle-7 judgment and ledger both declare
+  # `sha: d5f3a58, cycle: 7`; #181's both declare `297632d4…` and `cycle: 1`.
+  # Two artifacts of one panel say so themselves, and no clock is consulted.
+  #
+  # THE COMPARISON IS BETWEEN THE TWO ARTIFACTS' OWN DECLARED SHAs — never
+  # against the PR's current head. A force-push moves the head, and a test of
+  # the form "the panel's sha is the head" would then read a genuinely unruled
+  # panel as stale history and discharge it: a SILENT FALSE NEGATIVE, which is
+  # the dangerous direction for a detector whose entire purpose is to make an
+  # owed hop visible. What the head is doing now is not evidence about whether
+  # a panel was ever ruled.
+  #
+  # AND THE DISCHARGE CLASS GETS THE THIRD STATE THE SOURCE CLASSES HAVE. Where
+  # the panel declares no identity, or no declared `judgment` carries one, this
+  # script cannot match a ruling to a panel — and a ruling it cannot match is
+  # not a ruling it may report as missing. An undeclared artifact is invisible
+  # here by construction (#172 criterion 2), so `owed` would be asserting an
+  # absence the marker discipline cannot see. `undeclared` is loud in its own
+  # right: printed under `undeclared:`, counted, and exit 3, never `clear` and
+  # never folded into nothing-owed.
   if [ -z "$newest_panel" ]; then
-    ruling=undeclared; validation=undeclared
+    ruling=undeclared; ruling_why="no declared review_ledger"
+    validation=undeclared
   else
-    if newer "$newest_judgment" "$newest_panel"; then
-      ruling=clear
+    if [ "$panel_sha" = "-" ] || [ "$panel_cycle" = "-" ]; then
+      ruling=undeclared
+      ruling_why="the newest declared review_ledger declares no sha:/cycle: to match a ruling to"
+    elif [ -z "$judgment_ids" ]; then
+      ruling=undeclared
+      if [ "$judgment_seen" -eq 1 ]; then
+        ruling_why="no declared judgment carries a sha:/cycle: to match against the panel"
+      else
+        ruling_why="no declared judgment on this PR to match against the panel"
+      fi
     else
       ruling=owed
-      owed_detail="$owed_detail
-  #$pr review_ledger $newest_panel has no declared judgment after it — a panel convened and never ruled"
+      while IFS=' ' read -r jsha jcycle; do
+        [ -n "${jsha:-}" ] || continue
+        if sha_same "$jsha" "$panel_sha" && cycle_same "$jcycle" "$panel_cycle"; then
+          ruling=clear; break
+        fi
+      done <<EOJ
+$judgment_ids
+EOJ
+      [ "$ruling" = owed ] && owed_detail="$owed_detail
+  #$pr review_ledger $newest_panel (sha $panel_sha, cycle $panel_cycle) has no declared judgment of that identity — a panel convened and never ruled"
     fi
     if [ "$panel_names_val" != "1" ]; then
       validation=n/a
@@ -350,9 +466,8 @@ EOF
     *undeclared*) state=undeclared; n_undeclared=$((n_undeclared + 1))
       # Named, because a state the script CANNOT ANSWER is the one a reader is
       # most likely to mistake for a clean one.
-      miss=""
-      [ "$packet" = undeclared ] && miss="no declared revision_packet"
-      [ "$ruling" = undeclared ] && miss="${miss:+$miss · }no declared review_ledger"
+      miss="$packet_why"
+      [ -z "$ruling_why" ] || miss="${miss:+$miss · }$ruling_why"
       undeclared_detail="$undeclared_detail
   #$pr $miss — cannot be judged; this is NOT \"nothing owed\"" ;;
     *)            state=clear;      n_clear=$((n_clear + 1)) ;;
