@@ -92,6 +92,14 @@ fails=0; cases=0; CASE=0
 fresh() { CASE=$((CASE + 1)); CLAIM_TABLE_DIR="$TMP/tbl$CASE"; export CLAIM_TABLE_DIR; }
 row_of() { printf '%s' "$CLAIM_TABLE_DIR/pr-$1/$2/$3"; }
 run() { OUT="$(bash "$SCRIPT" "$@" 2>&1)"; RC=$?; }
+# run, from a chosen working directory. Almost every case here is indifferent to
+# the cwd, and `run` above leaves it wherever the suite was started for exactly
+# that reason. `--lanes` is not indifferent to it: it is the one CALLER argument
+# this script word-splits, and an unquoted expansion is GLOB-expanded as well as
+# split, so a pattern in it is matched against the CALLER'S cwd. For that case
+# the cwd is part of the input and has to be a directory this suite built rather
+# than one it inherited.
+run_in() { _rd="$1"; shift; OUT="$(cd "$_rd" && bash "$SCRIPT" "$@" 2>&1)"; RC=$?; }
 flat() { printf '%s' "${1:-}" | tr '\n' '|'; }
 has() { case "$1" in *"$2"*) return 0 ;; *) return 1 ;; esac; }
 pass() { cases=$((cases + 1)); printf 'PASS  %s\n' "$1"; }
@@ -996,6 +1004,34 @@ is '  and writes nothing at all' \
 run manifest $PR $SHA --lanes '   '
 check 'an empty selection is refused'                         64 'may not be empty'
 
+# THE SET IS WORD-SPLIT AND IT IS NOT GLOBBED, WHICH ARE TWO EXPANSIONS AND NOT
+# ONE. claim.sh has three unquoted `for … in $x` loops and this is the only one
+# reading a CALLER argument — the other two split a `lanes:` field `norm_lane`
+# gated on the way in, where no pattern character can have survived. This one
+# wants the split and nothing else; unquoted, the same word is also matched
+# against the CALLER'S cwd, so `--lanes '*'` recorded whatever files happened to be
+# sitting in the directory the caller ran from as the selected panel. That is a
+# lane set derived from a directory listing, written once, that `complete` is
+# then measured against for the life of the panel — coverage asserted over names
+# nobody selected. `set -f` around the loop is the whole of the control, and
+# nothing above can see it: every other case here passes a set with no pattern
+# in it, so the glob never fires and the guard is never exercised.
+#
+# The cwd is therefore built and populated, because a case that ran from an
+# EMPTY directory would leave `*` unmatched, bash would pass the pattern through
+# unchanged, and the refusal would arrive for the right reason with the control
+# removed. The decoy is named as a lane `norm_lane` would accept, so the failure
+# under a missing guard is a set quietly RECORDED rather than a second refusal.
+fresh
+mkdir -p "$TMP/glob$CASE" 2>/dev/null
+: > "$TMP/glob$CASE/decoy-lane"
+run_in "$TMP/glob$CASE" manifest $PR $SHA --lanes '*'
+check 'a pattern in --lanes is a malformed lane, not a listing' 64 '[a-z0-9._-]'
+refute '  and nothing is recorded from the caller working directory' 'manifest: recorded'
+refute '  the file sitting there never becoming a selected lane'     'decoy-lane'
+is '  and no table is created for it either' \
+   "$([ -e "$CLAIM_TABLE_DIR" ] && printf created || printf absent)" absent
+
 # A panel with no manifest behaves exactly as it did before: the table does not
 # start refusing panels written by a caller that has not been taught to select.
 fresh
@@ -1004,6 +1040,85 @@ run verdict $PR $SHA solo approved
 run status $PR $SHA
 check 'an unmanifested panel still completes on its own rows' 0  'complete: true'
 check '  saying it has no expected set'                       0  'manifest: none'
+
+# ---------------------------------------------------------------------------
+section 'the amendment between-state is NAMED, and is never a complete panel'
+# ---------------------------------------------------------------------------
+# `--amend` renames the prior set aside BEFORE committing its replacement,
+# because the write-once gate refuses a name that already holds a record. So
+# between the two renames the panel holds a superseded set and nothing at
+# `.manifest.d`, and every read verb tested for `.manifest.d` alone: the window
+# read as a panel that had never selected anything, and `complete` fell back to
+# counting the rows that happen to exist. Measured on this host on 2026-09-07,
+# on the panel this case builds, against read verbs that test for `.manifest.d`
+# alone — which is what `claim-table-mutations.sh M54` restores, so the figures
+# are reproducible rather than remembered. Outside the window: `lanes: 3 ·
+# ruled: 2 · outstanding: 1` and `complete: false` at 10. Inside it: `manifest:
+# none`, `lanes: 2 · ruled: 2 · outstanding: 0` and `complete: true` at 0, with
+# `list` printing that same panel `lanes 2 ruled 2 complete` at 0. That is
+# failure class 4 arriving through a state that lasts two renames — a two-lane
+# answer for a panel whose set of record names three, and the exact reply that
+# tells a judge to synthesise.
+#
+# WHAT IS ASSERTED IS THAT `complete: true` CANNOT APPEAR, not merely that the
+# new label does. The regression was a false COMPLETENESS; a case that checked
+# only for `amend-in-flight` would pass while `complete: true` stood two lines
+# above it, which is how the shipped defect would survive its own test.
+#
+# The window is entered by taking `.manifest.d` off a panel that has REALLY been
+# amended, so the superseded directory left behind is one this script named. A
+# case that spelled the marker itself would stay green if the prefix
+# `cmd_manifest` writes and the prefix `amend_in_flight` globs for ever stopped
+# being the same string, and that divergence is silent in every other case here.
+fresh
+run manifest $PR $SHA --lanes 'alpha beta gamma delta' --by judge-1
+run claim   $PR $SHA alpha --owner j1 --for j1
+run verdict $PR $SHA alpha approved --by j1
+run claim   $PR $SHA beta  --owner j1 --for j1
+run verdict $PR $SHA beta  approved --by j1
+run status $PR $SHA
+check 'four selected and two ruled is an incomplete panel'    10 'complete: false'
+run manifest $PR $SHA --lanes 'alpha beta gamma' --amend --reason 'delta was never dispatched' --by judge-2
+check '  and an amendment leaves a superseded set on disk'    0  'manifest: amended'
+PANEL="$CLAIM_TABLE_DIR/pr-$PR/$SHA"
+
+# A COMPLETED amendment is not the between-state. The superseded set is still
+# there and a set of record is back beside it, so a predicate that fired on the
+# marker alone would degrade every panel that had ever been amended — the false
+# positive that would make the new state useless within one board.
+run status $PR $SHA
+check '  a completed amendment is an ordinary panel'          10 'outstanding: gamma'
+refute '  and is never reported as an amendment in flight'       'amend-in-flight'
+
+# The window itself. Nothing about this panel changes but the presence of the
+# set of record, which is what the window IS.
+mv "$PANEL/.manifest.d" "$TMP/held$CASE"
+run status $PR $SHA
+check 'in the window status is degraded, at 2'                2  'manifest_state: amend-in-flight'
+check '  naming the state in the manifest field too'          2  'manifest: amend-in-flight'
+check '  and answering the completeness question FALSE'       2  'complete: false'
+refute '  and NEVER complete: true, which is what shipped'       'complete: true'
+refute '  nor a panel that merely selected nothing'              'manifest: none'
+check '  telling the caller not to read these rows as coverage' 2 'do not read these rows as coverage'
+
+run list $PR
+check 'in the window list is degraded, at 2'                  2  'amend-in-flight on 1 panel(s)'
+is '  the panel carrying the state where its verdict would go' \
+   "$(printf '%s' "$OUT" | sed -n 's/^  pr-.* //p' | head -1)" 'amend-in-flight'
+
+run manifest $PR $SHA
+check 'in the window the manifest read verb is degraded, at 2' 2 'manifest: amend-in-flight'
+refute '  and never calls it a panel that selected nothing'      'manifest: none'
+check '  saying it is between two selections, not without one' 2 'not without one'
+
+# And the state is transient rather than sticky: the second rename lands and the
+# panel is an ordinary one again. A degraded state a panel cannot leave would be
+# a wedge of its own, and this one is defined by disk state on both sides.
+mv "$TMP/held$CASE" "$PANEL/.manifest.d"
+run status $PR $SHA
+check 'once the second rename lands the panel reads normally'  10 'complete: false'
+refute '  with the between-state gone'                            'amend-in-flight'
+check '  measured against the amended set again'               10 'lanes: 3'
 
 # ---------------------------------------------------------------------------
 section 'a verdict names who FILED it, not only who held the lane'
@@ -1131,6 +1246,27 @@ fresh
 run claim $PR $SHA docs-reviewer --owner pr-judge
 run verdict $PR $SHA docs-reviewer approved --by '@Mallory'
 check '  while a genuinely different name still fires at 12'  12 'anomaly: filed by @Mallory'
+
+# THE STRIP IS ANCHORED: A LEADING @ IS A SPELLING, AN EMBEDDED ONE IS A NAME.
+# The fold was `tr -d '@'`, which deleted EVERY `@` in the name, so `a@b` and
+# `ab` produced one key and two different identities compared EQUAL. That is the
+# mismatch flag answering `false` about a filer it never saw — the ACCEPT
+# direction, and the one this field cannot afford, since every other value it
+# carries is only worth reading if `false` means checked.
+#
+# The four spellings above cannot see this and neither can the mutation aimed at
+# them: they all carry the `@` in the one position both the anchored rule and
+# the unanchored one strip, so the two rules agree on every case in this file
+# and the anchoring is invisible. An embedded `@` is the only input that
+# separates the two, which is why this is asserted rather than folded in above.
+fresh
+run claim $PR $SHA embedded-l --owner pr-judge --for 'a@b'
+check 'a lane may expect a filer whose name CONTAINS an @'    0  'expects: a@b'
+run verdict $PR $SHA embedded-l approved --by 'ab'
+check '  a filer differing only by that @ is an anomaly at 12' 12 'anomaly: filed by ab'
+check '  naming the identity it is not'                       12 'expects its verdict from a@b'
+is '  and flagged in the row, not only argued in the prose' \
+   "$(grep '^attribution_mismatch: ' "$(row_of $PR $SHA embedded-l)/verdict.d/row" 2>/dev/null | head -1)" 'attribution_mismatch: true'
 
 # `--for`, the override, for a lane dispatched to a name other than its own.
 fresh

@@ -23,9 +23,33 @@
 # It also reports, at the end, every assertion in the suite that NO mutation made
 # fail. Those are undemonstrated: they may still be sound, but this harness has not
 # shown it, and saying so is worth more than a count that implies otherwise. They
-# are reported rather than failed, because some of them — the hermeticity guards —
-# assert a property of the suite rather than a behaviour of claim.sh, and no
-# mutation of claim.sh should be able to move them.
+# are reported rather than failed, because some of them assert a property of this
+# SUITE rather than a behaviour of claim.sh, and no mutation of claim.sh should be
+# able to move those.
+#
+# SOME OF THEM, AND THE WORD IS DOING REAL WORK. It is tempting to describe the
+# undemonstrated set as classes nothing could move — preconditions, tolerance
+# assertions, hermeticity guards, absences over deleted surface — and to leave it
+# there; that description was written once and it did not cover the set. Measured
+# at this head: **80 of 392 assertions are undemonstrated**, and by the section
+# they sit in they are 11 `manifest`, 10 filer-identity, 10 `release`, 7
+# condition 1, 6 condition 3, 4 exit-code contract, 4 filer-naming, 4
+# ruling-commit, and 3 each in the amendment between-state, worktree,
+# hermeticity, NTFS and CRLF sections, with 2 each in `--note`, SHA-epoch and
+# free-text and 1 each in three more. Reproduce it by mapping the printed list
+# against the baseline's section headers; nothing here has to be taken on trust.
+#
+# NINE OF THEM ARE THE AMENDMENT BLOCK'S AUDIT TRAIL AND ITS QUIET DIRECTIONS,
+# and they are none of those classes. `manifest --amend` writes `superseded:`,
+# `prior_is_at:`, `amended: yes`, `amend_reason:` and, on the set it displaced,
+# `superseded_reason:`; the block also refutes `manifest: amended` and
+# `manifest: recorded` on the paths that must not report either. A mutation of
+# claim.sh can plainly move every one of those — M50 and M55 below each move
+# some — so they are undemonstrated because no mutation aims at them yet, which
+# is a gap in this matrix and not a property of the assertions. The amendment
+# block holds 21 assertions; M50 reds exactly 1 of them and M55 reds 2 more, and
+# 12 of the 21 are red under some mutation in the matrix. The remaining 9 are
+# owed a mutation and are named here rather than absorbed into a class.
 #
 # A MUTATION THAT MATCHES NOTHING IS A DEFECT HERE, AND FIVE OF THEM HAVE BEEN.
 # M02, M13 and M20 addressed lines the review board's fixes removed — the mkdir
@@ -43,12 +67,13 @@
 # Usage: scripts/loop/tests/claim-table-mutations.sh [id …]
 #        Exit: 0 every mutation killed · 1 any mutation survived or misapplied
 # The whole suite runs once per mutation, plus once for the baseline. Re-measured
-# on 2026-09-06 on the reference host, at 366 assertions: one suite run is 131 s,
-# and the full matrix of 51 is 52 of them — about two hours, so it is a background
-# gate rather than an inner-loop one. Named ids run a subset —
+# on 2026-09-07 on the reference host, at 392 assertions: the full matrix of 55
+# is 56 suite runs and took 150 min 06 s wall, so one run is about 161 s and this
+# is a background gate rather than an inner-loop one. Named ids run a subset —
 # `claim-table-mutations.sh M28 M33` — and that is how a single behaviour is
-# re-demonstrated after a change without paying for all 51. A subset run does not
-# print the undemonstrated list; the block at the foot of this file says why.
+# re-demonstrated after a change without paying for all 55; that subset was
+# 8 min 56 s in the same session. A subset run does not print the undemonstrated
+# list; the block at the foot of this file says why.
 
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -63,7 +88,7 @@ Q="'"
 
 ALL='M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18
 M19 M20 M21 M22 M23 M24 M25 M26 M27 M28 M29 M30 M31 M32 M33 M34 M35 M36 M37
-M38 M39 M40 M41 M42 M43 M44 M45 M46 M47 M48 M49 M50 M51'
+M38 M39 M40 M41 M42 M43 M44 M45 M46 M47 M48 M49 M50 M51 M52 M53 M54 M55'
 WANT="${*:-$ALL}"
 
 # what each mutation neutralises
@@ -120,6 +145,10 @@ desc() {
     M49) printf 'a verdict builds a panel nobody ever opened, under a pause' ;;
     M50) printf 'an amendment DELETES the selection it replaced instead of keeping it' ;;
     M51) printf 'an expectation this table inferred reads as one a claim recorded' ;;
+    M52) printf 'a lane set is GLOBBED against the caller cwd as well as split' ;;
+    M53) printf 'the @ strip is unanchored again, so a@b and ab are one identity' ;;
+    M54) printf 'the amendment between-state is invisible again, and reads complete' ;;
+    M55) printf 'an amendment with NOTHING to amend builds a panel out of nothing' ;;
   esac
 }
 
@@ -178,6 +207,10 @@ kills() {
     M49) printf 'a verdict into a lane with NO row is refused under pause' ;;
     M50) printf 'the prior selection kept WHOLE, not deleted' ;;
     M51) printf 'an INFERRED expectation says so in the row it wrote' ;;
+    M52) printf 'a pattern in --lanes is a malformed lane, not a listing' ;;
+    M53) printf 'a filer differing only by that @ is an anomaly at 12' ;;
+    M54) printf 'and NEVER complete: true, which is what shipped' ;;
+    M55) printf 'an amendment on a panel with NO selection is refused' ;;
   esac
 }
 
@@ -356,6 +389,54 @@ mutate() { # mutate <id> <file>
     # claim asked for is the accept direction of the attribution check, arriving
     # one field to the left of the flag it qualifies.
     M51) sed -i 's@^  if \[ -n "$holder_expects" \]; then expects_source=recorded; else expects_source=inferred; fi$@  expects_source=recorded@' "$f" ;;
+    # M52 AND M53 EXIST BECAUSE TWO OF ONE CYCLE'S SECURITY REMEDIES SHIPPED
+    # WITH NO MUTANT AT ALL. Both were reverted by hand against the suite at 366
+    # assertions and both came back 0 failed — controls whose only evidence was
+    # a sentence in a PR body saying what they did. The revert is the test; this
+    # is the same revert, mechanised, so it cannot go unrun again.
+    #
+    # M52: the guard around the one word split in claim.sh that reads a CALLER
+    # argument — two other unquoted `for … in $x` loops split a `lanes:` field
+    # `norm_lane` gated on the way in, and are not what this touches. Unquoted,
+    # `$lanes` is glob-expanded as well as split, and `--lanes '*'` recorded the
+    # caller's directory listing as the selected panel — a lane set nobody chose
+    # that `complete` is then measured against for the life of the panel.
+    # `set -f` is the whole control and `:` is exactly how it was neutralised by
+    # hand; both halves go, because leaving `set +f` alone would restore
+    # globbing before the loop it guards rather than after it.
+    M52) sed -i -e 's@^  set -f$@  :@' -e 's@^  set +f$@  :@' "$f" ;;
+    # M53: the ANCHORING half of `agent_key`, which M45 structurally cannot see.
+    # M45 removes the case fold and the `@` strip TOGETHER, so under it the two
+    # spellings of one name stop agreeing and the four-spelling loop goes red —
+    # loudly, and for a reason that has nothing to do with WHERE the `@` was.
+    # The defect SEC-05 closed is the opposite direction: `tr -d '@'` deleted
+    # every `@` in the name, so `a@b` and `ab` folded to one key and two
+    # different identities compared EQUAL. This edit restores exactly that and
+    # nothing else — the fold stays, the trim stays, the leading `@` is still
+    # stripped, so every assertion M45 kills stays GREEN and the only case that
+    # can move is the embedded-`@` one written for it.
+    M53) sed -i "/^agent_key() {\$/,/^}\$/ s%_ak#@}\"%_ak}\" | tr -d ${Q}@${Q}%" "$f" ;;
+    # LQ-11, and the reason its case asserts an ABSENCE. Making the predicate's
+    # first test true for any panel that exists at all means it never fires, and
+    # the read verbs fall back to testing for `.manifest.d` alone — which is the
+    # code as it shipped. The window then reads as a panel that selected nothing
+    # and `complete` counts the rows that happen to exist: measured under this
+    # mutant on 2026-09-07, `manifest: none` with `lanes: 2 · ruled: 2` and
+    # `complete: true` at 0, on a panel whose set of record names three lanes and
+    # whose rows are two, and `list` printing that panel `complete` at 0 as well.
+    # A case that checked only for the new label would stay green here, which is
+    # why the kill is the refutation and not the label.
+    M54) sed -i '/^amend_in_flight()/,/^}$/ s@^  \[ -e "$1/\.manifest\.d" \] && return 1$@  [ -e "$1" ] \&\& return 1@' "$f" ;;
+    # MAINT-13. The amendment block landed 21 assertions and ONE mutation, and
+    # M50 reds exactly one of them: the audit trail and the refusal directions
+    # around it were undemonstrated, and a mutation of claim.sh plainly could
+    # move them. This is that mutation, on the refusal that is asked BEFORE
+    # anything is created. With its test false the amendment proceeds, fails at
+    # the rename it has nothing to rename, and leaves behind the panel it built
+    # on the way — so `--amend` on a panel that never selected anything reports
+    # `degraded` at 2 instead of `nothing to amend` at 12, and the table it was
+    # supposed to leave untouched now has a panel in it. Same class as M49.
+    M55) sed -i 's@^  if \[ "$amend" = true \] && \[ ! -d "$panel/\.manifest\.d" \]; then$@  if [ "$amend" = true ] \&\& [ -d "$panel/.manifest.d/never" ]; then@' "$f" ;;
   esac
 }
 
@@ -428,21 +509,23 @@ done
 
 # Which assertions no mutation ever made fail. Reported, not failed: some of them
 # guard this suite's own hermeticity rather than a behaviour of claim.sh, and no
-# mutation of claim.sh should be able to move those.
+# mutation of claim.sh should be able to move those. What the rest of them are is
+# measured in the header rather than characterised here, because the last attempt
+# to characterise them named four classes that did not cover the set.
 #
 # AND IT IS ONLY THAT REPORT AFTER A FULL RUN. `comm -23 all red` computes "every
 # assertion no mutation IN THIS RUN made fail", and under a named subset that is
-# very nearly every assertion in the suite. Measured on 2026-09-06 at this head:
-# `M28 M33` — the subset the usage line above recommends — kills both its
-# mutations and shows 11 of 366 assertions red, so the report as it stood named
-# the other 355 as undemonstrated. Not one of the 355 was a finding about the
+# very nearly every assertion in the suite. Re-measured on 2026-09-07 at this
+# head: `M28 M33` — the subset the usage line above recommends — kills both its
+# mutations and shows 11 of 392 assertions red, so the report as it stood named
+# the other 381 as undemonstrated. Not one of them was a finding about the
 # suite; they are an artefact of what was asked for, printed in the imperative
 # voice of a finding, directly above the exit code. An alarm that fires on the
 # ordinary use of the tool is an alarm its reader learns to skip, and the
 # assertions it names after a FULL run are the ones that most need reading. So
 # the full matrix keeps the report and a subset states what it measured and
 # stops there. The comparison is on the SET of ids rather than on the string,
-# because naming all 51 explicitly is a full run and must not read as a partial.
+# because naming all 55 explicitly is a full run and must not read as a partial.
 if [ -s "$TMP/all.labels" ]; then
   sort -u "$TMP/red.ord" > "$TMP/red.u"
   cut -f1 "$TMP/all.labels" | sort -u > "$TMP/all.u"
