@@ -32,3 +32,4 @@ State the cost as well as the benefit. A record that lists only advantages is ad
 | `agent-org-directive-3.md` | Not an ADR — the Owner's third directive of 2026-08-10, kept verbatim as the source order ADR-0003 adapts |
 | `ADR-0003-backlog-dependency-planner.md` | A dedicated owner for the persistent Epic/story dependency graph — the edges leave `@scrum-master`, which now consumes them |
 | `agent-org-directive-4.md` | Not an ADR — the Owner's fourth and final directive of 2026-08-10, kept verbatim. Ratified **into** ADR-0001 (stability rule) and ADR-0003 (amendments A1–A3); per its own §26 no ADR-0004 exists |
+| `ADR-0004-artifact-author-trust-boundary.md` | Artifact authorship is a trust boundary — two trusted logins, an Owner escalation for every other author, and the fields a retrieval must retain. The row above is about directive 4 and stands unaltered; why the number was nonetheless available is argued in that record's header |
