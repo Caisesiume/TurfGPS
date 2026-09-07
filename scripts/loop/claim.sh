@@ -73,8 +73,26 @@
 #   its own path. CLAIM_TABLE_DIR overrides the location, which is how a test
 #   runs against a throwaway root rather than against the real table. Each of
 #   the nine table-touching verbs echoes the table it resolved, on the path
-#   where it acts; `help` resolves none and prints none, and a usage refusal
-#   exits 64 from `usage_die` before `say_table` is reached.
+#   where it acts, and `help` resolves none and prints none. A usage refusal
+#   always exits 64 from `usage_die`; WHETHER IT HAS ALREADY NAMED THE TABLE IS A
+#   PROPERTY OF THE VERB AND NOT OF THE REFUSAL. Eight verbs finish validating
+#   before `say_table`, so their refusals print nothing at all. `manifest` is the
+#   exception, and not by oversight: a `--lanes` value is canonicalised in the
+#   same loop that records it, which is downstream of `say_table`, so a malformed
+#   lane and an empty set each print the `table:` line and THEN exit 64.
+#
+#   This header asserted the opposite until 7 September 2026, and it asserted it
+#   in a sentence that had been narrowed once already to repair a wider
+#   over-claim — a narrowing being a claim, and owing exactly the evidence the
+#   claim it replaces owed. So the correction was measured by RUNNING every
+#   verb's refusal rather than by reading for one: seventeen refusals on this
+#   host, at least one per verb plus the unknown-subcommand path, all exiting 64,
+#   and exactly two printing a `table:` line — `--lanes ''` and `--lanes '*'`,
+#   both of them `manifest`'s. The second is the refusal `set -f` below exists to
+#   reach at all; why it does is argued at that loop and is not repeated here.
+#   `manifest <pr>` and `manifest <pr> <sha> --amend` refuse ahead of `say_table`
+#   and print nothing, so this verb's own refusals fall on both sides of the line
+#   and no sentence about `manifest` as a whole can be true of all of them.
 #
 #     <table>/PAUSED                                 flag: no new claims while it exists
 #     <table>/pr-<n>/<sha>/.manifest.d/row           the selected lane set, written once
