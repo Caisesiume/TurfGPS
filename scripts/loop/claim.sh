@@ -423,10 +423,14 @@ row_state() { # row_state <row-dir>
 # claimed: `status` answered `complete: false` at 10 outside the window and
 # `complete: true` at 0 inside it, and `list` printed that panel `complete` at 0.
 #
-# This predicate names the state so the read verbs can refuse it. One glob, and
-# nothing new on disk: the superseded name IS the marker, so an interruption
-# between the two renames leaves the state readable rather than invisible, and a
-# panel left there by the failure path in `cmd_manifest` reads the same way.
+# This predicate names the state so every verb can refuse it, and not only the
+# reads: they decline to measure `complete` against a set they cannot see, and
+# `cmd_manifest` consults it once ahead of both its write paths, so neither a
+# first selection nor a further amendment commits into the open window. One
+# glob, and nothing new on disk: the superseded name IS the marker, so an
+# interruption between the two renames leaves the state readable rather than
+# invisible, and a panel left there by the failure path in `cmd_manifest` reads
+# the same way.
 amend_in_flight() { # amend_in_flight <panel-dir>
   [ -e "$1/.manifest.d" ] && return 1
   set -- "$1"/.manifest-superseded-*
@@ -1581,7 +1585,8 @@ is durable the instant it exists. No LLM, no network, no judgement.
           nothing will ever claim. The reason is required, the new row cites the
           set it replaced, and the prior set is kept whole as
           `.manifest-superseded-<stamp>/`. 0 amended · 12 nothing to amend · 64
-          no --lanes or no --reason. A set can still be shrunk; it cannot be
+          no --lanes or no --reason · 2 degraded, which includes an --amend
+          arriving amend-in-flight. A set can still be shrunk; it cannot be
           shrunk quietly, which is the property write-once was protecting.
 
   status  <pr> <sha> [lane]
