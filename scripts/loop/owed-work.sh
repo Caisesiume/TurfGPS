@@ -361,8 +361,9 @@ for pr in $prs; do
         # Every ruling's identity is COLLECTED here and matched below, never
         # matched here: the panel a ruling belongs to may still be later in the
         # stream, and on a correctly ruled PR it always is (Phase 9 then 10).
-        # `judgment_seen` is kept apart from the identities so the undeclared
-        # line can say WHICH of the two absences it met.
+        # `judgment_seen` is kept apart from the identities because the two
+        # absences answer differently below: no declared ruling at all is
+        # `owed`, a declared ruling carrying no identity is `undeclared`.
         judgment_seen=1
         has_identity "$sha" "$cycle" && judgment_ids="$judgment_ids
 $sha $cycle" ;;
@@ -453,14 +454,25 @@ EOF
   # owed hop visible. What the head is doing now is not evidence about whether
   # a panel was ever ruled.
   #
-  # AND THE DISCHARGE CLASS GETS THE THIRD STATE THE SOURCE CLASSES HAVE. Where
-  # the panel declares no identity, or no declared `judgment` carries one, this
-  # script cannot match a ruling to a panel — and a ruling it cannot match is
-  # not a ruling it may report as missing. An undeclared artifact is invisible
-  # here by construction (#172 criterion 2), so `owed` would be asserting an
-  # absence the marker discipline cannot see. `undeclared` is loud in its own
-  # right: printed under `undeclared:`, counted, and exit 3, never `clear` and
-  # never folded into nothing-owed.
+  # AND THE DISCHARGE CLASS GETS THE THIRD STATE FOR ONE OF THE TWO ABSENCES,
+  # NOT BOTH. `undeclared` says: an artifact WAS declared and this script cannot
+  # read an identity off it. That holds where the panel declares none, and where
+  # a `judgment` was declared carrying none — a ruling this script cannot place
+  # is not a ruling it may report as missing, and `owed` there would assert an
+  # absence the marker discipline cannot see (#172 criterion 2).
+  #
+  # It does NOT hold where NO judgment was declared at all. Nothing is unreadable
+  # in that case: the ruling ITSELF is what is missing, which is #178 criterion 2
+  # in its own words — "a convened panel with no ruling" — and the whole symptom
+  # this detector exists to catch. `undeclared` there would retire the headline
+  # case into the unanswerable bucket, and would contradict B2 below on the
+  # identical shape: one ledger with zero declared discharge artifacts already
+  # reads `validation=owed`. `judgment_seen` is the discriminator, collected
+  # above apart from the identities for exactly this.
+  #
+  # Where `undeclared` does hold it is loud in its own right: printed under
+  # `undeclared:`, counted, and exit 3, never `clear` and never folded into
+  # nothing-owed.
   if [ -z "$newest_panel" ]; then
     ruling=undeclared; ruling_why="no declared review_ledger"
     validation=undeclared
@@ -468,13 +480,9 @@ EOF
     if ! has_identity "$panel_sha" "$panel_cycle"; then
       ruling=undeclared
       ruling_why="the newest declared review_ledger declares no usable sha:/cycle: to match a ruling to"
-    elif [ -z "$judgment_ids" ]; then
+    elif [ "$judgment_seen" -eq 1 ] && [ -z "$judgment_ids" ]; then
       ruling=undeclared
-      if [ "$judgment_seen" -eq 1 ]; then
-        ruling_why="no declared judgment carries a sha:/cycle: to match against the panel"
-      else
-        ruling_why="no declared judgment on this PR to match against the panel"
-      fi
+      ruling_why="no declared judgment carries a sha:/cycle: to match against the panel"
     else
       ruling=owed
       while IFS=' ' read -r jsha jcycle; do
