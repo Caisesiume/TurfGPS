@@ -194,7 +194,26 @@ else
   fi
 fi
 
-# One record per comment: `<created_at> <declared-id|-> <reviewer|-> <names-validation-agent:1|0>`.
+# --- THE COMMENT RECORD, DECLARED IN ONE PLACE ------------------------------
+# One record per comment: positional, space-separated, one field per name in
+# `RECORD_FIELDS` and IN THAT ORDER. The jq program below emits them; the `read`
+# further down destructures them; and this line is the only place either of them
+# takes the field list from.
+#
+# WHY ONE PLACE. `read` folds every field past its last variable INTO that last
+# variable. It is not an error, `set -u` never fires — nothing is unset — and the
+# absorbed field simply becomes part of a value something downstream compares.
+# So a record widened on the jq side and not here would not fail; it would answer
+# wrongly and quietly, which is the failure this whole file exists to make
+# impossible. `overflow` below is that guard made explicit: it is the variable an
+# unannounced field lands in, it must always be empty, and a record where it is
+# not is reported as unreadable rather than answered from.
+#
+# Every field is space-free by construction — an ISO-8601 stamp, two captured
+# identifier tokens, a 0/1 flag — which is what makes a positional record safe
+# here at all, and what makes `overflow` an assertion rather than a formality.
+RECORD_FIELDS='ts id reviewer namesval'
+
 # `\r` is stripped first: GitHub serves CRLF bodies, and a trailing carriage
 # return leaves `^artifact:` matching a line whose id then carries an invisible
 # character into every comparison below.
@@ -256,11 +275,16 @@ for pr in $prs; do
     n_unreadable=$((n_unreadable + 1))
     continue
   fi
-  n_read=$((n_read + 1))
 
   newest_packet=""; newest_panel=""; newest_judgment=""; newest_val=""; panel_names_val=0
-  while IFS=' ' read -r ts id reviewer namesval; do
+  overflow=""
+  # `$RECORD_FIELDS` is deliberately unquoted: splitting the ONE declared field
+  # list is what makes it the one place the record's shape is written down. The
+  # list holds nothing but names and spaces, so the split is exact.
+  # shellcheck disable=SC2086
+  while IFS=' ' read -r $RECORD_FIELDS overflow; do
     [ -n "${ts:-}" ] || continue
+    [ -z "$overflow" ] || break
     case "$id" in
       revision_packet) newer "$ts" "$newest_packet"   && newest_packet="$ts" ;;
       judgment)        newer "$ts" "$newest_judgment" && newest_judgment="$ts" ;;
@@ -275,6 +299,17 @@ for pr in $prs; do
   done <<EOF
 $comments
 EOF
+
+  if [ -n "$overflow" ]; then
+    # The only thing this can mean: the jq program emits a field `RECORD_FIELDS`
+    # does not name. Answering from a record this script cannot parse is exactly
+    # the silent absorption the single declaration exists to prevent, so the PR
+    # is named unreadable and takes the same `2` every unread source takes.
+    add "#$pr unreadable   a comment record carries a field RECORD_FIELDS does not name: '$overflow'"
+    n_unreadable=$((n_unreadable + 1))
+    continue
+  fi
+  n_read=$((n_read + 1))
 
   # --- A (#172): a remand newer than the newest commit ----------------------
   if [ -z "$newest_packet" ]; then
