@@ -1077,6 +1077,34 @@ cmd_manifest() {
   [ "$nsel" -gt 0 ] || usage_die 'manifest … --lanes "<lane> …" — the set may not be empty'
   sel="${sel# }"
 
+  # THE OPEN WINDOW IS NOT AN ABSENT SELECTION HERE EITHER, AND THIS PATH USED
+  # TO WRITE INTO IT. `amend_in_flight` above named the between-state for the
+  # verbs that READ; this one still tested `.manifest.d` alone, which is exactly
+  # the test that predicate exists because it is not sufficient. Measured on
+  # this host on 2026-09-07, on a three-lane panel with two lanes ruled, its
+  # `.manifest.d` moved aside under the audit name: a plain `--lanes 'alpha
+  # beta'` answered `manifest: recorded` at 0 — `commit_staged` finds the name
+  # free, so nothing downstream could refuse — orphaning the superseded set,
+  # citing it in no `supersedes:`, and turning `status` from `complete: false`
+  # at 10 into `complete: true` at 0 over a two-lane set on a panel that
+  # selected three. A first selection is what this verb writes when there has
+  # never been one, and inside the window there HAS been one; it is on disk,
+  # under its audit name, one glob away.
+  #
+  # Taken before the refusal below rather than after it, and the order is the
+  # other half of the fix. `--amend` in the window also finds no `.manifest.d`,
+  # so it reached that block and was told to record it without `--amend` — the
+  # caller obeying the script's own printed direction is how the write above was
+  # reached. Below this line `! -d .manifest.d` does mean the panel never
+  # selected anything, and that direction is true again because the one state
+  # where it was false no longer gets here.
+  if amend_in_flight "$panel"; then
+    printf 'manifest: NOT RECORDED\nreason: degraded — a superseded selection is on disk and no set is of record\n'
+    printf 'panel: pr-%s @ %s\n' "$PR" "$SHA"
+    printf 'direction: retry; this panel is between two selections, and a set recorded here would orphan the one already on disk\n'
+    exit 2
+  fi
+
   # Asked before anything is created, so an amendment with nothing to amend
   # leaves the table exactly as it found it. `--lanes` alone is how a first
   # selection is recorded, and saying so is more use than writing one silently
@@ -1141,9 +1169,10 @@ cmd_manifest() {
     # renames is therefore a panel holding the prior set under its audit name
     # with nothing at `.manifest.d`. No ordering of these two closes it, and
     # reordering them only moves it; what makes it safe is that the window is
-    # NAMED — `amend_in_flight` above recognises it and every read verb refuses
-    # it as degraded rather than measuring `complete` against the rows it can
-    # still see.
+    # NAMED — `amend_in_flight` above recognises it and every verb refuses it as
+    # degraded rather than measuring `complete` against the rows it can still
+    # see. Every verb and not every READ verb: this one is opened by a writer,
+    # and a second write arriving into it is what the check above refuses.
     pdst="$panel/$prior"
     mv "$panel/.manifest.d" "$pdst" 2>/dev/null || {
       rm -rf "$stage" 2>/dev/null
