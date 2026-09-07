@@ -92,6 +92,16 @@ The cycle per remaining batch:
 
 Then: `@scrum-master` for a fresh board sync, open PRs, and the coordinator's view of active assignments. Establish how many items in each column, what is in flight, what is stalled, what is remanded, and whether Ready is stocked. An empty board with a stocked corpus is a stall to report, not a steady state.
 
+**`scripts/loop/owed-work.sh` answers "what work is owed and has nothing after it" deterministically, and belongs in this pulse** — a revision packet no worker was ever dispatched against, a convened panel that never ruled, a panel naming the mandatory validation lane that never ran. **The missing hop in all three is yours**, and nothing else you read here shows it: `Ordered Revision` on the board and `judge:remanded` on the PR both look exactly like progress, and a judge that ended after posting a packet is indistinguishable from one whose worker is mid-revision. Three of six open PRs sat that way for eight days before anyone noticed (#172).
+
+```bash
+scripts/loop/owed-work.sh            # every open PR, or name PRs as arguments
+```
+
+**Branch on the exit status; never parse the prose.** **0** nothing owed · **1** owed work found — dispatch the hop each line names · **2** a source could not be read, so the run cannot vouch for the queue and neither can you · **3** all read, but at least one PR declares no artifact of that class and **cannot be judged** — an unanswered question, never a quiet one. Precedence is **2 > 1 > 3 > 0**. What each condition *means*, and what the detector cannot see, is in the script's own header.
+
+**It reports; it never acts.** Dispatching the worker against a packet and reviving a stranded panel are yours and stay yours — #172 puts acting on the report outside the detector's scope. Its whole contribution is that an owed hop is **recorded** instead of remembered.
+
 **Graph health is consumed, never derived.** Blocked and Ready counts and any `dependency_finding` reach you inside the scrum-master's, worker-manager's, or judge's envelopes. You never work out what must precede what, which story is structurally executable, whether a hard edge is satisfied, or what enters Ready — those belong to @backlog-dependency-planner and @scrum-master, and each is persisted where you can read it.
 
 You dispatch the planner on a **non-batch graph event** (`ADR-0003 § P9`, as amended by directive 4): a story's scope materially changed, an Epic reorganized, a requirement change touching prerequisites, an architecture decision moving a boundary, or a `dependency_finding` arriving. **A new or changed story batch is not yours to dispatch** — @requirements-engineer continues that pipeline directly, because relaying it here would be a hop with no decision in it. A backlog that is mostly blocked is a finding to route, not an ordering for you to rebuild.
