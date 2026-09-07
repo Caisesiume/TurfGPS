@@ -771,11 +771,12 @@ run 135 930;     check_has "X10 ... and the undeclared PR still prints"         
 for a in 940 900 135 930 931; do
   run "$a"; check_has "X11 summary printed on the '$a' path (rc $RC)" "summary:"
 done
-# The usage path reads nothing at all, so it has no queue to summarise. What it
-# must not be is SILENT: it names its own failure and it exits 2. The contract's
-# words are "a summary line prints on every path", and this path does not print
-# one — reported upstream as a deviation rather than accommodated by deleting the
-# check. What is asserted here is the property the rule exists to protect.
+# The usage path reads nothing at all, so it has no queue to summarise, and the
+# settled contract asks it for no summary: the line prints on every path THAT
+# READ SOMETHING, and this run opened no queue whose counts would be honest to
+# print. What it is held to instead is LOUDNESS — it names its own failure and
+# takes the same 2 every unreadable source takes. That is the property the
+# summary rule exists to protect, and it is what X11' asserts.
 run badnumber
 check_rc  "X11'the usage path is a source that could not be read -> 2"           2
 check_has "X11'... and it names its own failure rather than going quiet"         "usage"
