@@ -69,6 +69,11 @@
 #               ANSWER. Reported distinctly, NEVER printed as `clear`, and never
 #               folded into "nothing owed" (#172 criterion 3).
 #
+# A FOURTH TOKEN, `n/a`, IS PRINTED IN THE `validation=` COLUMN AND IS NOT ONE OF
+# THE THREE ABOVE: it marks a class that does not apply to this PR rather than a
+# state of one that does. What it means, and what it must not be read as, is under
+# WHAT IT CANNOT SEE below.
+#
 # WHY `undeclared` IS MANDATORY, MEASURED 2026-09-07 AND RETRIEVABLE NOWHERE
 # ELSE. Across all four open PRs — #135, #140, #141, #142 — the only declared
 # markers in existence were 9 x `artifact: orchestrator_comment` on #135. There
@@ -102,9 +107,19 @@
 # degraded component and `output-caps.sh`'s for cannot-run. Precedence governs the
 # STATUS only, never what is printed: every owed and every undeclared line found
 # before the failure is still printed. Silence and "nothing owed" must not look
-# identical (#172 criterion 3), so the summary line is printed on EVERY path,
-# including every failure, and `owed 0` is only ever reached by a run that read
-# something.
+# identical (#172 criterion 3), so the summary line is printed on EVERY PATH THAT
+# READ SOMETHING — including every failure on one — and `owed 0` is only ever
+# reached by a run that read something.
+#
+# THE USAGE PATH IS THE ONE PATH WITHOUT ONE, and the claim is narrowed to the
+# code rather than the code widened to the claim. `owed-work.sh badnumber` prints
+# `usage: ...` to stderr and exits 2 with NO `summary:` line: the argument is
+# rejected before the first API call, so no queue was ever opened and there is no
+# count that would be honest to print — a `summary: owed 0 · clear 0 · ...` here
+# would report a queue this run never read, which is the very confusion criterion
+# 3 exists to forbid. What that criterion demands of this path is that it not be
+# SILENT, and it is not: it names its own failure and takes the same `2` every
+# unreadable source takes. Pinned at `X11'` in the recall corpus.
 #
 # WHAT IT CANNOT SEE, so no reader takes a clean line for more than it is:
 #   - An UNDECLARED artifact is invisible, by construction and by criterion 2.
@@ -118,6 +133,16 @@
 #     symptom: on #135 cycle 4 and cycle 5 a panel was persisted and a ruling
 #     followed, and validation had never run. A detector that let a ruling close
 #     the validation question would report exactly those cycles as complete.
+#   - `validation=n/a` IS NOT `clear` AND IS NOT `undeclared`, and a reader who
+#     takes it for either has been told something false. It is printed when a
+#     panel WAS declared and does not name @validation-agent: the B2 obligation
+#     does not apply to this PR, so there is nothing here to owe. `clear` would
+#     claim a validation verdict discharged the obligation, and none did;
+#     `undeclared` would claim the script could not answer, and it answered. So
+#     `n/a` counts as nothing-owed AND as answered — standing alone it exits `0`,
+#     never `3` — which is pinned at fixture 927 rather than left to the reader,
+#     because a fourth token whose exit meaning is unpinned is exactly how
+#     `undeclared` comes back as `clear` wearing a different name.
 #   - `repos/O/R/pulls/N/commits` is capped by the API at 250 commits and returns
 #     the OLDEST first, so a PR past that cap yields a too-old "newest commit"
 #     and over-reports condition A. Loud, not silent; no open PR is near it.
