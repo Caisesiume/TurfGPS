@@ -1,6 +1,6 @@
 ---
 name: review-verdicts
-description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, the unsatisfiable status that keeps insufficient evidence distinct from low confidence, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit. Load alongside `agent-handoffs` before returning any review verdict.
+description: What a convened TurfGPS reviewer returns, and the standard that verdict is measured against — the reviewer verdict schema with its findings, severity, confidence and residual risk, the unsatisfiable status that keeps insufficient evidence distinct from low confidence, and the evidence law: a reviewer does not accept a claim it could check, the VERIFIED INDEPENDENTLY / ACCEPTED ON TRUST block, how far the obligation reaches, and the two incidents that made it a rule rather than a habit; and the obligation to record that verdict into its own claim-table row before the pass ends. Load alongside `agent-handoffs` before returning any review verdict.
 ---
 
 # Review verdicts — the schema and the evidence law
@@ -88,6 +88,39 @@ evidence: |
 **The judge records an unsatisfiable lane as unsatisfiable and converts it into neither a pass nor a fail.** Ignoring it, as `§ Reviewer verdict` above has the judge ignore an ordinary `diff: false`, is how an absent measurement becomes a silently passed lane; reading `unassessed` as a low number is how it becomes a weak one. Both are the same error in opposite directions, and the ledger row carries the word rather than a value.
 
 **The class was first recorded on PR #135, 29 August 2026.** `@confidence-assessor` holds `Read, Grep, Glob` and no Bash or GitHub access, so it could not read the verdicts it had been convened to weigh; it checked for a local mirror before reporting the gap, then returned `evidence_quality: unknown` — *"not weak — unassessed"* — with `followup: none`, *"a reviewer follow-up doesn't fix a tooling gap."* The cycle-3 ruling recorded the lane **unsatisfiable, not low**. That vocabulary is this section, and the payload half of it is `handoff-payloads § Confidence assessment`.
+
+## Record your verdict into its row before your pass ends
+
+**Return the verdict above to `@pr-judge`, and record it into the claim table first.** The return value is the convenience; the row is the record. A pass that ends holding a verdict only in its own context has produced nothing a dead parent can collect, which is the stranding class issue #144 records — and it is why the row comes first rather than after.
+
+```bash
+scripts/loop/claim.sh verdict <pr> <sha> <lane> <ruling> --by <your own lane> \
+  --conf <x> --findings <n> --artifact <where the full verdict is>
+```
+
+**Running this verb does not breach the read-only clause your dispatch carries, which governs what `git status --porcelain` reports and not the tracked tree alone: an untracked file lands in that report as `??` and invalidates the board run, per `review-board-dispatch § The read-only clause (learned the hard way)`** — the claim table is the clone-local ignored state `review-board-dispatch § The claim table` locates, so writing your row adds nothing to that report, and every tracked file stays exactly as untouchable as the clause reads.
+
+`<ruling>` is the verdict word from `§ Reviewer verdict` above; the table enforces no vocabulary of its own, so a word this skill does not define is a word nothing will refuse. **The dispatch carries the other three arguments** — PR number, head SHA, and your lane name — per `review-board-dispatch § The case file (same for every reviewer) — references, not content`. A dispatch that does not carry them convened you outside the table: record what you can, and say so in your verdict rather than guessing a panel key.
+
+**`--by` is not optional here, and it is the one argument you supply about yourself.** It names who *wrote* the row, which the table checks against the `expects:` the claim recorded — the control the `12` row below reports on. Pass your own lane name, the same one you passed as `<lane>`; the two differ only where a lane was dispatched to a name other than its own, and then `--by` is still yours. **Omitting it does not refuse anything and that is the trap:** the call exits `0` and the row reads `filed_by: unrecorded` with `attribution_mismatch: unrecorded`, which is not a pass but the row saying its own writer is unknown — so a courier or a stray process filing into your lane is indistinguishable, of record, from you.
+
+**This obligation lives here, and it binds the lanes this skill reaches.** Stating it in each reviewer definition instead would create two dozen copies to keep true; a reader looks in one place. What a reviewer supplies of its own is its lane name and its ruling.
+
+**Single home was the right call; what it does not buy is reach — and this paragraph used to claim it did.** It read *"every convened reviewer already loads this skill"*, which is false in the way that matters: four registry lanes carry `tools: Read, Grep, Glob` and could not execute the verb even holding the instruction, and `@validation-agent` returns a machine result rather than a `verdict:`, its contract carrying no instruction to load this skill. Written as a fact about the roster, the sentence made a boundary look like a covered case; the panel then deadlocked on lanes nobody had ever asked whether they claim. **Who claims, who claims in another vocabulary, and who does not is `review-board-dispatch § The claim table covers verdict-producing reviewer lanes only`** — one roster, checked against the frontmatter, and not restated here. If your lane is not on the claiming list, this section is not yours: return your assessment and record nothing.
+
+**Branch on the exit status; never parse the prose.** The full set and what each code means are in the header of `scripts/loop/claim.sh`. These are the ones a reviewer meets, and what each one obliges:
+
+| Status | What you do |
+|---|---|
+| **0** recorded | Nothing further. The ruling is of record and survives your process. |
+| **10** already ruled | **Stop. Do not retry and do not overwrite.** A ruling for your lane at this SHA already stands and stays of record; report the collision in your envelope. |
+| **11** paused, and this panel holds no row for your lane | **Not recorded.** A pause creates no new rows, so a verdict naming a lane nothing ever claimed is refused rather than allowed to open a panel underneath the stop. Either you were dispatched without a claim, or the panel key is wrong. **Carry the whole verdict in your handoff**, say plainly that the table does not hold it, and name the key you tried. **Do not retry and do not lift the pause** — `resume` is `@engineering-lead`'s, per `engineering-lead § A stop on new work is entered into the claim table`. A row that already exists records under a pause exactly as it does without one, so this code never means a lane you were properly claimed into was refused. |
+| **12** recorded, but the claim does not cover it | The ruling is durable either way, and **two different defects reach this code**. The row's own fields tell you which: `unclaimed: true` means no claim row covered your lane — you were dispatched without a claim. `attribution_mismatch: true` means the name you filed under is not the one the claim recorded in `expects:` as the reviewer this lane awaits. **The comparison is against `expects:`, never against `owner:`** — the judge claims a lane on its reviewer's behalf, so `owner: pr-judge` beside `expects: <your lane>` is the ordinary row and is **not** a mismatch; a check that fired on it would fire on every honest verdict and so detect nothing. Read the field, name that defect in your envelope, and do not retry — a second call would be refused at `10` against your own ruling. |
+| **2** NOT recorded | The table did not take it. **Carry the whole verdict in your handoff** and say plainly that the table does not hold it. |
+
+**Record before you report, not after.** The order is the entire mechanism: a row written before the pass ends survives a parent that never reads the return value, and `agent-handoffs § An outstanding continuation is not left behind` is the general form of the same obligation.
+
+**Recording is not ruling a second time.** The row carries the ruling, the confidence, the finding count, and a reference to where the full verdict lives. The findings themselves stay in the verdict you return — the table holds no analysis and adjudicates nothing.
 
 ## A reviewer does not accept a claim it could check
 
