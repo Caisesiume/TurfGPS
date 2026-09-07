@@ -6,17 +6,22 @@
 #
 #   A (#172)  a revision packet newer than the PR's newest commit — a remand a
 #             judge ruled, persisted, and ended on, that no worker ever received.
-#             Measured 2026-09-06: three of six open PRs had carried one for
-#             EIGHT DAYS, and nothing anywhere recorded that the hop was owed.
+#             Measured 2026-09-06: three of SEVEN open PRs — #135, #142 and
+#             #147 — had carried one for eight days on #172's own table, and
+#             nothing anywhere recorded that the hop was owed. #172's sentence
+#             says "six"; the seven is re-derived here from the PR list (#135,
+#             #140, #141, #142, #147, #154, #163 were all open when the survey
+#             ran) and correcting the issue's text is @engineering-lead's.
 #   B (#178)  a convened panel with no ruling OF ITS OWN IDENTITY — the panel
 #             and its ruling both declare `sha:` and `cycle:`, and the ruling is
 #             matched to the panel by those and never by posting order, which
 #             the judge's own contract fixes the other way round (see B1 in the
 #             body) — and a panel naming @validation-agent with no validation
-#             verdict after it. Measured on
-#             #135 cycle 4, #135 cycle 5 and #154 cycle 6: the pass ended before
-#             the mandatory last lane, and each was caught only because a human
-#             noticed a silence.
+#             verdict after it, WHICH THIS SCRIPT CANNOT CURRENTLY DISCHARGE at
+#             all (see WHAT IT CANNOT SEE below before acting on such a line).
+#             Measured on #135 cycle 4, #135 cycle 5 and #154 cycle 6: the pass
+#             ended before the mandatory last lane, and each was caught only
+#             because a human noticed a silence.
 #
 # It DETECTS AND REPORTS. Dispatching the worker, resuming the judge and acting
 # on any line below stays with @engineering-lead (#172 § Out of scope). Nothing
@@ -44,15 +49,18 @@
 #   judgment          the ruling           — discharges B1 when the `sha:` and
 #                     `cycle:` it declares are the panel's own
 #   reviewer_verdict  a lane's verdict     — discharges B2 when its own
-#                     `reviewer:` key names validation-agent
+#                     `reviewer:` key names validation-agent, which nothing may
+#                     do: B2 is unreachable, and WHAT IT CANNOT SEE says so
 #
-# THE FOURTH ID IS THIS SCRIPT'S OWN CHOICE AND IS FLAGGED AS ONE. The contract
-# this was built to names three ids and then asks for "a validation verdict",
-# which is a class no id was named for. `reviewer_verdict` carrying
-# `reviewer: validation-agent` is the only shape that answers it WITHOUT prose
-# matching — `review-verdicts § Reviewer verdict` makes both keys mandatory — so
-# it was chosen rather than varied silently. Every other candidate (a heading, a
-# `validation:` line, an author name) is the thing criterion 2 forbids.
+# THE FOURTH ID IS THIS SCRIPT'S OWN CHOICE, AND THE CHOICE DOES NOT WORK. The
+# contract this was built to names three ids and then asks for "a validation
+# verdict", which is a class no id was named for. `reviewer_verdict` carrying
+# `reviewer: validation-agent` was taken as the only shape that answered it
+# without prose matching — and it is a shape @validation-agent MAY NOT EMIT.
+# What that costs a reader, and what a `validation=owed` line therefore may not
+# be taken for, is under WHAT IT CANNOT SEE below. Every other candidate
+# considered (a heading, a `validation:` line, an author name) is the thing
+# criterion 2 forbids.
 #
 # READING A FIELD OF AN IDENTIFIED ARTIFACT IS NOT PROSE MATCHING, and the line
 # between the two is worth stating because this script sits on both sides of it.
@@ -68,33 +76,63 @@
 # ---------------------------------------------------------------------------
 # THREE STATES PER PR, NOT TWO. This is the load-bearing part.
 # ---------------------------------------------------------------------------
-#   owed        a declared artifact, and nothing after it
-#   clear       a declared artifact, and something after it
+#   owed        a declared artifact, and nothing that discharges it
+#   clear       a declared artifact, and its discharge found
 #   undeclared  NO declared artifact of that class on this PR — or, where the
 #               class is matched by declared identity, none carrying one this
 #               script can match. The script CANNOT ANSWER. Reported distinctly,
 #               NEVER printed as `clear`, and never folded into "nothing owed"
 #               (#172 criterion 3).
 #
+# WHAT DISCHARGES ONE IS PER CONDITION, AND ONLY TWO OF THE THREE ARE CLOCKS: a
+# commit after the packet (A), a validation verdict after the panel (B2), and
+# for B1 a ruling declaring the panel's OWN `sha:` and `cycle:` — never one that
+# is merely newer (B above; argued, and measured, at B1 in the body).
+#
 # A FOURTH TOKEN, `n/a`, IS PRINTED IN THE `validation=` COLUMN AND IS NOT ONE OF
 # THE THREE ABOVE: it marks a class that does not apply to this PR rather than a
 # state of one that does. What it means, and what it must not be read as, is under
 # WHAT IT CANNOT SEE below.
 #
-# WHY `undeclared` IS MANDATORY, MEASURED 2026-09-07 AND RETRIEVABLE NOWHERE
-# ELSE. Across all four open PRs — #135, #140, #141, #142 — the only declared
-# markers in existence were 9 x `artifact: orchestrator_comment` on #135. There
-# were ZERO declared `revision_packet` and ZERO declared `judgment` comments on
-# the whole board: PR #163 merged the requirement that judges emit the key, and
-# every judgment, packet and ledger then alive predates it. PR #135 carried, at
-# that moment, an undeclared cycle-4 revision packet (`#issuecomment-5562165264`)
-# and an undeclared cycle-5 escalation.
-#
-# A TWO-STATE DETECTOR REPORTS #135 AS "NOTHING OWED" — reproducing, through its
-# own fix, the exact false-negative-reported-as-fact that #172 exists to prevent.
-# Re-derive the measurement with:
+# WHY `undeclared` IS MANDATORY, AND THE SCOPE THE CLAIM IS MEASURED OVER. A
+# declared-marker survey reads ONE INSTANT and not a state, and this block was
+# written once as though it were the second: it asserted zero declared
+# `judgment` comments board-wide, and the run printed beside it in this PR's
+# body was taken hours later, after one had landed, and contradicted it on the
+# same page. Trust the command over any sentence here — it IS the measurement,
+# and it is one call per PR:
 #   gh api repos/Caisesiume/TurfGPS/issues/<N>/comments --paginate \
 #     --jq '.[].body' | grep -oE '^artifact: *[a-z_]+'
+#
+# RE-MEASURED 2026-09-07T20:29Z, over the five PRs open at that instant — #187,
+# #181, #142, #141, #140. ZERO declared `revision_packet` anywhere on the board.
+# The only declared discharge artifacts in existence are #181's own cycle-1
+# `judgment` and `review_ledger`, both declaring `sha: 297632d4…`. #187, #142
+# and #141 declare nothing at all, and #140's single `^artifact:` line declares
+# the id `this` — prose at column 0, matching no class this script reads.
+#
+# THE EVIDENCE FOR THE THIRD STATE IS DATED RATHER THAN CURRENT, AND IS KEPT AS
+# SUCH. On 2026-09-06 PR #135 carried a cycle-4 revision packet
+# (`#issuecomment-5562165264`, 21:04:57Z) declaring no `artifact:` key at all,
+# and an undeclared cycle-5 escalation with it. A two-state detector prints that
+# PR CLEAR — reproducing, through its own fix, the exact
+# false-negative-reported-as-fact that #172 exists to prevent. #135 merged
+# 2026-09-07T17:59:20Z and is no longer on the board this script reads.
+#
+# THE "LIVE RUN" THIS PR'S BODY PRINTS IS RETRACTED AS PROOF OF CORRECTNESS, and
+# named rather than quietly dropped. It was one run of this detector, necessarily
+# taken between 17:46:41Z — when #135's first declared `review_ledger` appeared,
+# without which `ruling` could not have read anything but `undeclared` — and that
+# merge 13 minutes later. It printed
+# `#135 owed packet=undeclared ruling=owed validation=owed` at rc 1, and TWO OF
+# THOSE THREE TOKENS WERE FALSE. `ruling=owed` was the order defect this cycle
+# removed: #135's cycle-7 judgment (17:46:40Z) and ledger (17:46:41Z) both
+# declare `sha: d5f3a58, cycle: 7`, so the panel WAS ruled and only the clock
+# said otherwise. `validation=owed` was false beside it — that same ledger
+# records @validation-agent's own machine result at that identity. Only
+# `packet=undeclared` was true, and it is the one token the paragraphs above
+# rest on. A run whose two owed lines were both false is evidence of the defect,
+# not of the detector.
 #
 # The corollary is the exit code: `undeclared` gets `3`, not `0`. The migration
 # is what makes this temporary — as declared artifacts accumulate, PRs move from
@@ -116,10 +154,18 @@
 # counted independently, so a PR owed on one class and unanswerable on another is
 # in `owed` AND in `undeclared` and the counts need not sum to the PRs read —
 # every owed and every undeclared line found before the failure is still printed.
-# Silence and "nothing owed" must not look
-# identical (#172 criterion 3), so the summary line is printed on EVERY PATH THAT
-# READ SOMETHING — including every failure on one — and `owed 0` is only ever
-# reached by a run that read something.
+#
+# SILENCE AND "NOTHING OWED" MUST NOT LOOK IDENTICAL (#172 criterion 3), so every
+# path but the usage path below prints a `summary:` line — AND `owed 0` IS NOT
+# ITSELF THAT DISTINCTION, which is what the two queue-failure paths make plain.
+# Both of them — the PR list unreadable, and an empty list whose `gh auth status`
+# then fails — print `owed_work: 0 PRs read`, then `summary: owed 0 · clear 0 ·
+# undeclared 0 · unreadable 0` with a trailing clause naming what could not be
+# read, and exit 2 having read nothing. A genuinely empty queue prints the same
+# four zeros with NO clause and exits 0. So what separates "nothing owed" from
+# "nothing read" is the CLAUSE and the STATUS; the counts are identical by
+# construction and a caller that branches on them alone cannot tell the two
+# apart.
 #
 # THE USAGE PATH IS THE ONE PATH WITHOUT ONE, and the claim is narrowed to the
 # code rather than the code widened to the claim. `owed-work.sh badnumber` prints
@@ -139,6 +185,22 @@
 #     NAME and not for a verdict; parsing verdicts out of a markdown cell is the
 #     semantic guessing criterion 2 refuses. The over-report is the chosen
 #     direction — see the mandatory-lane paragraph above.
+#   - B2 IS UNREACHABLE, SO `validation=owed` IS CURRENTLY UNFALSIFIABLE, and it
+#     is the one token in this script's output that says nothing about the
+#     question it appears to answer. Its only discharge is a `reviewer_verdict`
+#     declaring `reviewer: validation-agent`, and @validation-agent is
+#     contractually forbidden to emit that shape: it returns a machine result
+#     and not a verdict
+#     (`validation-agent § Output — the machine shape`), and
+#     `review-board-dispatch § Selection law` puts it outside the verdict
+#     vocabulary outright. Nothing on any PR can therefore discharge B2, so the
+#     line FIRES ON EVERY CORRECTLY REVIEWED PR whose panel names the lane —
+#     including ones where validation ran, ruled, and was recorded. DO NOT read
+#     it as evidence that a lane was skipped; read it as this script asking a
+#     question it cannot answer. Which declared artifact class carries a
+#     validation result is a contract question and is #182's; until that settles,
+#     the B2 code stands as written rather than being patched around with a
+#     fifth invented id, which is what produced the item.
 #   - A judgment does NOT discharge B2. That is the whole of #178's second
 #     symptom: on #135 cycle 4 and cycle 5 a panel was persisted and a ruling
 #     followed, and validation had never run. A detector that let a ruling close
