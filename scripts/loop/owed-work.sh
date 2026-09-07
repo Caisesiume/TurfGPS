@@ -276,6 +276,19 @@ sha_same() {
   return 1
 }
 
+# WHAT COUNTS AS AN IDENTITY AT ALL, decided in one place. `-` is a key the
+# artifact did not declare; EMPTY is a record narrower than `RECORD_FIELDS`
+# describes, which is `read` leaving trailing variables unset-but-set and the
+# under-wide mirror of the `overflow` guard; and anything that is not hex and
+# digits is not a stamp this script may match on. All three are the same answer
+# — no identity — and none of them may be compared as though it were one, or a
+# panel and a ruling that each declared nothing would match each other.
+has_identity() {
+  case "${1:-}" in ''|*[!0-9a-fA-F]*) return 1 ;; esac
+  case "${2:-}" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#1}" -ge 7 ]
+}
+
 # Cycles are compared as numbers, so `07` and `7` are one cycle; a non-numeric
 # cycle is no cycle and is refused for the same reason a malformed sha is.
 cycle_same() {
@@ -351,7 +364,7 @@ for pr in $prs; do
         # `judgment_seen` is kept apart from the identities so the undeclared
         # line can say WHICH of the two absences it met.
         judgment_seen=1
-        [ "$sha" = "-" ] || [ "$cycle" = "-" ] || judgment_ids="$judgment_ids
+        has_identity "$sha" "$cycle" && judgment_ids="$judgment_ids
 $sha $cycle" ;;
       review_ledger)
         if newer "$ts" "$newest_panel"; then
@@ -452,9 +465,9 @@ EOF
     ruling=undeclared; ruling_why="no declared review_ledger"
     validation=undeclared
   else
-    if [ "$panel_sha" = "-" ] || [ "$panel_cycle" = "-" ]; then
+    if ! has_identity "$panel_sha" "$panel_cycle"; then
       ruling=undeclared
-      ruling_why="the newest declared review_ledger declares no sha:/cycle: to match a ruling to"
+      ruling_why="the newest declared review_ledger declares no usable sha:/cycle: to match a ruling to"
     elif [ -z "$judgment_ids" ]; then
       ruling=undeclared
       if [ "$judgment_seen" -eq 1 ]; then
