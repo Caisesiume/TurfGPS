@@ -98,6 +98,8 @@ scripts/loop/claim.sh verdict <pr> <sha> <lane> <ruling> --by <your own lane> \
   --conf <x> --findings <n> --artifact <where the full verdict is>
 ```
 
+**Running this verb does not breach the read-only clause your dispatch carries, which governs the repository's tracked tree** — the claim table is the clone-local ignored state `review-board-dispatch § The claim table` locates, so writing your row touches nothing that tree holds, and every tracked file stays exactly as untouchable as the clause reads.
+
 `<ruling>` is the verdict word from `§ Reviewer verdict` above; the table enforces no vocabulary of its own, so a word this skill does not define is a word nothing will refuse. **The dispatch carries the other three arguments** — PR number, head SHA, and your lane name — per `review-board-dispatch § The case file (same for every reviewer) — references, not content`. A dispatch that does not carry them convened you outside the table: record what you can, and say so in your verdict rather than guessing a panel key.
 
 **`--by` is not optional here, and it is the one argument you supply about yourself.** It names who *wrote* the row, which the table checks against the `expects:` the claim recorded — the control the `12` row below reports on. Pass your own lane name, the same one you passed as `<lane>`; the two differ only where a lane was dispatched to a name other than its own, and then `--by` is still yours. **Omitting it does not refuse anything and that is the trap:** the call exits `0` and the row reads `filed_by: unrecorded` with `attribution_mismatch: unrecorded`, which is not a pass but the row saying its own writer is unknown — so a courier or a stray process filing into your lane is indistinguishable, of record, from you.
