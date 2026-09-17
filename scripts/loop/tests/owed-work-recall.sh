@@ -866,6 +866,32 @@ OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 SEVENTH"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.declared"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
 
+# --- M2  A RECORD TOO NARROW TO CARRY THE FLAG IS NOT A CLAIM ABOUT THE LANE ----
+# The other end of the same arity question, and the other branch no fixture
+# reached. A record NARROWER than `RECORD_FIELDS` names leaves `namesval` EMPTY —
+# `read` sets it rather than leaving it unset — and a detector testing the flag
+# with a bare `!= "1"` then prints `n/a`: the positive claim that the panel WAS
+# read and does NOT name the mandatory lane, asserted off a field the record never
+# carried. It is written past `cmt()` for M1's reason inverted: `cmt()` prints
+# exactly six fields, so no record this corpus builds can be too narrow either.
+#
+# THE EXPECTED ANSWER IS THIS CORPUS'S OWN RULE, NOT THE DETECTOR'S COMMENT READ
+# BACK. B1g and B1h (#916, #917) already pin it on the identity fields: an
+# artifact that declares no `sha:`/`cycle:` is `undeclared` and never a positive
+# answer, because an absent field is not evidence. The validation flag is a field
+# like those, and `n/a` is a positive answer like `clear`. A detector that refuses
+# an empty sha and volunteers `n/a` off an empty flag is inconsistent with itself.
+#
+# WHAT IT MUST NOT BE RED FOR. Its commits are readable and its comments are
+# served, so it is never `unreadable`, and its record is three fields — it stops
+# SHORT of the flag rather than carrying an unparseable one, which is the shape
+# the arity guard below pins.
+pr 933; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+: > "$FIX/pr933/NARROW"
+NARROW_REC="$T_LEDGER review_ledger -"
+printf '%s\n' "$NARROW_REC" > "$FIX/pr933/records.declared"
+printf '%s\n' "$NARROW_REC" > "$FIX/pr933/records.heading"
+
 # ---------------------------------------------------------------------------
 # THE STUBBED `gh`
 #
@@ -935,9 +961,10 @@ for d in "$FIX"/pr*; do
   [ -f "$d/NO_COMMENTS" ] && continue
   # M1's record is deliberately wider than a record may be, so the guard below —
   # which destructures six fields and would absorb the seventh exactly as the
-  # detector's `read` does — cannot judge it. Skipped here and guarded by arity
+  # detector's `read` does — cannot judge it. M2's is deliberately narrower, and
+  # has no body file to re-read at all. Both are skipped here and guarded by arity
   # instead, among the construction checks.
-  [ -f "$d/OVERWIDE" ] && continue
+  { [ -f "$d/OVERWIDE" ] || [ -f "$d/NARROW" ]; } && continue
   # Comments must be chronological, because every condition here is "X with nothing
   # after it" and a fixture whose records arrived out of order tests a different
   # question than the one it names.
@@ -1007,6 +1034,15 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
   || die "M1's record must be SEVEN fields wide or the overflow guard is never reached"
 [ -f "$FIX/pr932/commits" ] \
   || die "M1 must have readable commits or its 'unreadable' is the other route and proves nothing"
+# M2's is the same claim from the other side, and it is the more dangerous of the
+# two to get wrong: a fixture widened back to six fields carries a readable `0`,
+# the flag-readability branch is never reached, and its checks then pass because
+# the lane is GENUINELY not named — green for the opposite reason to the one they
+# name.
+[ "$(awk 'NR == 1 {print NF}' "$FIX/pr933/records.declared")" = '3' ] \
+  || die "M2's record must stop SHORT of the validation flag or the readability guard is never reached"
+[ -f "$FIX/pr933/commits" ] \
+  || die "M2 must have readable commits or it never reaches a validation class at all"
 
 cd "$TMP" || die "could not enter $TMP"
 
@@ -1180,6 +1216,28 @@ check_rc  "M1  ... and it takes the 2 every unreadable source takes"         2
 check_has "M1  ... and it names the guard, not a generic read failure"      "RECORD_FIELDS does not name"
 check_has "M1  ... and quotes the field that would have been absorbed"      "'SEVENTH'"
 check_has "M1  ... and the summary counts it unreadable"                    "unreadable 1"
+
+# M2 — THE FLAG-READABILITY BRANCH, THE OTHER ONE NO FIXTURE REACHED. A record too
+# narrow to carry the validation flag cannot answer the mandatory-lane question, so
+# the class is the third state and the `why` says which absence it is. Run alone so
+# the `why` and the absence below are about this PR and nothing else.
+run 933
+cls       "M2  a record too narrow to carry the flag cannot answer the lane"     933 undeclared undeclared undeclared
+check_has "M2  ... and the why names the unreadable flag, quoting what it read"  "carries no readable validation-agent flag ('')"
+# THE CLAIM THE GUARD EXISTS TO REFUSE, ASSERTED AS AN ABSENCE ON THIS PR'S OWN
+# LINE. `n/a` asserts the panel WAS read and does NOT name the lane — a positive
+# answer, and the one a bare `!= "1"` test prints off a field the record never
+# carried. It is asserted separately from the cell above because it is a different
+# sentence: the cell says which state was reached, this says which state may never
+# be. Scoped to the line for X15's reason — over the whole report it would be
+# satisfiable by the summary's tallies, which are counts and not a verdict on #933.
+L933="$(line_for 933)"
+if [ -n "$L933" ] && ! printf '%s' "$L933" | grep -q 'validation=n/a'; then
+  pass "M2  ... and NEVER n/a, which would claim the panel was read and names no lane"
+else
+  bad  "M2  ... and NEVER n/a, which would claim the panel was read and names no lane" \
+       "got: ${L933:-<no line for #933>}"
+fi
 
 # THE COUNTS ARE PER CLASS AND NEED NOT SUM TO THE PRs READ, which the detector's
 # header promises and which no documented consumer yet reads — that block is
