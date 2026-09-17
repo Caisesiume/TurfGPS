@@ -432,7 +432,8 @@ for pr in $prs; do
         # stream, and on a correctly ruled PR it always is (Phase 9 then 10).
         # `judgment_seen` is kept apart from the identities because the two
         # absences answer differently below: no declared ruling at all is
-        # `owed`, a declared ruling carrying no identity is `undeclared`.
+        # `owed`, and declared rulings NOT ONE of which carries an identity is
+        # `undeclared`.
         judgment_seen=1
         has_identity "$sha" "$cycle" && judgment_ids="$judgment_ids
 $sha $cycle" ;;
@@ -526,9 +527,17 @@ EOF
   # AND THE DISCHARGE CLASS GETS THE THIRD STATE FOR ONE OF THE TWO ABSENCES,
   # NOT BOTH. `undeclared` says: an artifact WAS declared and this script cannot
   # read an identity off it. That holds where the panel declares none, and where
-  # a `judgment` was declared carrying none — a ruling this script cannot place
-  # is not a ruling it may report as missing, and `owed` there would assert an
-  # absence the marker discipline cannot see (#172 criterion 2).
+  # judgments were declared and NOT ONE OF THEM carries an identity — a ruling
+  # this script cannot place is not a ruling it may report as missing, and `owed`
+  # there would assert an absence the marker discipline cannot see (#172
+  # criterion 2).
+  #
+  # THE QUANTIFIER IS "NOT ONE OF THEM", AND IS WRITTEN AS THE CODE HAS IT RATHER
+  # THAN AS THE EASIER SENTENCE. One identity-less judgment standing beside one
+  # that carries an identity leaves `judgment_ids` NON-EMPTY, so the match below
+  # runs on the rulings that CAN be placed and the unplaceable one is simply not
+  # evidence either way. `undeclared` is reached only when the identities are
+  # absent altogether.
   #
   # It does NOT hold where NO judgment was declared at all. Nothing is unreadable
   # in that case: the ruling ITSELF is what is missing, which is #178 criterion 2
