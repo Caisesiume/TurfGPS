@@ -174,3 +174,17 @@ An item with no `Status` is not at the head of the chain — it is outside the c
 *Ruled rather than observed. `turfgps-board-ops § Labels` enumerated three `Task` exemptions and separately said a `Task` "never enters the chain it describes", which left the commit link genuinely ambiguous to a reader applying both sentences.*
 
 **They must.** A `Task`'s commits reference its own `#N`. That link buys **attribution** — which item this commit was done for — and not requirements-tracing, which is the chain a `Task` legitimately stays out of. The three exemptions (`Resolves:`, Milestone, the coverage audit) are the complete list, and no fourth is inferred from the chain sentence. One sentence, in `turfgps-board-ops § Labels`.
+
+## Amendment — 2026-09-17 (origin: ADR-0004)
+
+*Source: the Owner's ruling of 2026-09-17 on `LA-01`, a blocker `@linus-architecture-critic` filed against PR #188. `ADR-0004 § D2` blocks a consumer on a trigger `§ D6` above does not admit; the Owner ruled that the trigger becomes a category rather than an exception. The ruling is quoted verbatim in `ADR-0004 § The decisions as given`. This amendment is bounded to the category below and changes nothing else in this record.*
+
+### D16 — An unlisted author declaring an artifact is a sixth blocking escalation category
+
+**§21's list gains a sixth entry, and `§ D6` above is otherwise unchanged.** §21 remains the only human-escalation policy in the repository, and only §21-qualifying questions block. What changes is that one more question qualifies:
+
+- **An unlisted author has declared an artifact** — an account outside the `ADR-0004 § D1` allowlist has posted something carrying an `artifact:` key, so `ADR-0004 § D1` forbids consuming it and `ADR-0004 § D2` forbids discarding it. Only the Owner can rule on its readiness and correctness.
+
+**It carries a proposed answer, exactly as the other five do.** §21's closing rule — never "What should I do?", always a recommendation — binds this category unchanged, and the Owner restated it in the ruling: a question without a recommendation is work handed back. The escalating agent states what it would do with the artifact and why.
+
+**The trigger's definition, the Owner's narrowing of it, and the reasoning behind both are `ADR-0004 § D2`, and this entry does not restate them** — a category whose trigger is written in two places is a category that can be narrowed in one. `ADR-0004` is the origin of this entry and the record that argues it; this entry is where it binds.
