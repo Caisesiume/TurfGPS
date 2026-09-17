@@ -172,7 +172,7 @@ tr -d '\r' < "$RESULT" > "$RESULT.lf"          # a line ending is transport, not
 tr -d '\000-\010\013-\037\177' < "$RESULT.lf" \
   | sed -E 's/(gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,})/[redacted]/g' > "$RESULT.clean"
 cmp -s "$RESULT.lf" "$RESULT.clean" || { printf 'redaction fired — withhold the line, file a finding\n' >&2; exit 1; }
-"$GH" pr comment <n> --body-file "$RESULT.clean"
+"$GH" pr comment "<n>" --body-file "$RESULT.clean"   # <n> is quoted: bare, `<` opens a redirection
 ```
 
 Tab and newline survive that class and ESC does not, for the reason `scrub()` states in its own header: a stored escape sequence repaints the terminal of whoever reads the record, so the record is intact and the reader's view of it is not. CR is dropped before the comparison rather than inside it, because a CRLF gate log would otherwise trip the stop on every run and a stop that always fires is a stop nobody keeps. **When the two files differ, that gate line does not go into the comment at all.** `local-gates § The law` wants gate lines verbatim, and a silently altered line posted as verbatim evidence is a quieter lie than a missing one — file it as a finding naming the gate, its directory, its exit status and where its output is, and say that the line was withheld and why. **A gate line that cannot be posted safely is a finding, not a paste.** **The cleanup is a trap on `EXIT` and never a trailing `rm`**, because the stop is an ordinary path and not a rare one — ESC in colourised gate output fires the redaction — and a trailing `rm` is exactly the line an `exit 1` jumps over, leaving `$RESULT` and `$RESULT.lf` in `TMPDIR` still holding the text the stop fired on.
