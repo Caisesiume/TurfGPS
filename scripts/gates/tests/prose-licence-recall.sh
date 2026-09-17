@@ -23,10 +23,13 @@
 #       declaring `finding_overturned, predecessor_corrected` — the value this
 #       gate refuses to judge rather than decide from a gate. FIXTURE 6.
 #
-# NO LICENCE VALUE IS RESTATED IN THIS FILE, for the reason no cap number is
-# restated in `output-caps-recall.sh`: the table is the one home. Every value
-# exercised below is READ from the table at run time, and the one fixture that
-# needs a token the table does NOT define asserts its absence before using it —
+# NO LICENCE VALUE IS COMPILED INTO A FIXTURE, for the reason no cap number is
+# restated in `output-caps-recall.sh`: the table is the one home. Values are
+# named three lines above, in the history, where they record what a live
+# artifact declared; none of them is what any assertion below is built on.
+# Every value exercised below is READ from the table at run time, and the one
+# fixture that needs a token the table does NOT define asserts its absence
+# before using it —
 # a fixture built on a token the table later adopts would be vacuous and green.
 #
 # WHAT THIS FILE FIXES, stated as assertions rather than description:
@@ -76,6 +79,14 @@
 #        rather than to be red because nothing is implemented. The checker it
 #        ran is printed on every run so no output is ambiguous about what it
 #        exercised.
+#        WHERE THAT STUB MUST SIT: the checker resolves its licence table from
+#        ITS OWN path, not from this corpus's, so an external one is invoked
+#        UNSTAGED and must lie at `<tree>/scripts/gates/` beside a
+#        `<tree>/.claude/skills/agent-handoffs/SKILL.md`. A stub outside such a
+#        tree fails every assertion with "the licence table is not readable at",
+#        which is the instrument reporting its own staging and says nothing
+#        about the stub. `stage()` below builds exactly that tree and is the
+#        pattern to copy.
 # Exit:  0 all pass · 1 any failure
 
 set -u
@@ -212,6 +223,20 @@ mutant() {
     die "construction: mutant '$n' is byte-identical to the checker — the line its expression targets has moved. Re-aim the expression; do not delete the demonstration."
   printf '%s' "$out"
 }
+# build <name> <sed expression> — `mutant` into $M, WITH ITS FAILURE OBSERVED.
+#
+# THE HARD STOP ABOVE IS ONLY AS HARD AS ITS CALLER. `mutant` is reached through
+# `$(...)`, so the `exit 1` in `die` leaves the command substitution and nothing
+# else; the parent shell carried on with the FAIL text captured as $M, `runm`
+# ran `bash "FAIL  construction: ..."`, and rc 127 with a "No such file or
+# directory" message satisfied every `check_lacks` that followed. A corpus whose
+# construction premise had collapsed printed `all passed` at rc 0 — measured on
+# 17 September 2026 by re-aiming FIXTURE 5's expression at a line that does not
+# exist. The status is checked HERE, in the corpus's own shell, where exiting
+# ends the run; `mutant` is unchanged and still owns composing the message.
+build() {
+  M="$(mutant "$@")" || { printf '%s\n' "$M"; exit 1; }
+}
 runm() { local m="$1"; shift; OUT="$(bash "$m" "$@" 2>&1)"; RC=$?; }
 
 art() { printf '%s\n' "$2" > "$TMP/$1"; }
@@ -230,7 +255,7 @@ check_rc    "1 presence · an artifact with no prose_licence: key fails"        
 check_has   "1 presence · ... and the key that stands second is named"         "pr: stands second"
 check_lacks "1 presence · ... and never says clean"                            "clean · "
 
-M="$(mutant pres 's|checked=$((checked + 1)); failed=$((failed + 1)); continue ;;|checked=$((checked + 1)); continue ;;|')"
+build pres 's|checked=$((checked + 1)); failed=$((failed + 1)); continue ;;|checked=$((checked + 1)); continue ;;|'
 runm "$M" "$TMP/nokey.md"
 check_rc  "1 presence · RED: with the position and presence arms neutralised it passes"  0
 check_has "1 presence · RED: ... and prints exactly what a clean run prints"              "clean · "
@@ -251,7 +276,7 @@ check_rc    "2 position · a prose_licence: standing third fails"               
 check_has   "2 position · ... and is distinguished from an absent key"              "is declared but pr: stands second"
 check_lacks "2 position · ... and never says clean"                                 "clean · "
 
-M="$(mutant pos 's|checked=$((checked + 1)); failed=$((failed + 1)); continue ;;|checked=$((checked + 1)); continue ;;|')"
+build pos 's|checked=$((checked + 1)); failed=$((failed + 1)); continue ;;|checked=$((checked + 1)); continue ;;|'
 runm "$M" "$TMP/late.md"
 check_rc  "2 position · RED: with the position arms neutralised it passes"  0
 check_has "2 position · RED: ... and prints what a clean run prints"        "clean · "
@@ -280,7 +305,7 @@ run "$TMP/ruling.md"
 check_rc  "3 enum · the live PR #154 value 'ruling' fails too"  1
 check_has "3 enum · ... and it is named, not merely counted"    "ruling is not a value the licence table defines"
 
-M="$(mutant enum 's|if defined "$val"; then|if true; then|')"
+build enum 's|if defined "$val"; then|if true; then|'
 runm "$M" "$TMP/invented.md"
 check_rc  "3 enum · RED: with the table lookup neutralised the invented value passes"  0
 check_has "3 enum · RED: ... and prints what a clean run prints"                       "clean · "
@@ -326,8 +351,15 @@ check_rc    "5 empty · a key declaring nothing fails"                        1
 check_has   "5 empty · ... and is told which sentence it broke"              "none is a value rather than an omission"
 check_lacks "5 empty · ... and never says clean"                             "clean · "
 
-M="$(mutant bare 's|if . -z "$val" .; then|if false; then|')"
+build bare 's|if . -z "$val" .; then|if false; then|'
 runm "$M" "$TMP/bare.md"
+# PAIRED WITH AN rc ASSERTION, and it is the only red demonstration here that
+# was not. A bare `check_lacks` is satisfied by ANY output missing the string,
+# including bash's "No such file or directory" when the mutant was never built,
+# so this one line could go green having demonstrated nothing. The rc pins what
+# the mutant is supposed to have done: the verdict still fails, through the
+# table lookup instead, which is why the lost reason is the whole finding.
+check_rc    "5 empty · RED: ... and the mutant ran, still failing through the table"  1
 check_lacks "5 empty · RED: with the rule removed the actionable reason is gone"  "none is a value rather than an omission"
 
 # ---------------------------------------------------------------------------
@@ -351,7 +383,7 @@ check_rc    "6 two licences · a value naming two is cannot-vouch, not a verdict
 check_has   "6 two licences · ... and the gate says it does not decide it"        "does not decide"
 check_lacks "6 two licences · ... and never says clean"                           "clean · "
 
-M="$(mutant pair 's|    \*,\*)|    __no_such_tag)|')"
+build pair 's|    \*,\*)|    __no_such_tag)|'
 runm "$M" "$TMP/pair.md"
 check_rc    "6 two licences · RED: with the refusal removed it is silently judged"  1
 check_lacks "6 two licences · RED: ... and is no longer refused"                    "does not decide"
@@ -380,7 +412,7 @@ check_rc    "7 relay · the artifact's own declaration is judged, not the one it
 check_has   "7 relay · ... and the id reported is the courier's"                          "supersession_notice · ruling"
 check_lacks "7 relay · ... and never says clean"                                          "clean · "
 
-M="$(mutant relay 's|{ state = 3; next }|{ state = 1; has = 0; next }|')"
+build relay 's|{ state = 3; next }|{ state = 1; has = 0; next }|'
 runm "$M" "$TMP/relay.md"
 check_rc  "7 relay · RED: a checker reading the LAST declaration reports clean"  0
 check_has "7 relay · RED: ... and prints what a clean run prints"                "clean · "
@@ -404,7 +436,7 @@ run "$TMP/commented.md"
 check_rc  "8a comment · a trailing YAML comment is not part of the value"  0
 check_has "8a comment · ... and the value read is the token alone"         "judgment · $FIRST_VALUE · ok"
 
-M="$(mutant hash 's|.*RSTART - 1)|  v = v|')"
+build hash 's|.*RSTART - 1)|  v = v|'
 runm "$M" "$TMP/commented.md"
 check_rc    "8a comment · RED: with the comment strip removed the value fails"  1
 check_lacks "8a comment · RED: ... and never says clean"                        "clean · "
@@ -424,13 +456,32 @@ check_has "8b CRLF · ... and the value read carries no carriage return"     "ju
 # cap checker's side: GitHub returns CRLF bodies and the platforms disagree. So
 # the host is probed, the demonstration runs where it can, and where it cannot
 # it is reported as not run with the reason rather than passed by accident.
+# PRESENCE IS ASSERTED ON EVERY HOST; ONLY THE BEHAVIOUR IS HOST-DEPENDENT, and
+# separating the two is the whole of this block. The `if` below guards the
+# DEMONSTRATION, not the rule: with the demonstration skipped on this host, the
+# strip could be DELETED OUTRIGHT and nothing read the rule at all — measured on
+# 17 September 2026 by staging a checker with the record action removed, which
+# gave 72 PASS, 0 FAIL, `all passed`. No `.github` directory exists, so no host
+# of the other kind runs this corpus either, and the rule was unguarded
+# everywhere. A rule whose coverage cannot be demonstrated here still gets its
+# deletion caught here; the anchor is the same record action the `crlf` mutant
+# rewrites, so the guard and the demonstration cannot drift apart.
+CRLF_RULE='{ line = $0; sub(/\r$/, "", line) }'
+CRLF_HELD="$(grep -cF "$CRLF_RULE" "$SCRIPT")"
+if [ "$CRLF_HELD" = 1 ]; then
+  pass "8b CRLF · presence · the record-level \\r strip is in the checker, host-independently"
+else
+  bad  "8b CRLF · presence · the record-level \\r strip is in the checker, host-independently" \
+       "found $CRLF_HELD occurrences of the record action, wanted exactly 1. Deleted, it is #186 defect 3 reintroduced on every CRLF host; duplicated, the mutant below rewrites only one of them and its demonstration asserts nothing."
+fi
+
 CR_SURVIVES=no
 case "$(printf 'x\r\n' | awk '$0 ~ /\r$/ { print "yes" }')" in *yes*) CR_SURVIVES=yes ;; esac
 printf 'host probe: awk %s carry \\r into $0\n' \
   "$([ "$CR_SURVIVES" = yes ] && echo does || echo 'does NOT')"
 
 if [ "$CR_SURVIVES" = yes ]; then
-  M="$(mutant crlf 's|{ line = $0; sub(/.r$/, "", line) }|{ line = $0 }|')"
+  build crlf 's|{ line = $0; sub(/.r$/, "", line) }|{ line = $0 }|'
   runm "$M" "$TMP/crlf.md"
   check_rc    "8b CRLF · RED: with the strip removed the same artifact fails on one platform"  1
   check_lacks "8b CRLF · RED: ... and never says clean"                                        "clean · "
