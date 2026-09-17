@@ -206,7 +206,13 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a comment record carries a field R
         else                   rule = "owed"
         for (i = 1; i <= nv; i++) if (v[i] > led && v[i] > ver) ver = v[i]
       }
-      printf "%s|%s|%d|%s|%s\n", pkt, led, ledval + 0, rule, ver
+      # THE FLAG TRAVELS AS WHAT WAS READ, NOT AS A NUMBER. `%d` with `ledval + 0`
+      # coerced an ABSENT field — a record narrower than RECORD_FIELDS leaves $4
+      # empty — into a readable `0`, and the caller then bought `n/a` off a field
+      # the record never carried. That is the same mistake `ident()` above refuses
+      # for a sha, and this control cannot refuse it there and commit it here.
+      # Verbatim, so the reader below decides readability and can quote what it read.
+      printf "%s|%s|%s|%s|%s\n", pkt, led, ledval, rule, ver
     }')"
   IFS='|' read -r pkt led led_names_val ruling ver <<EOF
 $vals
@@ -236,9 +242,17 @@ EOF
   # is a token a caller reads without it.
   # DEFECT: a ruling closes the validation question. It does not — #135 c4/c5.
   [ "$DEFECT" = b2_discharged ] && [ "$ruling" = clear ] && ver="closed-by-the-ruling"
+  # `n/a` IS A POSITIVE CLAIM — the panel was read and names no lane — so only a
+  # flag that AFFIRMATIVELY reads may produce it. The rule is this corpus's own,
+  # taken from B1g/B1h and not from the deliverable: an absent field is not
+  # evidence, and never a positive answer. A `case` membership test, because the
+  # arithmetic one this replaced could not tell an absent field from a declared 0.
+  case "$led_names_val" in 0|1) flag_read=1 ;; *) flag_read=0 ;; esac
   why=''
   if   [ -z "$led" ];                 then validation=undeclared
-  elif [ "$led_names_val" -eq 0 ];    then validation=n/a
+  elif [ "$flag_read" -eq 0 ];        then validation=undeclared
+    why="the review_ledger carries no readable validation-agent flag ('$led_names_val'), so whether it names the mandatory lane cannot be answered"
+  elif [ "$led_names_val" = 0 ];      then validation=n/a
   elif [ -n "$ver" ];                 then validation=clear
   else validation=undeclared
     why="the review_ledger names @validation-agent and nothing may emit the verdict that would discharge it — unfalsifiable until #182 declares the class"
