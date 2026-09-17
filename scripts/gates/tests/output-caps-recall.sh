@@ -1017,6 +1017,97 @@ check_has   "filter died · ... and it is not silently rounded down to zero"    
 check_lacks "filter died · ... and never says clean"                              "clean · "
 
 # ---------------------------------------------------------------------------
+# FIXTURE 12 — THE MACHINE RESULT, AND A ROW THAT ONLY ITS POSITION PROTECTED.
+#
+# `validation_result` was added to the cap table with no fixture standing on it,
+# and `agent-handoffs § The cap table` closes on what that costs: a dropped LAST
+# row that no fixture is grounded in is caught by neither the region count above
+# nor a grounding. This row sits twelfth of thirteen, so until now the only
+# thing under it was that placement — move it, or land a later row after it, and
+# the guard goes away in silence. `need_row` below is what replaces an accident
+# of ordering with a check.
+#
+# The shape exercised is the one @validation-agent actually posts. Its gate
+# lines are EVIDENCE and are counted; its `findings:` list is the excluded part,
+# because a cap that counted the defects would bound how many the gates are
+# allowed to find. Both halves are asserted at the level of the VERDICT, not
+# only of the number: each artifact is built to land exactly on the boundary, so
+# a checker that counted the findings carries the first one over and a checker
+# that dropped the gate lines carries the second one back under.
+# ---------------------------------------------------------------------------
+need_row validation_result body
+VALCAP="$(cap_of validation_result)"
+
+# FENCED, first line to last, which is how these are posted: 84 of the 105 real
+# artifacts declaring an `artifact:` key open with a code fence, measured in
+# `validation-agent § Post your result to the PR before your pass ends`. The
+# declaration is still the first `artifact:` line and the fence does not hide
+# it — and `body` reads no fences at all, so the all-fenced block that measures
+# ZERO under `own` in FIXTURE 11 is measured here in full, minus the findings.
+art_new val-fenced-at-cap.md
+put '```yaml'
+put 'artifact: validation_result'
+put 'prose_licence: none'
+put 'sha: 815c8bfa1d4e2c6b0f39a77c5e18d240b9c3f5a1'
+put 'validation: {status: fail}'
+put 'gates:'
+put '  - "go build ./... -- ok -- service/"'
+put '  - "go test -race -cover ./... -- ok -- service/"'
+put_block_x <<'EX'
+findings:
+  - id: VAL-01
+    severity: high
+    where: .claude/skills/agent-handoffs/SKILL.md
+    text: the validation_result row is grounded in no fixture in the recall corpus
+  - id: VAL-02
+    severity: medium
+    where: scripts/gates/tests/output-caps-recall.sh
+    text: the row's position in the table is the whole of what stands under it
+EX
+put 'hint_for_judge: none'
+pad_to $(( VALCAP - 4 ))
+put '```'   # 3 characters and its newline, which is the 4 held back above
+[ "$(counted)" = "$VALCAP" ] || die "construction: the fenced machine result counts $(counted) and the fixture claims $VALCAP — it is built to land ON the cap, and one built off that boundary asks a different question than the one asserted below"
+
+run "$TMP/val-fenced-at-cap.md"
+check_rc  "machine result · a fenced declaration classifies, and the findings list is not counted"  0
+check_has "machine result · ... exactly at the cap, the gate lines and the fence counted with it"   "$(report_of validation_result "$VALCAP")"
+
+# UNFENCED — the other 21 of those 105 — and the gate lines are what put it over.
+# They are written PAST the cap boundary, so that saying so is construction and
+# not commentary. Two wrong checkers are denied here: one that excluded the gate
+# lines as evidence reports the size asserted absent below, and one that ran the
+# findings exclusion to end of file drops them along with everything else after
+# the block and reports this result CLEAN.
+VAL_G1='  - "go vet ./... -- ok -- service/"'
+VAL_G2='  - "npm run lint -- ok -- web/"'
+VAL_GATES=$(( ${#VAL_G1} + ${#VAL_G2} + 2 ))
+
+art_new val-unfenced-gates-over.md
+put 'artifact: validation_result'
+put 'prose_licence: none'
+put 'sha: 815c8bfa1d4e2c6b0f39a77c5e18d240b9c3f5a1'
+put 'validation: {status: fail}'
+put_block_x <<'EX'
+findings:
+  - id: VAL-03
+    severity: high
+    where: scripts/gates/output-caps.sh
+    text: the excluded list is the defect count, and the cap must never bound it
+EX
+put 'gates:'
+pad_to $(( VALCAP + 1 - VAL_GATES ))
+put "$VAL_G1"
+put "$VAL_G2"
+[ "$(counted)" = "$((VALCAP + 1))" ] || die "construction: the unfenced machine result counts $(counted) and the fixture claims $((VALCAP + 1)) — the gate lines carry it over by exactly one character, and only from a counted region built to the character"
+
+run "$TMP/val-unfenced-gates-over.md"
+check_rc    "machine result · an unfenced declaration classifies too, and its gate lines are evidence"  1
+check_has   "machine result · ... so the evidence is what carries it one character over"                "$(report_of validation_result $((VALCAP + 1)))"
+check_lacks "machine result · ... and never the size it would measure with the gate lines dropped"      "$(report_of validation_result $((VALCAP + 1 - VAL_GATES)))"
+check_lacks "machine result · ... where an exclusion running to EOF would have reported it clean"       "clean · "
+
+# ---------------------------------------------------------------------------
 # COVERAGE — PRINTED, NEVER ASSERTED, and computed from the table rather than
 # kept by hand. `d8-root-run-claims-recall.sh` records what a hand-kept second
 # statement of a measured number does: it drifted for a whole cycle while every
