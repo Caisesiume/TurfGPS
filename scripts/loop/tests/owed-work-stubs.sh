@@ -74,8 +74,11 @@
 #                   cycles 4 and 5 and PR #154 cycle 6. Its red used to rest on ONE
 #                   table cell, and on an ordering the posting contract makes
 #                   impossible; the corpus now isolates that defect on a fixture
-#                   whose only owed class is validation and asserts the cell, the
-#                   state token, the exit status and the summary counts.
+#                   whose only class that is not `clear` is validation, and asserts
+#                   the cell, the state token, the exit status and the summary
+#                   counts. The faithful answer there is `undeclared` — nothing may
+#                   emit B2's discharge, so `owed` is unfalsifiable — and this
+#                   defect turns it `clear`, which is the silence itself.
 #
 # Hermetic: everything generated under mktemp, nothing written outside it, no
 # network, no repository state. The corpus it drives is hermetic in its own right.
@@ -210,14 +213,20 @@ EOF
   #$pr review_ledger $led has no declared judgment of its own identity — a panel convened and never ruled"
 
   # --- condition B2: the mandatory last lane -----------------------------------
+  # AN UNDISCHARGED B2 IS UNANSWERABLE, NOT OWED, and that is read off the
+  # contract rather than off the deliverable: the only thing that discharges B2
+  # is a reviewer_verdict declaring `reviewer: validation-agent`, which
+  # @validation-agent may not emit, so no PR could falsify an `owed` here. The
+  # reason travels with the state — a token whose `why` lives only in a header
+  # is a token a caller reads without it.
   # DEFECT: a ruling closes the validation question. It does not — #135 c4/c5.
   [ "$DEFECT" = b2_discharged ] && [ "$ruling" = clear ] && ver="closed-by-the-ruling"
+  why=''
   if   [ -z "$led" ];                 then validation=undeclared
   elif [ "$led_names_val" -eq 0 ];    then validation=n/a
   elif [ -n "$ver" ];                 then validation=clear
-  else validation=owed
-    OWED="$OWED
-  #$pr review_ledger $led names @validation-agent and no validation verdict follows it — the mandatory last lane"
+  else validation=undeclared
+    why="the review_ledger names @validation-agent and nothing may emit the verdict that would discharge it — unfalsifiable until #182 declares the class"
   fi
 
   # DEFECT: two states. `undeclared` becomes `clear` and the distinction is gone.
@@ -244,7 +253,7 @@ EOF
     [ "$state" = owed ] || state=undeclared
     n_undecl=$((n_undecl + 1))
     UNDECL="$UNDECL
-  #$pr no declared artifact of at least one class — cannot be judged; this is NOT \"nothing owed\""
+  #$pr ${why:-no declared artifact of at least one class} — cannot be judged; this is NOT \"nothing owed\""
   fi
   [ "$state" = clear ] && n_clear=$((n_clear + 1))
 

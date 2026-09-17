@@ -86,14 +86,24 @@
 # on IDENTITY, and FIXTURES B1b and B1e pin that posting order decides nothing:
 # the same identity discharges the panel whichever comment came first.
 #
-# TWO CONSEQUENCES OF B2 THAT THE CORPUS PINS BECAUSE THEY ARE WHERE IT WOULD BE
+# AN UNDISCHARGED B2 IS `undeclared`, AND THAT IS THE STATE THIS CORPUS ASSERTS.
+# Nothing may emit the `reviewer_verdict` that would discharge it (see below), so
+# `owed` there is a claim no PR could ever falsify — and this corpus asserted that
+# claim for two cycles, which is how it survived them. An unfalsifiable token also
+# inverted the detector's exit contract: `owed` on every panel naming the lane put
+# rc 0 out of reach except down the `n/a` path, so a correct panel exited 1. What
+# the detector cannot answer it now says it cannot answer, in the state this corpus
+# already uses for exactly that.
+#
+# TWO CONSEQUENCES OF B2 THAT THE CORPUS PINS BECAUSE THEY ARE WHERE THEY WOULD BE
 # MISSED. A `judgment` does NOT discharge B2 (FIXTURE B2b) — that is exactly PR
 # #135 cycles 4 and 5, where a panel was persisted, a ruling followed, and the
-# mandatory last lane was never dispatched at all. And B2 OVER-REPORTS a ledger
-# whose own table already records validation (FIXTURE B2g); that is pinned as built
-# behaviour, not as an ideal, because a mandatory lane must fail toward being
-# reported and reading a verdict out of a markdown cell is the semantic guessing
-# criterion 2 forbids.
+# mandatory last lane was never dispatched at all. And a ledger whose own table
+# already records validation is still NOT read as `clear` (FIXTURE B2g); that is
+# pinned as built behaviour, not as an ideal, because reading a verdict out of a
+# markdown cell is the semantic guessing criterion 2 forbids. Both fixtures answer
+# `undeclared`, and both would answer `clear` under a detector that let the wrong
+# thing close the question — which is what each of them is there to catch.
 #
 # WHAT B2'S DISCHARGE IS IS NOT SETTLED, AND THIS CORPUS DOES NOT SETTLE IT.
 # `artifact: reviewer_verdict` carrying `reviewer: validation-agent` is a shape
@@ -134,7 +144,7 @@
 # before a failing status is still PRINTED, and a `summary:` line is printed on
 # EVERY path including every failure — FIXTURES X1..X11 assert both halves.
 #
-# AN OWED CLASS IS ASSERTED ON FOUR SURFACES, NOT ON ONE TABLE CELL: the class
+# A CLASS ANSWER IS ASSERTED ON FOUR SURFACES, NOT ON ONE TABLE CELL: the class
 # pair in the PR's own line, the PR's STATE token, the run's EXIT STATUS, and the
 # SUMMARY COUNTS, which are the branch surface the detector publishes — no
 # consumer is documented yet, that block being deferred to #178, blocked by
@@ -542,9 +552,12 @@ BODY
 # that reached for a commit sha would ask the stubbed `gh` a question it does not
 # serve, and the UNKNOWN guard at the foot of this file stops the run.
 
-# --- B2a  owed: the #135 cycle-4 shape -----------------------------------------
+# --- B2a  unanswerable: the #135 cycle-4 shape ----------------------------------
 # A panel naming the mandatory last lane, and no validation verdict after it.
-# Caught in life only because a human noticed a 90-minute silence.
+# Caught in life only because a human noticed a 90-minute silence — and the honest
+# report of it is `undeclared`, because the artifact that would discharge it is one
+# nothing may post (#182). The silence is real; what this script can say about it
+# is that it cannot tell.
 pr 920; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 cmt "$T_LEDGER" review_ledger - 1 "$SHA181" 4 <<BODY
 artifact: review_ledger
@@ -565,13 +578,14 @@ BODY
 # that let a ruling close the validation question reports both cycles complete.
 #
 # THE PACKET AND THE RULING ARE BOTH DISCHARGED HERE ON PURPOSE, so validation is
-# the ONLY owed class on the PR. That isolation is what lets the S-block assert the
-# state token, the exit status and the summary counts on this one fixture: with a
-# second owed class present, a detector that lost B2 entirely would still print
-# `owed`, still exit 1 and still count 1, and only the table cell would move — one
-# red, which is exactly what this fixture produced on cycle 1. The judgment and the
-# ledger are posted in the contract's order and declare one identity, so the ruling
-# is `clear` on the same grounds as B1b.
+# the ONLY class on the PR that is not `clear`. That isolation is what lets the
+# S-block assert the state token, the exit status and the summary counts on this
+# one fixture: with a second open class present, a detector that lost B2 entirely
+# would still roll up to the same state, still take the same status and still
+# count 1, and only the table cell would move — one red, which is exactly what
+# this fixture produced on cycle 1. The judgment and the ledger are posted in the
+# contract's order and declare one identity, so the ruling is `clear` on the same
+# grounds as B1b.
 pr 921; commits "2026-08-27T09:00:00Z" "2026-09-06T10:00:00Z"
 cmt "2026-09-05T17:00:00Z" revision_packet - 0 - 4 <<'BODY'
 artifact: revision_packet
@@ -731,12 +745,16 @@ BODY
 
 # --- B2g  THE BUILT-IN OVER-REPORT, pinned as behaviour and not as an ideal -----
 # The ledger's own table already records validation's verdict, and no separate
-# reviewer_verdict was ever declared. This is reported OWED. Reading a verdict out
-# of a markdown cell is the semantic guessing #172 criterion 2 forbids, and a
-# MANDATORY lane must fail toward being reported: an over-report is loud and a
-# human dismisses it in a second, while the failure this detector exists to prevent
-# is the silent one. If this check ever goes red because the answer became `clear`,
-# that is a contract change and belongs in #178 — not a loosening here.
+# reviewer_verdict was ever declared. This is reported `undeclared` — NOT `clear`.
+# Reading a verdict out of a markdown cell is the semantic guessing #172
+# criterion 2 forbids, and a MANDATORY lane must fail toward being reported: a
+# refusal to answer is loud and a human resolves it in a second, while the failure
+# this detector exists to prevent is the silent one. What changed is which loud
+# answer it is: `owed` asserted a lane was skipped, which this ledger's own table
+# contradicts, and `undeclared` asserts only that the script cannot tell — the
+# claim it can actually support. If this check ever goes red because the answer
+# became `clear`, that is a contract change and belongs in #178 — not a loosening
+# here.
 pr 926; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 cmt "$T_LEDGER" review_ledger - 1 "$SHA181" 4 <<BODY
 artifact: review_ledger
@@ -1035,14 +1053,27 @@ cls "B1g a panel declaring no identity cannot be judged, and is not OWED"   916 
 cls "B1h a ruling declaring no identity cannot be matched, and is not OWED" 917 undeclared undeclared n/a
 
 # CONDITION B2 (#178 criterion 3) — the mandatory last lane, silently skipped.
-cls "B2a a panel naming @validation-agent with no verdict is OWED"          920 undeclared owed       owed
-cls "B2b A JUDGMENT DOES NOT DISCHARGE B2 — #135 cycles 4 and 5"            921 clear      clear      owed
+#
+# AN UNDISCHARGED B2 IS `undeclared`, NOT `owed`, AND THIS BLOCK IS WHERE THAT IS
+# PINNED. B2's only discharge is a `reviewer_verdict` declaring
+# `reviewer: validation-agent`, a shape `@validation-agent` may not emit, so
+# nothing on any PR could falsify an `owed` here. The previous expectations
+# asserted that unfalsifiable token — the corpus CERTIFIED it, which is how it
+# survived two cycles — and the detector's exit contract inverted behind them:
+# rc 0 became reachable only down the `n/a` path, so a correct panel exited 1 and
+# a caller branching on the status was told it was defective.
+# `undeclared` is the state this corpus already asserts for "the detector cannot
+# answer", and no new token is introduced to say it. B2c and B2f are UNCHANGED:
+# the discharge path (B2c) and the inapplicable path (B2f) were never the
+# unfalsifiable ones. B2c stays PROVISIONAL on #182 exactly as before.
+cls "B2a a panel naming @validation-agent with no verdict CANNOT BE ANSWERED"  920 undeclared owed       undeclared
+cls "B2b A JUDGMENT DOES NOT DISCHARGE B2 — #135 cycles 4 and 5"            921 clear      clear      undeclared
 cls "B2c a reviewer_verdict from validation-agent DISCHARGES it (#182)"     922 undeclared owed       clear
-cls "B2d another lane's verdict does not discharge the mandatory one"       923 undeclared owed       owed
-cls "B2e a validation verdict BEFORE the panel does not discharge it"       924 undeclared owed       owed
+cls "B2d another lane's verdict does not discharge the mandatory one"       923 undeclared owed       undeclared
+cls "B2e a validation verdict BEFORE the panel does not discharge it"       924 undeclared owed       undeclared
 cls "B2f a panel not naming the lane owes no validation"                    925 undeclared clear      n/a
 cls "B2f' the same, with A and B1 discharged so n/a stands alone"           927 clear      clear      n/a
-cls "B2g BUILT-IN OVER-REPORT: a ledger recording its own validation"       926 undeclared owed       owed
+cls "B2g THE BUILT-IN OVER-REPORT: a ledger recording its own validation"   926 undeclared owed       undeclared
 
 # THE FOURTH STATE, AND WHY IT IS PINNED HERE RATHER THAN ACCOMMODATED. The
 # contract names three states per class. The detector emits a FOURTH, `n/a`, for
@@ -1058,18 +1089,26 @@ cls "B2g BUILT-IN OVER-REPORT: a ledger recording its own validation"       926 
 cls "U1  the 2026-09-07 board: #135 is UNDECLARED in every class"           135 undeclared undeclared undeclared
 cls "U2  every class discharged (#182 governs the third)"                   940 clear      clear      clear
 
-# ---- S: an owed class is four claims, not one cell -----------------------------
+# ---- S: a class answer is four claims, not one cell ----------------------------
 # CELL, STATE TOKEN, EXIT STATUS, SUMMARY COUNTS. The old corpus asserted the first
 # alone on B2, and a detector that lost the mandatory-lane condition entirely moved
 # exactly one check. Each fixture below is run ALONE so the status and the counts
 # are about it and nothing else.
+#
+# S1 IS THE UNANSWERABLE CLASS ON ALL FOUR, and it is asserted in BOTH directions
+# of the summary. `undeclared 1` alone would be satisfied by a detector that put
+# #921 in the undeclared bucket AND in the owed one, which is exactly the
+# double-count the per-class tallies make possible; `owed 0` beside it is what
+# forbids that, and it is the surface the previous expectation spent on `owed 1`.
 run 921
-cls       "S1  B2b isolated: validation is the only owed class"             921 clear clear owed
-state_is  "S1  ... and the PR's own state token is owed"                    921 owed
-check_rc  "S1  ... and the run exits 1, which is what a caller branches on"  1
-check_has "S1  ... and the summary counts one owed"                         "owed 1"
+cls       "S1  B2b isolated: validation is the only unanswerable class"     921 clear clear undeclared
+state_is  "S1  ... and the PR's own state token is undeclared"              921 undeclared
+check_rc  "S1  ... and the run exits 3, which is what a caller branches on"  3
+check_has "S1  ... and the summary counts one undeclared"                   "undeclared 1"
+check_has "S1  ... and no owed was invented to reach that status"           "owed 0"
 check_has "S1  ... and counts nothing clear, so the roll-up moved with it"  "clear 0"
-check_has "S1  ... and the owed block names the mandatory lane"             "@validation-agent"
+check_has "S1  ... and the undeclared block names the mandatory lane"       "@validation-agent"
+check_has "S1  ... and names the contract item that would make it answerable" "#182"
 
 run 900
 state_is  "S2  an owed packet rolls up to an owed PR"                       900 owed

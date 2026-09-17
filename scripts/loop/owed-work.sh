@@ -48,7 +48,7 @@
 #   review_ledger     the convened panel   — conditions B1 and B2
 #   judgment          the ruling           — discharges B1 when the `sha:` and
 #                     `cycle:` it declares are the panel's own
-#   reviewer_verdict  a lane's verdict     — discharges B2 when its own
+#   reviewer_verdict  a lane's verdict     — would discharge B2 when its own
 #                     `reviewer:` key names validation-agent, which nothing may
 #                     do: B2 is unreachable, and WHAT IT CANNOT SEE says so
 #
@@ -57,10 +57,10 @@
 # verdict", which is a class no id was named for. `reviewer_verdict` carrying
 # `reviewer: validation-agent` was taken as the only shape that answered it
 # without prose matching — and it is a shape @validation-agent MAY NOT EMIT.
-# What that costs a reader, and what a `validation=owed` line therefore may not
-# be taken for, is under WHAT IT CANNOT SEE below. Every other candidate
-# considered (a heading, a `validation:` line, an author name) is the thing
-# criterion 2 forbids.
+# So B2 is a question with no reachable answer, which is why it is reported
+# `undeclared` and never `owed`; the argument is under WHAT IT CANNOT SEE below.
+# Every other candidate considered (a heading, a `validation:` line, an author
+# name) is the thing criterion 2 forbids.
 #
 # READING A FIELD OF AN IDENTIFIED ARTIFACT IS NOT PROSE MATCHING, and the line
 # between the two is worth stating because this script sits on both sides of it.
@@ -185,22 +185,29 @@
 #     NAME and not for a verdict; parsing verdicts out of a markdown cell is the
 #     semantic guessing criterion 2 refuses. The over-report is the chosen
 #     direction — see the mandatory-lane paragraph above.
-#   - B2 IS UNREACHABLE, SO `validation=owed` IS CURRENTLY UNFALSIFIABLE, and it
-#     is the one token in this script's output that says nothing about the
-#     question it appears to answer. Its only discharge is a `reviewer_verdict`
-#     declaring `reviewer: validation-agent`, and @validation-agent is
-#     contractually forbidden to emit that shape: it returns a machine result
-#     and not a verdict
+#   - B2 IS UNREACHABLE, SO IT IS ANSWERED `undeclared` AND NEVER `owed`. Its
+#     only discharge is a `reviewer_verdict` declaring
+#     `reviewer: validation-agent`, and @validation-agent is contractually
+#     forbidden to emit that shape: it returns a machine result and not a verdict
 #     (`validation-agent § Output — the machine shape`), and
 #     `review-board-dispatch § Selection law` puts it outside the verdict
-#     vocabulary outright. Nothing on any PR can therefore discharge B2, so the
-#     line FIRES ON EVERY CORRECTLY REVIEWED PR whose panel names the lane —
-#     including ones where validation ran, ruled, and was recorded. DO NOT read
-#     it as evidence that a lane was skipped; read it as this script asking a
-#     question it cannot answer. Which declared artifact class carries a
-#     validation result is a contract question and is #182's; until that settles,
-#     the B2 code stands as written rather than being patched around with a
-#     fifth invented id, which is what produced the item.
+#     vocabulary outright. Nothing on any PR can therefore discharge B2.
+#     `validation=owed` there was a claim no evidence could ever falsify: it
+#     fired on EVERY CORRECTLY REVIEWED PR whose panel named the lane, including
+#     ones where validation ran, ruled and was recorded, and it carried the
+#     whole run to exit 1 while doing it — so a caller branching on the status,
+#     which the Exit block above tells it to do instead of reading the prose,
+#     was told a correct panel was defective. A disclosure in a header cannot
+#     reach an exit code.
+#     A question this script cannot answer is what `undeclared` is for, and B2
+#     is now given it in the three places a caller actually reads: the
+#     `validation=` token, the reason on the `undeclared:` line, and exit 3.
+#     No id is invented — `undeclared` is the third state above, which this
+#     class already takes when no panel is declared at all.
+#     Which declared artifact class carries a validation result is a contract
+#     question and is #182's. When it settles the discharge becomes reachable
+#     and this state decays to a real answer on its own, exactly as the
+#     `undeclared` migration above describes.
 #   - A judgment does NOT discharge B2. That is the whole of #178's second
 #     symptom: on #135 cycle 4 and cycle 5 a panel was persisted and a ruling
 #     followed, and validation had never run. A detector that let a ruling close
@@ -460,7 +467,7 @@ EOF
   # not, rather than having the reason inferred back out of the token later:
   # `undeclared` now has more than one cause, and a line that names the wrong
   # one is exactly as misleading as no line.
-  packet_why=""; ruling_why=""
+  packet_why=""; ruling_why=""; validation_why=""
 
   # --- A (#172): a remand newer than the newest commit ----------------------
   if [ -z "$newest_packet" ]; then
@@ -527,10 +534,15 @@ EOF
   # in that case: the ruling ITSELF is what is missing, which is #178 criterion 2
   # in its own words — "a convened panel with no ruling" — and the whole symptom
   # this detector exists to catch. `undeclared` there would retire the headline
-  # case into the unanswerable bucket, and would contradict B2 below on the
-  # identical shape: one ledger with zero declared discharge artifacts already
-  # reads `validation=owed`. `judgment_seen` is the discriminator, collected
-  # above apart from the identities for exactly this.
+  # case into the unanswerable bucket. `judgment_seen` is the discriminator,
+  # collected above apart from the identities for exactly this.
+  #
+  # B2 BELOW TAKES THE OTHER ANSWER ON WHAT LOOKS LIKE THE SAME SHAPE, and the
+  # difference is not an inconsistency: a `judgment` discharging B1 is a shape
+  # agents DO emit and its absence is therefore evidence, while the
+  # `reviewer_verdict` that would discharge B2 is a shape nothing may emit, so
+  # its absence is evidence of nothing. `owed` is a claim about the world; it
+  # belongs where the world could have contradicted it.
   #
   # Where `undeclared` does hold it is loud in its own right: printed under
   # `undeclared:`, counted, and exit 3, never `clear` and never folded into
@@ -563,9 +575,15 @@ EOJ
     elif newer "$newest_val" "$newest_panel"; then
       validation=clear
     else
-      validation=owed
-      owed_detail="$owed_detail
-  #$pr review_ledger $newest_panel names @validation-agent and no validation verdict follows it — the mandatory last lane"
+      # NOT `owed`. B2's only discharge is a shape @validation-agent may not
+      # emit, so nothing on any PR could ever falsify an `owed` here — and an
+      # unfalsifiable claim carried the whole run to exit 1 on every correctly
+      # reviewed PR whose panel named the lane. `undeclared` is this script's
+      # existing word for a question it cannot answer, and it is the honest one.
+      # See WHAT IT CANNOT SEE in the header; the id is the third state, not a
+      # new one.
+      validation=undeclared
+      validation_why="the newest declared review_ledger names @validation-agent and nothing may emit the reviewer_verdict that would discharge it — unfalsifiable until #182 declares the artifact class a validation result carries"
     fi
   fi
 
@@ -606,7 +624,8 @@ EOJ
       # Named, because a state the script CANNOT ANSWER is the one a reader is
       # most likely to mistake for a clean one.
       miss="$packet_why"
-      [ -z "$ruling_why" ] || miss="${miss:+$miss · }$ruling_why"
+      [ -z "$ruling_why" ]     || miss="${miss:+$miss · }$ruling_why"
+      [ -z "$validation_why" ] || miss="${miss:+$miss · }$validation_why"
       undeclared_detail="$undeclared_detail
   #$pr $miss — cannot be judged; this is NOT \"nothing owed\"" ;;
   esac
