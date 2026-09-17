@@ -156,6 +156,7 @@ followed by the `validation:` block of `§ Output — the machine shape` above, 
 
 ```bash
 RESULT="$(mktemp "${TMPDIR:-/tmp}/validation-result-XXXXXX.md")"   # absolute, outside the review worktree
+trap 'rm -f "$RESULT" "$RESULT.lf" "$RESULT.clean"' EXIT   # armed at creation; the stop below exits, and cleanup is not on the happy path
 cat > "$RESULT" <<'EOF'
 artifact: validation_result
 prose_licence: none
@@ -171,10 +172,9 @@ cat "$gate_log" >> "$RESULT"        # gate lines arrive by redirection, never as
 - **The path is absolute and outside the review worktree, and the files are removed after the post.** A body file written into the tree you are measuring is an untracked file your own gates then see — the reviewer editing what it reports on — and one left behind is gate output the next run can inherit.
 - **`--body-file`, never `--body`**, for the reason `turfgps-board-ops § The CLI` gives: nested quoting is the fragile part, not the content.
 
-**Redact before you post, and treat a redaction that fires as a stop rather than a repair.** The minimum class is the one `scripts/loop/claim.sh` `scrub()` already removes from a ledger cell — ASCII control characters, and GitHub token prefixes:
+**Redact before you post, and treat a redaction that fires as a stop rather than a repair.** **The snippet below continues the one above in the same shell** — `$RESULT` is still bound and the `EXIT` trap armed beside the `mktemp` is still the one in force — so the window between the two, in which the file exists and holds unredacted gate output, is covered rather than merely short. The minimum class is the one `scripts/loop/claim.sh` `scrub()` already removes from a ledger cell — ASCII control characters, and GitHub token prefixes:
 
 ```bash
-trap 'rm -f "$RESULT" "$RESULT.lf" "$RESULT.clean"' EXIT   # the stop below exits; cleanup is not on the happy path
 tr -d '\r' < "$RESULT" > "$RESULT.lf"          # a line ending is transport, not evidence
 tr -d '\000-\010\013-\037\177' < "$RESULT.lf" \
   | sed -E 's/(gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,})/[redacted]/g' > "$RESULT.clean"
