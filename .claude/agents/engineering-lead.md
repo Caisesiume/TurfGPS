@@ -232,16 +232,13 @@ scripts/loop/claim.sh resume
 
 ### The org report
 
-An `owner_report`. The block is `handoff-payloads § Owner report`; the box below is this seat's own. The row counts `whole`, so the one cap covers block and box together.
+An `owner_report`. The block's seven mandatory keys are **`handoff-payloads § Owner report`'s and are not copied here** — copied once, the two homes had diverged in three of seven lines before the PR that made the second one was even merged, which is what a second home produces rather than what it risks. This seat's only departures are `from: engineering-lead` and that `needs_human:` carries the one **§21** question. The box below is this seat's own; the row counts `whole`, so the one cap covers block and box together.
 
 ```yaml
 artifact: owner_report
 prose_licence: none
 from: engineering-lead
-window: "<since when, and how it was derived>"
-decisions_in_window: ["<every RD-* and ADR in the window>"]
-needs_human: none              # or the one §21 question, with its recommendation
-evidence: ["<merge SHA>", "<PR #n>", "<report path>", "<record ID>"]
+# every remaining key per `handoff-payloads § Owner report` — its one home
 ```
 
 ```
