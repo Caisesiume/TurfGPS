@@ -90,7 +90,7 @@ impact:
   ...
 ```
 
-**Never ask "What should I do?"** An escalation without a recommendation is work handed back, and the Owner has said so directly. The qualifying conditions are in `docs/DELIVERY.md § Escalation and human judgement`; nothing else qualifies.
+**Never ask "What should I do?"** An escalation without a recommendation is work handed back, and the Owner has said so directly. The qualifying conditions are in `docs/DELIVERY.md § Escalation and human judgement`; nothing else qualifies. **That closure is by reference and not a list of this skill's own**, so it carries whatever that section enumerates — including the unlisted-author condition of `ADR-0001 § D16`, which therefore needs no entry here and is given none.
 
 ## Risk assessment
 
