@@ -1,7 +1,7 @@
 # ADR-0001 — Artifact-driven agent organization
 
 **Status:** accepted — 2026-08-10 · **architecture stable — 2026-08-13**
-**Stability note (2026-08-13, Owner Directive 4 — `docs/adr/agent-org-directive-4.md`):** the organization ratified here is **stable as of this date**. Directive 4 added no agent, collapsed no seat, and reopened no decision below; it hardened the *wording* of the orchestration contracts so that no agent's Role, Authority, Focus, or Contract claims a decision another agent owns. Subsequent organizational change is **evidence-driven** — the maintenance rule is in `docs/DELIVERY.md § The architecture is stable`, and it cites this record. Per directive 4 §26 there is no ADR-0004: nothing genuinely new was decided.
+**Stability note (2026-08-13, Owner Directive 4 — `docs/adr/agent-org-directive-4.md`):** the organization ratified here is **stable as of this date**. Directive 4 added no agent, collapsed no seat, and reopened no decision below; it hardened the *wording* of the orchestration contracts so that no agent's Role, Authority, Focus, or Contract claims a decision another agent owns. Subsequent organizational change is **evidence-driven** — the maintenance rule is in `docs/DELIVERY.md § The architecture is stable`, and it cites this record. Per directive 4 §26 that pass produced no ADR of its own: nothing genuinely new was decided in it.
 **Source:** `docs/adr/agent-org-directive.md`, the Owner's directive, kept verbatim. Where that file and this one differ on a repository-specific adaptation, **this record is the ratified form** and the directive is the unaltered order it adapts. Section references below (`§N`) point at the directive.
 
 ## Context
@@ -135,7 +135,7 @@ Every finding is classified `implementation | requirement | architecture | desig
 
 ## Amendment — 2026-08-16 (first live loop cycle)
 
-*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR-0004** — each of these is a contract the agents already implied and none of them stated.*
+*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR of its own** — each of these is a contract the agents already implied and none of them stated.*
 
 ### D11 — An agent must not end a pass while a continuation it owns is outstanding
 
@@ -174,3 +174,19 @@ An item with no `Status` is not at the head of the chain — it is outside the c
 *Ruled rather than observed. `turfgps-board-ops § Labels` enumerated three `Task` exemptions and separately said a `Task` "never enters the chain it describes", which left the commit link genuinely ambiguous to a reader applying both sentences.*
 
 **They must.** A `Task`'s commits reference its own `#N`. That link buys **attribution** — which item this commit was done for — and not requirements-tracing, which is the chain a `Task` legitimately stays out of. The three exemptions (`Resolves:`, Milestone, the coverage audit) are the complete list, and no fourth is inferred from the chain sentence. One sentence, in `turfgps-board-ops § Labels`.
+
+## Amendment — 2026-09-17 (origin: ADR-0004)
+
+*Source: the Owner's ruling of **2026-09-07** on `LA-01`, a blocker `@linus-architecture-critic` filed against PR #188; 2026-09-17 is the date of this amendment and not of the ruling. `ADR-0004 § D2` blocks a consumer on a trigger `§ D6` above does not admit, and the Owner ruled the trigger a category rather than an exception **by selecting an option `@engineering-lead` proposed** — the label is the Owner's act, the option's prose is its proposer's, and `ADR-0004 § The decisions as given` quotes both with their authors. **The bound below is this amendment's own discipline and not a limit the ruling imposed:** the ruling authorises the amendment and bounds nothing. Beyond the category below, this amendment changes exactly two clauses in this record — the stability note above and the 2026-08-16 amendment note, each of which asserted that no ADR-0004 exists and now says what it was asserting, that the pass it describes produced no ADR of its own. `@linus-architecture-critic` filed those two as `LA-06` on PR #188.*
+
+### D16 — An unlisted author declaring an artifact is a sixth blocking escalation category
+
+**§21's list gains a sixth entry, and `§ D6` above is otherwise unchanged.** §21 remains the only human-escalation policy in the repository, and only §21-qualifying questions block. What changes is that one more question qualifies:
+
+- **An unlisted author has declared an artifact** — an account outside the `ADR-0004 § D1` allowlist has posted something carrying an `artifact:` key, so `ADR-0004 § D1` forbids consuming it and `ADR-0004 § D2` forbids discarding it. Only the Owner can rule on its readiness and correctness.
+
+**It carries a proposed answer, exactly as the other five do.** §21's closing rule — never "What should I do?", always a recommendation — binds this category unchanged, and the option the Owner selected carried it: `@engineering-lead`'s proposal gave as its reason the Owner's own standing rule that a question without a recommendation is work handed back. The escalating agent states what it would do with the artifact and why.
+
+**This category binds once `docs/DELIVERY.md § Escalation and human judgement` enumerates it as a sixth condition, and not before.** That is the whole predicate and it names one edit in one file. **`handoff-payloads § Escalation packet` is not a second conjunct** — it closes its list by reference to that section rather than enumerating conditions of its own, so it carries the sixth the moment that section does. `ADR-0004 § Consequences` is where that is established and where the propagation is recorded as owed — what each of the two says as of 2026-09-17, what the sole sender of an escalation packet does with a category it cannot find there, and why neither is edited from this branch. **This entry does not restate that record**, for the reason the paragraph below gives: an obligation written in two places is one that can be discharged in one and left standing in the other. `@pr-judge` filed this as `CORE-01` on PR #188; `@linus-architecture-critic` filed the earlier undecidable predicate as `LA-08` on the same review.
+
+**The trigger's definition, the Owner's narrowing of it, and the reasoning behind both are `ADR-0004 § D2`, and this entry does not restate them** — a category whose trigger is written in two places is a category that can be narrowed in one. `ADR-0004` is the origin of this entry and the record that argues it; this entry is where it binds.
