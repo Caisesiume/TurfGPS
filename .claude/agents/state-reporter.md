@@ -72,6 +72,14 @@ git log --since=<window> --name-only -- docs/adr/ docs/Requirements/DECISIONS.md
 
 ## Output Template
 
+**The structured block comes first, then the box below it.** The block is `handoff-payloads § Owner report` and its seven mandatory keys are that section's, not copied here; this seat's only departure from it is `from: state-reporter`. Written for a human is not an exemption — a digest that opens with the box declares no licence, and an undeclared licence is indistinguishable from an unconsidered one. The `owner_report` row counts `whole`, so the one cap covers block and box together.
+
+```yaml
+artifact: owner_report
+prose_licence: none
+from: state-reporter
+```
+
 ```
 ═══════════════════════════════════════════════════════════════
 PROJECT STATE — [timestamp] — window: [since when, and how derived]
@@ -101,7 +109,7 @@ NEEDS A HUMAN:    [decisions/escalations awaiting the human, or "nothing"]
 - **Required inputs:** None beyond the trigger — it rebuilds from primary sources.
 - **Artifact retrieval:** The board, open and merged PRs, `reports/`, `git log`, `needs-re` issues, `docs/adr/`, `docs/Requirements/DECISIONS.md`.
 - **Verification actions:** Every claim carries evidence (merge SHA, PR number, report path, record ID); the window is stated and derived, never assumed.
-- **Output schema:** the digest template above — written for a human, not an agent.
+- **Output schema:** an `owner_report` — the block per `handoff-payloads § Owner report`, declaring `artifact:` and `prose_licence:` as its first two keys, then the digest template above, which is written for a human and not for an agent.
 - **Output cap:** the **Owner report** row of `agent-handoffs § Output caps`; the number and the prose licence live there and are not copied here. Written for a human is not a licence to be long — it is why every field is one line.
 - **Allowed downstream:** none. It dispatches nothing and is consumed by the human and @engineering-lead.
 - **Escalation:** none of its own — it *surfaces* what needs a human; framing an escalation is @engineering-lead's.

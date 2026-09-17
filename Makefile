@@ -62,7 +62,7 @@ BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates d8-claims output-caps fmt vet lint test build image clean
+.PHONY: help gates d8-claims output-caps prose-licence fmt vet lint test build image clean
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
@@ -70,6 +70,7 @@ help:
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
 	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
 	@echo '  make output-caps ARTIFACTS="<path>..."  is each artifact within the cap its row sets'
+	@echo '  make prose-licence ARTIFACTS="<path>..."  does each declare a licence the table defines'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
@@ -171,6 +172,29 @@ d8-claims:
 output-caps:
 	@bash scripts/gates/tests/output-caps-recall.sh
 	@bash scripts/gates/output-caps.sh $(foreach p,$(ARTIFACTS),"$(p)")
+
+# The licence DECLARATION, beside the length. `output-caps` above measures how
+# long a capped artifact is; this measures whether it declared a licence the
+# table defines, and they are separate targets because they are separate
+# questions with separate refusals — an artifact can sit comfortably under its
+# cap and declare `prose_licence: ruling`, which two judgments on PR #154 do.
+#
+# It checks TWO of the licensing rule's three parts: the key stands second, and
+# its value is one the table defines. THE THIRD — the five-sentence limit on
+# licensed prose — IS DECLINED, and the checker's header argues why the licensed
+# passage has no mechanically decidable boundary. The corpus asserts the decline
+# rather than leaving a green run to imply otherwise. Neither script judges
+# whether a licence was DESERVED: `output-caps.sh`'s header draws that boundary
+# and this gate does not cross it either.
+#
+# Everything the comment above says about this recipe's shape holds here
+# unchanged and is not restated: the paths arrive in ARTIFACTS rather than from
+# a glob, a bare invocation names nothing and is refused rather than reported
+# clean, the recall corpus runs FIRST and make stops if it fails, neither line
+# carries a directory, and each path is quoted while the list is not.
+prose-licence:
+	@bash scripts/gates/tests/prose-licence-recall.sh
+	@bash scripts/gates/prose-licence.sh $(foreach p,$(ARTIFACTS),"$(p)")
 
 # gofmt -l names the files it would reformat and exits 0 whether or not it
 # names any, so the list is the result and has to be tested, not merely
