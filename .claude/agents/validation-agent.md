@@ -135,6 +135,13 @@ scripts/loop/claim.sh verdict <pr> <sha> validation-agent <pass|fail> --by valid
 
 **The row above records that you ran; it does not record what you found, and it is not visible off this machine.** `.claude/state/` is gitignored, so the claim table is clone-local. Until #182 the only durable copy of a validation result was a cell in `@pr-judge`'s review ledger, written in `pr-judge § Phase 10` — so a pass that ended before Phase 10 left a result that ran, found things, and was recorded nowhere a later agent could read. **Your result is now its own declared artifact and you post it yourself**, so its existence stops depending on a judge completing a phase.
 
+**The procedure is four steps and the first of them is a read.** Each step names where its rule lives rather than carrying a second copy of it.
+
+1. **Retrieve the results already standing on this pull request.** The discipline is `§ How a validation result is retrieved` below, and it is the consumer's rather than a producer's copy of it — you are a consumer before you are a producer. A result posted without this step cannot know whether it supersedes anything, so the supersession obligation that section states has nothing to stand on.
+2. **Build the body in a file**, by the keys and the first shell snippet below.
+3. **Redact and compare before posting**, by the second.
+4. **Post it**, and where step 1 found a live result, post the `supersession_notice` that step's section obliges.
+
 Post it as a PR comment opening with the two mandatory keys of `agent-handoffs § The structured block comes first`, plus the SHA you measured:
 
 ```yaml
