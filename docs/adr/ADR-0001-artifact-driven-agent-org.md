@@ -1,7 +1,7 @@
 # ADR-0001 — Artifact-driven agent organization
 
 **Status:** accepted — 2026-08-10 · **architecture stable — 2026-08-13**
-**Stability note (2026-08-13, Owner Directive 4 — `docs/adr/agent-org-directive-4.md`):** the organization ratified here is **stable as of this date**. Directive 4 added no agent, collapsed no seat, and reopened no decision below; it hardened the *wording* of the orchestration contracts so that no agent's Role, Authority, Focus, or Contract claims a decision another agent owns. Subsequent organizational change is **evidence-driven** — the maintenance rule is in `docs/DELIVERY.md § The architecture is stable`, and it cites this record. Per directive 4 §26 there is no ADR-0004: nothing genuinely new was decided.
+**Stability note (2026-08-13, Owner Directive 4 — `docs/adr/agent-org-directive-4.md`):** the organization ratified here is **stable as of this date**. Directive 4 added no agent, collapsed no seat, and reopened no decision below; it hardened the *wording* of the orchestration contracts so that no agent's Role, Authority, Focus, or Contract claims a decision another agent owns. Subsequent organizational change is **evidence-driven** — the maintenance rule is in `docs/DELIVERY.md § The architecture is stable`, and it cites this record. Per directive 4 §26 that pass produced no ADR of its own: nothing genuinely new was decided in it.
 **Source:** `docs/adr/agent-org-directive.md`, the Owner's directive, kept verbatim. Where that file and this one differ on a repository-specific adaptation, **this record is the ratified form** and the directive is the unaltered order it adapts. Section references below (`§N`) point at the directive.
 
 ## Context
@@ -135,7 +135,7 @@ Every finding is classified `implementation | requirement | architecture | desig
 
 ## Amendment — 2026-08-16 (first live loop cycle)
 
-*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR-0004** — each of these is a contract the agents already implied and none of them stated.*
+*Source: the Owner's runtime-findings directive, deliberately not filed as a separate document — its rules are recorded in the existing ADRs. **Four contract defects observed** during the loop's first live cycle — which is exactly what `docs/DELIVERY.md § The architecture is stable` requires before an organizational change: operational evidence, not hypotheses — **and one ruled**, `§ D15`, on an ambiguity that cycle exposed in the text rather than on an incident. No agent added, no seat collapsed, no decision above reopened, and **still no ADR of its own** — each of these is a contract the agents already implied and none of them stated.*
 
 ### D11 — An agent must not end a pass while a continuation it owns is outstanding
 
@@ -177,7 +177,7 @@ An item with no `Status` is not at the head of the chain — it is outside the c
 
 ## Amendment — 2026-09-17 (origin: ADR-0004)
 
-*Source: the Owner's ruling of 2026-09-17 on `LA-01`, a blocker `@linus-architecture-critic` filed against PR #188. `ADR-0004 § D2` blocks a consumer on a trigger `§ D6` above does not admit; the Owner ruled that the trigger becomes a category rather than an exception. The ruling is quoted verbatim in `ADR-0004 § The decisions as given`. This amendment is bounded to the category below and changes nothing else in this record.*
+*Source: the Owner's ruling of **2026-09-07** on `LA-01`, a blocker `@linus-architecture-critic` filed against PR #188; 2026-09-17 is the date of this amendment and not of the ruling. `ADR-0004 § D2` blocks a consumer on a trigger `§ D6` above does not admit, and the Owner ruled the trigger a category rather than an exception **by selecting an option `@engineering-lead` proposed** — the label is the Owner's act, the option's prose is its proposer's, and `ADR-0004 § The decisions as given` quotes both with their authors. **The bound below is this amendment's own discipline and not a limit the ruling imposed:** the ruling authorises the amendment and bounds nothing. Beyond the category below, this amendment changes exactly two clauses in this record — the stability note above and the 2026-08-16 amendment note, each of which asserted that no ADR-0004 exists and now says what it was asserting, that the pass it describes produced no ADR of its own. `@linus-architecture-critic` filed those two as `LA-06` on PR #188.*
 
 ### D16 — An unlisted author declaring an artifact is a sixth blocking escalation category
 
@@ -185,6 +185,8 @@ An item with no `Status` is not at the head of the chain — it is outside the c
 
 - **An unlisted author has declared an artifact** — an account outside the `ADR-0004 § D1` allowlist has posted something carrying an `artifact:` key, so `ADR-0004 § D1` forbids consuming it and `ADR-0004 § D2` forbids discarding it. Only the Owner can rule on its readiness and correctness.
 
-**It carries a proposed answer, exactly as the other five do.** §21's closing rule — never "What should I do?", always a recommendation — binds this category unchanged, and the Owner restated it in the ruling: a question without a recommendation is work handed back. The escalating agent states what it would do with the artifact and why.
+**It carries a proposed answer, exactly as the other five do.** §21's closing rule — never "What should I do?", always a recommendation — binds this category unchanged, and the option the Owner selected carried it: `@engineering-lead`'s proposal gave as its reason the Owner's own standing rule that a question without a recommendation is work handed back. The escalating agent states what it would do with the artifact and why.
+
+**This category binds once `docs/DELIVERY.md § Escalation and human judgement` and `handoff-payloads § Escalation packet` carry it, and not before.** Neither carries it today. `ADR-0004 § Consequences` records that propagation as owed — what those two files still say, what the sole sender of an escalation packet does with a category they omit, and why neither is edited from this branch. **This entry does not restate any of it**, for the reason the paragraph below gives: an obligation written in two places is one that can be discharged in one and left standing in the other. `@pr-judge` filed this as `CORE-01` on PR #188.
 
 **The trigger's definition, the Owner's narrowing of it, and the reasoning behind both are `ADR-0004 § D2`, and this entry does not restate them** — a category whose trigger is written in two places is a category that can be narrowed in one. `ADR-0004` is the origin of this entry and the record that argues it; this entry is where it binds.
