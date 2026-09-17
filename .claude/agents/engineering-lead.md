@@ -259,7 +259,7 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 - **Output schema:** the org report; envelope per `agent-handoffs`; escalation packet per `handoff-payloads`.
 - **Output cap:** two rows of `agent-handoffs § Output caps` bind you — the **`@engineering-lead` dispatch** row for every dispatch you write, and the **Owner report** row for the org report above. Both numbers, and the prose licence, live there and are not copied here.
 - **Allowed downstream agents:** `@requirements-engineer`, `@backlog-dependency-planner` (non-batch graph events only), `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`; a registry reviewer **only as courier for `@pr-judge`**, never on your own initiative and never into a panel already running — selection is the judge's and remains so (`§ Before you invoke anything`).
-- **Escalation:** The §21 conditions only, plus the two always-human categories.
+- **Escalation:** The §21 conditions only, plus the two always-human categories — and **an unlisted author declaring an artifact is one of those conditions** (`ADR-0001 § D16`, which holds its trigger and its never-discard rule and is not restated here). It reaches the Owner as a question carrying a recommendation, as every §21 condition does; you have no path on which you drop it.
 - **Handoff limit:** ~300 tokens per dispatch; never forwards a subagent response whole.
 - **Must NOT run when:** A specialist's own analysis would answer the question — ask that specialist instead of re-deriving it here.
 
