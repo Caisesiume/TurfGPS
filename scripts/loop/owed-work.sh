@@ -119,17 +119,29 @@
 # false-negative-reported-as-fact that #172 exists to prevent. #135 merged
 # 2026-09-07T17:59:20Z and is no longer on the board this script reads.
 #
-# THE "LIVE RUN" THIS PR'S BODY PRINTS IS RETRACTED AS PROOF OF CORRECTNESS, and
-# named rather than quietly dropped. It was one run of this detector, necessarily
-# taken between 17:46:41Z — when #135's first declared `review_ledger` appeared,
-# without which `ruling` could not have read anything but `undeclared` — and that
-# merge 13 minutes later. It printed
+# THE "LIVE RUN" THIS HEADER RETAINS IS RETRACTED AS PROOF OF CORRECTNESS, and
+# named rather than quietly dropped. No PR body prints it; this paragraph is the
+# only place it survives, and crediting it to a body sent readers to look for it
+# where it is not.
+#
+# WHEN IT WAS TAKEN IS NOT RECOVERABLE, AND THE BOUND THIS PARAGRAPH PUT ON IT IS
+# WITHDRAWN RATHER THAN NARROWED. It read "necessarily between 17:46:41Z — when
+# #135's first declared `review_ledger` appeared — and that merge 13 minutes
+# later". Inside that window #140, #141, #142 and #181 each held zero declared
+# artifacts of any class, so a board-wide run there answers `undeclared` on all
+# four and cannot be the run the counts paragraph far below cites at
+# `summary: ... undeclared 0`. One bound and one citation that cannot both be
+# true are not narrowed into agreement; the bound is the half with no evidence
+# behind it, so it goes.
+#
+# WHAT THE RUN PRINTED IS IN THE RECORD, and is the half worth keeping:
 # `#135 owed packet=undeclared ruling=owed validation=owed` at rc 1, and TWO OF
 # THOSE THREE TOKENS WERE FALSE. `ruling=owed` was the order defect this cycle
 # removed: #135's cycle-7 judgment (17:46:40Z) and ledger (17:46:41Z) both
 # declare `sha: d5f3a58, cycle: 7`, so the panel WAS ruled and only the clock
 # said otherwise. `validation=owed` was false beside it — that same ledger
-# records @validation-agent's own machine result at that identity. Only
+# records @validation-agent's own machine result at that identity — and B2 no
+# longer makes that claim about any PR at all (WHAT IT CANNOT SEE below). Only
 # `packet=undeclared` was true, and it is the one token the paragraphs above
 # rest on. A run whose two owed lines were both false is evidence of the defect,
 # not of the detector.
@@ -627,8 +639,13 @@ EOJ
   # rather than naming one that does not exist. They are per class regardless,
   # because a status precedence has already spent on `owed` cannot answer "is
   # any PR unanswerable?" — and that is the question the fourth state exists to
-  # answer. Live on 2026-09-07, #181 and #135 both read `packet=undeclared`
-  # under `summary: ... undeclared 0`.
+  # answer. That shape is pinned at fixture 913 in
+  # `scripts/loop/tests/owed-work-recall.sh` (the S6 checks), which any reader
+  # can re-run: one PR, owed on one class and unanswerable on another, which the
+  # old single `case` reported under `undeclared 0` with the block never
+  # printed. A live run was cited here instead and is withdrawn — it is the run
+  # retracted in the header, and the header now says why it cannot evidence this
+  # count.
   #
   # So the classes are counted independently: a PR can appear in `owed` AND in
   # `undeclared`, and the four counts therefore need not sum to the PRs read.
