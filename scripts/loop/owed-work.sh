@@ -192,11 +192,9 @@
 # WHAT IT CANNOT SEE, so no reader takes a clean line for more than it is:
 #   - An UNDECLARED artifact is invisible, by construction and by criterion 2.
 #     `undeclared` is how that is said out loud rather than hidden.
-#   - A ledger whose own table already records validation's verdict is still
-#     reported owed under B2, because this script reads the ledger for the lane
-#     NAME and not for a verdict; parsing verdicts out of a markdown cell is the
-#     semantic guessing criterion 2 refuses. The over-report is the chosen
-#     direction — see the mandatory-lane paragraph above.
+#   - This script reads the ledger for the lane NAME and not for a verdict;
+#     parsing verdicts out of a markdown cell is the semantic guessing
+#     criterion 2 refuses.
 #   - B2 IS UNREACHABLE, SO IT IS ANSWERED `undeclared` AND NEVER `owed`. Its
 #     only discharge is a `reviewer_verdict` declaring
 #     `reviewer: validation-agent`, and @validation-agent is contractually
@@ -450,9 +448,8 @@ for pr in $prs; do
 
   newest_packet=""; newest_panel=""; newest_val=""; panel_names_val=0
   panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""
-  # `$RECORD_FIELDS` is deliberately unquoted: splitting the ONE declared field
-  # list is what makes it the one place the record's shape is written down. The
-  # list holds nothing but names and spaces, so the split is exact.
+  # `$RECORD_FIELDS` is deliberately unquoted: the list holds nothing but names
+  # and spaces, so the split is exact.
   # shellcheck disable=SC2086
   while IFS=' ' read -r $RECORD_FIELDS overflow; do
     [ -n "${ts:-}" ] || continue
