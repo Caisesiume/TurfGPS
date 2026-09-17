@@ -285,13 +285,34 @@ else
   fi
 fi
 
-# --- THE COMMENT RECORD, DECLARED IN ONE PLACE ------------------------------
+# --- THE COMMENT RECORD, AND THE TWO PLACES ITS SHAPE IS WRITTEN ------------
 # One record per comment: positional, space-separated, one field per name in
-# `RECORD_FIELDS` and IN THAT ORDER. The jq program below emits them; the `read`
-# further down destructures them; and this line is the only place either of them
-# takes the field list from.
+# `RECORD_FIELDS` and IN THAT ORDER. The `read` further down destructures the
+# record from this list, and this list is the only place IT takes a field list
+# from.
 #
-# WHY ONE PLACE. `read` folds every field past its last variable INTO that last
+# IT IS NOT THE RECORD'S ONLY HOME, AND THE SECOND ONE IS NAMED HERE RATHER THAN
+# WISHED AWAY. The array `COMMENT_JQ` builds below is what EMITS the six fields,
+# in the order its six expressions are written, and it takes nothing from this
+# line. Nothing couples them, so their agreement is a convention two editors must
+# both keep — and `overflow` below covers ONE of the three directions they can
+# drift in:
+#   jq WIDER than the names    CAUGHT — the unannounced field lands in `overflow`
+#                              and the PR is refused as unreadable, rc 2.
+#   jq NARROWER                NOT caught — `read` leaves the trailing names
+#                              empty-but-set, `set -u` never fires, and the run
+#                              ANSWERS from a record it could not fill.
+#   the two REORDERED          NOT caught — the arity still matches, so
+#                              `overflow` stays empty and a sha is compared
+#                              against a cycle.
+# Both uncaught directions fall into `undeclared` and `n/a`, which are ANSWERS,
+# and the `overflow` refusal below states the rule they break: a record this
+# script cannot parse is refused rather than answered from. `has_identity` below
+# is all that stands between the narrow case and a wrong match, and it guards a
+# VALUE, not the record's shape. Coupling the two homes is a change to the jq
+# side and is not made by editing this comment.
+#
+# WHY THE GUARD EXISTS. `read` folds every field past its last variable INTO that last
 # variable. It is not an error, `set -u` never fires — nothing is unset — and the
 # absorbed field simply becomes part of a value something downstream compares.
 # So a record widened on the jq side and not here would not fail; it would answer
