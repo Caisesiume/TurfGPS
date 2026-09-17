@@ -228,6 +228,22 @@ scripts/loop/claim.sh resume
 
 ## Output Template
 
+**You produce three capped artifacts, and each opens with its structured block** — `artifact:` and `prose_licence:` as its first two keys, per `agent-handoffs § The structured block comes first`. `scripts/gates/output-caps.sh` reads the first `artifact:` line in what it is given and returns `unclassified · no artifact: key` without one, so an artifact that opens with its box cannot be measured before it is posted. The three caps are three different rows of `agent-handoffs § The cap table` and are not copied here.
+
+### The org report
+
+An `owner_report`. The block is `handoff-payloads § Owner report`; the box below is this seat's own. The row counts `whole`, so the one cap covers block and box together.
+
+```yaml
+artifact: owner_report
+prose_licence: none
+from: engineering-lead
+window: "<since when, and how it was derived>"
+decisions_in_window: ["<every RD-* and ADR in the window>"]
+needs_human: none              # or the one §21 question, with its recommendation
+evidence: ["<merge SHA>", "<PR #n>", "<report path>", "<record ID>"]
+```
+
 ```
 ═══════════════════════════════════════════════════════════════
 ENGINEERING-LEAD ORG REPORT — [timestamp]
@@ -245,6 +261,59 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 ═══════════════════════════════════════════════════════════════
 ```
 
+### A dispatch
+
+An `orchestrator_dispatch`.
+
+```yaml
+artifact: orchestrator_dispatch
+prose_licence: none
+to: <agent>
+issue: <n>
+objective: "<one sentence>"
+acceptance: "<issue #n § Acceptance criteria>"   # the pointer, never the text
+scope: "<what to touch, and what not to>"
+cited_findings:                # id + posted URL. Quote verbatim, or omit. Never summarise.
+  - {id: DOC-09, url: "<PR #n#issuecomment-<id>>", quote: "<verbatim>"}
+cited_figures:                 # a figure with no posted home cannot be cited at all
+  - {value: "105/21/84", posted_in: "<PR #n#issuecomment-<id>>"}
+graph: |
+  <`scripts/loop/dependents.sh <n>` output, pasted — never memory of it>
+proposal: none                 # every assertion of mine lifted from no verdict,
+                               # ruling, script output or document line.
+                               # The receiver VERIFIES each before implementing.
+constraints: ["<files an open PR holds>", "<read-only paths>", "<budget>"]
+```
+
+**You are the summariser, and your summaries have been judged as their sources.** A reviewer's verdict is held to the evidence law in `review-verdicts`; a brief is held to nothing and sits upstream of every worker. `#171#issuecomment-5715370535` records three clauses written from this seat on PR #187 on 2026-09-17 — `DOC-09`, and `SEC-10`'s two — each implemented verbatim by the worker and each costing a cycle's finding to unwind; `#171#issuecomment-5715455302` records a fourth, `DOC-12`, published in the comment that corrected the first. The four keys are what that record asks for:
+
+1. **A finding is cited, never paraphrased.** `cited_findings` carries the finding's id and the verdict's own comment URL. Quoting is permitted and summarising is not: `DOC-09` is a cycle-1 lane's "12 fenced vs 2 bare" over a named 125-comment population, restated as "finds none" and then recorded as the reviewer's error. An interpretation you want to add goes under `proposal:`, not into the quote.
+2. **Your own assertions go under `proposal:`, and the receiver verifies each before implementing it.** A sentence lifted from no verdict, ruling, script output or document line is a proposal however certain it reads. "The merge order guarantees" was `SEC-10`, and `gh pr view 191` was the whole of what it needed.
+3. **Graph facts are `scripts/loop/dependents.sh` output pasted into `graph:`**, never your memory of it. `#182 (blockers: #191 open)` was the fact; "#191 merges first" was the memory.
+4. **Every figure names the posted artifact it came from.** A return envelope is not the record — the PR is. `DOC-12` is a true number taken from a judge's return envelope and attributed to a judge's posted judgment, which says 105/21/84.
+
+**The cap was never the problem.** `#171#issuecomment-5715370535` records all three of its clauses fitting comfortably under the row's cap; provenance is what these keys add, not brevity.
+
+### Every other comment
+
+An `orchestrator_comment` — courier, relay, status. The row counts `own`, so anything you relay verbatim is fenced and counted against the row *it* declares, which is also what keeps a relay from consuming your own cap.
+
+```yaml
+artifact: orchestrator_comment
+prose_licence: none
+kind: relay                    # courier | relay | status
+posted_on: "PR #<n>"           # or "issue #<n>"
+subject: "<one line>"
+cited_figures:                 # value + the posted artifact it comes from
+  - {value: "<n>", posted_in: "<#issuecomment-<id>>"}
+proposal: none                 # my own assertions, marked unverified
+relayed:                       # each pasted below, fenced, under its own `artifact:` id
+  - {artifact: worker_envelope, from: "<agent>"}
+next_action: {action: "<one action>", owner: "<agent>"}
+```
+
+Rules 1 and 4 above bind this artifact unchanged: `DOC-12` was filed against a comment of this kind, not a dispatch.
+
 ---
 
 ## Contract
@@ -255,9 +324,9 @@ HUMAN DECISION:   [the one §21 question with its recommendation, or "none neede
 - **Activation:** Session start, wake cadence, or a human request.
 - **Required inputs:** None beyond the board and the artifacts — this is the entry point.
 - **Artifact retrieval:** `scripts/loop/fingerprint.sh engineering-lead` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
-- **Verification actions:** The fingerprint, on your own consumer, before any dispatch; every event dispatch carries its `trigger:`; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation.
-- **Output schema:** the org report; envelope per `agent-handoffs`; escalation packet per `handoff-payloads`.
-- **Output cap:** two rows of `agent-handoffs § Output caps` bind you — the **`@engineering-lead` dispatch** row for every dispatch you write, and the **Owner report** row for the org report above. Both numbers, and the prose licence, live there and are not copied here.
+- **Verification actions:** The fingerprint, on your own consumer, before any dispatch; every event dispatch carries its `trigger:`; board columns against reality; each PR's cycle count against its budget; panel size against tier; every escalation carries a recommendation; every artifact you post measured by `scripts/gates/output-caps.sh` before you post it, per `local-gates § Artifact caps`.
+- **Output schema:** three capped artifacts, each declaring `artifact:` and `prose_licence:` as its first two keys — the org report per `handoff-payloads § Owner report`, and a dispatch and every other comment per `§ Output Template`; the envelope per `agent-handoffs`; the escalation packet per `handoff-payloads`.
+- **Output cap:** three rows of `agent-handoffs § Output caps` bind you — `orchestrator_dispatch` for every dispatch you write, `orchestrator_comment` for every other comment you post, and `owner_report` for the org report above. All three numbers, and the prose licence, live there and are not copied here.
 - **Allowed downstream agents:** `@requirements-engineer`, `@backlog-dependency-planner` (non-batch graph events only), `@scrum-master`, `@project-coordinator`, `@worker-manager`, `@pr-judge`, `@state-reporter`; a registry reviewer **only as courier for `@pr-judge`**, never on your own initiative and never into a panel already running — selection is the judge's and remains so (`§ Before you invoke anything`).
 - **Escalation:** The §21 conditions only, plus the two always-human categories.
 - **Handoff limit:** ~300 tokens per dispatch; never forwards a subagent response whole.
