@@ -43,8 +43,11 @@
 # If a boundary marker is ever introduced, the third rule is a fixture and a
 # branch here — not a redesign.
 #
-# THE ENUM IS READ FROM THE TABLE AND APPEARS NOWHERE IN THIS FILE, for the
-# reason the cap numbers are read rather than restated: one home per fact. The
+# NO LICENCE VALUE IS COMPILED INTO THE MEMBERSHIP TEST — it is read from the
+# table, for the reason the cap numbers are read rather than restated: one home
+# per fact. Values are NAMED in the comments below, where they are examples of
+# what this gate can and cannot see; naming one there decides nothing, and the
+# claim worth making is about the test rather than about the prose. The
 # table is resolved from THIS SCRIPT'S OWN PATH and never from the caller's
 # working directory, and `scripts/gates/tests/prose-licence-recall.sh` stages a
 # table this repository does not have to prove that it is.
@@ -57,7 +60,15 @@
 # DIFFERENTLY from `output-caps.sh`, which classifies on the first line matching
 # `^artifact:`, fence or no fence; two gates disagreeing about which artifact
 # they are looking at is a defect neither of them could report. The anchor here
-# is therefore that same one, deliberately.
+# is therefore that same one, deliberately — NEARLY AND NOT EXACTLY, and the
+# gap is named rather than claimed away. This anchor's whitespace class is
+# `[ \t]` where `output-caps.sh:327` uses `[[:space:]]`, so on the three inputs
+# that separate them — a vertical tab, a form feed, or a mid-record CR between
+# `artifact:` and the id — that gate classifies the artifact and this one
+# reports `unclassified` at rc 2. Measured over 9 fixtures: 6 agree, 3 diverge
+# that way. The divergence is toward REFUSAL, which is the safe side of this
+# instrument: an artifact it declines to classify is reported as unvouched and
+# read by a human, where the failure that matters is passing one silently.
 #
 # WHAT A LINE ANCHOR THEN OWES, because a real YAML reader would have done it
 # for free and part 1 of #171 was bitten by exactly this class:
@@ -84,9 +95,10 @@
 #
 # WHAT IT DOES NOT REQUIRE, so that its scope is legible from its refusals: a
 # CAP-TABLE ROW. Whether an id is capped is `output-caps.sh`'s question and it
-# answers it; `escalation_packet` is a live id with no row (#191) and refusing
-# it here would report #191's gap as this rule's violation. Anything declaring
-# an `artifact:` id has its licence checked, rowed or not.
+# answers it; `escalation_packet` is a live id with no row (#186 § 4, AC 4 —
+# "Every artifact id in live use has a cap-table row") and refusing it here
+# would report #186's gap as this rule's violation. Anything declaring an
+# `artifact:` id has its licence checked, rowed or not.
 #
 # WHAT IT CANNOT SEE:
 #
@@ -99,6 +111,17 @@
 #     corrected no predecessor is a declaration this gate passes and a reader
 #     catches. Declaring a licence is checkable; deserving one is not.
 #   - HOW MANY SENTENCES THE LICENCE BOUGHT — rule 3, declined above.
+#   - A SECOND `prose_licence:` KEY. A duplicate is first-wins and silent: the
+#     `!has` guard means the second declaration is never observed, so
+#     `none` followed by `ruling` reports `none · ok` at rc 0. Named here
+#     because a list of what an instrument cannot see is worthless if it is
+#     exhaustive about everything except the case a writer could exploit.
+#   - A CR-ONLY ARTIFACT. Old-Mac line endings make the whole file one record,
+#     so the scan reaches state 1 and EOF yields `no key follows artifact:` on
+#     an artifact `output-caps.sh` classifies fine. The verdict is a false
+#     FAILURE and not a false pass, so it is accepted here rather than fixed by
+#     stripping CR globally: this gate's end-anchored strip is the CRLF rule
+#     above, whose scope is the line ending GitHub actually returns.
 #
 # ONE VALUE IT REFUSES TO JUDGE RATHER THAN FAIL, and the refusal is the
 # honest answer instead of a casting vote. A value naming two licences at once
@@ -217,7 +240,15 @@ if [ -z "$VALUES" ]; then
   cannot=1; finish
 fi
 
-defined() { printf '%s\n' "$VALUES" | awk -v v="$1" '$1 == v { found = 1 } END { exit !found }'; }
+# THE CANDIDATE REACHES awk THROUGH THE ENVIRONMENT AND NOT THROUGH `-v`, and
+# the difference is the whole of whether this enum can fail open. A `-v`
+# assignment is processed as a string literal, so awk decodes backslash escapes
+# in it before the program compares anything: `prose_licence: non\145` arrived
+# at the comparison already decoded to `none` and the gate reported `ok` at
+# rc 0 on a value no row defines. `ENVIRON[]` is that same value uninterpreted.
+# An enum that fails open is worse than no enum, because it reports clean while
+# deciding nothing, and #171 AC1's own words are that it cannot fail open.
+defined() { printf '%s\n' "$VALUES" | V="$1" awk '$1 == ENVIRON["V"] { found = 1 } END { exit !found }'; }
 
 # THE PARSER. It reads an artifact and reports one OBSERVATION; it holds no
 # enum, makes no verdict, and the shell below does both against the table it
