@@ -1038,12 +1038,16 @@ check_lacks "filter died · ... and never says clean"                           
 need_row validation_result body
 VALCAP="$(cap_of validation_result)"
 
-# FENCED, first line to last, which is how these are posted: 84 of the 105 real
-# artifacts declaring an `artifact:` key open with a code fence, measured in
-# `validation-agent § Post your result to the PR before your pass ends`. The
-# declaration is still the first `artifact:` line and the fence does not hide
-# it — and `body` reads no fences at all, so the all-fenced block that measures
-# ZERO under `own` in FIXTURE 11 is measured here in full, minus the findings.
+# FENCED, first line to last, which is how the majority of these are posted.
+# The split between the fenced and bare shapes, the population it was counted
+# over and the instant it was counted at are recorded in
+# `validation-agent § Post your result to the PR before your pass ends` and are
+# not copied here: a hand-kept second statement of a measured number drifts
+# while every assertion of the day still passes, which is the failure the
+# coverage block at the foot of this file exists to avoid. The declaration is
+# still the first `artifact:` line and the fence does not hide it — and `body`
+# reads no fences at all, so the all-fenced block that measures ZERO under
+# `own` in FIXTURE 11 is measured here in full, minus the findings.
 art_new val-fenced-at-cap.md
 put '```yaml'
 put 'artifact: validation_result'
@@ -1073,7 +1077,7 @@ run "$TMP/val-fenced-at-cap.md"
 check_rc  "machine result · a fenced declaration classifies, and the findings list is not counted"  0
 check_has "machine result · ... exactly at the cap, the gate lines and the fence counted with it"   "$(report_of validation_result "$VALCAP")"
 
-# UNFENCED — the other 21 of those 105 — and the gate lines are what put it over.
+# UNFENCED — the minority shape of the same split — and the gate lines put it over.
 # They are written PAST the cap boundary, so that saying so is construction and
 # not commentary. Two wrong checkers are denied here: one that excluded the gate
 # lines as evidence reports the size asserted absent below, and one that ran the
