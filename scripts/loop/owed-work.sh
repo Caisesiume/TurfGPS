@@ -570,7 +570,19 @@ EOJ
       [ "$ruling" = owed ] && owed_detail="$owed_detail
   #$pr review_ledger $newest_panel (sha $panel_sha, cycle $panel_cycle) has no declared judgment of that identity — a panel convened and never ruled"
     fi
-    if [ "$panel_names_val" != "1" ]; then
+    # `n/a` IS A POSITIVE CLAIM AND IS GUARDED LIKE ONE, which is the same rule
+    # `has_identity` applies to a stamp. It asserts the panel was read and does
+    # not name the lane, so only a flag that affirmatively reads `0` may produce
+    # it. A record narrower than `RECORD_FIELDS` describes leaves `namesval`
+    # EMPTY — `read` sets it rather than leaving it unset, so `set -u` never
+    # fires — and a bare `!= "1"` test printed that positive claim off a field
+    # the record never carried. Unreachable through the current jq, which always
+    # emits the flag; guarded anyway, for the reason the identity helper above
+    # refuses an empty sha instead of comparing it.
+    if [ "$panel_names_val" != "0" ] && [ "$panel_names_val" != "1" ]; then
+      validation=undeclared
+      validation_why="the newest declared review_ledger carries no readable validation-agent flag ('$panel_names_val'), so whether it names the mandatory lane cannot be answered"
+    elif [ "$panel_names_val" = "0" ]; then
       validation=n/a
     elif newer "$newest_val" "$newest_panel"; then
       validation=clear
