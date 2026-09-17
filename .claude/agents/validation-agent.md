@@ -212,7 +212,7 @@ Tab and newline survive that class and ESC does not, for the reason `scrub()` st
 
 ```bash
 "$GH" api --paginate repos/Caisesiume/TurfGPS/issues/<n>/comments \
-  --jq '.[] | select(.body | test("^(\u0060{3,}[a-zA-Z]*[ \t\r]*\n)?artifact: validation_result[ \t\r]*(\n|$)")) | {login: .user.login, created_at, updated_at, body}'
+  --jq '.[] | select(.body | test("^(\u0060{3,}[a-zA-Z]*[ \t\r]*\n)?artifact: validation_result[ \t\r]*(\n|$)")) | .user.login as $login | if $login == "Caisesiume" or $login == "TheReviewNinja" then {login: $login, id, created_at, updated_at, body} else {login: $login, id, created_at, updated_at, withheld: true} end'
 ```
 
 A consumer selects on the declared class — not on your name, not on your wording, and not on a markdown cell someone else wrote. Three things in that line carry weight, and each of them answers a defect in the form it replaces.
