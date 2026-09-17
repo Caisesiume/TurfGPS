@@ -842,6 +842,30 @@ rm -f "$FIX/pr930/commits"
 pr 931; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 : > "$FIX/pr931/NO_COMMENTS"
 
+# --- M1  AN OVER-WIDE RECORD IS REFUSED, NOT ANSWERED FROM ----------------------
+# The `overflow` guard is the whole of what the single-declaration argument buys,
+# and until now NO fixture reached it: `cmt()` prints exactly six fields, so no
+# record this corpus builds can be wider than `RECORD_FIELDS` names, and the
+# branch stood untested behind a mechanism nothing exercised. The record is
+# therefore written DIRECTLY here, past `cmt()` — which is the only way to express
+# the case it guards, a transport emitting a field the detector does not name,
+# such as a seventh expression added to the jq array and not to the field list.
+#
+# WHAT IT MUST NOT BE RED FOR. Its commits are readable and its comments are
+# served, so `unreadable` here can ONLY be the overflow branch. #930 and #931 both
+# reach `unreadable` by the other route, so the MESSAGE is asserted beside the
+# status: a check that asserted the token alone could not tell the three apart,
+# and would stay green against a detector that lost this branch entirely.
+#
+# It is excluded from READABLE and from the transcription guard below — the guard
+# destructures six fields per record and would itself absorb the seventh, failing
+# as a construction error rather than letting the detector be measured.
+pr 932; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+: > "$FIX/pr932/OVERWIDE"
+OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 SEVENTH"
+printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.declared"
+printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
+
 # ---------------------------------------------------------------------------
 # THE STUBBED `gh`
 #
@@ -909,6 +933,11 @@ first_key() { # first_key <file> <key>  -> the value of the body's first `<key>:
 for d in "$FIX"/pr*; do
   n="${d##*/pr}"
   [ -f "$d/NO_COMMENTS" ] && continue
+  # M1's record is deliberately wider than a record may be, so the guard below —
+  # which destructures six fields and would absorb the seventh exactly as the
+  # detector's `read` does — cannot judge it. Skipped here and guarded by arity
+  # instead, among the construction checks.
+  [ -f "$d/OVERWIDE" ] && continue
   # Comments must be chronological, because every condition here is "X with nothing
   # after it" and a fixture whose records arrived out of order tests a different
   # question than the one it names.
@@ -970,6 +999,14 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
   || die "B1b must be judgment-then-ledger of ONE identity or it is not the contract's own order"
 [ "$(awk 'NR == 1 {print $5}' "$FIX/pr912/records.declared")" != "$SHA181" ] \
   || die "B1c's ruling must declare ANOTHER panel's identity or it is the same fixture as B1b"
+# M1's whole subject is the record's ARITY, so the arity is asserted here: a
+# fixture narrowed back to six fields would leave the overflow branch untouched
+# and M1's checks passing for the wrong reason — the vacuous instrument this file
+# exists to prevent.
+[ "$(awk 'NR == 1 {print NF}' "$FIX/pr932/records.declared")" = '7' ] \
+  || die "M1's record must be SEVEN fields wide or the overflow guard is never reached"
+[ -f "$FIX/pr932/commits" ] \
+  || die "M1 must have readable commits or its 'unreadable' is the other route and proves nothing"
 
 cd "$TMP" || die "could not enter $TMP"
 
@@ -1130,6 +1167,19 @@ run 930
 state_is  "S5  an unreadable source is named on its own line"               930 unreadable
 check_rc  "S5  ... exit 2"                                                   2
 check_has "S5  ... summary unreadable 1"                                    "unreadable 1"
+
+# M1 — THE `overflow` GUARD, WHICH NO FIXTURE REACHED UNTIL NOW. A record carrying
+# a field `RECORD_FIELDS` does not name is REFUSED, on the same four surfaces, and
+# the message is asserted because two other fixtures reach `unreadable` by the
+# other route. The absorbed field is quoted back: a detector that reported the PR
+# unreadable without naming what it could not parse leaves the next editor with
+# the silent-absorption failure the guard exists to make loud.
+run 932
+state_is  "M1  an over-wide comment record is refused, not answered from"   932 unreadable
+check_rc  "M1  ... and it takes the 2 every unreadable source takes"         2
+check_has "M1  ... and it names the guard, not a generic read failure"      "RECORD_FIELDS does not name"
+check_has "M1  ... and quotes the field that would have been absorbed"      "'SEVENTH'"
+check_has "M1  ... and the summary counts it unreadable"                    "unreadable 1"
 
 # THE COUNTS ARE PER CLASS AND NEED NOT SUM TO THE PRs READ, which the detector's
 # header promises and which no documented consumer yet reads — that block is
