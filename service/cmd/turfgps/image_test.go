@@ -90,6 +90,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/config"
 )
 
 const (
@@ -116,6 +118,25 @@ const (
 	// containerPort is the port the entry point listens on inside the image,
 	// per defaultAddr in main.go and EXPOSE in `service/Dockerfile`.
 	containerPort = "8080"
+
+	// owedConstantFixture is what this harness supplies for every variable
+	// `config.OwedEnvVars` names, so that the container it starts gets past the
+	// refusal `FR-091` puts in front of the listener.
+	//
+	// It is a PRESENCE FIXTURE and it is not a figure. config.RequireOwed
+	// checks presence and never shape, deliberately, so nothing here has to be
+	// a plausible value — and nothing here may be one. Neither constant has a
+	// value in any document; a number invented in a test harness to unblock a
+	// start-up is the unexplained literal
+	// `CalculationSpecification.md § Conventions` forbids, arriving through the
+	// one door nobody reviews it at. This string is written to be unusable as a
+	// value so that no later reader can mistake it for one.
+	//
+	// Configuration is not what this file measures. Without it, a container
+	// started with none of those variables set would exit before serving
+	// anything and every probe below would report NFR-003 unmet over a question
+	// it never asked.
+	owedConstantFixture = "set-by-the-image-test-not-a-value"
 
 	// executablePath is where `service/Dockerfile` copies the executable, and
 	// so is the entry point the image must start. The literal is the assertion:
@@ -196,8 +217,13 @@ func TestImageStartsAndServesFirstRequest(t *testing.T) {
 	assertNothingWrapsTheExecutable(t, runtime, tag)
 	assertNoShellInTheImage(t, runtime, tag)
 
-	out, err := exec.CommandContext(t.Context(), runtime,
-		"run", "--detach", "--publish", "127.0.0.1:0:"+containerPort, tag).Output()
+	run := []string{"run", "--detach", "--publish", "127.0.0.1:0:" + containerPort}
+	for _, name := range config.OwedEnvVars() {
+		run = append(run, "--env", name+"="+owedConstantFixture)
+	}
+	run = append(run, tag)
+
+	out, err := exec.CommandContext(t.Context(), runtime, run...).Output()
 	if err != nil {
 		t.Fatalf("NFR-003 AC2 FAILED, OR A HARNESS FAULT — this run cannot tell which, and the\n"+
 			"runtime's own refusal below is what separates the two readings.\n\n"+
