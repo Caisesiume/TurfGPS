@@ -467,7 +467,7 @@ check_has "8b CRLF · ... and the value read carries no carriage return"     "ju
 # deletion caught here; the anchor is the same record action the `crlf` mutant
 # rewrites, so the guard and the demonstration cannot drift apart.
 CRLF_RULE='{ line = $0; sub(/\r$/, "", line) }'
-CRLF_HELD="$(grep -cF "$CRLF_RULE" "$SCRIPT")"
+CRLF_HELD="$(grep -oF "$CRLF_RULE" "$SCRIPT" | grep -c .)"
 if [ "$CRLF_HELD" = 1 ]; then
   pass "8b CRLF · presence · the record-level \\r strip is in the checker, host-independently"
 else
