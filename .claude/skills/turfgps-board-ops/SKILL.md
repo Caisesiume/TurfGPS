@@ -21,6 +21,7 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 - **Never set `GITHUB_MCP_TOKEN` to the judge's token**, and never the reverse. Two tokens, two accounts, always.
 - **@pr-judge issues its rulings through the CLI**, prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`, even when the MCP is connected and would be more convenient.
 - **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it through the environment.
+- **@validation-agent posts a machine result through the CLI, and that is not a judgment.** Its `validation_result` comment goes out under the **default** token, never `GH_JUDGE_TOKEN`: this split protects the identity and not the tool, the CLI being merely where `--body-file` is, and signing a measurement with the judge's token would enter it as a ruling through the plumbing. The procedure is `validation-agent § Post your result to the PR before your pass ends`.
 
 Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
 
