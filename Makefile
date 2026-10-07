@@ -176,7 +176,7 @@ output-caps:
 # The licence DECLARATION, beside the length. `output-caps` above measures how
 # long a capped artifact is; this measures whether it declared a licence the
 # table defines, and they are separate targets because they are separate
-# questions with separate refusals — an artifact can sit comfortably under its
+# questions with separate refusals — an artifact can sit under its
 # cap and declare `prose_licence: ruling`, which two judgments on PR #154 do.
 #
 # It checks TWO of the licensing rule's three parts: the key stands second, and
