@@ -96,7 +96,7 @@
 # WHAT IT DOES NOT REQUIRE, so that its scope is legible from its refusals: a
 # CAP-TABLE ROW. Whether an id is capped is `output-caps.sh`'s question and it
 # answers it; `escalation_packet` is a live id with no row (#186 § 4, AC 4 —
-# "Every artifact id in live use has a cap-table row") and refusing it here
+# "Every artifact id in live use has a cap-table row, …") and refusing it here
 # would report #186's gap as this rule's violation. Anything declaring an
 # `artifact:` id has its licence checked, rowed or not.
 #
