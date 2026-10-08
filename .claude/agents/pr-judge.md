@@ -344,7 +344,7 @@ prose_licence: none          # or each licence invoked
 pr: <n>
 sha: <head sha>
 cycle: <k>
-ruling: <approved | recommended | remanded | escalated>
+ruling: <approved | recommended | remanded | escalated>  # or stale (`§ Phase 9`)
 ```
 
 ```
