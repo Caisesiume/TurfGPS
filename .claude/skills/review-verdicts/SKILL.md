@@ -29,6 +29,7 @@ findings:
     line: 142
     description: refresh tokens can be reused after rotation
     required_change: invalidate the old refresh token on successful rotation
+    falsifier: "grep -n revoked src/auth/session.ts → :88 only"
     root_cause: implementation
 verdict: revise            # pass | revise | blocker | N/A
 confidence: 0.96           # a number; `unassessed` belongs to `unsatisfiable` and never here
@@ -49,7 +50,7 @@ evidence: |
 
 Return decision-relevant data only. Deep internal analysis is welcome; only its conclusions enter the parent's context.
 
-**Every finding a reviewer files will be resolved by the judge into exactly one of five outcomes** — `required_change` · `accepted_risk` · `invalid_finding` · `future_work` · `informational`. A reviewer does not resolve its own findings, but knowing the vocabulary changes how it writes them: a finding filed as though everything must block is a finding the judge has to reclassify, and one filed as a passing remark is one that disappears. The five are defined in `docs/DELIVERY.md § Findings and their owners`.
+**The judge resolves every finding into one of the five outcomes in `docs/DELIVERY.md § Findings and their owners`, and one meant to block carries its `falsifier:`**, which anyone can re-run: a failing test, a command and its output, or two quoted lines that contradict. Only safety-path findings and human-judgement requirements block without one (Owner, 8 October 2026, #206); `pr-judge § Phase 8` resolves the rest, and a passing remark disappears.
 
 ### Insufficient evidence is not low confidence
 

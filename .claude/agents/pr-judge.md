@@ -233,7 +233,7 @@ supported_by: [go-quality: GOQ-03, maintainability: MAINT-02]
 
 **No finding leaves the process unowned.** Each resolves to exactly one of:
 
-- **`required_change`** — it should actually change. Owner is the implementing lane. This is the only resolution that triggers a revision.
+- **`required_change`** — it should actually change. Owner is the implementing lane. This is the only resolution that triggers a revision, and **it takes a falsifier unless `review-verdicts § Reviewer verdict` exempts its class**; a non-exempt finding without one resolves `informational` or `future_work`.
 - **`accepted_risk`** — real, not worth another cycle. Owner is you, with the reason recorded on the PR. An accepted risk with no owner is a suggestion, and suggestions are how defects leave the room dressed as politeness.
 - **`invalid_finding`** — with a stated reason: out of lane, a misread of the diff, or contradicted by an artifact you name. Ruling one invalid without a reason is you substituting your opinion for a reviewer's.
 - **`future_work`** — valid, and outside this item's scope. **Record it as a traceable issue reference**, or hand it to `@engineering-lead` to route where the scope call is not yours. **Never a revision trigger, and never lost** — both halves matter: the first is how an autonomous loop avoids refactoring forever, the second is how it avoids learning to call real findings out-of-scope.
