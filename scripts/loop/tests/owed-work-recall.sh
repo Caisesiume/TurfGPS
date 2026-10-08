@@ -827,6 +827,72 @@ status: valid_review
 verdict: pass
 BODY
 
+# --- R  THE RULING COMMENT (#206) -----------------------------------------------
+# `agent-handoffs § The cap table` puts the judgment, its revision packet and its
+# ledger in ONE comment declaring `judgment`, so neither a `revision_packet` nor
+# a `review_ledger` is declared on its own and A and B1 lose their markers. The
+# judgment's `ruling:` answers for both: the comment is its own panel and that
+# panel's ruling, and on `remanded` it is the remand. A value outside the four
+# is no ruling, and the PR falls to `undeclared` rather than to a guess.
+pr 950; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$PACKET_8D" judgment - 0 "$SHA181" 2 - - remanded <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 2
+ruling: remanded
+required_changes:
+  - {finding: SEC-01, owner: implementation-engineer}
+
+| reviewer | verdict | diff SHA | cycle |
+|---|---|---|---|
+| linus-security-critic | revise | 297632d | 2 |
+BODY
+pr 951; commits "2026-08-27T09:00:00Z" "2026-09-06T10:00:00Z"
+cmt "2026-09-05T22:23:00Z" judgment - 1 "$SHA181" 2 - - remanded <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 2
+ruling: remanded
+
+| reviewer | verdict | diff SHA | cycle |
+|---|---|---|---|
+| validation-agent | fail | 297632d | 2 |
+BODY
+pr 952; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$T_JUDGMENT" judgment - 0 "$SHA181" 1 - - approved <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 1
+ruling: approved
+BODY
+# R4: a ruling comment rules its OWN panel. A later standalone ledger of another
+# identity is unruled, while the remand before the newest commit was worked.
+pr 953; commits "2026-08-27T09:00:00Z" "2026-09-06T10:00:00Z"
+cmt "2026-09-05T22:23:00Z" judgment - 0 "$SHA_OLD" 2 - - remanded <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA_OLD
+cycle: 2
+ruling: remanded
+BODY
+cmt "2026-09-06T12:00:00Z" review_ledger - 0 "$SHA181" 3 <<BODY
+artifact: review_ledger
+prose_licence: none
+sha: $SHA181
+cycle: 3
+BODY
+pr 954; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$PACKET_8D" judgment - 0 "$SHA181" 2 - - remaned <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 2
+ruling: remaned
+BODY
+
 # --- X  unreadable sources ------------------------------------------------------
 # 930: the commits endpoint fails.  931: the comments endpoint fails.
 # Both are marked by the ABSENCE of the fixture file, which is what the stubbed
@@ -1026,6 +1092,10 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
   || die "B1b must be judgment-then-ledger of ONE identity or it is not the contract's own order"
 [ "$(awk 'NR == 1 {print $5}' "$FIX/pr912/records.declared")" != "$SHA181" ] \
   || die "B1c's ruling must declare ANOTHER panel's identity or it is the same fixture as B1b"
+for n in 950 951 952 954; do
+  [ "$(awk '{print $2}' "$FIX/pr$n/records.declared" | sort -u)" = judgment ] \
+    || die "R-fixture #$n must declare judgments alone, or A and B1 are answered by something else"
+done
 # M1's whole subject is the record's ARITY, so the arity is asserted here: a
 # fixture narrowed back to full width would leave the overflow branch untouched
 # and M1's checks passing for the wrong reason — the vacuous instrument this file
@@ -1086,7 +1156,7 @@ state_is() { # state_is <label> <pr> <state>
 # the shape `dependents-declared-edges.sh` records as the #138 anti-pattern —
 # an assertion that cannot fail, or one that fails for a reason it does not name.
 
-READABLE='900 901 902 903 904 905 906 907 908 910 911 912 913 914 915 916 917 920 921 922 923 924 925 926 927 135 940'
+READABLE='900 901 902 903 904 905 906 907 908 910 911 912 913 914 915 916 917 920 921 922 923 924 925 926 927 135 940 950 951 952 953 954'
 
 # ---- one run over every readable PR: the classification corpus ----------------
 # shellcheck disable=SC2086
@@ -1162,6 +1232,13 @@ cls "B2g THE BUILT-IN OVER-REPORT: a ledger recording its own validation"   926 
 cls "U1  the 2026-09-07 board: #135 is UNDECLARED in every class"           135 undeclared undeclared undeclared
 cls "U2  every class discharged (#182 governs the third)"                   940 clear      clear      clear
 
+# THE RULING COMMENT (#206): A and B1 answered from one declared comment.
+cls "R1  it remanded and nothing followed: A OWED, B1 its own and CLEAR"    950 owed       clear      n/a
+cls "R2  a commit followed: A CLEAR; it names the lane, so B2 as ever"      951 clear      clear      undeclared
+cls "R3  it approved: a declared ruling with no remand answers A CLEAR"     952 clear      clear      n/a
+cls "R4  it rules its own panel and no later one"                           953 clear      owed       n/a
+cls "R5  a ruling: outside the four is no ruling and is not answered"       954 undeclared undeclared undeclared
+
 # ---- S: a class answer is four claims, not one cell ----------------------------
 # CELL, STATE TOKEN, EXIT STATUS, SUMMARY COUNTS. The old corpus asserted the first
 # alone on B2, and a detector that lost the mandatory-lane condition entirely moved
@@ -1198,6 +1275,13 @@ run 927
 state_is  "S4  a PR whose only open class is inapplicable is clear"         927 clear
 check_rc  "S4  ... exit 0"                                                   0
 check_has "S4  ... summary clear 1"                                         "clear 1"
+
+run 952
+state_is  "S7  a PR ruled in one approving comment is clear"                952 clear
+check_rc  "S7  ... exit 0, not the 3 a ruling-blind detector gives it"       0
+run 950
+state_is  "S8  one remanding comment, unworked, rolls up to owed"           950 owed
+check_rc  "S8  ... exit 1"                                                   1
 
 run 930
 state_is  "S5  an unreadable source is named on its own line"               930 unreadable
