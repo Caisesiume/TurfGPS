@@ -28,7 +28,7 @@ prose_licence: none           # or each licence invoked
 
 `artifact:` is what lets a checker measure a comment it knows nothing else about: the artifact names itself, rather than the instrument guessing from the author or the wording. `prose_licence:` is how the licence rule below is enforced rather than merely stated.
 
-**The rest of the mandatory keys are per role, and each producing schema states its own** — `review-verdicts § Reviewer verdict`, the payloads in `handoff-payloads`, `review-board-dispatch § Incremental review validity` for the ledger, and otherwise the producing agent's template. **A cap-table row is not a producing schema**: every row below has one, and one without is bound by the two keys above alone. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
+**The rest of the mandatory keys are per role, and each producing schema states its own** — `review-verdicts § Reviewer verdict`, the payloads in `handoff-payloads`, and otherwise the producing agent's template. **A cap-table row is not a producing schema**: every row below has one, two retired forms aside, and one without is bound by the two keys above alone. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
 
 ## The limit
 
@@ -79,8 +79,8 @@ Column 4 is normative and is **not** machine-read; the checker ignores it, and a
 |---|---|---|---|
 | `reviewer_verdict` | `1200` | `body` | the evidence block is **≤ 10 bullets, one line each** |
 | `judgment` | `6000` | `body` | **the one ruling comment per cycle** — judgment, packet on a remand and ledger, all counted here; the resolution table and the ledger's rows are the excluded part |
-| `review_ledger` | `2000` | `whole` | it **supersedes** — rewritten whole each cycle, never appended |
-| `revision_packet` | `3000` | `whole` | `@pr-judge` on remand; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
+| `review_ledger` | `2000` | `whole` | the standalone form #206 retired from posting (`pr-judge § Phase 9`), read by `scripts/loop/owed-work.sh` on earlier rulings |
+| `revision_packet` | `3000` | `whole` | likewise; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
 | `resume_packet` | `1500` | `whole` | `@pr-judge` where the panel could not be convened — only what is expensive to re-derive, per `pr-judge § When the panel cannot be convened` |
 | `worker_envelope` | `1500` | `whole` | every worker completion, and every meta-review payload that fills the same envelope |
 | `worker_report` | `2000` | `body` | a worker's PR body, and its comment reporting a revision cycle; the criteria-and-evidence table is the excluded part |
