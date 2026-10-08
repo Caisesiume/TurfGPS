@@ -1112,26 +1112,24 @@ check_lacks "machine result · ... and never the size it would measure with the 
 check_lacks "machine result · ... where an exclusion running to EOF would have reported it clean"       "clean · "
 
 # ---------------------------------------------------------------------------
-# FIXTURE 13 — THE ONE RULING COMMENT PER CYCLE (#206): judgment, revision
-# packet and ledger in one comment, measured whole under the row its first
-# declaration names and REFUSED over that row's cap.
+# FIXTURE 13 — THE ONE RULING COMMENT PER CYCLE (#206): judgment, packet and
+# ledger in one comment, measured whole under `judgment` and REFUSED over it.
 #
-# The datum is PR #199 cycle 2 posted that way: comments 5719855556,
-# 5719856023 and 5719855787, joined by one blank line, measure 8770 under
-# `judgment`. Its sections keep their own declarations, which under `body` are
-# text and never reclassify the comment, so a checker that stopped counting at
-# the second declaration reports the judgment's own words alone.
-#
-# The packet's `required_changes:` list is payload and counts. The second pair
-# sits exactly AT and ONE OVER the cap with that list carrying it there, so a
-# checker excluding the list as though it were `findings:` reports both under.
+# The datum is PR #199 cycle 2 posted that way: comments 5719855556, 5719856023
+# and 5719855787, joined by a blank line, measure 8770. Its sections keep their
+# declarations, which under `body` are text — a checker that stopped at the
+# second reports the judgment alone, under. The pair at and one over the cap is
+# carried there by the packet's `required_changes:` list, which counts: a
+# checker excluding it like `findings:` reports both under.
 # ---------------------------------------------------------------------------
 [ 8770 -gt "$JCAP" ] || die "PR #199 cycle 2's ruling comment measured 8770 under judgment, and it only demonstrates the refusal while that is over the judgment cap. The table now reads $JCAP."
 
+LEDGER_ROWS='| reviewer | verdict | diff SHA | cycle |
+|---|---|---|---|
+| docs-reviewer | pass | 27a4da3 | 2 |'
 art_new ruling-199.md
 put 'artifact: judgment'
 put 'prose_licence: rule_renegotiated'
-put 'pr: 199'
 put 'sha: 27a4da3'
 put 'cycle: 2'
 put_block_x <<'EX'
@@ -1141,14 +1139,10 @@ put_block_x <<'EX'
 EX
 fill_nl 4000 >> "$CUR"
 put 'artifact: revision_packet'
-put 'prose_licence: none'
-put_block_x <<'EX'
-| reviewer | domain | verdict | conf | diff SHA | cycle |
-|---|---|---|---|---|---|
-| docs-reviewer | documentation | pass | 0.91 | 27a4da3 | 2 |
-EX
+pad_to $(( 8770 - 24 ))
 put 'artifact: review_ledger'
-pad_to 8770
+put_x "$LEDGER_ROWS"
+[ "$(counted)" = 8770 ] || die "construction: the #199 ruling comment counts $(counted) and the datum is 8770"
 
 RC_L1='  - {finding: DOC-08, scope: "scripts/gates/prose-licence.sh:98", change: "quote it whole"}'
 RC_L2='  - {finding: LQ2-01, scope: "scripts/gates/tests/prose-licence-recall.sh:470", change: "count occurrences"}'
@@ -1162,11 +1156,7 @@ mk_ruling() { # mk_ruling <file> <measured-target>
   put 'required_changes:'
   put "$RC_L1"
   put "$RC_L2"
-  put_block_x <<'EX'
-| reviewer | domain | verdict | conf | diff SHA | cycle |
-|---|---|---|---|---|---|
-| linus-quality-critic | backend correctness | pass | 0.93 | 27a4da3 | 2 |
-EX
+  put_x "$LEDGER_ROWS"
   [ "$(counted)" = "$2" ] || die "construction: $CUR counts $(counted) and claims $2"
 }
 mk_ruling ruling-at-cap.md "$JCAP"
