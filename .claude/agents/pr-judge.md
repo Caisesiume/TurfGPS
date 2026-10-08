@@ -148,7 +148,7 @@ scripts/loop/claim.sh claim <n> <head-sha> <lane> --owner pr-judge
 
 #### The dispatch itself
 
-Read-only, in parallel within a board, **by reference**. **What a dispatch carries is enumerated in one place — `review-board-dispatch § The case file (same for every reviewer) — references, not content` — and is deliberately not listed again here.** A second enumeration is how a reviewer gets dispatched without the panel key its own recording obligation needs: the case file gained that field, this phase had its own copy, and only one of the two was updated. Fingerprint the tree before and verify it after; a tree that moved invalidates the run.
+Read-only, in parallel within a board, **by reference**, and **in the foreground: `run_in_background: false` on every Agent call** (`#178#issuecomment-6048237459`). **What a dispatch carries is enumerated in one place — `review-board-dispatch § The case file (same for every reviewer) — references, not content` — and is deliberately not listed again here.** A second enumeration is how a reviewer gets dispatched without the panel key its own recording obligation needs: the case file gained that field, this phase had its own copy, and only one of the two was updated. Fingerprint the tree before and verify it after; a tree that moved invalidates the run.
 
 Do not paste the diff or the requirements into a dispatch. The reviewer opens them itself, and a reviewer handed content is a reviewer one step closer to reviewing the handoff.
 
