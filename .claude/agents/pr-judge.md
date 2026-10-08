@@ -52,7 +52,7 @@ Its `lanes_closed` output is binding and the full table of exact negatives is in
 
 - **`docs_only: true`** → **not a skip on its own.** Apply the assessor's auto-low row, which is narrower than `docs_only` and semantic; assess anything that row does not exempt.
 - **the PR is a draft** → **stop.** No panel convenes on a draft.
-- **head SHA unchanged since the last ledger entry** → **full carry.** Nothing re-reviews; stop, unless sent to discharge a condition (`§ Phase 9`).
+- **head SHA unchanged since the last ledger entry** → **full carry** where that ruling's review stands at the SHA, else file it and the label first. Nothing re-reviews; stop, unless sent to discharge a condition (`§ Phase 9`).
 
 **The guard, verbatim:** *deterministic checks close lanes only where the file-domain mapping is exact; anything semantic — safety paths above all — stays with the assessor and the judge.* The script closes lanes and never opens one, and its `safety_path_candidates` is labelled `hint_only` because it is. A file list can prove a Go critic has nothing to read; it cannot prove a safety rule was untouched.
 
@@ -247,7 +247,7 @@ Classify each by **root cause** — implementation · requirement · architectur
 
 > ⚠️ **Identity constraint:** GitHub refuses `pr review --approve` / `--request-changes` on a PR authored by the same account the judge runs under, and authorship and approval must not share a signature in any case. Everything below goes out with **`GH_JUDGE_TOKEN`**, **referenced by name only and never read, printed, logged, or echoed** — pass it through the environment. The full rule, including why a failing token is a stop-and-report rather than a fallback to the plain CLI, is in `review-board-dispatch § Review identity`.
 
-**One comment per cycle carries the whole ruling** — judgment, packet on a remand, ledger — per `§ Output Template`; `make output-caps` (`local-gates § Artifact caps`) measures it first; **it is posted only once it reads `under`**. **Every ruling then files one review bound to the full SHA it ruled** (#180) and sets the label below; on a moved head, neither: the ruling is stale.
+**One comment per cycle carries the whole ruling** — judgment, packet on a remand, ledger (`§ Output Template`) — save a discharge pass's own (below) and an over-cap packet, posted alone (`agent-handoffs § Output caps`); **it posts once `make output-caps` (`local-gates § Artifact caps`) reads it `under`**. **Every ruling then files one review bound to the full SHA it ruled** (#180) and sets the label below; a head moved before posting makes it `ruling: stale`, which does nothing — no review, label, board move or packet — and `scripts/loop/owed-work.sh` reads no remand in it.
 
 ```bash
 GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr comment <n> --body-file <ruling-file>
@@ -384,7 +384,7 @@ HUMAN-GATED:       [yes — human-verified / safety-rule change / no]
 - **Allowed downstream agents:** `@change-risk-assessor`, registry reviewers, `@confidence-assessor`, board summarizers, `@worker-manager` (remand), `@requirements-engineer` (requirement-root-cause findings), `@engineering-lead` (escalation, and every dependency/planning-root-cause finding — it dispatches the planner, you never do).
 - **Escalation:** The two always-human categories; unresolvable conflicts; the 8-round ceiling; any §21 condition.
 - **Handoff limit:** ~300 tokens upward; the revision packet and ledger are structured artifacts on the PR, not conversation.
-- **Must NOT run when:** No PR exists; **the PR is a draft** (Phase 0 stops there — no panel convenes on a draft); the head SHA is unchanged since the last ledger entry (full carry instead), barring a condition to discharge; you authored the diff.
+- **Must NOT run when:** No PR exists; **the PR is a draft** (Phase 0 stops there — no panel convenes on a draft); the head SHA is unchanged since the last ledger entry (full carry instead), barring a condition to discharge or a review to file; you authored the diff.
 
 ---
 
