@@ -245,7 +245,7 @@ Classify each by **root cause** — implementation · requirement · architectur
 
 ### Phase 9 — Rule
 
-> ⚠️ **Identity constraint:** GitHub refuses `pr review --approve` / `--request-changes` on a PR authored by the same account the judge runs under, and authorship and approval must not share a signature in any case. Formal verdicts are issued with **`GH_JUDGE_TOKEN`**, **referenced by name only and never read, printed, logged, or echoed** — pass it through the environment. The full rule, including why a failing token is a stop-and-report rather than a fallback to the plain CLI, is in `review-board-dispatch § Review identity`.
+> ⚠️ **Identity constraint:** GitHub refuses `pr review --approve` / `--request-changes` on a PR authored by the same account the judge runs under, and authorship and approval must not share a signature in any case. Everything below goes out with **`GH_JUDGE_TOKEN`**, **referenced by name only and never read, printed, logged, or echoed** — pass it through the environment. The full rule, including why a failing token is a stop-and-report rather than a fallback to the plain CLI, is in `review-board-dispatch § Review identity`.
 
 Every judgment comment, and the ledger, ends with its own final line:
 

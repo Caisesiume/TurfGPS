@@ -11,17 +11,16 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 
 | Channel | Used for | Identity |
 |---|---|---|
-| **GitHub MCP** (server `github`) | Board reads and item edits, issues, milestones, labels, PR reads | The repository owner, via `GITHUB_MCP_TOKEN` |
-| **`gh` CLI** | **Judgments only** — PR review verdicts and review comments | The judge — login **`TheReviewNinja`** — via `GH_JUDGE_TOKEN` |
+| **GitHub MCP** (server `github`) | Board reads and item edits, issues, milestones, labels other than `judge:*`, PR reads | The repository owner, via `GITHUB_MCP_TOKEN` |
+| **`gh` CLI** | **Everything that judges** — a verdict, a validation result, a judgment, a revision packet, a ledger, and the review and `judge:*` label recording a ruling | The judge — login **`TheReviewNinja`** — via `GH_JUDGE_TOKEN` |
 
 `docs/DELIVERY.md` requires review comments under a **separate GitHub identity** from the repository owner's, because authorship and approval must not share a signature — self-approval is not review, and a distinct identity makes the boundary visible in the history rather than merely intended.
 
 **An MCP server carries one identity.** If the judge posted through the same MCP connection as the agent that wrote the code, that boundary disappears and nothing in the history would show it. So:
 
 - **Never set `GITHUB_MCP_TOKEN` to the judge's token**, and never the reverse. Two tokens, two accounts, always.
-- **@pr-judge issues its rulings through the CLI**, prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`, even when the MCP is connected and would be more convenient.
+- **Everything in the CLI row goes out prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, even when the MCP is connected and would be more convenient — `@validation-agent`'s result and a courier's persisted verdict included. **A verdict is never posted under another login** (#206).
 - **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it through the environment.
-- **@validation-agent posts a machine result through the CLI, and that is not a judgment.** Its `validation_result` comment goes out under the **default** token, never `GH_JUDGE_TOKEN`: this split protects the identity and not the tool, the CLI being merely where `--body-file` is, and signing a measurement with the judge's token would enter it as a ruling through the plumbing. The procedure is `validation-agent § Post your result to the PR before your pass ends`.
 
 Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
 
