@@ -225,19 +225,19 @@ mkdir -p "$FIX" "$TMP/bin"
 # character-identical in three files, now stands in the detector alone.
 #
 # Field order is the record's, observed once from the detector's own destructuring:
-#   <created_at> <artifact-id> <reviewer> <names-validation-agent> <sha> <cycle>
+#   <created_at> <artifact-id> <reviewer> <names-validation-agent> <sha> <cycle> <ruling>
 # `-` is "the comment declared no such key".
 # ---------------------------------------------------------------------------
 CUR=''; CN=0
 pr()      { CUR="$FIX/pr$1"; mkdir -p "$CUR"; CN=0
             : > "$CUR/records.declared"; : > "$CUR/records.heading"; }
 commits() { printf '%s\n' "$@" > "$CUR/commits"; }        # oldest first, as the API returns
-# cmt <created_at> <id> <reviewer> <namesval> <sha> <cycle> [<heading-id> <heading-reviewer>] <<'BODY'
+# cmt <created_at> <id> <reviewer> <namesval> <sha> <cycle> [<heading-id> <heading-reviewer> [<ruling>]] <<'BODY'
 cmt() {
   CN=$((CN + 1)); F="$(printf '%s/c%02d.txt' "$CUR" "$CN")"
   cat > "$F"
-  printf '%s %s %s %s %s %s\n' "$1" "$2"      "$3"      "$4" "$5" "$6" >> "$CUR/records.declared"
-  printf '%s %s %s %s %s %s\n' "$1" "${7:--}" "${8:--}" "$4" "$5" "$6" >> "$CUR/records.heading"
+  printf '%s %s %s %s %s %s %s\n' "$1" "$2"      "$3"      "$4" "$5" "$6" "${9:--}" >> "$CUR/records.declared"
+  printf '%s %s %s %s %s %s %s\n' "$1" "${7:--}" "${8:--}" "$4" "$5" "$6" "${9:--}" >> "$CUR/records.heading"
 }
 
 # The two timestamps the historical cases are grounded in. #135's newest commit was
@@ -844,12 +844,12 @@ pr 931; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 
 # --- M1  AN OVER-WIDE RECORD IS REFUSED, NOT ANSWERED FROM ----------------------
 # The `overflow` guard is the whole of what the single-declaration argument buys,
-# and until now NO fixture reached it: `cmt()` prints exactly six fields, so no
-# record this corpus builds can be wider than `RECORD_FIELDS` names, and the
+# and until now NO fixture reached it: `cmt()` prints exactly the fields
+# `RECORD_FIELDS` names, so no record it builds can be wider, and the
 # branch stood untested behind a mechanism nothing exercised. The record is
 # therefore written DIRECTLY here, past `cmt()` — which is the only way to express
 # the case it guards, a transport emitting a field the detector does not name,
-# such as a seventh expression added to the jq array and not to the field list.
+# such as one more expression added to the jq array and not to the field list.
 #
 # WHAT IT MUST NOT BE RED FOR. Its commits are readable and its comments are
 # served, so `unreadable` here can ONLY be the overflow branch. #930 and #931 both
@@ -858,11 +858,11 @@ pr 931; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 # and would stay green against a detector that lost this branch entirely.
 #
 # It is excluded from READABLE and from the transcription guard below — the guard
-# destructures six fields per record and would itself absorb the seventh, failing
+# destructures a full-width record and would itself absorb the extra field, failing
 # as a construction error rather than letting the detector be measured.
 pr 932; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 : > "$FIX/pr932/OVERWIDE"
-OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 SEVENTH"
+OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 - OVERWIDE"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.declared"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
 
@@ -873,7 +873,7 @@ printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
 # with a bare `!= "1"` then prints `n/a`: the positive claim that the panel WAS
 # read and does NOT name the mandatory lane, asserted off a field the record never
 # carried. It is written past `cmt()` for M1's reason inverted: `cmt()` prints
-# exactly six fields, so no record this corpus builds can be too narrow either.
+# every field, so no record it builds can be too narrow either.
 #
 # THE EXPECTED ANSWER IS THIS CORPUS'S OWN RULE, NOT THE DETECTOR'S COMMENT READ
 # BACK. B1g and B1h (#916, #917) already pin it on the identity fields: an
@@ -960,8 +960,8 @@ for d in "$FIX"/pr*; do
   n="${d##*/pr}"
   [ -f "$d/NO_COMMENTS" ] && continue
   # M1's record is deliberately wider than a record may be, so the guard below —
-  # which destructures six fields and would absorb the seventh exactly as the
-  # detector's `read` does — cannot judge it. M2's is deliberately narrower, and
+  # which destructures a full-width record and would absorb the extra field exactly
+  # as the detector's `read` does — cannot judge it. M2's is deliberately narrower, and
   # has no body file to re-read at all. Both are skipped here and guarded by arity
   # instead, among the construction checks.
   { [ -f "$d/OVERWIDE" ] || [ -f "$d/NARROW" ]; } && continue
@@ -975,9 +975,9 @@ for d in "$FIX"/pr*; do
     || die "fixture comments are not in chronological order (above)"
 
   k=0
-  while IFS=' ' read -r ts id rev nval sha cyc; do
+  while IFS=' ' read -r ts id rev nval sha cyc rul; do
     k=$((k + 1)); f="$(printf '%s/c%02d.txt' "$d" "$k")"
-    for pair in "artifact $id" "reviewer $rev" "sha $sha" "cycle $cyc"; do
+    for pair in "artifact $id" "reviewer $rev" "sha $sha" "cycle $cyc" "ruling $rul"; do
       key="${pair%% *}"; want="${pair##* }"
       got="$(first_key "$f" "$key")"
       if [ "$want" = '-' ]; then
@@ -996,7 +996,7 @@ for d in "$FIX"/pr*; do
     # artifact's reviewer; anything else drifting would make the prose stub's reds
     # attributable to something other than heading-matching.
     h="$(sed -n "${k}p" "$d/records.heading")"
-    [ "$(printf '%s' "$h" | awk '{print $1, $4, $5, $6}')" = "$ts $nval $sha $cyc" ] \
+    [ "$(printf '%s' "$h" | awk '{print $1, $4, $5, $6, $7}')" = "$ts $nval $sha $cyc $rul" ] \
       || die "pr $n comment $k: the heading record differs from the declared record outside the artifact id"
   done < "$d/records.declared"
 done
@@ -1027,15 +1027,15 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
 [ "$(awk 'NR == 1 {print $5}' "$FIX/pr912/records.declared")" != "$SHA181" ] \
   || die "B1c's ruling must declare ANOTHER panel's identity or it is the same fixture as B1b"
 # M1's whole subject is the record's ARITY, so the arity is asserted here: a
-# fixture narrowed back to six fields would leave the overflow branch untouched
+# fixture narrowed back to full width would leave the overflow branch untouched
 # and M1's checks passing for the wrong reason — the vacuous instrument this file
-# exists to prevent.
-[ "$(awk 'NR == 1 {print NF}' "$FIX/pr932/records.declared")" = '7' ] \
-  || die "M1's record must be SEVEN fields wide or the overflow guard is never reached"
+# exists to prevent. Full width is what `cmt()` wrote for A1.
+[ "$(awk 'NR == 1 {print NF}' "$FIX/pr932/records.declared")" = "$(( $(awk 'NR == 1 {print NF}' "$FIX/pr900/records.declared") + 1 ))" ] \
+  || die "M1's record must be ONE field wider than a full record or the overflow guard is never reached"
 [ -f "$FIX/pr932/commits" ] \
   || die "M1 must have readable commits or its 'unreadable' is the other route and proves nothing"
 # M2's is the same claim from the other side, and it is the more dangerous of the
-# two to get wrong: a fixture widened back to six fields carries a readable `0`,
+# two to get wrong: a fixture widened back to full width carries a readable `0`,
 # the flag-readability branch is never reached, and its checks then pass because
 # the lane is GENUINELY not named — green for the opposite reason to the one they
 # name.
@@ -1214,7 +1214,7 @@ run 932
 state_is  "M1  an over-wide comment record is refused, not answered from"   932 unreadable
 check_rc  "M1  ... and it takes the 2 every unreadable source takes"         2
 check_has "M1  ... and it names the guard, not a generic read failure"      "RECORD_FIELDS does not name"
-check_has "M1  ... and quotes the field that would have been absorbed"      "'SEVENTH'"
+check_has "M1  ... and quotes the field that would have been absorbed"      "'OVERWIDE'"
 check_has "M1  ... and the summary counts it unreadable"                    "unreadable 1"
 
 # M2 — THE FLAG-READABILITY BRANCH, THE OTHER ONE NO FIXTURE REACHED. A record too

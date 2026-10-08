@@ -290,8 +290,8 @@ fi
 # from.
 #
 # IT IS NOT THE RECORD'S ONLY HOME, AND THE SECOND ONE IS NAMED HERE RATHER THAN
-# WISHED AWAY. The array `COMMENT_JQ` builds below is what EMITS the six fields,
-# in the order its six expressions are written, and it takes nothing from this
+# WISHED AWAY. The array `COMMENT_JQ` builds below is what EMITS the fields,
+# in the order its expressions are written, and it takes nothing from this
 # line. Nothing couples them, so their agreement is a convention two editors must
 # both keep — and `overflow` below covers ONE of the three directions they can
 # drift in:
@@ -319,17 +319,17 @@ fi
 # unannounced field lands in, it must always be empty, and a record where it is
 # not is reported as unreadable rather than answered from.
 #
-# Every field is space-free by construction — an ISO-8601 stamp, two captured
+# Every field is space-free by construction — an ISO-8601 stamp, captured
 # identifier tokens, a 0/1 flag, hex, digits — which is what makes a positional
 # record safe here at all, and what makes `overflow` an assertion rather than a
 # formality.
-RECORD_FIELDS='ts id reviewer namesval sha cycle'
+RECORD_FIELDS='ts id reviewer namesval sha cycle ruling_val'
 
 # `\r` is stripped first: GitHub serves CRLF bodies, and a trailing carriage
 # return leaves `^artifact:` matching a line whose id then carries an invisible
 # character into every comparison below.
 #
-# `sha:` and `cycle:` are read under the SAME first-declaration rule as
+# `sha:`, `cycle:` and `ruling:` are read under the SAME first-declaration rule as
 # `artifact:`, for the same reason: the first declaration is the comment's own
 # and a later one belongs to something it relays verbatim. A `sha:` that is not
 # 7-40 hex characters and a `cycle:` that is not digits are `-` — unusable for
@@ -343,12 +343,14 @@ COMMENT_JQ='
 | ([$L[] | select(test("^reviewer:[ \t]*[@A-Za-z0-9_-]"))][0] // "") as $r
 | ([$L[] | select(test("^sha:[ \t]*[0-9a-fA-F]{7,40}([^0-9a-fA-F]|$)"))][0] // "") as $s
 | ([$L[] | select(test("^cycle:[ \t]*[0-9]"))][0] // "") as $c
+| ([$L[] | select(test("^ruling:[ \t]*[A-Za-z0-9_]"))][0] // "") as $u
 | [ .created_at,
     (if $a == "" then "-" else ($a | capture("^artifact:[ \t]*(?<i>[A-Za-z0-9_]+)") | .i) end),
     (if $r == "" then "-" else ($r | capture("^reviewer:[ \t]*(?<i>[@A-Za-z0-9_-]+)") | .i) end),
     (if ($b | test("(^|[^0-9A-Za-z_-])@?validation-agent([^0-9A-Za-z_-]|$)")) then "1" else "0" end),
     (if $s == "" then "-" else ($s | capture("^sha:[ \t]*(?<i>[0-9a-fA-F]+)") | .i) end),
-    (if $c == "" then "-" else ($c | capture("^cycle:[ \t]*(?<i>[0-9]+)") | .i) end)
+    (if $c == "" then "-" else ($c | capture("^cycle:[ \t]*(?<i>[0-9]+)") | .i) end),
+    (if $u == "" then "-" else ($u | capture("^ruling:[ \t]*(?<i>[A-Za-z0-9_]+)") | .i) end)
   ] | join(" ")'
 
 # ISO-8601 UTC sorts lexicographically, so `newest` is `sort | tail -1` and

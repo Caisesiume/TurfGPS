@@ -152,12 +152,12 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a source could not be read")"
     continue
   fi
 
-  # A record wider than the six fields the transport declares cannot be parsed,
+  # A record wider than the seven fields the transport declares cannot be parsed,
   # and answering from one is the silent absorption a positional record invites.
   # Detected here by FIELD COUNT rather than caught in a trailing variable, which
   # is the deliverable's method — a control that used the same one could not tell
   # you the method was wrong.
-  over="$(printf '%s\n' "$recs" | awk 'NF > 6 { print $7; exit }')"
+  over="$(printf '%s\n' "$recs" | awk 'NF > 7 { print $8; exit }')"
   if [ -n "$over" ]; then
     n_unread=$((n_unread + 1))
     TABLE="$TABLE
