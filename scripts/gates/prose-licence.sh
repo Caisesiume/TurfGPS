@@ -13,9 +13,12 @@
 #      directly after `artifact:`, per
 #      `agent-handoffs § The structured block comes first`, which makes both
 #      keys mandatory and makes them the first two.
-#   2. ENUM — its value is one of the values
+#   2. ENUM — its value is one the table in
 #      `agent-handoffs § Prose is licensed, and the artifact names its licence`
-#      defines. A typo passed everything until this file existed, and that is
+#      defines, or a set of them as that section's clause reads one: each
+#      member defined, named once, and `none` never among them — so PR #163's
+#      pairs, comments 5555418634 and 5556183187, pass. A typo passed
+#      everything until this file existed, and that is
 #      recorded rather than supposed: PR #163's own validation run reports
 #      `prose_licence: made_up_value_not_one_of_four` as `clean`, exit 0,
 #      beside an artifact with no key at all reported identically —
@@ -46,8 +49,8 @@
 # NO LICENCE VALUE IS COMPILED INTO THE MEMBERSHIP TEST — it is read from the
 # table, for the reason the cap numbers are read rather than restated: one home
 # per fact. Values are NAMED in the comments below, where they are examples of
-# what this gate can and cannot see; naming one there decides nothing, and the
-# claim worth making is about the test rather than about the prose. The
+# what this gate can and cannot see; naming one there decides nothing. `none`
+# is the one value named in code, because the set clause names it. The
 # table is resolved from THIS SCRIPT'S OWN PATH and never from the caller's
 # working directory, and `scripts/gates/tests/prose-licence-recall.sh` stages a
 # table this repository does not have to prove that it is.
@@ -123,19 +126,6 @@
 #     stripping CR globally: this gate's end-anchored strip is the CRLF rule
 #     above, whose scope is the line ending GitHub actually returns.
 #
-# ONE VALUE IT REFUSES TO JUDGE RATHER THAN FAIL, and the refusal is the
-# honest answer instead of a casting vote. A value naming two licences at once
-# — `prose_licence: finding_overturned, predecessor_corrected`, live on PR #163
-# at comments 5555418634 and 5556183187 — sits in a gap in the rule, not in a
-# gap in this instrument. The table's value column is one of five tokens, which
-# makes the pair invalid; the sentence beneath it budgets the licensed prose at
-# five sentences "however many of the four apply at once", which reads as
-# though more than one may. Failing it decides that question from a gate, and
-# passing it is the silence this file exists to end. It is therefore named and
-# reported as cannot-vouch, which is never clean, and #171's PR carries it to
-# `@engineering-lead` as the one reconciliation this gate cannot make for
-# itself.
-#
 # Run it with `make prose-licence ARTIFACTS="<path>..."`, which runs the recall
 # corpus FIRST and only then this check — the ordering `make output-caps` uses
 # and for the same reason.
@@ -144,8 +134,8 @@
 # Exit:  0  every artifact declares a value from the table as its second key
 #        1  at least one does not; each is printed with what failed
 #        2  cannot vouch — a path it could not read, zero artifacts, an
-#           artifact declaring no `artifact:` key, a value naming more than one
-#           licence, or a licence table it could not find, could not parse, or
+#           artifact declaring no `artifact:` key, a set it could not judge,
+#           or a licence table it could not find, could not parse, or
 #           which holds a row-shaped line that does not parse. "I could not
 #           judge you" and "you declared the wrong thing" are different
 #           sentences and only one of them is the author's fault, so they are
@@ -195,25 +185,11 @@ if [ ! -f "$TABLE" ] || [ ! -r "$TABLE" ]; then
   cannot=1; finish
 fi
 
-# THE LICENCE TABLE'S BINDING CONTRACT, and it is asserted here because the
-# table does not yet assert it of itself. `agent-handoffs § The cap table`
-# fixes a form for the FOUR-column cap table and says in the same breath that
-# "the two-column `prose_licence` table below is outside that region and is not
-# judged against a contract that was never its own" — true of that instrument
-# and no longer true of the file, which this gate now machine-reads. The
-# sentence that fixes the two-column form belongs in `agent-handoffs`, which
-# #171 holds read-only on this branch; until it lands, the contract lives here
-# and the PR carries it as owed.
-#
-# The form: two columns, the first a code span holding one snake_case token.
-# The header anchor is the first column's own name rather than the whole header
-# line, because the second column is prose and anchoring on prose is how an
-# instrument breaks on a wording change that means nothing.
-#
-# ROWS ARE FOUND BY POSITION, not by whether they parse, for the reason
-# `agent-handoffs § The cap table` gives about its own region: a row-shaped
-# line that fails the form is a defect in the table and is NAMED, because
-# dropping it silently un-defines a value while leaving every report clean.
+# THE LICENCE TABLE'S BINDING CONTRACT is stated where the table stands, in
+# `agent-handoffs § Prose is licensed, and the artifact names its licence`, and
+# this implements it without restating it. This file's own edge: the header is
+# anchored on the first column's name and not the whole line, because the
+# second column is prose and anchoring on prose breaks on a wording change.
 LICTEXT="$(awk '
   /^\| `prose_licence` \|/          { in_table = 1; next }
   in_table && /^\|[-: |]+\|[ \t]*$/ { next }
@@ -381,11 +357,27 @@ EOF
     checked=$((checked + 1)); failed=$((failed + 1)); continue
   fi
 
-  # Two licences at once — refused rather than judged, per the header.
+  # A SET, judged member by member (header, rule 2). The members reach awk
+  # through the environment for `defined`'s reason, and a judge that dies
+  # prints nothing — which is refused, never read as `ok`.
   case "$val" in
     *,*)
-      printf 'unclassified · prose_licence: names more than one licence (%s), which the table does not define and this gate does not decide · %s\n' "$val" "$f"
-      unclassified=$((unclassified + 1)); cannot=1; continue ;;
+      why="$(printf '%s\n' "$VALUES" | V="$val" awk '{ def[$1] = 1 } END {
+        n = split(ENVIRON["V"], e, ",")
+        for (i = 1; i <= n; i++) { x = e[i]; gsub(/^[ \t]+|[ \t]+$/, "", x)
+          if (!(x in def)) { print (x == "" ? "an empty member" : x) " is not a value the licence table defines"; exit }
+          if (x == "none") { print "none stands alone"; exit }
+          if (x in seen) { print x " is named twice"; exit }
+          seen[x] = 1 }
+        print "ok" }')"
+      case "$why" in
+        ok) printf '%s · %s · ok · %s\n' "$id" "$val" "$f"; checked=$((checked + 1)) ;;
+        '') printf 'unclassified · could not judge the set %s · %s\n' "$val" "$f"
+            unclassified=$((unclassified + 1)); cannot=1 ;;
+        *)  printf '%s · %s: %s · fail · %s\n' "$id" "$val" "$why" "$f"
+            checked=$((checked + 1)); failed=$((failed + 1)) ;;
+      esac
+      continue ;;
   esac
 
   if defined "$val"; then

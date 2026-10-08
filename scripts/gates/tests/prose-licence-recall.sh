@@ -657,7 +657,7 @@ printf 'values with no fixture here:%s\n' "${unexercised:- none}"
 
 printf '\nrules this corpus holds the checker to: 2 of the 3 in the licensing rule.\n'
 printf '  1 position  · prose_licence: is the second key        · FIXTURES 1, 2\n'
-printf '  2 enum      · a value, or a set, the table defines      · FIXTURES 3, 4, 6, 11\n'
+printf '  2 enum      · a value, or a set, the table defines    · FIXTURES 3, 4, 6, 11\n'
 printf '  3 sentences · NOT CHECKED, and FIXTURE 12 asserts it is not.\n'
 printf 'The checker header argues why rule 3 has no mechanically decidable passage.\n'
 printf 'A green run below is evidence about declarations and about nothing else.\n'
