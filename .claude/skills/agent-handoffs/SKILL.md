@@ -28,7 +28,7 @@ prose_licence: none           # or each licence invoked
 
 `artifact:` is what lets a checker measure a comment it knows nothing else about: the artifact names itself, rather than the instrument guessing from the author or the wording. `prose_licence:` is how the licence rule below is enforced rather than merely stated.
 
-**The rest of the mandatory keys are per role, and each producing schema states its own** — `review-verdicts § Reviewer verdict`, the payloads in `handoff-payloads`, and otherwise the producing agent's template. **A cap-table row is not a producing schema**: every row below has one, two retired forms aside, and one without is bound by the two keys above alone. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
+**The rest of the mandatory keys are per role, and each producing schema states its own** — `review-verdicts § Reviewer verdict`, the payloads in `handoff-payloads`, and otherwise the producing agent's template. **A cap-table row is not a producing schema**: every row below has one but the retired `review_ledger`, which the two keys above alone bind. A mandatory key with nothing to say carries an explicit empty value and is not dropped: a dropped key and an unconsidered one are indistinguishable to the reader, and only one of them is honest.
 
 ## The limit
 

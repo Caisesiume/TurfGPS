@@ -230,7 +230,7 @@ This is a token-efficiency requirement as much as a review-hygiene one, and the 
 
 Initial implementation may refactor coherently; **review remediation patches narrowly.** `@worker-manager` states this law in every revision dispatch, because the specialist receiving a remand is precisely the agent most tempted to improve one more thing while it is in there.
 
-**The judge keeps a review ledger** as a structured comment on the PR — reviewer, verdict, confidence, diff SHA reviewed, domain — updated every cycle. The ledger is what makes carried-forward validity checkable by someone who was not there, which is the same reason the red-demonstration rule prefers evidence to sequence.
+**The judge keeps a review ledger** — reviewer, verdict, confidence, diff SHA reviewed, domain — every cycle, per `review-board-dispatch § Incremental review validity`. The ledger is what makes carried-forward validity checkable by someone who was not there, which is the same reason the red-demonstration rule prefers evidence to sequence.
 
 ### The cycle-inflation rule
 

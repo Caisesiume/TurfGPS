@@ -22,7 +22,7 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 - **Everything in the CLI row is posted by `@pr-judge` alone, prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, even when the MCP is connected and would be more convenient; `@validation-agent` and a courier hand it their artifact (#206#issuecomment-6055020859). **A verdict is never posted under another login.**
 - **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it through the environment.
 
-Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
+Everything that does not judge — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.
 
 ## The fallback rule — MCP is a convenience, never a dependency
 
