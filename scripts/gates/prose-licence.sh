@@ -359,7 +359,9 @@ EOF
 
   # A SET, judged member by member (header, rule 2). The members reach awk
   # through the environment for `defined`'s reason, and a judge that dies
-  # prints nothing — which is refused, never read as `ok`.
+  # prints nothing — which is refused, never read as `ok`. A member is untrusted
+  # text, so a line printing one drops the control bytes `claim.sh`'s `scrub()`
+  # drops: an escape sequence would repaint the reader's terminal.
   case "$val" in
     *,*)
       why="$(printf '%s\n' "$VALUES" | V="$val" awk '{ def[$1] = 1 } END {
@@ -372,9 +374,9 @@ EOF
         print "ok" }')"
       case "$why" in
         ok) printf '%s · %s · ok · %s\n' "$id" "$val" "$f"; checked=$((checked + 1)) ;;
-        '') printf 'unclassified · could not judge the set %s · %s\n' "$val" "$f"
+        '') printf 'unclassified · could not judge the set %s · %s\n' "$val" "$f" | tr -d '\000-\010\013-\037\177'
             unclassified=$((unclassified + 1)); cannot=1 ;;
-        *)  printf '%s · %s: %s · fail · %s\n' "$id" "$val" "$why" "$f"
+        *)  printf '%s · %s: %s · fail · %s\n' "$id" "$val" "$why" "$f" | tr -d '\000-\010\013-\037\177'
             checked=$((checked + 1)); failed=$((failed + 1)) ;;
       esac
       continue ;;
