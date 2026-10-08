@@ -20,16 +20,16 @@
 #       both declaring `prose_licence: ruling` — a value in no table, live, twice.
 #   gh api repos/Caisesiume/TurfGPS/issues/comments/5555418634   # PR #163, two
 #   gh api repos/Caisesiume/TurfGPS/issues/comments/5556183187   # judgments
-#       declaring `finding_overturned, predecessor_corrected` — the value this
-#       gate refuses to judge rather than decide from a gate. FIXTURE 6.
+#       declaring `finding_overturned, predecessor_corrected` — a set, which
+#       the table's clause now defines. FIXTURE 6.
 #
 # NO LICENCE VALUE IS COMPILED INTO A FIXTURE, for the reason no cap number is
 # restated in `output-caps-recall.sh`: the table is the one home. Values are
-# named three lines above, in the history, where they record what a live
-# artifact declared; none of them is what any assertion below is built on.
-# Every value exercised below is READ from the table at run time, and the one
-# fixture that needs a token the table does NOT define asserts its absence
-# before using it —
+# named above, in the history, where they record what a live artifact
+# declared; none of them is what any assertion below is built on. Every value
+# exercised below is READ from the table at run time — `none`, which the set
+# clause names, is grounded by `need_value` — and the one fixture that needs a
+# token the table does NOT define asserts its absence before using it:
 # a fixture built on a token the table later adopts would be vacuous and green.
 #
 # WHAT THIS FILE FIXES, stated as assertions rather than description:
@@ -46,7 +46,8 @@
 #                `artifact:`. A blank line and a comment line are not keys and do
 #                not break directness; anything else that is not a key ends the
 #                block. FIXTURES 1 and 2.
-#   RULE 2       its value is one the licence table defines. FIXTURES 3 and 4.
+#   RULE 2       its value is one the licence table defines, or a set of them
+#                as the table's clause reads one. FIXTURES 3, 4 and 6.
 #   RULE 3       NOT CHECKED — the ≤ 5 sentence limit. The checker's header
 #                argues why the licensed passage has no mechanically decidable
 #                boundary and declines it out loud rather than faking it. There
@@ -363,30 +364,54 @@ check_rc    "5 empty · RED: ... and the mutant ran, still failing through the t
 check_lacks "5 empty · RED: with the rule removed the actionable reason is gone"  "none is a value rather than an omission"
 
 # ---------------------------------------------------------------------------
-# FIXTURE 6 — TWO LICENCES AT ONCE, REFUSED RATHER THAN JUDGED.
-#
-# Live on PR #163 twice. The table's value column is one token, which makes the
-# pair invalid; the sentence beneath it budgets the prose "however many of the
-# four apply at once", which reads as though more than one may. A gate that
-# failed it would be settling that from an instrument, and one that passed it
-# would be the silence this file exists to end. Cannot-vouch is the third
-# answer and the honest one.
+# FIXTURE 6 — A SET OF LICENCES, which is how the table's clause reads the
+# value: every licence that applies, comma-separated, each once, `none` alone.
+# PR #163's pairs pass under it. `none` is named here because the clause names
+# it, and is grounded like any other value.
 # ---------------------------------------------------------------------------
-V2="$(printf '%s\n' "$VALUES" | sed -n 2p)"
-need_value "$V2"
-art pair.md "artifact: judgment
-prose_licence: $FIRST_VALUE, $V2
+need_value none
+L1="$(printf '%s\n' "$VALUES" | grep -vx none | sed -n 1p)"
+L2="$(printf '%s\n' "$VALUES" | grep -vx none | sed -n 2p)"
+need_value "$L1"; need_value "$L2"
+for s in "pair:$L1, $L2" "none:none, $L1" "absent:$L1, $ABSENT" "twice:$L1, $L1" "empty:$L1,"; do
+  art "set-${s%%:*}.md" "artifact: judgment
+prose_licence: ${s#*:}
 pr: 163"
+done
 
-run "$TMP/pair.md"
-check_rc    "6 two licences · a value naming two is cannot-vouch, not a verdict"  2
-check_has   "6 two licences · ... and the gate says it does not decide it"        "does not decide"
-check_lacks "6 two licences · ... and never says clean"                           "clean · "
+run "$TMP/set-pair.md"
+check_rc  "6 set · two licences the table defines pass"           0
+check_has "6 set · ... reported as declared"                      "judgment · $L1, $L2 · ok"
+run "$TMP/set-none.md"
+check_rc  "6 set · none inside a set fails"                       1
+check_has "6 set · ... because none stands alone"                 "none stands alone"
+run "$TMP/set-absent.md"
+check_rc  "6 set · a member the table does not define fails"      1
+check_has "6 set · ... and is named"                              "$ABSENT is not a value the licence table defines"
+run "$TMP/set-twice.md"
+check_rc  "6 set · a licence named twice fails"                   1
+check_has "6 set · ... and says so"                               "$L1 is named twice"
+run "$TMP/set-empty.md"
+check_rc  "6 set · an empty member fails"                         1
+check_has "6 set · ... and says so"                               "an empty member is not a value"
 
-build pair 's|    \*,\*)|    __no_such_tag)|'
-runm "$M" "$TMP/pair.md"
-check_rc    "6 two licences · RED: with the refusal removed it is silently judged"  1
-check_lacks "6 two licences · RED: ... and is no longer refused"                    "does not decide"
+build set 's|    \*,\*)|    __no_such_tag)|'
+runm "$M" "$TMP/set-pair.md"
+check_rc "6 set · RED: with the set branch removed a valid pair fails"     1
+build alone 's|x == "none"|0|'
+runm "$M" "$TMP/set-none.md"
+check_rc "6 set · RED: with the none rule removed none joins a set"        0
+build twice 's|(x in seen)|(0)|'
+runm "$M" "$TMP/set-twice.md"
+check_rc "6 set · RED: with the once rule removed a repeat passes"         0
+build member 's|!(x in def)|(0)|'
+runm "$M" "$TMP/set-absent.md"
+check_rc "6 set · RED: with membership removed an undefined member passes" 0
+# A set judge that dies prints nothing, and nothing must not read as `ok`.
+build setdie 's|x == "none"|x == "none" (|'
+runm "$M" "$TMP/set-pair.md"
+check_rc    "6 set · a set judge that dies is cannot-vouch"  2
+check_lacks "6 set · ... and never says clean"               "clean · "
 
 # ---------------------------------------------------------------------------
 # FIXTURE 7 — THE FIRST DECLARATION WINS.
@@ -525,10 +550,10 @@ check_lacks "9 empty file · ... and never says clean"         "clean · "
 # outranked line is still printed: precedence is about the status, never about
 # stopping looking.
 # ---------------------------------------------------------------------------
-run "$TMP/ruling.md" "$TMP/pair.md"
+run "$TMP/ruling.md" "$TMP/noart.md"
 check_rc    "10 precedence · cannot-vouch outranks a failed declaration"  2
 check_has   "10 precedence · ... and the failed declaration is still printed"  "ruling is not a value the licence table defines"
-check_has   "10 precedence · ... and the refusal is still printed"            "does not decide"
+check_has   "10 precedence · ... and the refusal is still printed"            "no artifact: key"
 check_has   "10 precedence · ... and both are counted"                        "1 checked · 1 failed · 1 unclassified"
 check_lacks "10 precedence · ... and never says clean"                        "clean · "
 
@@ -632,7 +657,7 @@ printf 'values with no fixture here:%s\n' "${unexercised:- none}"
 
 printf '\nrules this corpus holds the checker to: 2 of the 3 in the licensing rule.\n'
 printf '  1 position  · prose_licence: is the second key        · FIXTURES 1, 2\n'
-printf '  2 enum      · its value is one the table defines      · FIXTURES 3, 4, 11\n'
+printf '  2 enum      · a value, or a set, the table defines      · FIXTURES 3, 4, 6, 11\n'
 printf '  3 sentences · NOT CHECKED, and FIXTURE 12 asserts it is not.\n'
 printf 'The checker header argues why rule 3 has no mechanically decidable passage.\n'
 printf 'A green run below is evidence about declarations and about nothing else.\n'
