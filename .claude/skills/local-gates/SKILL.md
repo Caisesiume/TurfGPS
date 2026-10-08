@@ -105,15 +105,20 @@ The root is the right home for it — `make` has no notion of a module, so the o
 
 **It is not one of the gates above and belongs to neither stack.** Those measure the tree a PR changed; this measures what an agent is about to write into a comment, a PR body or an issue. It therefore runs on the way out, at the moment the artifact is written and while it can still be cut.
 
-**Run it through the Makefile, from the repository root**, naming the artifacts:
+**There are two of them, and an artifact owes both.** They ask separate questions with separate refusals: `output-caps` measures how LONG a capped artifact is, `prose-licence` measures whether it DECLARED a licence the table defines. Neither answers the other — an artifact sits under its cap and declares a value no table holds, which two judgments on PR #154 did.
+
+**Run them through the Makefile, from the repository root**, naming the artifacts:
 
 ```bash
-make output-caps ARTIFACTS="<path>..."
+make output-caps    ARTIFACTS="<path>..."
+make prose-licence  ARTIFACTS="<path>..."
 ```
+
+**`prose-licence` checks two of the licensing rule's three parts** — that `prose_licence:` stands second, and that its value is one `agent-handoffs § Prose is licensed, and the artifact names its licence` defines. **The third, the ≤ 5 sentence limit, is DECLINED**, out loud: the checker's header argues why the licensed passage has no mechanically decidable boundary, and its corpus asserts the decline so that a green run cannot be read as evidence about sentence counts. That limit stays a reader's call. So does whether a licence was *deserved*, which neither script judges.
 
 **Every capped artifact is capped in `agent-handoffs § Output caps`**, along with the rule for counting each one; this section says only how the check is run, and the Makefile holds the commands, per `§ When these activate`. That claim is narrower than *the one home of every cap*, which this line used to make and which is false — the ~300-token handoff limit and the per-field caps table both sit in `agent-handoffs` outside that section, so a reader sent here for *every* cap would not find two of them. **The artifact declares its own id as its first key**, per `agent-handoffs § The structured block comes first`, so which cap applies is decided by the file rather than by whoever typed the command: write the artifact to a file, measure it, post it once its line reads `under`.
 
-The recall corpus runs first and make stops if it fails, exactly as `make d8-claims` does — no verdict from an instrument whose recall was not just demonstrated. **The script's own header records what it cannot see**, which is to be read before its result is reported.
+Each recall corpus runs first and make stops if it fails, exactly as `make d8-claims` does — no verdict from an instrument whose recall was not just demonstrated. **Each script's own header records what it cannot see**, which is to be read before its result is reported.
 
 **Zero artifacts is not a clean run, and neither is an artifact it could not classify.** Neither is ever reported as clean — the exit statuses live in the script's header — and the reason is the one `§ Documentation gates` gate 1 gives for reporting `n/a` rather than omitting a line: a check that did not run and a check that found nothing must not print the same thing. `§ The law` law 1 governs the line this prints as it governs every other gate line — paste what the run printed.
 

@@ -1,6 +1,6 @@
 ---
 name: handoff-payloads
-description: The role-specific payloads that fill the TurfGPS handoff envelope — worker completion with its red demonstration, the revision packet a remand produces, the escalation packet that is the only shape reaching the human, the risk assessment, the confidence assessment and its unassessed case, structured uncertainty when another domain must decide, and the dependency finding and graph update. Load alongside `agent-handoffs`, which holds the envelope itself, its limit and the output caps; the reviewer verdict and the evidence law are in `review-verdicts`.
+description: The role-specific payloads that fill the TurfGPS handoff envelope — worker completion with its red demonstration, the worker report a PR body is, the revision packet a remand produces, the escalation packet that is the only shape reaching the human, the risk assessment, the confidence assessment and its unassessed case, structured uncertainty when another domain must decide, the owner report, the supersession notice, and the dependency finding and graph update. Load alongside `agent-handoffs`, which holds the envelope itself, its limit and the output caps; the reviewer verdict and the evidence law are in `review-verdicts`.
 ---
 
 # Handoff payloads — the schemas that fill the envelope
@@ -43,6 +43,34 @@ confidence: 0.93
 `requires_review` is a **hint from the person who wrote the code** about where it is weakest. It informs selection; it does not decide it — the registry and the risk assessment do, because an author's sense of where their own work is weak is exactly the thing under review.
 
 Where an acceptance criterion is `test`-verified, the completion also carries the red demonstration required by `docs/DELIVERY.md § Proof that a test can fail` — the assertion's own failure message, per criterion, or the story that owes it.
+
+## Worker report
+
+The PR body an implementation specialist opens, and its comment reporting a revision cycle. **This is not the worker completion above.** That envelope returns to `@worker-manager` and ends with the pass; this one is posted, and it is what `@pr-judge` and every convened reviewer read.
+
+```yaml
+artifact: worker_report
+prose_licence: none
+issue: <n>
+cycle: initial                 # or the revision cycle this comment reports
+criteria: "<issue #n § Acceptance criteria>"    # the pointer, never the text
+gates:                         # verbatim, per `local-gates § The law`
+  - "refs: 12 checked / 0 unresolved, method: headings | inbound: n/a | duplication: none | mermaid: 0/0"
+red_demonstrations:            # one per `test`-verified criterion, or the line saying none is owed
+  - "FR-014 · TestRejectsExpired · neutralised: <what was put back> · red: <the assertion's own message>"
+traceability: "#<n> · FR-014, NFR-005 · commits reference #<n>"
+files_changed: ["<path>"]
+safety_paths: none             # or the paths, per `safety-path-checklist`
+risks: [none_known]
+discharged:                    # revision cycles only — one row per finding the packet named
+  - {finding: SEC-01, site: "<path:line>"}
+```
+
+**Mandatory keys:** `artifact` · `prose_licence` · `issue` · `cycle` · `criteria` · `gates` · `red_demonstrations` · `traceability` · `files_changed` · `safety_paths` · `risks`. `discharged` is required on a revision cycle and absent on the initial report; `docs/DELIVERY.md § The minimal-patch revision law` is what bounds what may appear in it.
+
+`gates` and `red_demonstrations` carry their lines **verbatim**. `local-gates § The law` sets both forms — including which fields a gate line must name and that a red entry carries the assertion's own message rather than the word `FAIL` — and neither is restated here. A PR landing no `test`-verified criterion writes `red_demonstrations: none owed` rather than dropping the key.
+
+**The criteria-and-evidence table goes after the block, as markdown rows**, and the row's `body` rule in `agent-handoffs § The cap table` is what exempts it from the count. **Nothing else earns that exemption, which is why the discharge list is `discharged:` and not `findings:`** — that same rule excludes a `findings:` key together with its whole block, so the key's name alone decides whether the list is measured at all. Measured with `scripts/gates/output-caps.sh` on 17 September 2026, the template above measures **913**; the identical file with `discharged:` renamed to `findings:` measures **777**.
 
 ## Revision packet
 
@@ -152,6 +180,43 @@ needs_domain_decision:
 ```
 
 The orchestrator that dispatched you routes **one** targeted request, and the answer becomes an artifact or a recorded decision — an ADR, a `DECISIONS.md` entry, an amended requirement — so the next agent retrieves it rather than asking again. **Agents never chat**: a back-and-forth costs a full execution per turn and leaves nothing behind that anyone can retrieve.
+
+## Owner report
+
+Produced by `@state-reporter` as its digest and by `@engineering-lead` as its org report — the two contracts that bind themselves to the `owner_report` row, at `state-reporter § Contract` and `engineering-lead § Contract`. **The structured block comes first and the producer's own box follows it**, and the row counts `whole`, so one cap covers the two together.
+
+```yaml
+artifact: owner_report
+prose_licence: none
+from: state-reporter           # or engineering-lead, for its org report
+window: "<since when, and how it was derived>"
+decisions_in_window: [RD-007, ADR-0004]   # every one in the window, never a selection
+needs_human: none              # or the one question, with its recommendation
+evidence: ["<merge SHA>", "<PR #n>", "<report path>", "<record ID>"]
+```
+
+**Mandatory keys:** `artifact` · `prose_licence` · `from` · `window` · `decisions_in_window` · `needs_human` · `evidence`. The box's own fields belong to the producer and live in its contract rather than here.
+
+`window` is derived and stated rather than assumed: `state-reporter § Tooling — GitHub CLI` records why, which is that an unstated window makes a count such as "3 new decisions" unverifiable and silently drops whatever is older than the guess. `decisions_in_window` carries **every** decision in the window and not a selection of the interesting ones — the reasoning is `state-reporter § Why the DECISIONS section exists` and is not repeated here.
+
+## Supersession notice
+
+Any role, over its own artifact: what is superseded, by what, and where the record of record now is.
+
+```yaml
+artifact: supersession_notice
+prose_licence: predecessor_corrected       # or none
+supersedes: "<#issuecomment-<id>>"         # the artifact this replaces
+reason: "<one line: what was wrong — not a re-argument of it>"
+record_of_record: "<where the live version lives now>"
+retained: {artifact: judgment, posted: "<#issuecomment-<id>>"}
+```
+
+**Mandatory keys:** `artifact` · `prose_licence` · `supersedes` · `reason` · `record_of_record` · `retained`.
+
+**`retained` is the key the PR #140 case makes mandatory.** The row counts `own`, so a copy fenced inside the notice is excluded from the notice's own measurement and has to be counted against the row *it* declares. `agent-handoffs § The cap table` records that case and both its measurements: a notice on PR #140 standing over a judgment and a revision packet that appear in no other comment on that PR, which is a large artifact made invisible by being quoted. `retained` therefore names where the retained copy was posted under its own `artifact:` id, or reads `retained: none`.
+
+`prose_licence` is frequently `predecessor_corrected` here and is still declared rather than assumed. `reason` states in one line what was wrong; the argument lives in the artifact `record_of_record` names.
 
 ## Dependency findings and graph updates
 
