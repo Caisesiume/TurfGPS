@@ -78,9 +78,9 @@ Column 4 is normative and is **not** machine-read; the checker ignores it, and a
 | `artifact` | `cap_chars` | `counts` | Scope — normative, not machine-read |
 |---|---|---|---|
 | `reviewer_verdict` | `1200` | `body` | the evidence block is **≤ 10 bullets, one line each** |
-| `judgment` | `6000` | `body` | the per-finding resolution table is the excluded part |
-| `review_ledger` | `2000` | `whole` | it **supersedes** — one table per PR, rewritten each cycle, never appended |
-| `revision_packet` | `3000` | `whole` | `@pr-judge` on remand; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
+| `judgment` | `6000` | `body` | **the one ruling comment per cycle** — judgment, revision packet on a remand, and review ledger, posted as one comment declaring this id; the per-finding resolution table and the ledger's lane rows are the excluded part |
+| `review_ledger` | `2000` | `whole` | it **supersedes** — rewritten whole in each ruling comment, never appended, and counted there under `judgment` |
+| `revision_packet` | `3000` | `whole` | `@pr-judge` on remand, inside the ruling comment and counted there under `judgment`; the `required_changes` list is payload and counts, and `docs/DELIVERY.md § The minimal-patch revision law` is what bounds it |
 | `resume_packet` | `1500` | `whole` | `@pr-judge` where the panel could not be convened — only what is expensive to re-derive, per `pr-judge § When the panel cannot be convened` |
 | `worker_envelope` | `1500` | `whole` | every worker completion, and every meta-review payload that fills the same envelope |
 | `worker_report` | `2000` | `body` | a worker's PR body, and its comment reporting a revision cycle; the criteria-and-evidence table is the excluded part |

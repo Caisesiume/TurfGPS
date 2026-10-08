@@ -1112,6 +1112,81 @@ check_lacks "machine result · ... and never the size it would measure with the 
 check_lacks "machine result · ... where an exclusion running to EOF would have reported it clean"       "clean · "
 
 # ---------------------------------------------------------------------------
+# FIXTURE 13 — THE ONE RULING COMMENT PER CYCLE (#206): judgment, revision
+# packet and ledger in one comment, measured whole under the row its first
+# declaration names and REFUSED over that row's cap.
+#
+# The datum is PR #199 cycle 2 posted that way: comments 5719855556,
+# 5719856023 and 5719855787, joined by one blank line, measure 8770 under
+# `judgment`. Its sections keep their own declarations, which under `body` are
+# text and never reclassify the comment, so a checker that stopped counting at
+# the second declaration reports the judgment's own words alone.
+#
+# The packet's `required_changes:` list is payload and counts. The second pair
+# sits exactly AT and ONE OVER the cap with that list carrying it there, so a
+# checker excluding the list as though it were `findings:` reports both under.
+# ---------------------------------------------------------------------------
+[ 8770 -gt "$JCAP" ] || die "PR #199 cycle 2's ruling comment measured 8770 under judgment, and it only demonstrates the refusal while that is over the judgment cap. The table now reads $JCAP."
+
+art_new ruling-199.md
+put 'artifact: judgment'
+put 'prose_licence: rule_renegotiated'
+put 'pr: 199'
+put 'sha: 27a4da3'
+put 'cycle: 2'
+put_block_x <<'EX'
+| finding | lane | resolution |
+|---|---|---|
+| DOC-08 | docs | required_change |
+EX
+fill_nl 4000 >> "$CUR"
+put 'artifact: revision_packet'
+put 'prose_licence: none'
+put_block_x <<'EX'
+| reviewer | domain | verdict | conf | diff SHA | cycle |
+|---|---|---|---|---|---|
+| docs-reviewer | documentation | pass | 0.91 | 27a4da3 | 2 |
+EX
+put 'artifact: review_ledger'
+pad_to 8770
+
+RC_L1='  - {finding: DOC-08, scope: "scripts/gates/prose-licence.sh:98", change: "quote it whole"}'
+RC_L2='  - {finding: LQ2-01, scope: "scripts/gates/tests/prose-licence-recall.sh:470", change: "count occurrences"}'
+RC_LIST=$(( 18 + ${#RC_L1} + 1 + ${#RC_L2} + 1 ))
+mk_ruling() { # mk_ruling <file> <measured-target>
+  art_new "$1"
+  put 'artifact: judgment'
+  put 'prose_licence: none'
+  put 'ruling: remanded'
+  pad_to $(( $2 - RC_LIST ))
+  put 'required_changes:'
+  put "$RC_L1"
+  put "$RC_L2"
+  put_block_x <<'EX'
+| reviewer | domain | verdict | conf | diff SHA | cycle |
+|---|---|---|---|---|---|
+| linus-quality-critic | backend correctness | pass | 0.93 | 27a4da3 | 2 |
+EX
+  [ "$(counted)" = "$2" ] || die "construction: $CUR counts $(counted) and claims $2"
+}
+mk_ruling ruling-at-cap.md "$JCAP"
+mk_ruling ruling-over-1.md $(( JCAP + 1 ))
+
+run "$TMP/ruling-199.md"
+check_rc    "ruling comment · PR #199 cycle 2 as one comment is refused"           1
+check_has   "ruling comment · ... measured whole under the judgment row"           "$(report_of judgment 8770)"
+check_count "ruling comment · ... ONE report line, not three"                     "judgment · " 1
+check_lacks "ruling comment · ... the sections reclassifying nothing"              "revision_packet · "
+check_lacks "ruling comment · ... and never says clean"                            "clean · "
+
+run "$TMP/ruling-at-cap.md"
+check_rc    "ruling comment · at the cap, with the packet's list counted, passes"  0
+check_has   "ruling comment · ... at exactly the cap"                              "$(report_of judgment "$JCAP")"
+run "$TMP/ruling-over-1.md"
+check_rc    "ruling comment · one over, the packet's list carrying it, is refused" 1
+check_has   "ruling comment · ... reported over by one"                            "$(report_of judgment $((JCAP + 1)))"
+
+# ---------------------------------------------------------------------------
 # COVERAGE — PRINTED, NEVER ASSERTED, and computed from the table rather than
 # kept by hand. `d8-root-run-claims-recall.sh` records what a hand-kept second
 # statement of a measured number does: it drifted for a whole cycle while every
