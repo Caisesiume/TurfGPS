@@ -155,12 +155,12 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a source could not be read")"
     continue
   fi
 
-  # A record wider than the seven fields the transport declares cannot be parsed,
+  # A record wider than the eight fields the transport declares cannot be parsed,
   # and answering from one is the silent absorption a positional record invites.
   # Detected here by FIELD COUNT rather than caught in a trailing variable, which
   # is the deliverable's method — a control that used the same one could not tell
   # you the method was wrong.
-  over="$(printf '%s\n' "$recs" | awk 'NF > 7 { print $8; exit }')"
+  over="$(printf '%s\n' "$recs" | awk 'NF > 8 { print $9; exit }')"
   if [ -n "$over" ]; then
     n_unread=$((n_unread + 1))
     TABLE="$TABLE
@@ -191,13 +191,17 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a comment record carries a field R
   #                                        placed is not a ruling reported missing)
   #   panel, and its key is among them  -> clear; otherwise OWED
   # A judgment whose `ruling:` is one of the four is a ruling comment (#206): a
-  # panel keyed by its own identity, and on `remanded` the packet as well.
+  # panel keyed by its own identity, and on `remanded` the packet as well. Each of
+  # those ids is the judge's (#206): from any other login, or none, it is not read
+  # and travels out named.
   # DEFECT: blind to `ruling:`.
   blind=0; [ "$DEFECT" = ruling_blind ] && blind=1
   vals="$(printf '%s\n' "$recs" | awk -v blind="$blind" '
     function ident(s, c,   k) { k = tolower(substr(s, 1, 7))
       if (k !~ /^[0-9a-f]{7}$/ || c !~ /^[0-9]+$/) return ""
       return k "@" (c + 0) }
+    $2 ~ /^(revision_packet|review_ledger|judgment|reviewer_verdict)$/ && $8 != "TheReviewNinja" {
+      frn = frn (frn == "" ? "" : " · ") $2 " posted " $1 " by " ($8 == "" ? "-" : $8) ", not TheReviewNinja, is not read"; next }
     $2 == "revision_packet" { pkt = $1 }
     $2 == "review_ledger"   { led = $1; ledval = $4; lsha = $5; lcyc = $6 }
     $2 == "judgment" { nj++; k = ident($5, $6); if (k != "") { ruled[k] = 1; nid++ } }
@@ -221,9 +225,9 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a comment record carries a field R
       # the record never carried. That is the same mistake `ident()` above refuses
       # for a sha, and this control cannot refuse it there and commit it here.
       # Verbatim, so the reader below decides readability and can quote what it read.
-      printf "%s|%s|%s|%s|%s|%d\n", pkt, led, ledval, rule, ver, rcm
+      printf "%s|%s|%s|%s|%s|%d|%s\n", pkt, led, ledval, rule, ver, rcm, frn
     }')"
-  IFS='|' read -r pkt led led_names_val ruling ver rcm <<EOF
+  IFS='|' read -r pkt led led_names_val ruling ver rcm frn <<EOF
 $vals
 EOF
 
@@ -286,13 +290,14 @@ EOF
     [ "$c" = owed ]       && has_owed=1
     [ "$c" = undeclared ] && has_undecl=1
   done
+  [ -n "$frn" ] && has_undecl=1
   state=clear
   [ "$has_owed" -eq 1 ]   && { state=owed; n_owed=$((n_owed + 1)); }
   if [ "$has_undecl" -eq 1 ]; then
     [ "$state" = owed ] || state=undeclared
     n_undecl=$((n_undecl + 1))
     UNDECL="$UNDECL
-  #$pr ${why:-no declared artifact of at least one class} — cannot be judged; this is NOT \"nothing owed\""
+  #$pr ${why:-no declared artifact of at least one class}${frn:+ · $frn} — cannot be judged; this is NOT \"nothing owed\""
   fi
   [ "$state" = clear ] && n_clear=$((n_clear + 1))
 

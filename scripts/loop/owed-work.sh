@@ -58,8 +58,14 @@
 # ledger declare nothing here. Its `ruling:` — `approved`, `recommended`,
 # `remanded` or `escalated`, per `pr-judge § Output Template` — answers for them:
 # the comment is its own panel and that panel's ruling (B1), and on `remanded`
-# the remand (A); one that remanded nothing answers A `clear`. Any other value
-# is no ruling, and the PR falls to `undeclared` rather than to a guess.
+# the remand (A); on a PR where nothing remanded, a ruling answers A `clear`.
+# Any other value is no ruling, and the PR falls to `undeclared` rather than to
+# a guess.
+#
+# EVERY ID READ HERE IS THE JUDGE'S (#206), so a record counts only from
+# `TheReviewNinja`: one from any other login discharges nothing and is named
+# under `undeclared:`, neither consumed nor dropped (`ADR-0004 § D2`); the
+# record carries `.user.login` for it (`ADR-0004 § D3`).
 #
 # THE FOURTH ID IS THIS SCRIPT'S OWN CHOICE, AND THE CHOICE DOES NOT WORK. The
 # contract this was built to names three ids and then asks for "a validation
@@ -304,22 +310,21 @@ fi
 # WISHED AWAY. The array `COMMENT_JQ` builds below is what EMITS the fields,
 # in the order its expressions are written, and it takes nothing from this
 # line. Nothing couples them, so their agreement is a convention two editors must
-# both keep — and `overflow` below covers ONE of the three directions they can
+# both keep — and the guards below cover TWO of the three directions they can
 # drift in:
 #   jq WIDER than the names    CAUGHT — the unannounced field lands in `overflow`
 #                              and the PR is refused as unreadable, rc 2.
-#   jq NARROWER                NOT caught — `read` leaves the trailing names
-#                              empty-but-set, `set -u` never fires, and the run
-#                              ANSWERS from a record it could not fill.
+#   jq NARROWER                CAUGHT as `undeclared` — the last name, `login`,
+#                              is left empty, and the judge's ids are read from
+#                              `TheReviewNinja` alone, so nothing answers from it.
 #   the two REORDERED          NOT caught — the arity still matches, so
 #                              `overflow` stays empty and a sha is compared
 #                              against a cycle.
-# Both uncaught directions fall into `undeclared` and `n/a`, which are ANSWERS,
-# and the `overflow` refusal below states the rule they break: a record this
+# The uncaught direction falls into `undeclared` and `n/a`, which are ANSWERS,
+# and the `overflow` refusal below states the rule it breaks: a record this
 # script cannot parse is refused rather than answered from. `has_identity` below
-# is all that stands between the narrow case and a wrong match, and it guards a
-# VALUE, not the record's shape. Coupling the two homes is a change to the jq
-# side and is not made by editing this comment.
+# guards a VALUE, not the record's shape. Coupling the two homes is a change to
+# the jq side and is not made by editing this comment.
 #
 # WHY THE GUARD EXISTS. `read` folds every field past its last variable INTO that last
 # variable. It is not an error, `set -u` never fires — nothing is unset — and the
@@ -331,10 +336,10 @@ fi
 # not is reported as unreadable rather than answered from.
 #
 # Every field is space-free by construction — an ISO-8601 stamp, captured
-# identifier tokens, a 0/1 flag, hex, digits — which is what makes a positional
-# record safe here at all, and what makes `overflow` an assertion rather than a
-# formality.
-RECORD_FIELDS='ts id reviewer namesval sha cycle ruling_val'
+# identifier tokens, a 0/1 flag, hex, digits, a login — which is what makes a
+# positional record safe here at all, and what makes `overflow` an assertion
+# rather than a formality.
+RECORD_FIELDS='ts id reviewer namesval sha cycle ruling_val login'
 
 # `\r` is stripped first: GitHub serves CRLF bodies, and a trailing carriage
 # return leaves `^artifact:` matching a line whose id then carries an invisible
@@ -345,7 +350,8 @@ RECORD_FIELDS='ts id reviewer namesval sha cycle ruling_val'
 # and a later one belongs to something it relays verbatim. A `sha:` that is not
 # 7-40 hex characters and a `cycle:` that is not digits are `-` — unusable for
 # identity rather than guessed at. Trailing prose after either value is ignored,
-# because judges write it (`cycle: 5 — last in budget`).
+# because judges write it (`cycle: 5 — last in budget`). A `ruling:` token must
+# end at a blank or the line's end: `approved-pending` is `-`, never `approved`.
 COMMENT_JQ='
 .[]
 | ((.body // "") | gsub("\r"; "")) as $b
@@ -354,14 +360,15 @@ COMMENT_JQ='
 | ([$L[] | select(test("^reviewer:[ \t]*[@A-Za-z0-9_-]"))][0] // "") as $r
 | ([$L[] | select(test("^sha:[ \t]*[0-9a-fA-F]{7,40}([^0-9a-fA-F]|$)"))][0] // "") as $s
 | ([$L[] | select(test("^cycle:[ \t]*[0-9]"))][0] // "") as $c
-| ([$L[] | select(test("^ruling:[ \t]*[A-Za-z0-9_]"))][0] // "") as $u
+| ([$L[] | select(test("^ruling:[ \t]*[A-Za-z0-9_]+([ \t]|$)"))][0] // "") as $u
 | [ .created_at,
     (if $a == "" then "-" else ($a | capture("^artifact:[ \t]*(?<i>[A-Za-z0-9_]+)") | .i) end),
     (if $r == "" then "-" else ($r | capture("^reviewer:[ \t]*(?<i>[@A-Za-z0-9_-]+)") | .i) end),
     (if ($b | test("(^|[^0-9A-Za-z_-])@?validation-agent([^0-9A-Za-z_-]|$)")) then "1" else "0" end),
     (if $s == "" then "-" else ($s | capture("^sha:[ \t]*(?<i>[0-9a-fA-F]+)") | .i) end),
     (if $c == "" then "-" else ($c | capture("^cycle:[ \t]*(?<i>[0-9]+)") | .i) end),
-    (if $u == "" then "-" else ($u | capture("^ruling:[ \t]*(?<i>[A-Za-z0-9_]+)") | .i) end)
+    (if $u == "" then "-" else ($u | capture("^ruling:[ \t]*(?<i>[A-Za-z0-9_]+)([ \t]|$)") | .i) end),
+    (.user.login // "-")
   ] | join(" ")'
 
 # ISO-8601 UTC sorts lexicographically, so `newest` is `sort | tail -1` and
@@ -466,16 +473,24 @@ for pr in $prs; do
     continue
   fi
 
-  newest_packet=""; newest_panel=""; newest_val=""; panel_names_val=0
-  panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""; ruled=0
+  newest_packet=""; packet_class=""; newest_panel=""; newest_val=""; panel_names_val=0
+  panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""; ruled=0; foreign=""
   # `$RECORD_FIELDS` is deliberately unquoted: the list holds nothing but names
   # and spaces, so the split is exact.
   # shellcheck disable=SC2086
   while IFS=' ' read -r $RECORD_FIELDS overflow; do
     [ -n "${ts:-}" ] || continue
     [ -z "$overflow" ] || break
+    # The judge's ids count only from the judge (header). A record too narrow
+    # to carry its login is no one's, and is not read either (fixture M2).
     case "$id" in
-      revision_packet) newer "$ts" "$newest_packet" && newest_packet="$ts" ;;
+      revision_packet|review_ledger|judgment|reviewer_verdict)
+        [ "$login" = TheReviewNinja ] || {
+          foreign="${foreign:+$foreign · }$id posted $ts by ${login:--}, not TheReviewNinja, is not read (ADR-0004 § D2)"
+          continue; } ;;
+    esac
+    case "$id" in
+      revision_packet) newer "$ts" "$newest_packet" && { newest_packet="$ts"; packet_class="$id"; } ;;
       judgment)
         # Every ruling's identity is COLLECTED here and matched below, never
         # matched here: a ledger it rules may still be later in the stream.
@@ -489,7 +504,7 @@ $sha $cycle"
         case "$ruling_val" in
           approved|recommended|escalated|remanded)
             ruled=1; take_panel
-            [ "$ruling_val" = remanded ] && newer "$ts" "$newest_packet" && newest_packet="$ts" ;;
+            [ "$ruling_val" = remanded ] && newer "$ts" "$newest_packet" && { newest_packet="$ts"; packet_class="$id"; } ;;
         esac ;;
       review_ledger) take_panel ;;
       reviewer_verdict)
@@ -543,7 +558,7 @@ EOF
       carried="and has been carried for a time this host cannot print: its \`date -u\` gave no UTC stamp"
     fi
     owed_detail="$owed_detail
-  #$pr revision_packet posted $newest_packet is $(gap_days "$newest_commit" "$newest_packet") day(s) past the newest commit $newest_commit (packet-minus-commit), $carried"
+  #$pr $packet_class posted $newest_packet is $(gap_days "$newest_commit" "$newest_packet") day(s) past the newest commit $newest_commit (packet-minus-commit), $carried"
   else
     packet=clear
   fi
@@ -662,6 +677,9 @@ EOJ
   # tion` — three tokens concatenated bare — where nothing but the accident of
   # today's vocabulary kept a boundary from spelling one of them.
   classes="|$packet|$ruling|$validation|"
+  # A record not read for its author (header) is a question for the Owner, never
+  # an answer, so it makes the PR unanswerable whatever the classes say.
+  [ -z "$foreign" ] || classes="$classes|undeclared|"
 
   # PRECEDENCE DECIDES THE PRINTED STATE. IT DOES NOT DECIDE THE COUNTS, and the
   # old single `case` let it: one bucket per PR meant a PR owed on one class and
@@ -699,6 +717,7 @@ EOJ
       miss="$packet_why"
       [ -z "$ruling_why" ]     || miss="${miss:+$miss · }$ruling_why"
       [ -z "$validation_why" ] || miss="${miss:+$miss · }$validation_why"
+      [ -z "$foreign" ]        || miss="${miss:+$miss · }$foreign"
       undeclared_detail="$undeclared_detail
   #$pr $miss — cannot be judged; this is NOT \"nothing owed\"" ;;
   esac

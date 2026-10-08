@@ -225,19 +225,20 @@ mkdir -p "$FIX" "$TMP/bin"
 # character-identical in three files, now stands in the detector alone.
 #
 # Field order is the record's, observed once from the detector's own destructuring:
-#   <created_at> <artifact-id> <reviewer> <names-validation-agent> <sha> <cycle> <ruling>
-# `-` is "the comment declared no such key".
+#   <created_at> <artifact-id> <reviewer> <names-validation-agent> <sha> <cycle> <ruling> <login>
+# `-` is "the comment declared no such key"; the login is the author's, and
+# `TheReviewNinja` unless a fixture says otherwise.
 # ---------------------------------------------------------------------------
 CUR=''; CN=0
 pr()      { CUR="$FIX/pr$1"; mkdir -p "$CUR"; CN=0
             : > "$CUR/records.declared"; : > "$CUR/records.heading"; }
 commits() { printf '%s\n' "$@" > "$CUR/commits"; }        # oldest first, as the API returns
-# cmt <created_at> <id> <reviewer> <namesval> <sha> <cycle> [<heading-id> <heading-reviewer> [<ruling>]] <<'BODY'
+# cmt <created_at> <id> <reviewer> <namesval> <sha> <cycle> [<heading-id> <heading-reviewer> [<ruling> [<login>]]] <<'BODY'
 cmt() {
   CN=$((CN + 1)); F="$(printf '%s/c%02d.txt' "$CUR" "$CN")"
   cat > "$F"
-  printf '%s %s %s %s %s %s %s\n' "$1" "$2"      "$3"      "$4" "$5" "$6" "${9:--}" >> "$CUR/records.declared"
-  printf '%s %s %s %s %s %s %s\n' "$1" "${7:--}" "${8:--}" "$4" "$5" "$6" "${9:--}" >> "$CUR/records.heading"
+  printf '%s %s %s %s %s %s %s %s\n' "$1" "$2"      "$3"      "$4" "$5" "$6" "${9:--}" "${10:-TheReviewNinja}" >> "$CUR/records.declared"
+  printf '%s %s %s %s %s %s %s %s\n' "$1" "${7:--}" "${8:--}" "$4" "$5" "$6" "${9:--}" "${10:-TheReviewNinja}" >> "$CUR/records.heading"
 }
 
 # The two timestamps the historical cases are grounded in. #135's newest commit was
@@ -892,6 +893,34 @@ sha: $SHA181
 cycle: 2
 ruling: remaned
 BODY
+# R6, R7: the two rulings that order no revision and approve nothing, R3's shape.
+for rv in 955:recommended 956:escalated; do
+pr "${rv%%:*}"; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$T_JUDGMENT" judgment - 0 "$SHA181" 1 - - "${rv#*:}" <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 1
+ruling: ${rv#*:}
+BODY
+done
+# R8: every id read is the judge's (#206), so a stranger's ruling comment is not
+# read. Read, it would rule itself and clear A; the real panel beside it stays
+# unruled, and the comment is named for the Owner (ADR-0004 § D2).
+pr 957; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$T_JUDGMENT" review_ledger - 0 "$SHA181" 1 <<BODY
+artifact: review_ledger
+prose_licence: none
+sha: $SHA181
+cycle: 1
+BODY
+cmt "$T_LEDGER" judgment - 0 "$SHA_OLD" 9 - - approved octo-stranger <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA_OLD
+cycle: 9
+ruling: approved
+BODY
 
 # --- X  unreadable sources ------------------------------------------------------
 # 930: the commits endpoint fails.  931: the comments endpoint fails.
@@ -928,7 +957,7 @@ pr 931; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 # as a construction error rather than letting the detector be measured.
 pr 932; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
 : > "$FIX/pr932/OVERWIDE"
-OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 - OVERWIDE"
+OVERWIDE_REC="$T_LEDGER review_ledger - 1 $SHA181 4 - TheReviewNinja OVERWIDE"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.declared"
 printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
 
@@ -947,6 +976,9 @@ printf '%s\n' "$OVERWIDE_REC" > "$FIX/pr932/records.heading"
 # answer, because an absent field is not evidence. The validation flag is a field
 # like those, and `n/a` is a positive answer like `clear`. A detector that refuses
 # an empty sha and volunteers `n/a` off an empty flag is inconsistent with itself.
+# SINCE #206 THE AUTHOR CHECK MEETS IT FIRST: the login is the record's last field,
+# so a record this narrow carries none and is not read at all. That refusal is
+# the one asserted below; the flag guard stands behind it.
 #
 # WHAT IT MUST NOT BE RED FOR. Its commits are readable and its comments are
 # served, so it is never `unreadable`, and its record is three fields — it stops
@@ -1041,7 +1073,7 @@ for d in "$FIX"/pr*; do
     || die "fixture comments are not in chronological order (above)"
 
   k=0
-  while IFS=' ' read -r ts id rev nval sha cyc rul; do
+  while IFS=' ' read -r ts id rev nval sha cyc rul lgn; do
     k=$((k + 1)); f="$(printf '%s/c%02d.txt' "$d" "$k")"
     for pair in "artifact $id" "reviewer $rev" "sha $sha" "cycle $cyc" "ruling $rul"; do
       key="${pair%% *}"; want="${pair##* }"
@@ -1062,7 +1094,7 @@ for d in "$FIX"/pr*; do
     # artifact's reviewer; anything else drifting would make the prose stub's reds
     # attributable to something other than heading-matching.
     h="$(sed -n "${k}p" "$d/records.heading")"
-    [ "$(printf '%s' "$h" | awk '{print $1, $4, $5, $6, $7}')" = "$ts $nval $sha $cyc $rul" ] \
+    [ "$(printf '%s' "$h" | awk '{print $1, $4, $5, $6, $7, $8}')" = "$ts $nval $sha $cyc $rul $lgn" ] \
       || die "pr $n comment $k: the heading record differs from the declared record outside the artifact id"
   done < "$d/records.declared"
 done
@@ -1092,10 +1124,12 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
   || die "B1b must be judgment-then-ledger of ONE identity or it is not the contract's own order"
 [ "$(awk 'NR == 1 {print $5}' "$FIX/pr912/records.declared")" != "$SHA181" ] \
   || die "B1c's ruling must declare ANOTHER panel's identity or it is the same fixture as B1b"
-for n in 950 951 952 954; do
+for n in 950 951 952 954 955 956; do
   [ "$(awk '{print $2}' "$FIX/pr$n/records.declared" | sort -u)" = judgment ] \
     || die "R-fixture #$n must declare judgments alone, or A and B1 are answered by something else"
 done
+[ "$(awk '{print $2, $8}' "$FIX/pr957/records.declared" | tr '\n' ' ')" = "review_ledger TheReviewNinja judgment octo-stranger " ] \
+  || die "R8 must be the judge's panel and a stranger's ruling, or it pins nothing about the author"
 # M1's whole subject is the record's ARITY, so the arity is asserted here: a
 # fixture narrowed back to full width would leave the overflow branch untouched
 # and M1's checks passing for the wrong reason — the vacuous instrument this file
@@ -1104,13 +1138,11 @@ done
   || die "M1's record must be ONE field wider than a full record or the overflow guard is never reached"
 [ -f "$FIX/pr932/commits" ] \
   || die "M1 must have readable commits or its 'unreadable' is the other route and proves nothing"
-# M2's is the same claim from the other side, and it is the more dangerous of the
-# two to get wrong: a fixture widened back to full width carries a readable `0`,
-# the flag-readability branch is never reached, and its checks then pass because
-# the lane is GENUINELY not named — green for the opposite reason to the one they
-# name.
+# M2's is the same claim from the other side: widened back to full width, its
+# record carries a login and a readable `0`, and is no longer the narrow record
+# its checks name.
 [ "$(awk 'NR == 1 {print NF}' "$FIX/pr933/records.declared")" = '3' ] \
-  || die "M2's record must stop SHORT of the validation flag or the readability guard is never reached"
+  || die "M2's record must stop SHORT of the validation flag and the login, or it is not the narrow record"
 [ -f "$FIX/pr933/commits" ] \
   || die "M2 must have readable commits or it never reaches a validation class at all"
 
@@ -1156,7 +1188,7 @@ state_is() { # state_is <label> <pr> <state>
 # the shape `dependents-declared-edges.sh` records as the #138 anti-pattern —
 # an assertion that cannot fail, or one that fails for a reason it does not name.
 
-READABLE='900 901 902 903 904 905 906 907 908 910 911 912 913 914 915 916 917 920 921 922 923 924 925 926 927 135 940 950 951 952 953 954'
+READABLE='900 901 902 903 904 905 906 907 908 910 911 912 913 914 915 916 917 920 921 922 923 924 925 926 927 135 940 950 951 952 953 954 955 956 957'
 
 # ---- one run over every readable PR: the classification corpus ----------------
 # shellcheck disable=SC2086
@@ -1239,6 +1271,9 @@ cls "R2  a commit followed: A CLEAR; it names the lane, so B2 as ever"      951 
 cls "R3  it approved: a declared ruling with no remand answers A CLEAR"     952 clear      clear      n/a
 cls "R4  it rules its own panel and no later one"                           953 clear      owed       n/a
 cls "R5  a ruling: outside the four is no ruling and is not answered"       954 undeclared undeclared undeclared
+cls "R6  it recommended: a ruling with no remand answers A and B1 CLEAR"   955 clear      clear      n/a
+cls "R7  it escalated: likewise CLEAR on A and B1"                          956 clear      clear      n/a
+cls "R8  a stranger's ruling rules nothing: the real panel stays OWED"      957 undeclared owed       n/a
 
 # ---- S: a class answer is four claims, not one cell ----------------------------
 # CELL, STATE TOKEN, EXIT STATUS, SUMMARY COUNTS. The old corpus asserted the first
@@ -1283,6 +1318,11 @@ check_rc  "S7  ... exit 0, not the 3 a ruling-blind detector gives it"       0
 run 950
 state_is  "S8  one remanding comment, unworked, rolls up to owed"           950 owed
 check_rc  "S8  ... exit 1"                                                   1
+run 957
+state_is  "S9  R8 isolated: the stranger clears nothing, so the PR is owed"  957 owed
+check_rc  "S9  ... exit 1, where reading the stranger gave 0"                1
+check_has "S9  ... and the stranger is counted unanswerable"                 "undeclared 1"
+check_has "S9  ... and named, with its login, for the Owner"                 "judgment posted $T_LEDGER by octo-stranger, not TheReviewNinja"
 
 run 930
 state_is  "S5  an unreadable source is named on its own line"               930 unreadable
@@ -1302,13 +1342,13 @@ check_has "M1  ... and it names the guard, not a generic read failure"      "REC
 check_has "M1  ... and quotes the field that would have been absorbed"      "'OVERWIDE'"
 check_has "M1  ... and the summary counts it unreadable"                    "unreadable 1"
 
-# M2 — THE FLAG-READABILITY BRANCH, THE OTHER ONE NO FIXTURE REACHED. A record too
-# narrow to carry the validation flag cannot answer the mandatory-lane question, so
-# the class is the third state and the `why` says which absence it is. Run alone so
-# the `why` and the absence below are about this PR and nothing else.
+# M2 — A RECORD TOO NARROW TO CARRY THE FLAG, OR ITS LOGIN. It cannot answer the
+# mandatory-lane question, so the class is the third state, and the `why` names the
+# absence met first — since #206, the login. Run alone so the `why` and the
+# absence below are about this PR and nothing else.
 run 933
 cls       "M2  a record too narrow to carry the flag cannot answer the lane"     933 undeclared undeclared undeclared
-check_has "M2  ... and the why names the unreadable flag, quoting what it read"  "carries no readable validation-agent flag ('')"
+check_has "M2  ... and the why names the login it lacks, so nothing was read"    "review_ledger posted $T_LEDGER by -, not TheReviewNinja"
 # THE CLAIM THE GUARD EXISTS TO REFUSE, ASSERTED AS AN ABSENCE ON THIS PR'S OWN
 # LINE. `n/a` asserts the panel WAS read and does NOT name the lane — a positive
 # answer, and the one a bare `!= "1"` test prints off a field the record never
