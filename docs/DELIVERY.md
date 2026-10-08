@@ -207,6 +207,8 @@ No lane requires subjective perfection, and none is entitled to it. A PR passes 
 
 ### Merge and readiness
 
+**A pull request is approved when, and only when, `TheReviewNinja` has filed an `APPROVED` review at its head** — the Owner's rule of 17 September 2026, recorded on #202. Nothing else approves: not the `judge:approved` label, which records that review and never substitutes for it (`turfgps-board-ops § Labels`); not a ruling whose prose says *recommended*, *conditional* or *mergeable after X*; not a passing panel, green gates or a validation `pass`. A condition met later is discharged by a judge filing `APPROVED`, never by a label. **A PR carrying `judge:approved` without that review at its head is a defect any lane may file.**
+
 **A completed merge that can satisfy a downstream dependency must reliably cause readiness reconciliation** — the route is deterministic and has exactly one shape: the fingerprint's `main` component wakes `@engineering-lead`, which dispatches `@scrum-master` on `trigger: {type: merge_completed}`, which reconciles the merged items to Done, runs `scripts/loop/dependents.sh` per completed story, and evaluates the `eligible:` list for Ready. It never wakes `@backlog-dependency-planner`: satisfaction is not a graph event.
 
 ### Revision, and what stays valid

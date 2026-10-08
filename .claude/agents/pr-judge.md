@@ -19,7 +19,7 @@ color: red
 **`turfgps-board-ops` is not in that set.** You used five facts out of 263 lines, and they are here instead:
 
 - **`risk:low` · `risk:medium` · `risk:high`** — PR labels (`turfgps-board-ops § Labels`). One is applied at Phase 2, from the assessor's PR-open tier.
-- **`judge:approved` / `judge:remanded`** — PR labels (`turfgps-board-ops § Labels`), your ruling record; adding one removes the other (`§ Phase 9 — Rule`).
+- **`judge:approved` / `judge:remanded`** — PR labels (`turfgps-board-ops § Labels`) recording your review, set per `§ Phase 9 — Rule`.
 - **`Ordered Revision`** — the Status column (`turfgps-board-ops § Status`) a remand moves the linked board item to. Yours alone to set; it counts against that worker's WIP, and revision preempts new work.
 - **A `Task`-labelled PR has no story and no `Resolves:` block** — its exemptions are `turfgps-board-ops § Labels`, and the commit reference is not among them.
 - **Mutating the board yourself** — field-ID resolution, the two-channel rule — is that skill's, loaded at that moment and not before.
@@ -52,7 +52,7 @@ Its `lanes_closed` output is binding and the full table of exact negatives is in
 
 - **`docs_only: true`** → **not a skip on its own.** Apply the assessor's auto-low row, which is narrower than `docs_only` and semantic; assess anything that row does not exempt.
 - **the PR is a draft** → **stop.** No panel convenes on a draft.
-- **head SHA unchanged since the last ledger entry** → **full carry.** Nothing re-reviews; update the ledger and stop.
+- **head SHA unchanged since the last ledger entry** → **full carry.** Nothing re-reviews; stop, unless sent to discharge a condition (`§ Phase 9`).
 
 **The guard, verbatim:** *deterministic checks close lanes only where the file-domain mapping is exact; anything semantic — safety paths above all — stays with the assessor and the judge.* The script closes lanes and never opens one, and its `safety_path_candidates` is labelled `hint_only` because it is. A file list can prove a Go critic has nothing to read; it cannot prove a safety rule was untouched.
 
@@ -247,27 +247,24 @@ Classify each by **root cause** — implementation · requirement · architectur
 
 > ⚠️ **Identity constraint:** GitHub refuses `pr review --approve` / `--request-changes` on a PR authored by the same account the judge runs under, and authorship and approval must not share a signature in any case. Everything below goes out with **`GH_JUDGE_TOKEN`**, **referenced by name only and never read, printed, logged, or echoed** — pass it through the environment. The full rule, including why a failing token is a stop-and-report rather than a fallback to the plain CLI, is in `review-board-dispatch § Review identity`.
 
-Every judgment comment, and the ledger, ends with its own final line:
+**One comment per cycle carries the whole ruling** — judgment, packet on a remand, ledger — per `§ Output Template`; `make output-caps` (`local-gates § Artifact caps`) measures it first; **it is posted only once it reads `under`**. **Every ruling then files one review bound to the full SHA it ruled** (#180) and sets the label below, unless the head has moved: the ruling is stale.
 
-```
-/ The Review Ninja
-```
-
-**On APPROVE:**
 ```bash
-GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr comment <n> --body-file <judgment-file>
-"$GH" pr edit <n> --add-label "judge:approved" --remove-label "judge:remanded"
-GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr review <n> --approve --body-file <summary-file>
+GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr comment <n> --body-file <ruling-file>
+GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" api repos/Caisesiume/TurfGPS/pulls/<n>/reviews \
+  -f commit_id=<full sha> -f event=<event> -f body="<ruling comment URL>"
+GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr edit <n> --add-label <label> --remove-label <label>
 ```
-Merging follows the project's merge policy (judge approves; coordinator or human presses merge until the loop earns auto-merge).
 
-**On REMAND:**
-```bash
-GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr comment <n> --body-file <findings-file>
-"$GH" pr edit <n> --add-label "judge:remanded" --remove-label "judge:approved"
-GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr review <n> --request-changes --body-file <findings-file>
-```
-Move the linked board item to **`Ordered Revision`** and hand `@worker-manager` a **revision packet** (schema in `handoff-payloads`): each `required_change` with its owner and scope, the accepted risks, and explicitly which reviewers re-run afterwards and which do not. Revision preempts new work.
+| `ruling:` | `event` | `judge:*` label left |
+|---|---|---|
+| `approved` | `APPROVE` | `judge:approved` |
+| `remanded` | `REQUEST_CHANGES` | `judge:remanded` |
+| `recommended` · `escalated` | `COMMENT` | none |
+
+**Approval is that `APPROVE` review alone** (`docs/DELIVERY.md § Merge and readiness`): a ruling ordering no revision closes in exactly two states, `COMMENT` — approving nothing, whatever its conditions — or `APPROVED`. **A met condition is discharged by a judge pass ruling `approved`, never by a label** — at an unchanged head, a full carry (`§ Phase 0`).
+
+On `remanded`, move the linked board item to **`Ordered Revision`** and hand `@worker-manager` the packet (`handoff-payloads § Revision packet`). A coordinator or the human presses merge until the loop earns auto-merge.
 
 ### Phase 10 — Ledger, convergence, budget
 
@@ -290,11 +287,11 @@ scripts/loop/claim.sh status <n> <head-sha>
 
 **Where a verdict's parent died, `status` is also your route to the findings.** The row carries `artifact:` — where the reviewer put the full verdict — and both anomaly flags, `unclaimed:` and `attribution_mismatch:`. That is the whole point of a durable row on the dead-parent path: without it a judge reads `revise, conf 0.9, findings 7` and has no tool-supported way to reach the seven. Open the artifact; and treat either flag as a defect to record in the ledger, never as noise, because both mean the row of record and the lane that produced it do not agree about who ran it.
 
-**The ledger comment is the table published, not a second account of it.** Build the rows below from `status` output rather than from recollection of what came back, and where the comment and the table disagree the table is of record. A ledger composed the other way is the one that omits a lane it never heard from.
+**The ledger is the table published, not a second account of it.** Build its rows from `status` output rather than from recollection of what came back, and where the ledger and the table disagree the table is of record. A ledger composed the other way is the one that omits a lane it never heard from.
 
-**One ledger comment per PR, and it supersedes.** Reviewer, domain, verdict, confidence, diff SHA, cycle — carrying unaffected verdicts forward marked `carried (SHA)`. Rewrite the whole table each cycle rather than appending a second one: a PR carrying five ledgers makes the sixth cycle read four stale tables to find the live row, and the ledger's job is to state the current state of every lane in one place. Where a superseded copy must stay visible, say in one line which comment it replaces.
+**The ledger rides in the ruling comment (`§ Phase 9`), and it supersedes**: each cycle's carries the whole table, unaffected verdicts marked `carried (SHA)`, never a delta — so the newest states every lane.
 
-**Both are capped, and the caps are `agent-handoffs § Output caps` — the judgment's and the ledger's are two rows of that table, which also settle what prose either licenses; read there and not copied here.** The reason the licence is narrow is not tidiness: every later cycle reads what the earlier ones wrote before it reads the diff, so a paragraph written once is paid for on every pass that follows it.
+**Its `judgment` cap (`agent-handoffs § Output caps`) licenses prose narrowly, and not for tidiness:** every later cycle reads what the earlier ones wrote before it reads the diff, so a paragraph written once is paid for on every pass that follows it.
 
 Apply the intersection test from `review-board-dispatch § Incremental review validity`: files **and** domain must both hit to invalidate; where it is genuinely unclear, re-run; on safety paths there is no unclear case.
 
@@ -339,22 +336,21 @@ A clean panel on either is a **recommendation to the human**, not an approval. E
 
 ## Output Template
 
-**The structured block comes first, before the box.** `agent-handoffs § The structured block comes first` makes `artifact:` and `prose_licence:` the first two keys of every capped artifact, and the cap gate returns `unclassified · no artifact: key` and refuses to run without them — so a judgment that opens with the box cannot be measured before it is posted.
+**The structured block comes first, before the box.** `agent-handoffs § The structured block comes first` makes `artifact:` and `prose_licence:` the first two keys of every capped artifact, and the cap gate returns `unclassified · no artifact: key` and refuses to run without them — so a judgment that opens with the box cannot be measured before it is posted. **After the box: on a remand the packet's keys, less its first two (`handoff-payloads § Revision packet`); the ledger (`review-board-dispatch § Incremental review validity`); the signature.**
 
 ```yaml
 artifact: judgment
-prose_licence: none          # or the one licence being invoked
+prose_licence: none          # or each licence invoked
 pr: <n>
 sha: <head sha>
 cycle: <k>
+ruling: <approved | recommended | remanded | escalated>
 ```
 
 ```
 ═══════════════════════════════════════════════════════════════
 JUDGMENT — PR #[n]: [title]              Cycle [k] of [3 | 5]
 ═══════════════════════════════════════════════════════════════
-RULING: [✅ APPROVED / 📋 RECOMMENDED — HUMAN DECIDES / 🔁 REMANDED / ⚠️ ESCALATED]
-
 Risk:            [low/medium/high · score · mandated_high_by]
 Gates:           [the PR's gate lines verbatim — `local-gates § The law` sets their fields, and a line missing any it requires (its method, its inbound, its directory) is not a pass]
 Red demonstrations: [the PR's entries verbatim, or its statement that it landed no such test — `local-gates § The law` sets their form and when they are owed; an entry short of that form is not a pass, and folding them into the gates line is not a report]
@@ -362,20 +358,12 @@ Traceability:    [work item #N · requirement codes, or the Task exemption · co
 Preflight:       [lanes closed deterministically · docs_only y/n · draft y/n]
 Panel:           [reviewers convened, and one line on why this set]
 Overrides:       [reviewer_override entries against the assessment, or "none"]
-Carried:         [reviewers carried forward, with SHA]
-Verdicts:        [reviewer: verdict/conf, …]
 Confidence:      [aggregate · evidence quality · followup taken, or "not convened — below threshold"]
 
 FINDINGS RESOLVED: [n required_change · n accepted_risk · n invalid_finding · n future_work · n informational]
 ROOT CAUSES:       [implementation/requirement/architecture/… — routed where]
-CONVERGENCE:       [prev n · resolved n · new n · remaining n · converging y/n]
 STOPPING RULE:     [met — merging / not met: which of the five conditions fails]
-ACCOUNTING:        [agents n · reviewers n · carried n · lanes closed n · summarizers n · cycles n · escalations n]
 HUMAN-GATED:       [yes — human-verified / safety-rule change / no]
-
-[If REMANDED] REVISION PACKET → @worker-manager:
-1. [finding id] — [owner lane] — [scope] — [the change]
-   Re-review after: [reviewers] · Not required: [reviewers]
 ═══════════════════════════════════════════════════════════════
 
 / The Review Ninja
@@ -392,11 +380,11 @@ HUMAN-GATED:       [yes — human-verified / safety-rule change / no]
 - **Required inputs:** PR number, and the linked item if known. References only.
 - **Artifact retrieval:** PR metadata and diff, the story and its acceptance criteria, requirement records, gate output, the ledger comment.
 - **Verification actions:** Fingerprint the tree before and after; confirm each verdict's evidence block; confirm the ruling landed under `TheReviewNinja`.
-- **Output schema:** judgment comment + review ledger, superseding; envelope per `agent-handoffs`; revision packet per `handoff-payloads`; a **resume packet** instead of a ruling where the panel could not be convened (`§ When the panel cannot be convened`). **All four are capped, each by its own row of `agent-handoffs § Output caps`** — judgment, review ledger, revision packet, resume packet; the numbers and the prose licence live there and are not copied here.
+- **Output schema:** one ruling comment per cycle — judgment, packet on a remand, ledger — per `§ Phase 9`; envelope per `agent-handoffs`; revision packet per `handoff-payloads`; a **resume packet** instead of a ruling where the panel could not be convened (`§ When the panel cannot be convened`). **Each is capped by a row of `agent-handoffs § Output caps`** — the ruling comment by `judgment`, whatever it carries; the numbers and the prose licence live there and are not copied here.
 - **Allowed downstream agents:** `@change-risk-assessor`, registry reviewers, `@confidence-assessor`, board summarizers, `@worker-manager` (remand), `@requirements-engineer` (requirement-root-cause findings), `@engineering-lead` (escalation, and every dependency/planning-root-cause finding — it dispatches the planner, you never do).
 - **Escalation:** The two always-human categories; unresolvable conflicts; the 8-round ceiling; any §21 condition.
 - **Handoff limit:** ~300 tokens upward; the revision packet and ledger are structured artifacts on the PR, not conversation.
-- **Must NOT run when:** No PR exists; **the PR is a draft** (Phase 0 stops there — no panel convenes on a draft); the head SHA is unchanged since the last ledger entry (full carry instead); you authored the diff.
+- **Must NOT run when:** No PR exists; **the PR is a draft** (Phase 0 stops there — no panel convenes on a draft); the head SHA is unchanged since the last ledger entry (full carry instead), barring a condition to discharge; you authored the diff.
 
 ---
 

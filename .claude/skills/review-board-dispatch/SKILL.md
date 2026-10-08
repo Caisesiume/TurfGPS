@@ -108,7 +108,7 @@ It classifies every changed file by domain and returns counts, `docs_only`, `lan
 | no schema files | the schema and migration lane is **closed** |
 | `docs_only: true` | **not a close on its own.** The assessor's auto-low exemption is narrower than `docs_only` and its test is semantic — apply the row in `§ The reviewer registry`, and assess anything that row does not exempt |
 | PR is a draft | **stop.** No panel convenes on a draft |
-| head SHA unchanged since the last ledger entry | **full carry.** Nothing re-reviews; update the ledger and stop |
+| head SHA unchanged since the last ledger entry | **full carry.** Nothing re-reviews; the standing ledger holds |
 
 **The §50 guard, and it is not negotiable:** *deterministic checks close lanes only where the file-domain mapping is exact; anything semantic — safety paths above all — stays with `@change-risk-assessor` and `@pr-judge`.*
 
@@ -230,16 +230,9 @@ These agents stay registered and stay distinct — **the rule is a convening con
 
 ## Incremental review validity
 
-**A verdict is issued against a specific diff state, so it must be recorded against one.** The judge keeps a **review ledger** as a structured comment on the PR, updated every cycle. It is a capped artifact and **opens with its structured block**, per `agent-handoffs § The structured block comes first` — the cap gate returns `unclassified · no artifact: key` and refuses to run on a ledger that opens with its heading:
+**A verdict is issued against a specific diff state, so it must be recorded against one.** The judge keeps a **review ledger**, rewritten whole each cycle inside the one ruling comment `pr-judge § Phase 9` posts. That comment's structured block — `pr:`, `sha:`, `cycle:` — is the ledger's, so the ledger declares nothing of its own and opens with its heading:
 
 ```markdown
-artifact: review_ledger
-prose_licence: none
-pr: <n>
-sha: <head sha>
-cycle: <k>
-supersedes: <the comment this rewrite replaces>
-
 ## Review ledger — PR #<n>
 
 | reviewer | domain | verdict | conf | diff SHA | cycle |
@@ -252,7 +245,7 @@ Convergence — cycle 2: previous 5 · resolved 4 · new 0 · remaining 1 ·
 risk 0.61 → 0.31 · confidence 0.77 → 0.94 · converging: true
 ```
 
-**The ledger is rendered from the claim table, not composed from what came back.** The table is where the panel actually lives — `§ The claim table` above — and `@pr-judge § Phase 10` requires this comment to be built from `status` output, with the table of record where the two disagree. A ledger composed from a judge's recollection of its returns is the one that omits a lane it never heard from, which is issue #144's fourth failure class.
+**The ledger is rendered from the claim table, not composed from what came back.** The table is where the panel actually lives — `§ The claim table` above — and `@pr-judge § Phase 10` requires the ledger to be built from `status` output, with the table of record where the two disagree. A ledger composed from a judge's recollection of its returns is the one that omits a lane it never heard from, which is issue #144's fourth failure class.
 
 A row marked **`carried (SHA)`** states plainly that nobody looked at this cycle's diff for that lane, and on whose earlier evidence the merge will rest. That is the point: carried validity is a claim, and a claim someone who was not there can check is worth more than one they must trust.
 

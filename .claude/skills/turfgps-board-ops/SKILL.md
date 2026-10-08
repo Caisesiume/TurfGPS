@@ -175,7 +175,7 @@ Set by the story-organizer as a sizing check, not an estimate. The rule is that 
 | `Task` | Work item that is not a user story (process/infra/documentation) |
 | `needs-re` | Worker-discovered problem awaiting RE tracing — must also carry `Task` and link relating stories + requirement codes |
 | `human-verified` | The resolving requirement's verification method is human judgement; agent consensus cannot close it |
-| `judge:approved` / `judge:remanded` | PRJudge ruling record (PR labels) |
+| `judge:approved` / `judge:remanded` | PR labels recording a judge's review, applied by the judge alone — `judge:approved` only with the `APPROVED` review it records (`docs/DELIVERY.md § Merge and readiness`) |
 | `awaiting-human` | Loop paused on a human decision |
 | `risk:low` · `risk:medium` · `risk:high` | **PR labels.** The tier `@change-risk-assessor` returned for the diff, applied by `@pr-judge` at PR open |
 
@@ -193,11 +193,9 @@ Ratified by the Owner on 4 August 2026.
 
 ### The review ledger is a PR comment, not a board field
 
-`@pr-judge` keeps one **review ledger** comment per PR — reviewer, domain, verdict, confidence, the diff SHA each verdict was issued against, and the cycle — updated every revision cycle, with carried-forward verdicts marked `carried (SHA)`. Its format and the incremental-validity rules that govern it live in `review-board-dispatch § Incremental review validity`; do not restate them here or on the board.
+`@pr-judge` posts the **review ledger** in each cycle's ruling comment (`pr-judge § Phase 9`) — reviewer, domain, verdict, confidence, the diff SHA each verdict was issued against, and the cycle — with carried-forward verdicts marked `carried (SHA)`. Its format and the incremental-validity rules that govern it live in `review-board-dispatch § Incremental review validity`; do not restate them here or on the board.
 
 It is a comment because it is **per-cycle history**, and the board holds current state. Trying to carry it in board fields would need a field per reviewer and would still lose the SHA — and the SHA is the whole point, since a carried verdict is a claim that someone who was not there should be able to check.
-
-Like every judgment artifact it is posted under `GH_JUDGE_TOKEN` and signed `/ The Review Ninja`.
 
 **Auto-add is enabled.** The project's *Auto-add to project* workflow is on, so issues land on the board without a manual `project item-add`. Verify its filter in the UI before relying on label-based filtering — if it adds *every* issue rather than only labelled ones, the board will accumulate items the loop does not manage, and the scrum-master should report that rather than silently reconciling them.
 

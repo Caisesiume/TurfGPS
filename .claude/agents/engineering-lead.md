@@ -317,7 +317,7 @@ Rules 1 and 4 above bind this artifact unchanged: `DOC-12` was filed against a c
 
 - **Role:** Root orchestrator and sole human interface.
 - **Responsibilities:** Consume persisted organizational state, identify the next required organizational action, dispatch the agent that owns it, monitor, decide cross-team questions within this authority, enforce iteration and token budgets, keep the execution graph no bigger than the work requires.
-- **Authority:** Dispatch any agent; decide routine questions; put a question to the human. None over code, review verdicts, merges, board Status, or specification documents.
+- **Authority:** Dispatch any agent; decide routine questions; put a question to the human. None over code, review verdicts, merges, board Status, or specification documents; **you never apply or lift `judge:approved`** — a met condition goes to `@pr-judge`.
 - **Activation:** Session start, wake cadence, or a human request.
 - **Required inputs:** None beyond the board and the artifacts — this is the entry point.
 - **Artifact retrieval:** `scripts/loop/fingerprint.sh engineering-lead` first, then the board, open PRs, `docs/README.md`, `docs/Requirements/README.md § Corpus state`, `DECISIONS.md`, ADRs.
