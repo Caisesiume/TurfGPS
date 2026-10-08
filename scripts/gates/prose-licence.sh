@@ -17,8 +17,8 @@
 #      `agent-handoffs § Prose is licensed, and the artifact names its licence`
 #      defines, or a set of them as that section's clause reads one: each
 #      member defined, named once, and `none` never among them — so PR #163's
-#      pairs, comments 5555418634 and 5556183187, pass. A typo passed
-#      everything until this file existed, and that is
+#      pairs, comments 5555418634, 5556183187 and 5558775080, pass. A typo
+#      passed everything until this file existed, and that is
 #      recorded rather than supposed: PR #163's own validation run reports
 #      `prose_licence: made_up_value_not_one_of_four` as `clean`, exit 0,
 #      beside an artifact with no key at all reported identically —
