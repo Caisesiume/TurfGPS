@@ -6,15 +6,15 @@
 # `owed-work.sh` PROVES NOTHING — a corpus that asserted nothing would be just as
 # green. This script is what makes the green mean something.
 #
-# HOW THE DEMONSTRATION IS MADE HONEST. Five detectors are generated from ONE
+# HOW THE DEMONSTRATION IS MADE HONEST. Every detector here is generated from ONE
 # template, differing in a single `DEFECT` flag. The first has no defect and must
-# go GREEN; the other four each reproduce a documented failure and must go RED.
+# go GREEN; each other reproduces a documented failure and must go RED.
 # Generating them from one template is the whole method.
 # `docs/DELIVERY.md § Red for the wrong reason` excludes a demonstration that is
-# red because something failed to build or never reached its assertion, and four
+# red because something failed to build or never reached its assertion, and
 # independently-written stubs would each be red for reasons nobody could
-# attribute to a defect. Here the four differ from a detector that PASSES THE WHOLE
-# CORPUS by one behaviour each, so every red is that behaviour and nothing else.
+# attribute to a defect. Here each differs from a detector that PASSES THE WHOLE
+# CORPUS by one behaviour, so every red is that behaviour and nothing else.
 #
 # ---------------------------------------------------------------------------
 # THE `none` STUB IS A SECOND IMPLEMENTATION, AND CYCLE 1 SHOWED WHAT HAPPENS
@@ -55,7 +55,7 @@
 # this stub satisfies and the deliverable does not is a finding against the
 # deliverable.
 #
-# THE FOUR DEFECTS, and the failure each one reproduces:
+# THE DEFECTS, and the failure each one reproduces:
 #   two_state       folds `undeclared` into `clear` and never exits 3. Measured
 #                   2026-09-07: all four open PRs carried ZERO declared
 #                   revision_packet/judgment comments, so this detector prints
@@ -79,11 +79,14 @@
 #                   counts. The faithful answer there is `undeclared` — nothing may
 #                   emit B2's discharge, so `owed` is unfalsifiable — and this
 #                   defect turns it `clear`, which is the silence itself.
+#   ruling_blind    reads no `ruling:` (#206), so a ruling comment — judgment,
+#                   packet and ledger in one — answers neither A nor B1, and a
+#                   PR ruled that way reads `undeclared` for good.
 #
 # Hermetic: everything generated under mktemp, nothing written outside it, no
 # network, no repository state. The corpus it drives is hermetic in its own right.
 # Usage: scripts/loop/tests/owed-work-stubs.sh
-# Exit:  0 the `none` stub passed AND all four defective stubs were caught
+# Exit:  0 the `none` stub passed AND every defective stub was caught
 #        1 any stub behaved otherwise — which is a corpus that does not discriminate
 
 set -u
@@ -187,13 +190,19 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a comment record carries a field R
   #   panel, rulings, none with identity-> undeclared (a ruling that cannot be
   #                                        placed is not a ruling reported missing)
   #   panel, and its key is among them  -> clear; otherwise OWED
-  vals="$(printf '%s\n' "$recs" | awk '
+  # A judgment whose `ruling:` is one of the four is a ruling comment (#206): a
+  # panel keyed by its own identity, and on `remanded` the packet as well.
+  # DEFECT: blind to `ruling:`.
+  blind=0; [ "$DEFECT" = ruling_blind ] && blind=1
+  vals="$(printf '%s\n' "$recs" | awk -v blind="$blind" '
     function ident(s, c,   k) { k = tolower(substr(s, 1, 7))
       if (k !~ /^[0-9a-f]{7}$/ || c !~ /^[0-9]+$/) return ""
       return k "@" (c + 0) }
     $2 == "revision_packet" { pkt = $1 }
     $2 == "review_ledger"   { led = $1; ledval = $4; lsha = $5; lcyc = $6 }
     $2 == "judgment" { nj++; k = ident($5, $6); if (k != "") { ruled[k] = 1; nid++ } }
+    !blind && $2 == "judgment" && $7 ~ /^(approved|recommended|remanded|escalated)$/ {
+      rcm = 1; led = $1; ledval = $4; lsha = $5; lcyc = $6; if ($7 == "remanded") pkt = $1 }
     $2 == "reviewer_verdict" && $3 ~ /^@?validation-agent$/ { v[++nv] = $1 }
     END {
       rule = "undeclared"
@@ -212,14 +221,15 @@ $(printf '#%-5s %-11s %s' "$pr" "unreadable" "a comment record carries a field R
       # the record never carried. That is the same mistake `ident()` above refuses
       # for a sha, and this control cannot refuse it there and commit it here.
       # Verbatim, so the reader below decides readability and can quote what it read.
-      printf "%s|%s|%s|%s|%s\n", pkt, led, ledval, rule, ver
+      printf "%s|%s|%s|%s|%s|%d\n", pkt, led, ledval, rule, ver, rcm
     }')"
-  IFS='|' read -r pkt led led_names_val ruling ver <<EOF
+  IFS='|' read -r pkt led led_names_val ruling ver rcm <<EOF
 $vals
 EOF
 
   # --- condition A: the newest packet, newer than the newest commit -------------
-  if [ -z "$pkt" ]; then packet=undeclared
+  # With none, a ruling comment that remanded nothing is the answer: clear.
+  if [ -z "$pkt" ]; then packet=undeclared; [ "$rcm" = 1 ] && packet=clear
   elif [[ "$pkt" > "$newest_commit" ]]; then
     packet=owed
     g1=$(( ( $(secs "$pkt") - $(secs "$newest_commit") ) / 86400 ))
@@ -319,7 +329,7 @@ mk() { # mk <defect>
     printf 'FAIL  construction · the %s stub is byte-identical to the template — a stub that mutates nothing proves nothing\n' "$1"
     exit 1; }
 }
-for d in none two_state prose quiet_fail b2_discharged; do mk "$d"; done
+for d in none two_state prose quiet_fail b2_discharged ruling_blind; do mk "$d"; done
 
 fails=0
 report() { # report <defect> <must-be: green|red>
@@ -354,7 +364,8 @@ report two_state      red
 report prose          red
 report quiet_fail     red
 report b2_discharged  red
+report ruling_blind   red
 
 [ "$fails" -eq 0 ] || { printf '%s stub(s) behaved wrongly\n' "$fails"; exit 1; }
-printf 'the corpus discriminates: one contract-faithful detector passes it and four defective ones do not\n'
+printf 'the corpus discriminates: one contract-faithful detector passes it and no defective one does\n'
 exit 0

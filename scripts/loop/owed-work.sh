@@ -47,10 +47,19 @@
 #   revision_packet   the remand           — condition A
 #   review_ledger     the convened panel   — conditions B1 and B2
 #   judgment          the ruling           — discharges B1 when the `sha:` and
-#                     `cycle:` it declares are the panel's own
+#                     `cycle:` it declares are the panel's own; with `ruling:`
+#                     it is THE RULING COMMENT below
 #   reviewer_verdict  a lane's verdict     — would discharge B2 when its own
 #                     `reviewer:` key names validation-agent, which nothing may
 #                     do: B2 is unreachable, and WHAT IT CANNOT SEE says so
+#
+# THE RULING COMMENT (#206): judgment, revision packet and ledger in one comment
+# declaring `judgment` (`agent-handoffs § The cap table`), so the packet and the
+# ledger declare nothing here. Its `ruling:` — `approved`, `recommended`,
+# `remanded` or `escalated`, per `pr-judge § Output Template` — answers for them:
+# the comment is its own panel and that panel's ruling (B1), and on `remanded`
+# the remand (A); one that remanded nothing answers A `clear`. Any other value
+# is no ruling, and the PR falls to `undeclared` rather than to a guess.
 #
 # THE FOURTH ID IS THIS SCRIPT'S OWN CHOICE, AND THE CHOICE DOES NOT WORK. The
 # contract this was built to names three ids and then asks for "a validation
@@ -195,6 +204,8 @@
 #   - This script reads the ledger for the lane NAME and not for a verdict;
 #     parsing verdicts out of a markdown cell is the semantic guessing
 #     criterion 2 refuses.
+#   - A PANEL CONVENED AND NEVER RULED declares nothing once its ledger rides in
+#     the ruling comment — as before, when the ledger followed the judgment.
 #   - B2 IS UNREACHABLE, SO IT IS ANSWERED `undeclared` AND NEVER `owed`. Its
 #     only discharge is a `reviewer_verdict` declaring
 #     `reviewer: validation-agent`, and @validation-agent is contractually
@@ -399,6 +410,13 @@ cycle_same() {
   [ "$1" -eq "$2" ]
 }
 
+# The newest declared panel is the one B1 and B2 judge: a `review_ledger`, or a
+# ruling comment, which carries its own (header). Reads the loop's record.
+take_panel() {
+  newer "$ts" "$newest_panel" || return 0
+  newest_panel="$ts"; panel_names_val="$namesval"; panel_sha="$sha"; panel_cycle="$cycle"
+}
+
 # The gap in whole days, from two `YYYY-MM-DDTHH:MM:SSZ` stamps. Pure awk
 # arithmetic over the civil calendar (the Julian-day formula), because `mktime`
 # is a gawk extension and `date -d` is a GNU one: a control-plane script must not
@@ -449,7 +467,7 @@ for pr in $prs; do
   fi
 
   newest_packet=""; newest_panel=""; newest_val=""; panel_names_val=0
-  panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""
+  panel_sha="-"; panel_cycle="-"; judgment_seen=0; judgment_ids=""; overflow=""; ruled=0
   # `$RECORD_FIELDS` is deliberately unquoted: the list holds nothing but names
   # and spaces, so the split is exact.
   # shellcheck disable=SC2086
@@ -460,20 +478,20 @@ for pr in $prs; do
       revision_packet) newer "$ts" "$newest_packet" && newest_packet="$ts" ;;
       judgment)
         # Every ruling's identity is COLLECTED here and matched below, never
-        # matched here: the panel a ruling belongs to may still be later in the
-        # stream, and on a correctly ruled PR it always is (Phase 9 then 10).
+        # matched here: a ledger it rules may still be later in the stream.
         # `judgment_seen` is kept apart from the identities because the two
         # absences answer differently below: no declared ruling at all is
         # `owed`, and declared rulings NOT ONE of which carries an identity is
         # `undeclared`.
         judgment_seen=1
         has_identity "$sha" "$cycle" && judgment_ids="$judgment_ids
-$sha $cycle" ;;
-      review_ledger)
-        if newer "$ts" "$newest_panel"; then
-          newest_panel="$ts"; panel_names_val="$namesval"
-          panel_sha="$sha"; panel_cycle="$cycle"
-        fi ;;
+$sha $cycle"
+        case "$ruling_val" in
+          approved|recommended|escalated|remanded)
+            ruled=1; take_panel
+            [ "$ruling_val" = remanded ] && newer "$ts" "$newest_packet" && newest_packet="$ts" ;;
+        esac ;;
+      review_ledger) take_panel ;;
       reviewer_verdict)
         # Only validation-agent's own verdict discharges B2, and it is its
         # declared `reviewer:` key that says so — never the author, never the prose.
@@ -503,8 +521,10 @@ EOF
   packet_why=""; ruling_why=""; validation_why=""
 
   # --- A (#172): a remand newer than the newest commit ----------------------
-  if [ -z "$newest_packet" ]; then
-    packet=undeclared; packet_why="no declared revision_packet"
+  if [ -z "$newest_packet" ] && [ "$ruled" -eq 1 ]; then
+    packet=clear
+  elif [ -z "$newest_packet" ]; then
+    packet=undeclared; packet_why="no declared revision_packet or ruling comment"
   elif newer "$newest_packet" "$newest_commit"; then
     packet=owed
     # BOTH gaps, each labelled with the two stamps it spans. #172 criterion 1
@@ -531,17 +551,12 @@ EOF
   # --- B1 (#178): a convened panel with no ruling FOR THAT PANEL -------------
   # --- B2 (#178): that panel names the mandatory last lane, which never ran --
   #
-  # B1 IS NOT A TIME TEST, and the previous "a judgment strictly after the
-  # panel" was not a convention this could lean on — it was the CONTRACT read
-  # backwards. `pr-judge § Phase 9` posts the judgment and `pr-judge § Phase 10`
-  # posts the ledger, in that order, so on a correctly ruled PR the ledger is
-  # ALWAYS the newer of the two and "judgment after panel" is false on every one
-  # of them. Measured across 9 of 9 ruled cycles (#163 x6, #154 x2, #135 x1):
-  # ledger strictly newer, zero counterexamples. #181 cycle 1 is judgment
-  # 18:40:55Z, ledger 18:41:01Z, six seconds apart and in that order.
-  # #178 criterion 2 asks for a ruling's EXISTENCE — "a convened panel with no
-  # ruling" — so dropping the temporal strengthening restores the criterion
-  # rather than relaxing it.
+  # B1 IS NOT A TIME TEST. Posted as two comments — the form before #206 — the
+  # judgment precedes its ledger, so "a judgment after the panel" is false on
+  # every correctly ruled PR; `scripts/loop/tests/owed-work-recall.sh` carries
+  # the measurement and the fixtures that pin it. #178 criterion 2 asks for a
+  # ruling's EXISTENCE. A ruling comment is its own panel, matched by the one
+  # identity it declares, so B1 is `owed` only on a ledger standing alone.
   #
   # A ruling is matched to its panel by the IDENTITY BOTH ARTIFACTS DECLARE:
   # `sha:` and `cycle:`. #135's cycle-7 judgment and ledger both declare
@@ -589,12 +604,12 @@ EOF
   # `undeclared:`, counted, and exit 3, never `clear` and never folded into
   # nothing-owed.
   if [ -z "$newest_panel" ]; then
-    ruling=undeclared; ruling_why="no declared review_ledger"
+    ruling=undeclared; ruling_why="no declared review_ledger or ruling comment"
     validation=undeclared
   else
     if ! has_identity "$panel_sha" "$panel_cycle"; then
       ruling=undeclared
-      ruling_why="the newest declared review_ledger declares no usable sha:/cycle: to match a ruling to"
+      ruling_why="the newest declared panel declares no usable sha:/cycle: to match a ruling to"
     elif [ "$judgment_seen" -eq 1 ] && [ -z "$judgment_ids" ]; then
       ruling=undeclared
       ruling_why="no declared judgment carries a sha:/cycle: to match against the panel"
@@ -622,7 +637,7 @@ EOJ
     # refuses an empty sha instead of comparing it.
     if [ "$panel_names_val" != "0" ] && [ "$panel_names_val" != "1" ]; then
       validation=undeclared
-      validation_why="the newest declared review_ledger carries no readable validation-agent flag ('$panel_names_val'), so whether it names the mandatory lane cannot be answered"
+      validation_why="the newest declared panel carries no readable validation-agent flag ('$panel_names_val'), so whether it names the mandatory lane cannot be answered"
     elif [ "$panel_names_val" = "0" ]; then
       validation=n/a
     elif newer "$newest_val" "$newest_panel"; then
@@ -636,7 +651,7 @@ EOJ
       # See WHAT IT CANNOT SEE in the header; the id is the third state, not a
       # new one.
       validation=undeclared
-      validation_why="the newest declared review_ledger names @validation-agent and nothing may emit the reviewer_verdict that would discharge it — unfalsifiable until #182 declares the artifact class a validation result carries"
+      validation_why="the newest declared panel names @validation-agent and nothing may emit the reviewer_verdict that would discharge it — unfalsifiable until #182 declares the artifact class a validation result carries"
     fi
   fi
 
