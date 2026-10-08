@@ -19,7 +19,7 @@ This is a deliberate split, not an accident of tooling. **Anyone "simplifying" i
 **An MCP server carries one identity.** If the judge posted through the same MCP connection as the agent that wrote the code, that boundary disappears and nothing in the history would show it. So:
 
 - **Never set `GITHUB_MCP_TOKEN` to the judge's token**, and never the reverse. Two tokens, two accounts, always.
-- **Everything in the CLI row goes out prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, even when the MCP is connected and would be more convenient — `@validation-agent`'s result and a courier's persisted verdict included. **A verdict is never posted under another login** (#206).
+- **Everything in the CLI row is posted by `@pr-judge` alone, prefixed with `GH_TOKEN="$GH_JUDGE_TOKEN"`**, even when the MCP is connected and would be more convenient; `@validation-agent` and a courier hand it their artifact (#206#issuecomment-6055020859). **A verdict is never posted under another login.**
 - **The token is referenced by name only and must never be read, printed, logged, or echoed.** Pass it through the environment.
 
 Everything that is *not* a judgment — the scrum-master's promotions, the story-organizer's issue creation, the coordinator's reads — should prefer the MCP. It avoids the shell-quoting hazards below entirely.

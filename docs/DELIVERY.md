@@ -293,7 +293,7 @@ The last row is the one that keeps the others honest: **the large graph is not f
 
 ## Review identity
 
-Review agents comment on the pull request or issue under a **separate GitHub identity** from the repository owner's — `TheReviewNinja`, for everything that judges, per `turfgps-board-ops § Two channels, two identities — do not collapse them`.
+Everything that judges is posted to the pull request or issue under a **separate GitHub identity** from the repository owner's — `TheReviewNinja`, by `@pr-judge` alone, to which every other agent hands its artifact (`turfgps-board-ops § Two channels, two identities — do not collapse them`).
 
 Authorship and approval must not share a signature. Self-approval is not review, and a distinct identity makes the boundary visible in the history rather than merely intended.
 

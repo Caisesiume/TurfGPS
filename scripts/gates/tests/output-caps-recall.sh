@@ -1027,7 +1027,7 @@ check_lacks "filter died · ... and never says clean"                           
 # the guard goes away in silence. `need_row` below is what replaces an accident
 # of ordering with a check.
 #
-# The shape exercised is the one @validation-agent actually posts. Its gate
+# The shape exercised is the one @validation-agent actually produces. Its gate
 # lines are EVIDENCE and are counted; its `findings:` list is the excluded part,
 # because a cap that counted the defects would bound how many the gates are
 # allowed to find. Both halves are asserted at the level of the VERDICT, not
@@ -1041,7 +1041,7 @@ VALCAP="$(cap_of validation_result)"
 # FENCED, first line to last, which is how the majority of these are posted.
 # The split between the fenced and bare shapes, the population it was counted
 # over and the instant it was counted at are recorded in
-# `validation-agent § Post your result to the PR before your pass ends` and are
+# `validation-agent § How a validation result is retrieved` and are
 # not copied here: a hand-kept second statement of a measured number drifts
 # while every assertion of the day still passes, which is the failure the
 # coverage block at the foot of this file exists to avoid. The declaration is
