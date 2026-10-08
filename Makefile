@@ -62,7 +62,7 @@ BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates d8-claims output-caps prose-licence fmt vet lint test build image clean
+.PHONY: help gates d8-claims output-caps prose-licence size-ratchet fmt vet lint test build image clean
 
 help:
 	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
@@ -71,6 +71,7 @@ help:
 	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
 	@echo '  make output-caps ARTIFACTS="<path>..."  is each artifact within the cap its row sets'
 	@echo '  make prose-licence ARTIFACTS="<path>..."  does each declare a licence the table defines'
+	@echo '  make size-ratchet  has any agent definition or skill grown past its byte baseline'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
@@ -195,6 +196,15 @@ output-caps:
 prose-licence:
 	@bash scripts/gates/tests/prose-licence-recall.sh
 	@bash scripts/gates/prose-licence.sh $(foreach p,$(ARTIFACTS),"$(p)")
+
+# No agent definition or skill grows past its byte baseline (#207). When it is
+# required is `local-gates § Documentation gates`; what it counts, and how a
+# file may grow, are the script's header. Kept out of `gates` for the reason
+# the `d8-claims` comment gives. No recall corpus runs first: its falsifier —
+# one file grown by a byte fails it, one shrunk passes — is a command re-run by
+# hand, recorded in the PR that closed #207.
+size-ratchet:
+	@bash scripts/gates/size-ratchet.sh
 
 # gofmt -l names the files it would reformat and exits 0 whether or not it
 # names any, so the list is the result and has to be tested, not merely

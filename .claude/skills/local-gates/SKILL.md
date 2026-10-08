@@ -43,6 +43,8 @@ The documentation set depends on three mechanical properties. Each has been brok
 >
 > Gate 1 has four parts — resolution, delimiter conformance, the pattern check, and the inbound check — and **a PR reporting gate 1 states which of the four it ran, and over which files.** Resolution and delimiter conformance can be judged on any file. The pattern check reaches only the files holding its licence, so a PR whose files fall on both sides of the converted-file list has used both methods and reports both; naming only the cheaper one overstates what was opened. The inbound check ranges over the diff rather than over files, and **`n/a` is one of its results, not one of its silences** — it is the answer a PR gives when it renamed no heading and retracted no claim, and it is only worth anything because a PR that did rename one cannot give it.
 
+**`make size-ratchet` fails when an agent definition or a skill has grown past its baseline**, and is required on every PR touching `.claude/agents/` or `.claude/skills/`; what it counts, and how a file may grow, are in `scripts/gates/size-ratchet.sh`'s header.
+
 ---
 
 ## Code gates
