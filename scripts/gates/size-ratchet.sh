@@ -34,8 +34,9 @@
 # WHAT IT CANNOT SEE:
 #   - whether a reason is new. A growth edit keeping the old reason passes;
 #     the diff shows it, and that half is the reviewer's.
-#   - growth moved out of the set — into a skill's supporting file, or a
-#     document a definition cites. Only the two globs above are measured.
+#   - growth moved out of the set — into a skill's supporting file, a
+#     document a definition cites, or a dotfile, which a shell glob skips.
+#     Only the two globs above are measured.
 #   - the commit. It measures the working tree, so an uncommitted edit counts;
 #     a commit is measured by checking it out.
 #   - a path holding whitespace, which no row can name. That file fails as
@@ -47,9 +48,9 @@
 #           printed with its numbers
 #        2  cannot run — given an argument; the baseline is unreadable, holds a
 #           line that does not parse, names a path twice or holds no row; no
-#           file matched; or a file could not be read or measured zero bytes.
-#           Outranks 1, and every line found is still printed. Never reported
-#           as clean.
+#           file matched; or a file could not be read or counted, or counted
+#           zero bytes. Outranks 1, and every line found is still printed.
+#           Never reported as clean.
 
 set -uo pipefail
 
@@ -124,12 +125,13 @@ fi
 STREAM=''
 for f in "$@"; do
   rel="${f#"$ROOT"/}"
-  n=''
+  n=''; why='unreadable'
   if [ -f "$f" ] && [ -r "$f" ]; then
+    why='its count could not be taken'
     n="$(LC_ALL=C tr -d '\r' < "$f" | LC_ALL=C wc -c)" || n=''
     n="${n//[!0-9]/}"
   fi
-  if [ -z "$n" ]; then why='unreadable'
+  if [ -z "$n" ]; then :
   elif [ "$n" -eq 0 ]; then why='zero bytes, which this gate will not vouch for'
   else printf -v line 'M\t%s\t%s\n' "$n" "$rel"; STREAM+="$line"; continue
   fi
