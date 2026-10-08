@@ -16,9 +16,9 @@
 # method this file now holds itself to:
 #
 #   1. EVERY EXPECTED ANSWER IS DERIVED FROM A NAMED SOURCE, cited at the fixture.
-#      B1's source is `pr-judge § Phase 9` -> `§ Phase 10`, quoted below. Where the
-#      detector's answer differs from the source, this corpus goes red and the
-#      source wins.
+#      B1's source is the pre-#206 `pr-judge § Phase 9` -> `§ Phase 10`, quoted
+#      below. Where the detector's answer differs from the source, this corpus
+#      goes red and the source wins.
 #   2. THE TRANSPORT HOLDS NO ALGORITHM. The stubbed `gh` used to re-implement the
 #      detector's marker extraction in awk — a twin that would have been wrong in
 #      the same way at the same time. Each fixture comment now DECLARES the record
@@ -69,8 +69,8 @@
 #              after it.
 #
 # B1 IS DERIVED FROM THE POSTING CONTRACT AND NOT FROM A CLOCK, AND THAT IS THE
-# CORRECTION THIS CYCLE MAKES. `pr-judge § Phase 9 — Rule` posts the judgment
-# comment; `§ Phase 10 — Ledger, convergence, budget` posts the ledger. In that
+# CORRECTION THIS CYCLE MAKES. Before #206, `pr-judge § Phase 9 — Rule` posted the
+# judgment comment, `§ Phase 10 — Ledger, convergence, budget` the ledger. In that
 # order, on every path — approve and remand alike. So ON EVERY CORRECTLY RULED PR
 # THE LEDGER IS THE NEWER OF THE TWO, and "a judgment after the panel" is FALSE on
 # exactly the PRs that were handled properly. Measured across 9 of 9 ruled cycles
@@ -254,7 +254,7 @@ SHA135='d5f3a58'
 SHA135_LONG='d5f3a58c9b1e2f3a4b5c6d7e8f90123456789abc'
 SHA_OLD='aaaa111bbbb222cccc333dddd444eeee5555ffff'
 
-# THE CONTRACT'S OWN POSTING TIMES. `pr-judge § Phase 9` posts the judgment and
+# THE PRE-#206 CONTRACT'S POSTING TIMES. `pr-judge § Phase 9` posted the judgment,
 # `§ Phase 10` the ledger; on #181 cycle 1 that was 18:40:55Z then 18:41:01Z. Every
 # correctly-ruled fixture below uses that pair, so the corpus is asserting against
 # the shape the contract actually produces rather than against a convenient one.
@@ -394,7 +394,7 @@ cycle: 3
 BODY
 
 # --- B1b  clear: THE CONTRACT'S OWN ORDER, and the fixture cycle 1 got backwards -
-# `pr-judge § Phase 9` posts the judgment, `§ Phase 10` posts the ledger, six
+# Pre-#206 `pr-judge § Phase 9` posted the judgment, `§ Phase 10` the ledger, six
 # seconds later on #181 cycle 1 and in that order on 9 of 9 ruled cycles. So the
 # ledger is the NEWER artifact on every correctly ruled PR, and a detector asking
 # for "a judgment after the panel" answers `owed` here — on the one shape that
@@ -1086,7 +1086,7 @@ hdg() { awk -v k="$2" 'NR == k {print $2}' "$FIX/pr$1/records.heading"; }
 [ "$(awk '$2 == "reviewer_verdict" {print $3}' "$FIX/pr926/records.declared")" = '' ] \
   || die "B2g must declare NO reviewer_verdict — the over-report it pins is the ledger's table standing alone"
 # B1's centre: the two artifacts of one panel declare ONE identity, and the
-# judgment is the OLDER of the two — `pr-judge § Phase 9` before `§ Phase 10`.
+# judgment is the OLDER — pre-#206 `pr-judge § Phase 9` before `§ Phase 10`.
 [ "$(awk 'NR == 1 {print $2, $5, $6}' "$FIX/pr911/records.declared")" = "judgment $SHA181 3" ] \
   && [ "$(awk 'NR == 2 {print $2, $5, $6}' "$FIX/pr911/records.declared")" = "review_ledger $SHA181 3" ] \
   || die "B1b must be judgment-then-ledger of ONE identity or it is not the contract's own order"
@@ -1185,7 +1185,8 @@ check_has "A4  ... and a zero-day gap is reported rather than swallowed"    "0 d
 check_has "A1  ... and the second gap is labelled, not left to be confused" "(now-minus-packet)"
 
 # CONDITION B1 (#178 criterion 2) — a convened panel with no ruling of its own
-# identity. Derived from `pr-judge § Phase 9` -> `§ Phase 10`; see the header.
+# identity. Derived from the pre-#206 `pr-judge § Phase 9` -> `§ Phase 10`; see
+# the header.
 cls "B1a a panel with no ruling at all is OWED"                             910 undeclared owed       n/a
 cls "B1b THE CONTRACT'S ORDER: judgment then ledger, one identity, CLEAR"   911 undeclared clear      n/a
 cls "B1c a ruling of ANOTHER panel's identity does not rule this one"       912 undeclared owed       n/a

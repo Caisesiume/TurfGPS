@@ -15,8 +15,8 @@
 #   B (#178)  a convened panel with no ruling OF ITS OWN IDENTITY — the panel
 #             and its ruling both declare `sha:` and `cycle:`, and the ruling is
 #             matched to the panel by those and never by posting order, which
-#             the judge's own contract fixes the other way round (see B1 in the
-#             body) — and a panel naming @validation-agent with no validation
+#             the judge's pre-#206 contract fixed the other way round (see B1 in
+#             the body) — and a panel naming @validation-agent with no validation
 #             verdict after it, WHICH THIS SCRIPT CANNOT CURRENTLY DISCHARGE at
 #             all (see WHAT IT CANNOT SEE below before acting on such a line).
 #             Measured on #135 cycle 4, #135 cycle 5 and #154 cycle 6: the pass
