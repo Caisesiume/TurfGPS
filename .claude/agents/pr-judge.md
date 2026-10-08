@@ -247,7 +247,7 @@ Classify each by **root cause** — implementation · requirement · architectur
 
 > ⚠️ **Identity constraint:** GitHub refuses `pr review --approve` / `--request-changes` on a PR authored by the same account the judge runs under, and authorship and approval must not share a signature in any case. Everything below goes out with **`GH_JUDGE_TOKEN`**, **referenced by name only and never read, printed, logged, or echoed** — pass it through the environment. The full rule, including why a failing token is a stop-and-report rather than a fallback to the plain CLI, is in `review-board-dispatch § Review identity`.
 
-**One comment per cycle carries the whole ruling** — judgment, packet on a remand, ledger — per `§ Output Template`; `make output-caps` (`local-gates § Artifact caps`) measures it first; **it is posted only once it reads `under`**. **Every ruling then files one review bound to the full SHA it ruled** (#180) and sets the label below, unless the head has moved: the ruling is stale.
+**One comment per cycle carries the whole ruling** — judgment, packet on a remand, ledger — per `§ Output Template`; `make output-caps` (`local-gates § Artifact caps`) measures it first; **it is posted only once it reads `under`**. **Every ruling then files one review bound to the full SHA it ruled** (#180) and sets the label below; on a moved head, neither: the ruling is stale.
 
 ```bash
 GH_TOKEN="$GH_JUDGE_TOKEN" "$GH" pr comment <n> --body-file <ruling-file>
