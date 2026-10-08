@@ -894,16 +894,22 @@ cycle: 2
 ruling: remaned
 BODY
 # R6, R7: the two rulings that order no revision and approve nothing, R3's shape.
-for rv in 955:recommended 956:escalated; do
-pr "${rv%%:*}"; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
-cmt "$T_JUDGMENT" judgment - 0 "$SHA181" 1 - - "${rv#*:}" <<BODY
+pr 955; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$T_JUDGMENT" judgment - 0 "$SHA181" 1 - - recommended <<BODY
 artifact: judgment
 prose_licence: none
 sha: $SHA181
 cycle: 1
-ruling: ${rv#*:}
+ruling: recommended
 BODY
-done
+pr 956; commits "2026-08-27T09:00:00Z" "$LASTCOMMIT"
+cmt "$T_JUDGMENT" judgment - 0 "$SHA181" 1 - - escalated <<BODY
+artifact: judgment
+prose_licence: none
+sha: $SHA181
+cycle: 1
+ruling: escalated
+BODY
 # R8: every id read is the judge's (#206), so a stranger's ruling comment is not
 # read. Read, it would rule itself and clear A; the real panel beside it stays
 # unruled, and the comment is named for the Owner (ADR-0004 § D2).
