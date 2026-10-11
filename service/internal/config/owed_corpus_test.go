@@ -45,16 +45,37 @@ const (
 	deploymentTableHeader = "| Variable |"
 )
 
-// owedBullet matches a top-level bullet of that section and captures the bold
-// span it opens with, which is how the section names each constant.
+// listMarker is the opening of a Markdown list item: a bullet marker — `*`,
+// `-` or `+` — or an ordered one — `1.`, `1)` — then at least one space or tab.
+// It is written once and used by both patterns below, so the set of markers
+// this file reads cannot drift between the question "is this line a list item
+// at all" and the question "does this item name a constant".
+//
+// IT IS EVERY MARKER MARKDOWN ALLOWS AND NOT THE ONE THE SECTION USES TODAY.
+// The section is authored with `*`. A reader that recognised `*` alone let a
+// third constant authored with `+`, or with a tab after its marker, through
+// this file without a word — not reported, not read, and the registry then
+// measured against a section it did not cover. Which marker a line opens with
+// therefore decides nothing here: every list item in the section is either read
+// as a constant or reported, and the loop in documentedOwedNames is where that
+// is argued.
+const listMarker = `(?:[*+-]|\d{1,9}[.)])\s+`
+
+// listItem matches a list item, under any marker, at the start of the string it
+// is given. Against a trimmed line that is "a list item at any depth"; against
+// the raw line it is "a list item at column 0".
+var listItem = regexp.MustCompile(`^` + listMarker)
+
+// owedBullet matches a list item opening with a bold span and captures the
+// span, which is how the section names each constant.
 //
 // It is matched two ways and the difference carries the whole distinction.
 // Against the RAW line its anchor is a column-0 anchor and a match is a
 // constant. Against the TRIMMED line it recognises the same shape at any depth
-// and names nothing — it serves only to tell an indented bullet shaped like a
+// and names nothing — it serves only to tell an indented item shaped like a
 // constant from an ordinary note. documentedOwedNames below is where that
 // distinction is drawn and argued.
-var owedBullet = regexp.MustCompile(`^[*-]\s+\*\*(.+?)\*\*`)
+var owedBullet = regexp.MustCompile(`^` + listMarker + `\*\*(.+?)\*\*`)
 
 // deploymentTableRow matches one row of the deployment table, capturing the
 // variable from the code span the first cell holds and the constant's
@@ -80,7 +101,7 @@ var deploymentTableRow = regexp.MustCompile("^\\|\\s*`([^`]+)`\\s*\\|\\s*(.+?)\\
 // is read as agreement by everyone downstream. Each fatal below therefore says
 // what went unmeasured in its own words.
 func TestOwedRegistryAgreesWithTheSection(t *testing.T) {
-	inSection := documentedOwedNames(t)
+	inSection, indented := documentedOwedNames(t)
 
 	inRegistry := make([]string, 0, len(owed))
 	for _, constant := range owed {
@@ -93,6 +114,20 @@ func TestOwedRegistryAgreesWithTheSection(t *testing.T) {
 	}
 
 	for _, name := range missingFrom(inSection, inRegistry) {
+		// A registered name the section carries only as an indented item was
+		// reported by documentedOwedNames already, as a line it could not tell
+		// from a note. The registry settles that here: it holds the name, so
+		// the item is the constant moved below column 0 and not a note. The
+		// message every other name gets sends a reader to the registry entry,
+		// and removing it is the one repair that lets the service start with
+		// the constant unconfigured — so that message is not offered for these.
+		if indented[name] {
+			t.Errorf("the registry in owed.go holds %q and %s now records it only as an indented list item, reported above as a line this test does not read as a constant. The registry holding the name settles which of that report's two readings applies: it is the constant, moved below column 0. Restore it to column 0 there, and do not remove it from the registry — that would let the service start with it unconfigured, which is the state FR-091 refuses",
+				name, owedSectionHeading)
+
+			continue
+		}
+
 		t.Errorf("the registry in owed.go holds %q and %s no longer records it as owed, so the service refuses to start over a value no document owes. Read that section: either the constant was renamed there, or it now has a value and its entry belongs elsewhere",
 			name, owedSectionHeading)
 	}
@@ -265,8 +300,10 @@ func deploymentTableRows(t *testing.T) []string {
 }
 
 // documentedOwedNames returns the constants the cited section records as owed,
-// named exactly as it names them.
-func documentedOwedNames(t *testing.T) []string {
+// named exactly as it names them — and, keyed by name, the indented list items
+// it reported rather than read, so the caller can tell a registered constant
+// that moved below column 0 from one the section stopped recording.
+func documentedOwedNames(t *testing.T) ([]string, map[string]bool) {
 	t.Helper()
 
 	lines, found, err := sectionLines(specPath, owedSectionHeading)
@@ -282,17 +319,26 @@ func documentedOwedNames(t *testing.T) []string {
 
 	var names []string
 
+	indented := make(map[string]bool)
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		if !strings.HasPrefix(trimmed, "* ") && !strings.HasPrefix(trimmed, "- ") {
+		// A line that is no list item at any depth — prose, a blank line — is
+		// the only kind that leaves this loop neither read nor reported. What
+		// decides it is listMarker, which is every marker Markdown allows, so no
+		// choice of marker can make a constant one of these lines: an item
+		// authored with `+`, with an ordered marker, or with a tab after its
+		// marker reaches the cases below like any other.
+		if !listItem.MatchString(trimmed) {
 			continue
 		}
 
 		// THREE CASES, SEPARATED BY THE SECTION'S OWN CONVENTION: it names each
-		// owed constant in a bold span opening a bullet at column 0. A bullet at
-		// column 0 is read as a constant. A bullet below column 0 that opens the
-		// same way is REPORTED. A bullet below column 0 that does not is skipped.
+		// owed constant in a bold span opening a list item at column 0. An item
+		// at column 0 is read as a constant. An item below column 0 that opens
+		// the same way is REPORTED. An item below column 0 that does not is
+		// skipped, as the note it is.
 		//
 		// The middle case is the one this file got wrong in both directions
 		// before settling here. Dropping it silently is how a constant leaves the
@@ -302,17 +348,21 @@ func documentedOwedNames(t *testing.T) []string {
 		// That is the same hazard the match == nil branch below reports rather
 		// than skips, and it is reported here for the same reason. Reading a NAME
 		// from it instead is the opposite error and just as costly: the failure
-		// that surfaces then asks for the bullet to be registered, and a note
+		// that surfaces then asks for the item to be registered, and a note
 		// registered as a constant makes the service refuse to start over
-		// something no document owes.
+		// something no document owes. The name is kept all the same, so the
+		// caller can tell a registered constant that moved below column 0 from a
+		// note, and say so instead of asking for the entry to be removed.
 		//
 		// The shape is not hypothetical. That section records that the gradient
 		// threshold may need to be per elevation provider, and per-provider
-		// sub-bullets are the natural way to author that — read the entry under
+		// sub-items are the natural way to author that — read the entry under
 		// `CalculationSpecification.md § Enforcement constants that do not yet exist`.
-		if !strings.HasPrefix(line, "* ") && !strings.HasPrefix(line, "- ") {
-			if owedBullet.MatchString(trimmed) {
-				t.Errorf("%s carries the indented bullet %q, which opens with a bold span exactly as that section names an owed constant, and this test reads constants at column 0 only — so it was left out of the comparison entirely and the registry in owed.go was measured against a section this test did not fully read. It is one of two things and nothing here can tell them apart: a constant, in which case it belongs at column 0 and in the registry, or a note qualifying the constant above it, in which case the bold span opening it is what makes it unreadable here. Do not register it on the strength of this failure alone — a note in the registry makes the service refuse to start over something no document owes.",
+		if !listItem.MatchString(line) {
+			if match := owedBullet.FindStringSubmatch(trimmed); match != nil {
+				indented[match[1]] = true
+
+				t.Errorf("%s carries the indented list item %q, which opens with a bold span exactly as that section names an owed constant, and this test reads constants at column 0 only — so it was left out of the comparison entirely and the registry in owed.go was measured against a section this test did not fully read. It is one of two things and nothing here can tell them apart: a constant, in which case it belongs at column 0 and in the registry, or a note qualifying the constant above it, in which case the bold span opening it is what makes it unreadable here. Do not register it on the strength of this failure alone — a note in the registry makes the service refuse to start over something no document owes.",
 					owedSectionHeading, line)
 			}
 
@@ -321,10 +371,10 @@ func documentedOwedNames(t *testing.T) []string {
 
 		match := owedBullet.FindStringSubmatch(line)
 		if match == nil {
-			// Reported rather than skipped: a bullet this cannot name is a
+			// Reported rather than skipped: an item this cannot name is a
 			// constant that silently leaves the comparison, which is the same
 			// staleness arriving through the parser instead of the registry.
-			t.Errorf("%s carries the bullet %q and this test cannot read a constant's name from it, so that bullet was left out of the comparison entirely. The section names each owed constant in a bold span opening its bullet; either that bullet is not a constant, or the convention changed and this test must change with it.",
+			t.Errorf("%s carries the list item %q and this test cannot read a constant's name from it, so that item was left out of the comparison entirely. The section names each owed constant in a bold span opening its item; either that item is not a constant, or the convention changed and this test must change with it.",
 				owedSectionHeading, line)
 
 			continue
@@ -338,7 +388,7 @@ func documentedOwedNames(t *testing.T) []string {
 			owedSectionHeading, specPath)
 	}
 
-	return names
+	return names, indented
 }
 
 // missingFrom returns every element of want that have does not hold, sorted so
