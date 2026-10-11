@@ -5,7 +5,7 @@ description: What every agent must know before touching a TurfGPS safety path โ€
 
 # Safety-Path Checklist
 
-TurfGPS moves no money. Its equivalent stakes are physical: a defect here proposes that a driver stop somewhere they must not, or promises a stop they cannot make. A **safety path** = access classification, stop-position selection, routing exclusions, the time ceiling, and the constants feeding any of them. Diffs here always convene @safety-sentinel at the bench, and per `docs/DELIVERY.md` they always reach a human.
+TurfGPS moves no money. Its equivalent stakes are physical: a defect here proposes that a driver stop somewhere they must not, or promises a stop they cannot make. A **safety path** = access classification, stop-position selection, routing exclusions, the time ceiling, and the constants feeding any of them. Diffs here always convene `safety-sentinel`, and per `team-protocol ยง Escalation and human judgement` they always reach the Owner.
 
 ## The measure of success
 
