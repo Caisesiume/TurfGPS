@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fingerprint-isolation.sh — proves fingerprint.sh's per-consumer state actually isolates.
 # The consume bug this guards: one consumer's CHANGED must never be spent on another's
-# behalf — the rule and its two halves are in `agent-handoffs § The trigger block`.
+# behalf — the lead gates on its own consumer name (`engineering-lead § Every wake`).
 # Asserted mechanically because "it looks per-consumer" is what a shared-state version
 # also looks like right up until two agents share a wake.
 #

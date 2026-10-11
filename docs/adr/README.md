@@ -10,7 +10,7 @@ A decision recorded in a conversation is lost the moment the conversation ends; 
 
 **A recurring lesson gets an ADR, a registry rule, or a skill update — never resident context.** If the same finding keeps being raised, the fix is to write the rule where future agents retrieve it, not to carry the lesson forward in a conversation that will end. That is the whole of the directive's §29, and this folder is one of its three destinations.
 
-Not everything is owed one. A choice with a single obeying agent belongs in that agent's definition; a rule about how a record is shaped belongs in the `requirements-authoring` skill; a rule about how a board is convened belongs in `review-board-dispatch`. **Put the rule where the agent that must obey it will look**, and use an ADR when that place is "everywhere" or "the reason, not the rule".
+Not everything is owed one. A choice with a single obeying agent belongs in that agent's definition; a rule about how a record is shaped belongs in the `requirements-authoring` skill; a rule every agent obeys belongs in `team-protocol`. **Put the rule where the agent that must obey it will look**, and use an ADR when that place is "everywhere" or "the reason, not the rule".
 
 ## Form
 
@@ -25,11 +25,12 @@ State the cost as well as the benefit. A record that lists only advantages is ad
 
 | Record | Subject |
 |---|---|
-| `agent-org-directive.md` | Not an ADR — the Owner's directive of 2026-08-10, kept verbatim as the source order ADR-0001 adapts |
-| `ADR-0001-artifact-driven-agent-org.md` | The ratified adaptation of that directive onto this repository's fleet |
-| `agent-org-directive-2.md` | Not an ADR — the Owner's second directive of 2026-08-10, kept verbatim as the source order ADR-0002 adapts |
-| `ADR-0002-token-efficiency.md` | Token efficiency of the agent organization — the audited leaks and the fourteen ratified optimizations |
-| `agent-org-directive-3.md` | Not an ADR — the Owner's third directive of 2026-08-10, kept verbatim as the source order ADR-0003 adapts |
-| `ADR-0003-backlog-dependency-planner.md` | A dedicated owner for the persistent Epic/story dependency graph — the edges leave `@scrum-master`, which now consumes them |
-| `agent-org-directive-4.md` | Not an ADR — the Owner's fourth and final directive of 2026-08-10, kept verbatim. Ratified **into** ADR-0001 (stability rule) and ADR-0003 (amendments A1–A3); per its own §26 it produced no ADR of its own |
+| `agent-org-directive.md` | Not an ADR — the Owner's directive of 2026-08-10, kept verbatim as the source order ADR-0001 adapts. Superseded as an order by ADR-0005 |
+| `ADR-0001-artifact-driven-agent-org.md` | The ratified adaptation of that directive onto this repository's fleet. Process parts superseded by ADR-0005 |
+| `agent-org-directive-2.md` | Not an ADR — the Owner's second directive of 2026-08-10, kept verbatim as the source order ADR-0002 adapts. Superseded as an order by ADR-0005 |
+| `ADR-0002-token-efficiency.md` | Token efficiency of the agent organization — the audited leaks and the fourteen ratified optimizations. Process parts superseded by ADR-0005 |
+| `agent-org-directive-3.md` | Not an ADR — the Owner's third directive of 2026-08-10, kept verbatim as the source order ADR-0003 adapts. Superseded as an order by ADR-0005 |
+| `ADR-0003-backlog-dependency-planner.md` | A dedicated owner for the persistent Epic/story dependency graph — the edges leave `@scrum-master`, which now consumes them. Process parts superseded by ADR-0005; the `## Dependencies` representation survives |
+| `agent-org-directive-4.md` | Not an ADR — the Owner's fourth and final directive of 2026-08-10, kept verbatim. Ratified **into** ADR-0001 (stability rule) and ADR-0003 (amendments A1–A3); per its own §26 it produced no ADR of its own. Superseded as an order by ADR-0005 |
 | `ADR-0004-artifact-author-trust-boundary.md` | Artifact authorship is a trust boundary — two trusted logins, an Owner escalation for every other author of an artifact, and the fields a retrieval must retain |
+| `ADR-0005-lean-team.md` | The lean team (#210) — six agents, scripts for the mechanical work, typed answers with thresholds, agents and skills under 100 KB; carries the Owner rulings forward and redirects citations to removed homes |

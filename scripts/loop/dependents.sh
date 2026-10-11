@@ -4,12 +4,14 @@
 # Runs when a story merges or closes. It answers deterministically the question
 # that would otherwise wake an LLM to re-read the whole backlog: which open
 # stories name #N as a HARD blocker, and which of those have no open blocker
-# left. @scrum-master evaluates the `eligible:` list for Ready;
-# @backlog-dependency-planner runs this before any subgraph pass. Neither
-# reasons about the graph to obtain a fact grep already holds.
+# left. With `--all` it asks that of every open story with a declared blocker,
+# which is how scripts/team/board-sync.sh promotes Backlog → Ready (#210).
+# Nothing reasons about the graph to obtain a fact grep already holds.
 #
 # Hard blockers only. `Blocked by:` lines inside the issue body's `## Dependencies` section
-# are the graph — the grammar is in `turfgps-board-ops § The dependency representation`.
+# are the graph — the grammar is stated in `team-protocol § Board`, and every shape of
+# it is pinned by scripts/loop/tests/dependents-declared-edges.sh. Until #210 its full
+# table was `turfgps-board-ops § The dependency representation`; git history keeps it.
 # `Soft dependency:` lines are deliberately NOT read here: a soft edge never blocks
 # readiness, so counting one would manufacture a blocker and hold work the board
 # never intended to hold.
@@ -19,15 +21,15 @@
 # computes`. Only the leading `#N` list, before the reason begins, is an edge; the
 # rest of the line is provenance. Scanning the whole line manufactured blockers
 # nobody declared, and because a satisfied edge's line stays in the body forever
-# (`turfgps-board-ops § Satisfied is not removed`) such a phantom blocked its story
+# (a satisfied edge stays as provenance, `team-protocol § Board`) such a phantom blocked its story
 # permanently — #136 was held on a pull request its own reason merely mentioned.
 #
 # SATISFIED MEANS SUCCESSFULLY COMPLETE, not merely closed (directive-4 §13). A
 # blocker is satisfied iff it is CLOSED with stateReason COMPLETED — or with no
 # stateReason at all, which is how a legacy plain close reads. Closed as
 # NOT_PLANNED or DUPLICATE is work that never happened: it STILL BLOCKS and is
-# printed with its reason, so @scrum-master files a `dependency_finding` instead
-# of promoting a story onto dead work. Any other closed reason blocks too — the
+# printed with its reason, so the story is flagged instead of promoted onto
+# dead work. Any other closed reason blocks too — the
 # ambiguous case fails toward blocked, always.
 #
 # A REFERENCE MAY BE A PULL REQUEST. Issue and PR numbers share one sequence and
@@ -43,6 +45,7 @@
 # That is unchanged; it now reaches only references that were actually declared.
 #
 # Usage: scripts/loop/dependents.sh <issue-number>
+#        scripts/loop/dependents.sh --all      every open story with a declared blocker
 # Exit:  0  read the board (prints `none` when nothing depended on #N)
 #        2  no argument, or GitHub could not be read at all
 
@@ -50,8 +53,10 @@ set -u
 
 N="${1:-}"
 case "$N" in
-  ''|*[!0-9]*) echo "usage: dependents.sh <issue-number>" >&2; exit 2 ;;
+  --all) N=all ;;
+  ''|*[!0-9]*) echo "usage: dependents.sh <issue-number> | --all" >&2; exit 2 ;;
 esac
+LABEL="#$N"; [ "$N" = all ] && LABEL=all
 
 GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 
@@ -75,7 +80,7 @@ GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 # two dialects, so a label widened here is widened there in the same commit. Widened
 # here alone, a line crosses the boundary the strip cannot match — `Blocks: #7 · #41`
 # reaches the awk, the strip declines it, no `#` opens `rest`, and it yields no edge.
-lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
+lines="$("$GH" issue list --state open --limit 1000 --json number,body --jq '
   .[]
   | select(.body != null)
   | {n: .number,
@@ -91,8 +96,8 @@ lines="$("$GH" issue list --state open --limit 200 --json number,body --jq '
 # joined across a story's several `Blocked by:` lines, in the order the body gives.
 # THE BOUNDARY IS NOT DEFINED HERE. Where the declared list begins and ends, what
 # glue is, what an empty list declares and which way ambiguity resolves are all the
-# grammar's, and the grammar's one home is `turfgps-board-ops § The dependency representation`
-# — read the rule there, and change it there first. This says only what the awk does
+# grammar's: `team-protocol § Board` states it, and the fixture suite pins each shape
+# — change a fixture there first. This says only what the awk does
 # to implement it, in three steps: cut the reason where the line declared nothing
 # before its dash, strip the label, take the opening run of `#N`.
 # THE CUT IS CONDITIONAL, because the dash opens the reason only on such a line. On
@@ -123,17 +128,22 @@ pairs="$(printf '%s\n' "$lines" | awk '
 
 if [ -z "$pairs" ]; then
   "$GH" auth status >/dev/null 2>&1 || { echo "error: could not read GitHub" >&2; exit 2; }
-  printf 'dependents_of: #%s\nnone\n' "$N"
+  printf 'dependents_of: %s\nnone\n' "$LABEL"
   exit 0
 fi
 
 # Exact membership, not a substring match: #4 must never match #41, and comparing
 # parsed numbers is stronger than any word-boundary pattern over the raw line.
-deps="$(printf '%s\n' "$pairs" | awk -v n="$N" '
-  { c = split($2, a, ","); for (i = 1; i <= c; i++) if (a[i] == n) { print; next } }')"
+# `--all` keeps every story: the question is then asked of each of them.
+if [ "$N" = all ]; then
+  deps="$pairs"
+else
+  deps="$(printf '%s\n' "$pairs" | awk -v n="$N" '
+    { c = split($2, a, ","); for (i = 1; i <= c; i++) if (a[i] == n) { print; next } }')"
+fi
 
 if [ -z "$deps" ]; then
-  printf 'dependents_of: #%s\nnone\n' "$N"
+  printf 'dependents_of: %s\nnone\n' "$LABEL"
   exit 0
 fi
 
@@ -193,7 +203,7 @@ done <<EOF
 $deps
 EOF
 
-printf 'dependents_of: #%s\n' "$N"
+printf 'dependents_of: %s\n' "$LABEL"
 if [ -z "$eligible" ]; then
   printf 'eligible: none\n'
 else

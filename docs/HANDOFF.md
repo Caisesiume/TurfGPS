@@ -2,7 +2,7 @@
 
 Written 31 July 2026 to carry context between machines. Read this first if you are starting fresh on this project.
 
-**Amended 10 August 2026.** Section 6 is history: the corpus is stocked and the board carries its stories — `docs/README.md § Current state` is the live picture. The agent organization now runs under `ADR-0001` and `DELIVERY.md`: reviewers convene by registry, ordinary ambiguity is decided under a precedence ladder and logged, and only escalation-qualifying questions reach the Owner.
+**Amended 10 August 2026.** Section 6 is history: the corpus is stocked and the board carries its stories — `docs/README.md § Current state` is the live picture. The agent organization now runs under `ADR-0001` and `DELIVERY.md`: reviewers convene by registry, ordinary ambiguity is decided under a precedence ladder and logged, and only escalation-qualifying questions reach the Owner. **Amended 8 October 2026:** that organization was replaced by the six-agent team in `docs/TEAM.md`, under `ADR-0005`; the ladder and the escalation rule survive.
 
 ---
 
@@ -19,8 +19,8 @@ It is not a zone map and not a navigation app. It is an optimizer with an explan
 1. **`docs/README.md`** — the front door. Explains what each document answers, the current state of the folder, and the conventions the whole set depends on.
 2. **`docs/SPECIFICATION.md`** — roughly 1,065 lines, the authoritative product definition. Purpose, optimization framing, accessibility classification, value model, safety rules, boundaries.
 3. Then whichever of **`docs/CalculationSpecification.md`**, **`docs/Architecture.md`**, and **`docs/DESIGN.md`** the work touches.
-4. **`docs/DELIVERY.md`** — how work is tracked and reviewed.
-5. **`docs/adr/`** — the decision records. `ADR-0001` defines how the agent organization runs.
+4. **`docs/TEAM.md`** — who builds it, and how work is planned, reviewed and merged.
+5. **`docs/adr/`** — the decision records. `ADR-0005` defines how the team runs.
 
 Do not skim `SPECIFICATION.md`. It is long because it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
 
@@ -83,7 +83,7 @@ The rule that made the split necessary now governs the set: **a model has exactl
 
 ### Then: requirements
 
-`Requirements/` is the bottleneck for everything else, and is the next piece of work. Epics and User Stories derive from it, so the GitHub Project board described in `docs/DELIVERY.md` cannot sensibly be built first.
+`Requirements/` is the bottleneck for everything else, and is the next piece of work. Epics and User Stories derive from it, so the GitHub Project board described in `docs/TEAM.md` cannot sensibly be built first.
 
 Expect on the order of 150–250 requirements, in a folder rather than a single file, each carrying a **verification method**. Much of this product's quality bar is human judgement rather than anything machine-checkable — whether a recommended route is a *good* Turf route cannot be asserted by a test — and the requirement must say so, or review will claim to have verified something it did not.
 

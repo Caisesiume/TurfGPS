@@ -455,7 +455,7 @@ exempt=0    # sentences suppressed as retraction records, each printed above
 # path once per stage — four ways to report clean over a file it never opened,
 # on a check whose own design note says it exists for the file that does not
 # exist yet, which is the file most likely to be named by a human. The safe read
-# loop is the one at `scripts/loop/diff-domains.sh:35`.
+# loop is the one at `scripts/loop/diff-domains.sh:43`.
 while IFS= read -r -d '' f; do
   corpus=$((corpus + 1))
 
@@ -584,7 +584,7 @@ if [ "$fail" -eq 0 ]; then
 else
   printf 'd8-root-run-claims: FAIL · corpus %s file(s) · surface %s · part 2 read %s file(s) · part 1: %s · part 2: %s flagged, %s exempted\n' \
     "$corpus" "$surface" "$scanned" "$part1" "$part2" "$exempt"
-  echo "    the homes are Architecture.md § D8, local-gates § Backend (Go), and the Makefile — cite one; do not restate it"
+  echo "    the homes are Architecture.md § D8 and the Makefile — cite one; do not restate it"
 fi
 
 exit "$fail"
