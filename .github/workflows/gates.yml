@@ -1,0 +1,83 @@
+# gates.yml — every gate the change owes, on every pull request and on every
+# push to main (#108).
+#
+# The gate set is `scripts/team/gates.sh`, run with --all. The script decides
+# what runs from what exists — documentation gates always, a stack's gates once
+# its manifest does — runs the Go gates from `service/` (`Architecture.md § D8`),
+# and prints a result in which every field is derived from its gate's exit
+# status. Nothing here names a gate command, so there is no second copy to go
+# stale; nothing here writes a result: the job's conclusion is the script's
+# exit status, and the summary is its output copied verbatim.
+#
+# This runner carries what the reference host lacks — a C compiler, so the race
+# detector runs, and a container runtime, so the image test runs — and a gate
+# the script could not run is `incomplete` (exit 3): red here, never a pass.
+#
+# Supply chain: every action is pinned to a full commit SHA with its version
+# beside it; the job may read the repository and nothing else; no secret is
+# used. Making `gates` a required status check is branch protection, which the
+# Owner sets.
+name: gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: service/go.mod
+          cache-dependency-path: |
+            service/go.mod
+            service/go.sum
+
+      # Installs the linter the lint gate calls; it runs nothing itself.
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+          install-only: true
+
+      # The script's exit status is the step's, and so the job's: 0 pass,
+      # 1 a gate failed, 3 incomplete, 2 cannot run. Its output is the summary.
+      - name: gates.sh --all
+        run: |
+          rc=0
+          bash scripts/team/gates.sh --all > "$RUNNER_TEMP/gates.yml" || rc=$?
+          cat "$RUNNER_TEMP/gates.yml"
+          { echo '```yaml'; cat "$RUNNER_TEMP/gates.yml"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
+      # Each gate's own output, from the directory the result names, so a red
+      # run is readable here and a green one shows what each gate did.
+      - name: gate logs
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/gates.yml" ] || exit 0
+          dir="$(sed -n 's/^  logs: //p' "$RUNNER_TEMP/gates.yml")"
+          [ -n "$dir" ] && [ -d "$dir" ] || exit 0
+          for f in "$dir"/*.log; do
+            [ -f "$f" ] || continue
+            echo "::group::$(basename "$f" .log)"
+            cat "$f"
+            echo "::endgroup::"
+          done
