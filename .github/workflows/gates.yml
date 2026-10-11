@@ -8,6 +8,8 @@
 # status. Nothing here names a gate command, so there is no second copy to go
 # stale; nothing here writes a result: the job's conclusion is the script's
 # exit status, and the summary is its output copied verbatim.
+# On a pull request the tree it measures is the head merged into main —
+# GitHub's merge ref — so `head:` in the result names that merge commit.
 #
 # This runner carries what the reference host lacks — a C compiler, so the race
 # detector runs, and a container runtime, so the image test runs — and a gate
