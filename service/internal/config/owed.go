@@ -72,14 +72,16 @@ type owedConstant struct {
 // keeps the list honest is instead `owed_corpus_test.go`, which reads the
 // section and goes red when the two disagree in either direction. So the class
 // is what binds, not a hand-written pair: a third constant recorded the way that
-// section records one — a bullet opening with its name in a bold span — fails
-// this package until it is added here, and one recorded as that same bullet
-// indented below column 0 is reported rather than dropped.
+// section records one — a list item at column 0, under any Markdown list marker,
+// bulleted or ordered, opening with its name in a bold span — fails this package
+// until it is added here. One recorded as that same item indented below column
+// 0 is reported rather than dropped, and so is an item at column 0 that opens
+// with no bold span.
 //
-// The bullet is the limit of the claim and not an aside. A constant that section
-// came to record in some other shape entirely is outside what that test reads,
-// and this registry would not follow it; `owed_corpus_test.go` states what it
-// reads and where that reading stops.
+// The list item is the limit of the claim and not an aside. A constant that
+// section came to record in some other shape entirely — in prose, in a table —
+// is outside what that test reads, and this registry would not follow it;
+// `owed_corpus_test.go` names the markers it reads and where that reading stops.
 var owed = []owedConstant{
 	{
 		// Defined at
