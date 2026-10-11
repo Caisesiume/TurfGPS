@@ -31,6 +31,12 @@
 # nothing. A row with no file is a measurement this run did not make, and
 # passing it would let a broken glob report half a tree clean. Both fail.
 #
+# AND THE SET HAS A TOTAL CAP (#210): one row whose path is `(total)` holds the
+# most the measured files may weigh together — 102400 bytes, the Owner's
+# "agents + skills ≤ 100 KB". Per-file rows stop each file growing; the cap
+# stops the set growing by adding files. The row is mandatory, and raising it
+# is a baseline edit like any other, so it is reviewed like one.
+#
 # WHAT IT CANNOT SEE:
 #   - whether a reason is new. A growth edit keeping the old reason passes;
 #     the diff shows it, and that half is the reviewer's.
@@ -43,14 +49,15 @@
 #     having no row: closed, not open.
 #
 # Usage: scripts/gates/size-ratchet.sh        (`make size-ratchet`)
-# Exit:  0  every file is within its row, and every row has its file
-#        1  a file is over its row or has none, or a row has no file; each is
-#           printed with its numbers
+# Exit:  0  every file is within its row, every row has its file, and the set
+#           is within the total cap
+#        1  a file is over its row or has none, a row has no file, or the set
+#           is over the cap; each is printed with its numbers
 #        2  cannot run — given an argument; the baseline is unreadable, holds a
-#           line that does not parse, names a path twice or holds no row; no
-#           file matched; or a file could not be read or counted, or counted
-#           zero bytes. Outranks 1, and every line found is still printed.
-#           Never reported as clean.
+#           line that does not parse, names a path twice, holds no row or no
+#           `(total)` row; no file matched; or a file could not be read or
+#           counted, or counted zero bytes. Outranks 1, and every line found is
+#           still printed. Never reported as clean.
 
 set -uo pipefail
 
@@ -59,17 +66,17 @@ ROOT=''
 [ -z "$DIR" ] || ROOT="$(cd "$DIR/../.." 2>/dev/null && pwd)" || ROOT=''
 BASE="$DIR/size-ratchet.baseline"
 
-measured=0; total=0; base_total=0; over=0; norow=0; stale=0; cannot=0
+measured=0; total=0; base_total=0; over=0; norow=0; stale=0; cap=0; over_cap=0; cannot=0
 
 # The summary prints on every path, and the clean line only when something was
 # measured and nothing failed or went unmeasured: a run that measured nothing
 # must not print what a clean run prints.
 finish() {
-  printf 'size-ratchet · %s files · %s of %s bytes · %s over · %s no row · %s stale row\n' \
-    "$measured" "$total" "$base_total" "$over" "$norow" "$stale"
+  printf 'size-ratchet · %s files · %s of %s bytes · cap %s · %s over · %s no row · %s stale row · %s over cap\n' \
+    "$measured" "$total" "$base_total" "$cap" "$over" "$norow" "$stale" "$over_cap"
   [ "$cannot" -eq 0 ] && [ "$measured" -gt 0 ] || exit 2
-  [ $(( over + norow + stale )) -eq 0 ] || exit 1
-  printf 'clean · every file is within its row, and every row has its file\n'
+  [ $(( over + norow + stale + over_cap )) -eq 0 ] || exit 1
+  printf 'clean · every file is within its row, every row has its file, and the set is within its cap\n'
   exit 0
 }
 
@@ -93,7 +100,9 @@ ROWTEXT="$(LC_ALL=C tr -d '\r' < "$BASE" | LC_ALL=C awk '
   /^[ \t]*$/ || /^[ \t]*#/ { next }
   /^[ \t]*[0-9]+[ \t]+[^ \t]+[ \t]+[^ \t]/ {
     if ($2 in seen) { printf "- line %d names %s a second time\n", NR, $2; next }
-    seen[$2] = 1; printf "+ B\t%s\t%s\n", $1, $2; next
+    seen[$2] = 1
+    if ($2 == "(total)") { printf "+ C\t%s\n", $1; next }
+    printf "+ B\t%s\t%s\n", $1, $2; next
   }
   { printf "- line %d does not parse: %s\n", NR, $0 }')" || {
   printf 'size-ratchet: cannot run — the baseline at %s could not be read\n' "$BASE" >&2
@@ -106,8 +115,12 @@ if [ -n "$BAD" ]; then
   printf '%s\n' "$BAD" | sed 's/^/size-ratchet:   /' >&2
   cannot=1; finish
 fi
-if [ -z "$ROWS" ]; then
+if ! printf '%s\n' "$ROWS" | grep -q '^B'; then
   printf 'size-ratchet: cannot run — the baseline at %s holds no row\n' "$BASE" >&2
+  cannot=1; finish
+fi
+if ! printf '%s\n' "$ROWS" | grep -q '^C'; then
+  printf 'size-ratchet: cannot run — the baseline at %s holds no (total) row, and the cap is not optional\n' "$BASE" >&2
   cannot=1; finish
 fi
 
@@ -140,6 +153,7 @@ for f in "$@"; do
 done
 
 RESULT="$( { printf '%s\n' "$ROWS"; printf '%s' "$STREAM"; } | LC_ALL=C awk -F'\t' '
+  $1 == "C" { cap = $2 + 0; next }
   $1 == "B" { base[$3] = $2 + 0; order[++nb] = $3; next }
   $1 == "U" { seen[$2] = 1; next }
   $1 == "M" {
@@ -153,14 +167,15 @@ RESULT="$( { printf '%s\n' "$ROWS"; printf '%s' "$STREAM"; } | LC_ALL=C awk -F'\
       p = order[i]; bt += base[p]
       if (!(p in seen)) { printf "stale row · %s · %d bytes, and no such file is measured\n", p, base[p]; st++ }
     }
-    printf "= %d %d %d %d %d %d\n", m, t, bt, ov, nr, st
+    if (t > cap) { printf "over cap · the set · %d > %d (+%d)\n", t, cap, t - cap; oc = 1 }
+    printf "= %d %d %d %d %d %d %d %d\n", m, t, bt, ov, nr, st, cap, oc
   }')" || RESULT=''
 
 STATS="$(printf '%s\n' "$RESULT" | sed -n 's/^= //p')"
 printf '%s\n' "$RESULT" | sed -e '/^= /d' -e '/^$/d'
-if ! [[ "$STATS" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]]; then
+if ! [[ "$STATS" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]]; then
   echo "size-ratchet: cannot run — the comparison produced no result" >&2
   cannot=1; finish
 fi
-read -r measured total base_total over norow stale <<< "$STATS"
+read -r measured total base_total over norow stale cap over_cap <<< "$STATS"
 finish

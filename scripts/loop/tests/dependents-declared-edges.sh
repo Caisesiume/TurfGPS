@@ -3,7 +3,7 @@
 # and resolves one that is a pull request (#138). The two defects it guards:
 #   1. the reason prose on a `Blocked by:` line names other issues and pull requests,
 #      and every one of them used to become an edge. A satisfied edge's line stays in
-#      the body forever (`turfgps-board-ops § Satisfied is not removed`), so a phantom
+#      the body forever (a satisfied edge stays, `team-protocol § Board`), so a phantom
 #      blocked its story permanently — #136 was held on a pull request its own reason
 #      merely mentioned, and prose accumulates cross-references as the corpus matures;
 #   2. a declared blocker may BE a pull request — numbers share one sequence — and a
@@ -153,7 +153,7 @@ run 143; check  "a pull request closed unmerged blocks"          0 "#143(NOT_COM
 # wrong answer is SILENT in: closed-but-not-completed is work that never happened, and
 # reading it as satisfied promotes a story onto dead work and prints nothing anyone would
 # look at. The verdict NAME is asserted with the block, because the reason is what
-# @scrum-master files a `dependency_finding` on.
+# the analyst re-checks the edge on.
 run 45;  check  "closed NOT_PLANNED still blocks, by that name"  0 "#209 (blockers: #45 not_planned)"
 run 46;  check  "closed DUPLICATE still blocks, by that name"    0 "#210 (blockers: #46 duplicate)"
 run 47;  check  "an unenumerated closed reason blocks too"       0 "#211 (blockers: #47 not_completed)"
@@ -164,7 +164,7 @@ run 47;  check  "an unenumerated closed reason blocks too"       0 "#211 (blocke
 run 48;  check  "a legacy plain-closed issue is satisfied"       0 "eligible: #212"
 
 # Where the declared list BEGINS — the other end of the boundary above. The rule is
-# in `turfgps-board-ops § The dependency representation`; these only pin it.
+# stated in `team-protocol § Board`; since #210 these fixtures are its only full table.
 # (i) The label strip used to skip prose to the first `#`, so #213 and #214 each
 # invented an edge out of `none`: one satisfied, one that would have held its story
 # forever — the harm exactly, because a line reading `none` is never revised. Live
@@ -196,8 +196,8 @@ run 7;   check  "an uppercase conjunction is still glue"    0 "#218 (blockers: #
 run 7;   check  "adjacent references need no glue at all"   0 "#219 (blockers: #41 open)"
 run 7;   check  "a bold label strips like a plain one"      0 "#220 (blockers: #41 open)"
 
-# (iv) The dash, in both directions. `turfgps-board-ops § The dependency representation`
-# gives one row per shape; this pins a fixture to each of the two the dash owns, and does
+# (iv) The dash, in both directions. The grammar's shape table (in `turfgps-board-ops`
+# until #210) gave one row per shape; this pins a fixture to each of the two the dash owns, and does
 # not restate the rule. Three cycles moved this boundary and each swing was found only
 # afterwards, from whichever shapes that cycle happened to consider — a row carrying no
 # fixture of its own is how that kept happening. Both assertions name the DECLARED LIST
@@ -229,6 +229,13 @@ run 41;  absent "a bare none declares nothing at all"       "#223" "#208 (blocke
 # Unchanged: a DECLARED blocker that cannot be read fails toward blocked.
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
 run 999; check  "and is named on its own line"                   0 "unreadable: #999"
+
+# `--all` (#210) asks the same question of every story with a declared blocker, which is
+# what board-sync.sh promotes from. Exactly the six whose declared lists are all satisfied,
+# in body order: a membership filter left on prints none of them, and an over-read edge
+# moves one of them into still_blocked.
+run --all; check "--all: every story whose blockers are all done" 0 "eligible: #136, #201, #206, #212, #216, #217"
+run --all; check "--all labels the run as all"                   0 "dependents_of: all"
 
 [ "$fails" -eq 0 ] || { printf '\n%s test(s) failed\n' "$fails"; exit 1; }
 printf '\nall passed\n'

@@ -1,9 +1,10 @@
-# TurfGPS — the canonical gate and build runner.
+# TurfGPS — the gate and build targets, for a human on a host with make.
 #
-# `local-gates` is the source of truth for WHICH gates are mandatory and when
-# each becomes live. This file is how they are run. It exists so the command
-# lines live in one place instead of being copied into agent prompts, where ten
-# of them once went stale together; cite the skill, run the targets.
+# Agents run every gate through `scripts/team/gates.sh` (#210), which decides
+# which gates a change owes and runs these same commands directly, because the
+# reference host has no make. A recipe changed here is changed there in the same
+# commit. Neither file is copied into an agent prompt: ten copies of these
+# commands once went stale together.
 #
 # ---------------------------------------------------------------------------
 # THE ONE THING THIS FILE EXISTS TO GET RIGHT
@@ -14,12 +15,11 @@
 # what a gate measured.
 #
 # What each of the five reports from that wrong directory is NOT restated here.
-# `local-gates § Backend (Go)` is its one home and carries it per gate, with
-# the host and the date the measurement was taken on — including which gates
-# are loud without being discriminating, which is the half a recipe can get
-# wrong. A paragraph of it here would be one more statement of the model #118
-# exists to collapse, in this file's own words, going stale on the next
-# measurement with no diff here to notice.
+# It was measured per gate on 22 August 2026, with the host, in
+# `local-gates § Backend (Go)`; that skill left the tree in #210 and
+# `git show ed23f6b:.claude/skills/local-gates/SKILL.md` keeps the record. A
+# paragraph of it here would be one more statement of the model #118 exists to
+# collapse, going stale on the next measurement with no diff here to notice.
 #
 # So every recipe below carries its own directory, on the same line as the
 # command it guards. make runs each recipe line in a fresh shell, so a bare
@@ -27,9 +27,9 @@
 # defined once and used everywhere; a recipe that invokes the Go toolchain
 # without it is a defect on sight, however green it reports.
 #
-# `make gates` prints the report line `local-gates` law 1 requires. It carries
-# the directory because a report naming no directory is not evidence that
-# anything was compiled — the subject of everything above.
+# `make gates` prints the backend report line. It carries the directory
+# because a report naming no directory is not evidence that anything was
+# compiled — the subject of everything above.
 #
 # Every other field is derived from what its gate actually did: all five run,
 # each one's exit status decides its own field, and the target exits nonzero
@@ -53,25 +53,23 @@
 # linkage while `Architecture.md § D6` is open, and a build flag here would
 # settle it.
 #
-# The frontend block of `local-gates` is dormant until `web/package.json`
-# exists. Its targets belong to the commit that creates it — writing them now
-# would mean shipping recipes nobody can run.
+# The frontend targets are dormant until `web/package.json` exists. They belong
+# to the commit that creates it — writing them now would mean shipping recipes
+# nobody can run.
 
 GO_DIR  := service
 BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates d8-claims output-caps prose-licence size-ratchet fmt vet lint test build image clean
+.PHONY: help gates d8-claims size-ratchet fmt vet lint test build image clean
 
 help:
-	@echo 'TurfGPS — see `local-gates` for which gates are mandatory.'
+	@echo 'TurfGPS — agents run scripts/team/gates.sh, which decides the gates a change owes.'
 	@echo ''
 	@echo '  make gates   fmt, vet, lint, test and build, all from $(GO_DIR)/'
 	@echo '  make d8-claims  does anything restate the root-run model instead of citing it'
-	@echo '  make output-caps ARTIFACTS="<path>..."  is each artifact within the cap its row sets'
-	@echo '  make prose-licence ARTIFACTS="<path>..."  does each declare a licence the table defines'
-	@echo '  make size-ratchet  has any agent definition or skill grown past its byte baseline'
+	@echo '  make size-ratchet  has any agent definition or skill grown past its baseline, or the set past its cap'
 	@echo '  make fmt     gofmt -l . — fails when it names a file, or cannot read the tree'
 	@echo '  make vet     go vet ./...'
 	@echo '  make lint    golangci-lint run'
@@ -80,7 +78,7 @@ help:
 	@echo '  make image   container image $(IMAGE), context $(GO_DIR)/'
 	@echo '  make clean   remove ./$(BIN_DIR)/'
 
-# The five backend gates of `local-gates`, in its order.
+# The five backend gates, in the order scripts/team/gates.sh runs them.
 #
 # They are invoked here rather than declared as prerequisites of this target.
 # A prerequisite that fails aborts make before the recipe body ever runs, so
@@ -102,17 +100,17 @@ gates:
 	echo "dir: $(GO_DIR) | fmt: $$r_fmt | vet: $$r_vet | lint: $$r_lint | test: $$r_test | build: $$r_build"; \
 	exit $$rc
 
-# `local-gates § Documentation gates` gate 2, for the one fact this repository
-# has already had restated thirteen times: what a Go command does when it is
-# run from a root holding no module. It is ONE duplication class inside that
-# gate and not the documentation gates, whose every other part is still run by
-# hand, as that section says — and this target's name says so rather than
-# implying a coverage it does not have.
+# The documentation gate for the one fact this repository has already had
+# restated thirteen times: what a Go command does when it is run from a root
+# holding no module. It is ONE duplication class, not the documentation gates —
+# a citation that does not resolve is still the critic's to find, under its
+# `references` lens — and this target's name says so rather than implying a
+# coverage it does not have.
 #
 # It is deliberately NOT part of `gates` above. That target's whole output is
-# the backend report line `local-gates` law 1 prescribes, whose every field is
-# derived from one of the five Go gates; a documentation result inside it would
-# be a field nothing in that line can describe.
+# the backend report line, whose every field is derived from one of the five
+# Go gates; a documentation result inside it would be a field nothing in that
+# line can describe.
 #
 # The recall corpus runs FIRST and make stops if it fails, so this target
 # cannot report a verdict from an instrument whose recall was not just
@@ -129,80 +127,13 @@ d8-claims:
 	@bash scripts/gates/tests/d8-root-run-claims-recall.sh
 	@bash scripts/gates/d8-root-run-claims.sh
 
-# Every capped artifact is capped in `agent-handoffs § Output caps`, and this is
-# where one is held to its cap BEFORE it is posted. That claim is narrower than
-# "the one home of every cap", which this comment used to make: the ~300-token
-# handoff limit and the per-field caps both sit in `agent-handoffs` outside that
-# section, so only the artifacts this gate measures are capped there.
-#
-# The paths arrive in ARTIFACTS rather than from a glob, because what this
-# measures is a comment, a verdict or a PR body — written to a file on its way
-# out, not a file in the tree:
-#
-#     make output-caps ARTIFACTS="/tmp/verdict.md /tmp/envelope.md"
-#
-# A bare `make output-caps` names nothing, and the checker exits non-zero on the
-# empty set rather than reporting it clean; its header argues why. That is the
-# wanted answer, and it is why no default glob is set here: a default would be a
-# second place deciding what a run measured, and the one thing worse than
-# measuring nothing is measuring nothing quietly.
-#
-# It is deliberately NOT part of `gates` above, for the reason `d8-claims` is
-# not: that target's whole output is the backend report line, whose every field
-# is derived from one of the five Go gates.
-#
-# The recall corpus runs FIRST and make stops if it fails — the same ordering as
-# `d8-claims`, and the same reason: no verdict from an instrument whose recall
-# was not just demonstrated. Here the ordering earns its keep twice over, the
-# corpus having been written by a different hand before the checker existed, so
-# what it demonstrates is recall rather than agreement with its author.
-#
-# Neither line carries a directory, for the reason the `d8-claims` comment above
-# gives about its own two: no Go toolchain is invoked, and each script resolves
-# what it reads from its own path rather than from where this recipe stands.
-#
-# EACH PATH IS QUOTED, AND THE LIST IS NOT. Bare `$(ARTIFACTS)` hands the shell
-# a line to re-interpret: a path holding a glob character is expanded against
-# the caller's directory, and a path shaped like `name=value` was, until #163
-# cycle 1, taken by awk as a variable assignment — the gate then read stdin
-# instead of the artifact and either measured nothing and reported clean, or
-# blocked forever. The script no longer offers that operand to anything, and
-# this line no longer offers the shell anything to expand. Quoting the whole
-# variable instead would collapse the documented multi-path interface above
-# into one unreadable path, so `foreach` quotes the words make already split.
-output-caps:
-	@bash scripts/gates/tests/output-caps-recall.sh
-	@bash scripts/gates/output-caps.sh $(foreach p,$(ARTIFACTS),"$(p)")
-
-# The licence DECLARATION, beside the length. `output-caps` above measures how
-# long a capped artifact is; this measures whether it declared a licence the
-# table defines, and they are separate targets because they are separate
-# questions with separate refusals — an artifact can sit under its
-# cap and declare `prose_licence: ruling`, which two judgments on PR #154 do.
-#
-# It checks TWO of the licensing rule's three parts: the key stands second, and
-# its value is one the table defines. THE THIRD — the five-sentence limit on
-# licensed prose — IS DECLINED, and the checker's header argues why the licensed
-# passage has no mechanically decidable boundary. The corpus asserts the decline
-# rather than leaving a green run to imply otherwise. Neither script judges
-# whether a licence was DESERVED: `output-caps.sh`'s header draws that boundary
-# and this gate does not cross it either.
-#
-# Everything the comment above says about this recipe's shape holds here
-# unchanged and is not restated: the paths arrive in ARTIFACTS rather than from
-# a glob, a bare invocation names nothing and is refused rather than reported
-# clean, the recall corpus runs FIRST and make stops if it fails, neither line
-# carries a directory, and each path is quoted while the list is not.
-prose-licence:
-	@bash scripts/gates/tests/prose-licence-recall.sh
-	@bash scripts/gates/prose-licence.sh $(foreach p,$(ARTIFACTS),"$(p)")
-
-# No agent definition or skill grows past its byte baseline (#207). When it is
-# required is `local-gates § Documentation gates`; what it counts, and how a
-# file may grow, are the script's header. Kept out of `gates` for the reason
-# the `d8-claims` comment gives. No recall corpus runs first: its falsifier —
-# one file grown by a byte fails it, one shrunk passes — is a command re-run by
-# hand, recorded in the PR that closed #207.
+# No agent definition or skill grows past its byte baseline (#207), and the set
+# stays under its total cap (#210). It runs on every `scripts/team/gates.sh`
+# pass; what it counts, and how a file may grow, are the script's header. Kept
+# out of `gates` for the reason the `d8-claims` comment gives. The per-file
+# falsifier — one file grown by a byte fails it, one shrunk passes — was re-run
+# by hand in the PR that closed #207; the cap's is
+# `scripts/gates/tests/size-ratchet-cap.sh`.
 size-ratchet:
 	@bash scripts/gates/size-ratchet.sh
 

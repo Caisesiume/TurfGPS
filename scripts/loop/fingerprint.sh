@@ -38,7 +38,7 @@ degraded_components=""
 # 1. Open PRs — number, head SHA, draft state. These three ARE the events the loop
 #    reacts to: a head SHA moving, a PR entering or leaving the open list, and
 #    draft→ready. `updatedAt` was here and is deliberately gone — a comment, a
-#    label, or any bot touching the PR bumps it, waking @pr-judge to re-read a diff
+#    label, or any bot touching the PR bumps it, waking a reviewer to re-read a diff
 #    that did not move. Nothing else about a PR is consumed by the workflow, so
 #    nothing else belongs in the fingerprint.
 pr="$("$GH" pr list --state open --json number,headRefOid,isDraft \
@@ -47,10 +47,11 @@ pr="$("$GH" pr list --state open --json number,headRefOid,isDraft \
 
 # 2. Board items — id and status only. Scoped per §45: the loop reacts to status,
 #    not to card bodies, so the fingerprint must not carry them. `--limit` is
-#    explicit and generous: the default page is 30 and this board already carries
-#    37+ items, so an implicit limit truncates the board and silently fingerprints
-#    a prefix of it — items past the cut could change status forever unnoticed.
-board="$("$GH" project item-list 3 --owner Caisesiume --limit 200 --format json \
+#    explicit and generous: the default page is 30, and the board held 181 items
+#    on 2026-10-08 when #210 raised this from 200 to 1000. A tight limit truncates
+#    the board and silently fingerprints a prefix of it — items past the cut
+#    could change status forever unnoticed.
+board="$("$GH" project item-list 3 --owner Caisesiume --limit 1000 --format json \
          --jq '[.items[] | {id, status}] | sort_by(.id)' 2>/dev/null)"
 [ -n "$board" ] || { board="unavailable"; degraded=1; degraded_components="$degraded_components board"; }
 
