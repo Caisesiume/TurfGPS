@@ -21,7 +21,7 @@ The repository previously held an unrelated Next.js zone-map prototype. It was r
 | [`docs/CalculationSpecification.md`](docs/CalculationSpecification.md) | How is every number worked out? |
 | [`docs/Architecture.md`](docs/Architecture.md) | How will it be built? |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | What is using it like? |
-| [`docs/DELIVERY.md`](docs/DELIVERY.md) | How does work get tracked and reviewed? |
+| [`docs/TEAM.md`](docs/TEAM.md) | Who builds it, and how does work get planned, reviewed and merged? |
 
 `docs/SPECIFICATION.md` is the source of truth for intent. Read it before writing code — it settles a great many decisions, and re-deciding one that is already settled wastes the work that produced it.
 
