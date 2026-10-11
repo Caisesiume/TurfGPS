@@ -45,7 +45,9 @@ package main
 // of — to appear on a complete configuration. Rename it, or stop the
 // start-up record carrying it, and AC3 goes red rather than AC1 and AC2 quietly
 // weakening into assertions about a string nothing prints. That interlock is
-// why all three live in one file.
+// why all three live in one file. The bind-refused line gets the same guarantee
+// from TestBindRefusedMarkerIsTheLineMainPrints, which holds the address main
+// binds so that main prints it.
 //
 // IT HAS TO BE THE SERVED LINE SPECIFICALLY, and that was settled by execution
 // rather than reasoned. AC3 used to accept EITHER line as proof the start was
@@ -73,22 +75,21 @@ package main
 // because a successful bind prints nothing and the refusal exits before serve
 // is entered. The variant left uncaught is a process that holds the port for
 // the microseconds before it refuses and exits — it still serves nothing and
-// still plans no journey, so both criteria hold on it. Closing it would mean
-// occupying port 8080 to make the bind observable.
+// still plans no journey, so both criteria hold on it.
 //
-// THE COST OF DOING THAT IS NOT WHAT THIS COMMENT USED TO SAY IT WAS, and the
-// correction is recorded rather than the sentence quietly replaced. It argued
-// that occupying the address would make every case here fail on a host already
-// holding it — written when nothing in this file failed on such a host. AC3's
-// interlock assertion now does, deliberately and unconditionally, rather than
-// pass over a guarantee it did not establish. This file therefore already
-// declines to report success on that host, and the objection has stopped being
-// a difference in kind. What is left is a difference in degree nobody has
-// measured: how much further occupying the address would spread that failure.
-//
-// The gap is still named rather than closed, on that ground and not the one
-// above, so nobody reads these assertions as proving an ordering they do not
-// measure. What they do prove is that the process never began serving.
+// Closing it would take one more start: the address held, as
+// TestBindRefusedMarkerIsTheLineMainPrints below holds it, under an INCOMPLETE
+// configuration — the refusal then prints first under the ordering main has,
+// and the bind-refused line prints first under the moved one. Holding the
+// address in-process and releasing it turned out to cost nothing on a host
+// where it is free and nothing further on one where it is not, so cost is no
+// longer the reason this stays open. Scope is: AC1 and AC2 ask that no journey
+// be planned, not that no port be bound, and `DEPLOYMENT.md § Where the
+// deployment configuration lives` records the ordering as held today and not
+// under test — so closing it changes what that document promises, not this
+// file alone. The gap is named rather than closed so nobody reads these
+// assertions as proving an ordering they do not measure. What they do prove is
+// that the process never began serving.
 //
 // ---------------------------------------------------------------------------
 // NO FIXTURE HERE CARRIES A PLAUSIBLE VALUE, AND NONE MAY. Neither constant
@@ -108,6 +109,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -167,6 +169,10 @@ const (
 	// It carries its level for the reason servedMarker above gives. An ERROR
 	// marker cannot match an INFO line and an INFO marker cannot match this
 	// one, whatever either message is later reworded to.
+	//
+	// TestBindRefusedMarkerIsTheLineMainPrints is what binds it to the line
+	// main prints; until it did, this marker was asserted absent everywhere and
+	// present nowhere.
 	bindRefusedMarker = "ERROR cannot listen"
 
 	// startupFixture is what this file supplies as a configured value. It is a
@@ -322,6 +328,69 @@ func TestServiceStartsWithEveryOwedValueSupplied(t *testing.T) {
 	if !strings.Contains(record, servedMarker) {
 		t.Errorf("the configuration was accepted and execution reached net.Listen, but the start-up record carries %q and never %q, so this run did not establish the interlock AC1 and AC2 rest on: it observed %q printed on no path at all, and those two tests spent the run asserting the absence of a line nothing here was seen to print.\nEither this host already holds %s — free it and re-run, which is what tells the two causes apart — or main no longer logs %q once it is serving, in which case AC1 and AC2 now pass over a service that got past the refusal and served.\n%s",
 			bindRefusedMarker, servedMarker, servedMarker, defaultAddr, servedMarker, record)
+	}
+}
+
+// TestBindRefusedMarkerIsTheLineMainPrints binds bindRefusedMarker to what main
+// prints. It holds the address main binds and starts the service under a
+// complete configuration, so the host refuses the bind, and the start-up record
+// must carry the marker.
+//
+// THE BUG IT CATCHES. AC1 and AC2 assert this marker ABSENT, and an absence is
+// worth only as much as the guarantee that the line would have been printed.
+// servedMarker has that guarantee from AC3. This marker had none: set it to a
+// string nothing prints and every test in this file stayed green. That failed
+// in the safe direction — on a host holding the address, AC3 then fails with
+// the blunter of its two messages rather than passing — so the cost was a
+// degraded diagnostic and never a false pass. It is closed because a marker
+// bound to nothing is one a reword of main drifts from with nothing going red.
+//
+// It establishes the marker and nothing about ordering. The configuration is
+// complete, so the refusal does not run and the bind is all that is observed;
+// the ordering gap is named at the top of this file and stays there.
+func TestBindRefusedMarkerIsTheLineMainPrints(t *testing.T) {
+	executable := buildServiceExecutable(t)
+	names := owedEnvVarNames(t)
+
+	// The same string main binds, so the same address on the same families. A
+	// host on which something else already holds it has done this test's work
+	// for it: the address is held either way, which is all this needs, and the
+	// messages below say which it was.
+	holder := "this test"
+
+	if held, err := net.Listen("tcp", defaultAddr); err != nil {
+		holder = fmt.Sprintf("something else on this host (%v)", err)
+	} else {
+		t.Cleanup(func() { _ = held.Close() })
+	}
+
+	supplied := make(map[string]string, len(names))
+	for _, name := range names {
+		supplied[name] = startupFixture
+	}
+
+	process := startService(t, executable, supplied)
+
+	if _, exited := process.awaitExit(refusalBudget); !exited {
+		t.Errorf("the service had not exited %s after starting with %s held by %s. It is still running, so the record below may be incomplete, and a service that can neither listen nor exit is one a supervisor never restarts.",
+			refusalBudget, defaultAddr, holder)
+	}
+
+	record := process.record()
+
+	if strings.Contains(record, refusalMarker) {
+		t.Fatalf("the service refused a configuration supplying a value for every constant recorded as owed (%s), so this run observed the refusal and never the bind, and established nothing about %q. That is AC3's failure, and the test above reports it.\n%s",
+			strings.Join(names, ", "), bindRefusedMarker, record)
+	}
+
+	if strings.Contains(record, servedMarker) {
+		t.Fatalf("the service bound %s and served while %s held it, so its bind was never refused and nothing about %q was established. Two processes bound the same address on this host, and this test cannot run where that is possible.\n%s",
+			defaultAddr, holder, bindRefusedMarker, record)
+	}
+
+	if !strings.Contains(record, bindRefusedMarker) {
+		t.Errorf("the start-up record of a service whose bind of %s was refused — %s held the address — does not carry %q, so that marker matches nothing main prints on this path, and the absence AC1 and AC2 assert of it is an absence of a string nothing prints. Either main no longer logs the refused bind at that level with those words, or the marker was changed without this test going red first.\n%s",
+			defaultAddr, holder, bindRefusedMarker, record)
 	}
 }
 
