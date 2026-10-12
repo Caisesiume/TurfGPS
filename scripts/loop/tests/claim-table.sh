@@ -48,10 +48,12 @@
 # therefore assert the directory NAME on disk and the echoed field, both of which
 # NTFS preserves, so they cannot pass on the filesystem's behalf.
 #
-# CRLF: scripts/loop/*.sh carry no eol attribute, so on a core.autocrlf=true host
-# they check out CRLF — fingerprint-isolation.sh already is CRLF in this working
-# tree. This file avoids multi-line quoted literals for that reason, and the CRLF
-# section asserts the script under test answers identically in both forms.
+# CRLF: this file avoids multi-line quoted literals so that it survives a CRLF
+# checkout, and the CRLF section asserts the script under test answers
+# identically in both forms. That section runs on an MSYS host only: whether a
+# CR-terminated script runs at all is the host shell's property, not claim.sh's
+# (#215), and `.gitattributes` now pins `*.sh text eol=lf`, so the checkout it
+# guarded against no longer happens. Elsewhere it prints one SKIP line.
 #
 # Usage: scripts/loop/tests/claim-table.sh    Exit: 0 all pass · 1 any failure
 # CLAIM_SH overrides the script under test — claim-table-mutations.sh sets it to
@@ -1490,30 +1492,47 @@ check '  and a panel of pass and fail is complete, not judged' 0 'complete: true
 # ---------------------------------------------------------------------------
 section 'CRLF — the checkout form must not change any answer'
 # ---------------------------------------------------------------------------
-# scripts/loop/*.sh carry no eol attribute, so a core.autocrlf=true host checks
-# them out CRLF; fingerprint-isolation.sh already is CRLF in this working tree.
-CRLFSH="$TMP/crlf-claim.sh"
-sed 's/$/\r/' "$SCRIPT" > "$CRLFSH"
-fresh; LFT="$CLAIM_TABLE_DIR"
-run claim   $PR $SHA p --owner j1;    lf1=$RC
-run claim   $PR $SHA p --owner j2;    lf2=$RC
-run verdict $PR $SHA p approved;      lf3=$RC
-run release $PR $SHA p --reason x;    lf4=$RC
-run claim   $PR $SHA '../x';          lf5=$RC
-run status  $PR $SHA;                 lf6=$RC
-fresh
-OUT="$(bash "$CRLFSH" claim   $PR $SHA p --owner j1 2>&1)";  cr1=$?
-OUT="$(bash "$CRLFSH" claim   $PR $SHA p --owner j2 2>&1)";  cr2=$?
-OUT="$(bash "$CRLFSH" verdict $PR $SHA p approved 2>&1)";    cr3=$?
-OUT="$(bash "$CRLFSH" release $PR $SHA p --reason x 2>&1)";  cr4=$?
-OUT="$(bash "$CRLFSH" claim   $PR $SHA '../x' 2>&1)";        cr5=$?
-OUT="$(bash "$CRLFSH" status  $PR $SHA 2>&1)";               cr6=$?
-is 'a CRLF checkout returns the same code for six verbs' \
-   "$cr1/$cr2/$cr3/$cr4/$cr5/$cr6" "$lf1/$lf2/$lf3/$lf4/$lf5/$lf6"
-is '  and writes the same lane directory name' \
-   "$(ls "$CLAIM_TABLE_DIR/pr-$PR/$SHA" 2>/dev/null)" "$(ls "$LFT/pr-$PR/$SHA" 2>/dev/null)"
-is '  and no CR reached any row this suite wrote' \
-   "$(grep -rlU "$CR" "$CLAIM_TABLE_DIR" 2>/dev/null | wc -l | tr -d ' ')" 0
+# The case runs a CR-terminated copy of claim.sh and expects the LF copy's
+# answers. Whether that can hold is a property of the HOST'S bash, not of
+# claim.sh: MSYS bash drops the trailing CR of every line it reads; Linux bash
+# reads it literally and exits 2 at the first one — [2/2/2/2/2/2] for the six
+# verbs on the #108 runner (#215, runs 38164037184 and 38164650775). Its
+# premise is gone as well: `.gitattributes` pins `*.sh text eol=lf`, so no
+# checkout produces the form it guarded against. So it runs only where it is a
+# statement about claim.sh — the MSYS host the suite was written and measured
+# on — and anywhere else prints one SKIP line, which is neither PASS nor FAIL,
+# so claim-table-mutations.sh counts the suite by what ran on its host.
+case "$(uname -s 2>/dev/null)" in
+  MSYS*|MINGW*) crlf_host=1 ;;
+  *)            crlf_host=0 ;;
+esac
+if [ "$crlf_host" -eq 1 ]; then
+  CRLFSH="$TMP/crlf-claim.sh"
+  sed 's/$/\r/' "$SCRIPT" > "$CRLFSH"
+  fresh; LFT="$CLAIM_TABLE_DIR"
+  run claim   $PR $SHA p --owner j1;    lf1=$RC
+  run claim   $PR $SHA p --owner j2;    lf2=$RC
+  run verdict $PR $SHA p approved;      lf3=$RC
+  run release $PR $SHA p --reason x;    lf4=$RC
+  run claim   $PR $SHA '../x';          lf5=$RC
+  run status  $PR $SHA;                 lf6=$RC
+  fresh
+  OUT="$(bash "$CRLFSH" claim   $PR $SHA p --owner j1 2>&1)";  cr1=$?
+  OUT="$(bash "$CRLFSH" claim   $PR $SHA p --owner j2 2>&1)";  cr2=$?
+  OUT="$(bash "$CRLFSH" verdict $PR $SHA p approved 2>&1)";    cr3=$?
+  OUT="$(bash "$CRLFSH" release $PR $SHA p --reason x 2>&1)";  cr4=$?
+  OUT="$(bash "$CRLFSH" claim   $PR $SHA '../x' 2>&1)";        cr5=$?
+  OUT="$(bash "$CRLFSH" status  $PR $SHA 2>&1)";               cr6=$?
+  is 'a CRLF checkout returns the same code for six verbs' \
+     "$cr1/$cr2/$cr3/$cr4/$cr5/$cr6" "$lf1/$lf2/$lf3/$lf4/$lf5/$lf6"
+  is '  and writes the same lane directory name' \
+     "$(ls "$CLAIM_TABLE_DIR/pr-$PR/$SHA" 2>/dev/null)" "$(ls "$LFT/pr-$PR/$SHA" 2>/dev/null)"
+  is '  and no CR reached any row this suite wrote' \
+     "$(grep -rlU "$CR" "$CLAIM_TABLE_DIR" 2>/dev/null | wc -l | tr -d ' ')" 0
+else
+  printf 'SKIP  CRLF — on %s bash reads a CR-terminated script literally, so the case would assert the host shell, not claim.sh; .gitattributes pins *.sh to LF (#215)\n' \
+    "$(uname -s 2>/dev/null || printf 'this host')"
+fi
 
 # ---------------------------------------------------------------------------
 section 'hermetic — the real table under .claude/state was never touched'
