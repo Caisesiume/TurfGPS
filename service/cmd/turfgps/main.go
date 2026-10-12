@@ -13,6 +13,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/config"
 )
 
 const (
@@ -73,6 +75,15 @@ const (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	// Ahead of the listener, so a refused configuration serves nothing at all.
+	// `FR-091` asks that no journey be planned under one, and a process that
+	// never reaches a state where a journey can be asked for holds that by
+	// construction rather than by a check on every request path.
+	if err := config.RequireOwed(os.LookupEnv); err != nil {
+		slog.Error("refusing to start", "error", err)
+		os.Exit(1)
+	}
 
 	ln, err := net.Listen("tcp", defaultAddr)
 	if err != nil {
