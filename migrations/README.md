@@ -24,8 +24,10 @@ staging table, `sync_run`, one index on `zone` and two on `sync_run`.
 
 **No agent applies a migration.** Application is a deliberate act by an
 authorised operator after PR approval and explicit human authorisation, per
-`postgis-migration-protocol`. Migrations are not applied at boot and are not
-applied by this repository's own tooling.
+`postgis-migration-protocol`. Migrations are not applied at boot, and this
+repository's own tooling applies them only to the throwaway PostGIS of CI's
+`migrations` job (`scripts/db/migrate-verify.sh`, #153), never to a lasting
+database.
 
 ```
 psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.sql
@@ -39,28 +41,22 @@ existed.
 
 ## State of proof
 
-**Nothing in this directory has been executed.** There is no database in this
-repository, none was provisioned, and no PostgreSQL was available to the work
-that wrote these files. The forward migration has not been applied, the
-rollback has not been demonstrated, and no `EXPLAIN` output exists for any
-query shape.
+**Executed on throwaway instances only.** CI's `migrations` job applies 0001 to
+an ephemeral PostGIS on every pull request, runs its verify file part by part
+and its rollback twice, and checks for residue. Nothing here has been applied to
+a database that outlives that job.
 
-**Two conditions in `Architecture.md § What is unproven` bear on this migration
-and neither is met.** Item 1 makes `EXPLAIN` evidence against a loaded copy an
-acceptance condition of the first migration; `0001_zone_store.verify.sql` part E
-is the instrument that would meet it, and it would not meet the whole of it.
-Item 1 names Q1, Q2 **and** Q3. Part E probes Q1 and Q2 against `zone_geom_gist`
-and carries no `sync_run` query at all, so the two indexes on `sync_run` stay
-unproven even after part E has run against a loaded copy; Q3 reads the plan
-table this migration does not create, and is owed by the migration that does.
-Both gaps are stated where they arise — beside part E's own `EXPLAIN`
-statements, and above the `sync_run` indexes in `0001_zone_store.sql` — and are
-not restated further here. Item 2 asks whether PostgreSQL accepts this
-table's generated column as `STORED` at all, and only applying this file answers
-that one — there is no instrument for it, because the migration either applies or
-it does not. What a rejection would cost is that item's to state and is not
-restated here. Both are owed before anything in this directory is trusted, and
-naming only the first read as though the second had been settled.
+**Two conditions in `Architecture.md § What is unproven` bear on this
+migration.** Item 1 asks for `EXPLAIN (ANALYZE, BUFFERS)` against a loaded copy
+for Q1 and Q2; Q3 reads the plan table this migration does not create, and its
+`EXPLAIN` is owed by the migration that does. Part E of
+`0001_zone_store.verify.sql` fills an empty copy with 154,845 synthetic zones,
+prints both plans and fails on either one that scans `zone` sequentially; the
+synthetic copy does not reproduce the real spatial distribution. Part E carries
+no `sync_run` query, so the two indexes on `sync_run` stay unproven, as stated
+above them in `0001_zone_store.sql`. Item 2 asks whether PostgreSQL accepts this
+table's generated column as `STORED` at all; there is no instrument for it
+beyond the apply, which either succeeds or does not.
 
 ## The zone ingest field mapping
 
@@ -174,12 +170,11 @@ is the half a schema cannot enforce: nothing in the DDL can require a row to be
 updated, so a run that ends without its second write leaves a record the table
 happily accepts and no reader can tell from a run that died.
 
-`0001_zone_store.verify.sql` is written to prove the schema's half of that, and
-**has not proved it**: it inserts a row for each outcome carrying nothing but a
-start instant and rolls each one back, and it has never been run, per
-`§ State of proof` above. If any of those inserts is refused, a
-run that failed before it received anything cannot be recorded, and the assertion
-says so by name — which is what the script would establish and has not.
+`0001_zone_store.verify.sql` proves the schema's half of that in part B, which
+CI's `migrations` job runs, per `§ State of proof` above: it inserts a row for
+each outcome carrying nothing but a start instant and rolls each one back. If
+any of those inserts is refused, a run that failed before it received anything
+cannot be recorded, and the assertion says so by name.
 
 **Absence is recorded and never acted on.** Ids present in `zone` and missing
 from the response go into `absent_ids`, and nothing is deleted on the strength

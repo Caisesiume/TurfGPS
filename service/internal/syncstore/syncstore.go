@@ -48,10 +48,9 @@
 // are held up by assertions that go red when they stop being true. Nothing
 // distinguishes the two on the page, which is the whole failure this line
 // closes: a reader has no way to tell an implemented claim from a verified one,
-// and will reasonably assume the stronger of the two. It is the Go half of the
-// condition `migrations/0001_zone_store.sql` states under NEVER EXECUTED, whose
-// DDL these statements are written against; that file is the argument in full
-// for why neither half can be exercised here.
+// and will reasonably assume the stronger of the two. The DDL these statements
+// are written against, `migrations/0001_zone_store.sql`, is applied and
+// verified by CI's `migrations` job; no statement in this file is sent to it.
 //
 // A FAKE OVER `pgxpool` WOULD NOT DISCHARGE THIS, and is refused rather than
 // owed. What is unverified is what PostgreSQL does with these statements —

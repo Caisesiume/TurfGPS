@@ -9,29 +9,30 @@
 -- file cites it and deliberately does not restate a figure from it.
 --
 -- ----------------------------------------------------------------------------
--- NEVER EXECUTED.
+-- EXECUTED ON THROWAWAY INSTANCES ONLY.
 --
--- No database exists in this repository and none was provisioned to author
--- this file. It has not been applied, not been rolled back, and not been
--- EXPLAINed against a running PostgreSQL. `postgis-migration-protocol` step 1
--- (read live state) and step 4 (test on a copy) could not be performed because
--- there is no live state and no copy — not because they were skipped.
+-- CI's `migrations` job (`scripts/db/migrate-verify.sh`, #153) applies this
+-- file to an ephemeral PostGIS on every pull request, runs
+-- `0001_zone_store.verify.sql` part by part, and runs the rollback twice. It
+-- has not been applied to any database that outlives the job.
+-- `postgis-migration-protocol` step 4 (test on a copy) is that job; step 1
+-- (read live state) still has no live state to read.
 --
--- `Architecture.md § What is unproven` item 1 states the acceptance condition
--- this migration therefore does not yet meet: EXPLAIN (ANALYZE, BUFFERS)
--- output for the real query shapes against a loaded copy.
--- `0001_zone_store.verify.sql` is the instrument that produces it, and a first
--- run of that script is owed before this file is applied anywhere that matters.
+-- `Architecture.md § What is unproven` item 1 is the acceptance condition:
+-- EXPLAIN (ANALYZE, BUFFERS) for Q1 and Q2 against a loaded copy, Q3's being
+-- owed by the migration that creates `plan`. Part E of the verify file prints
+-- both plans against a synthetic copy at the table's full row count and fails
+-- on either one that scans `zone` sequentially.
 --
--- The divergence check at the end of this file is covered by the same
--- sentence. It has never been parsed by a PostgreSQL server, and until it has
--- been run once against a copy that was deliberately diverged first — so that
--- it is seen to RAISE, and not merely seen to pass — it is a guard that is
+-- The divergence check at the end of this file is parsed and passes in that
+-- job. It has not been run against a copy that was deliberately diverged
+-- first, so it is seen to pass and not yet seen to RAISE: a guard that is
 -- written rather than a guard that is known to fire.
 -- ----------------------------------------------------------------------------
 --
--- APPLY. By an authorised operator, deliberately, never at boot and never by
--- this repository's own tooling, per `postgis-migration-protocol`:
+-- APPLY. By an authorised operator, deliberately, never at boot, and by this
+-- repository's own tooling only to CI's throwaway instance, per
+-- `postgis-migration-protocol`:
 --
 --     psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.sql
 --
@@ -156,7 +157,7 @@
 --      query's own predicate and its own ordering, so the answer is the first
 --      entry the scan reads. It costs the sync two index entries per run,
 --      forty-eight times a day. This is free to take now only because 0001
---      has not been applied anywhere; after an apply it would be a second
+--      has not been applied anywhere lasting; after an apply it would be a second
 --      migration. `Architecture.md § The indexes` counts this index and
 --      decision 8's: the line that recorded one on `sync_run` was owed two
 --      more, and it was corrected to three in this same change.
@@ -455,7 +456,7 @@ CREATE TABLE IF NOT EXISTS public.sync_run (
 -- selection criterion rather than a convenience.
 --
 -- Creating it proves nothing. Only EXPLAIN on the real query shape counts, and
--- there is no database here to run one against.
+-- part E of `0001_zone_store.verify.sql` runs and asserts one for Q1 and Q2.
 
 CREATE INDEX IF NOT EXISTS zone_geom_gist ON public.zone USING gist (geom);
 
@@ -717,7 +718,7 @@ $$;
 -- where it costs most. What would catch it is measurement, not catalogue text:
 -- part C of `0001_zone_store.verify.sql` inserts a pair of known coordinates by
 -- name into a clone taken INCLUDING GENERATED and asserts the distance between
--- them. That file has never been run.
+-- them. CI's `migrations` job runs it.
 --
 -- AND IT DOES NOT CLOSE THE OTHER AXIS QUESTION, which nothing in SQL can. If
 -- the WRITE PATH crosses the pair — the longitude value bound to the `latitude`

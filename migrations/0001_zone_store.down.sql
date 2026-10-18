@@ -17,9 +17,10 @@
 -- applies it.
 -- ----------------------------------------------------------------------------
 --
--- NEVER EXECUTED. Like its forward migration, this file has not been run
--- against any PostgreSQL. It is the rollback the protocol requires to be
--- written and reviewed, not a rollback that has been demonstrated.
+-- EXECUTED ON THROWAWAY INSTANCES ONLY. CI's `migrations` job runs it twice
+-- after the verify file (`scripts/db/migrate-verify.sh`, #153), reporting what
+-- each run dropped and any relation left behind. It has not been run against
+-- a database that outlives the job.
 --
 --     psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.down.sql
 --
