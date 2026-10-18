@@ -16,6 +16,7 @@ and nothing here is compiled into the Go module.
 | `NNNN_name.sql` | the forward migration; one transaction unless a statement forbids it |
 | `NNNN_name.down.sql` | its rollback, written at the same time and reviewed with it |
 | `NNNN_name.verify.sql` | the assertions that make the migration falsifiable |
+| `NNNN_name.density.csv` | where present, the per-cell zone counts its verify file weights a synthetic load by; counts only, no zone data |
 
 `0001_zone_store.sql` creates the synced zone store: `zone`, the `zone_incoming`
 staging table, `sync_run`, one index on `zone` and two on `sync_run`.
@@ -51,8 +52,10 @@ migration.** Item 1 asks for `EXPLAIN (ANALYZE, BUFFERS)` against a loaded copy
 for Q1 and Q2; Q3 reads the plan table this migration does not create, and its
 `EXPLAIN` is owed by the migration that does. Part E of
 `0001_zone_store.verify.sql` fills an empty copy with 154,845 synthetic zones,
-prints both plans and fails on either one that scans `zone` sequentially; the
-synthetic copy does not reproduce the real spatial distribution. Part E carries
+weighted by the real density of `data/zones-dump-2025-01-04.json` on a
+0.1-degree grid (`0001_zone_store.density.csv`), so its probe corridor returns
+rows. It prints both plans and fails on either one that scans `zone`
+sequentially. Within a cell the spread is even, not real. Part E carries
 no `sync_run` query, so the two indexes on `sync_run` stay unproven, as stated
 above them in `0001_zone_store.sql`. Item 2 asks whether PostgreSQL accepts this
 table's generated column as `STORED` at all; there is no instrument for it

@@ -69,30 +69,56 @@ SET search_path = pg_catalog, public, pg_temp;
 --
 -- At sample size the planner seq-scans whatever indexes exist, so an empty
 -- migrated copy proves nothing about index use. `load_zone_copy` fills an
--- EMPTY `zone` with 154,845 synthetic zones — the table's size in
--- `Architecture.md § Volume` — spread evenly over the bounding box of every
--- zone in `data/zones-dump-2025-01-04.json`: latitude -54.499085 (id 45629) to
--- 78.654199 (id 475900), longitude -178.412541 (id 62505) to 178.834506
--- (id 47194). That is the Owner's decision on #142 (Q1 (a),
--- #issuecomment-6255605444). It is hermetic, deterministic and at production
--- row count; it does not reproduce the real spatial distribution, so it says
--- nothing about how many zones a corridor returns.
+-- EMPTY `zone` with 154,845 synthetic zones, the table's size in
+-- `Architecture.md § Volume`, placed where real zones are dense. That is the
+-- Owner's decision on #142 (Q2 (a), #issuecomment-6256273644), which replaced
+-- the even spread over the dump's bounding box: an even spread puts no zone in
+-- a corridor, so Q1 returned 0 rows and Q2's lateral side never executed.
+--
+-- THE WEIGHTS are `0001_zone_store.density.csv`, beside this file: one row per
+-- 0.1-degree cell holding at least one zone of
+-- `data/zones-dump-2025-01-04.json`, keyed by the cell's south-west corner,
+-- with that cell's zone count. A cell is floor(latitude * 10) by
+-- floor(longitude * 10), in decimal arithmetic on the dump's own literals. It
+-- has 11,615 rows summing to the dump's 138,830 zones, and it holds no zone id
+-- and no name. 0.1 degrees is about 11 km by 6 km at Stockholm's latitude,
+-- and it is the finest grid the decision allows (0.1 to 1 degree). Only that
+-- grid keeps a city corridor near its real count. By a spherical estimate,
+-- part E's probe corridor holds 156 real zones and 179 synthetic ones on this
+-- grid. On a 0.25-degree grid it would hold 83, and on a 0.5-degree grid 34.
+--
+-- THE LOAD scales the counts to 154,845 by rounding each cell's running total,
+-- so the per-cell numbers sum to exactly that, and gives every cell at least
+-- one. Ids run from 1 in cell order (south, then west). Inside a cell the
+-- points follow the R2 low-discrepancy sequence, computed in numeric, so every
+-- server produces the same rows.
 --
 -- A `zone` that already holds a row is used as it is and nothing is added, so
--- the load never meets a real row; parts D and E call it inside a transaction
--- they roll back, so it never outlives the part. The spread is the R2
--- low-discrepancy sequence, in numeric, so every server produces the same rows.
--- These are temporary functions, defined ahead of every part and called
--- schema-qualified because `pg_temp` is never searched for functions.
+-- the load never meets a real row. Parts D and E call it inside a transaction
+-- they roll back, so it never outlives the part. The table and the functions
+-- are temporary and are defined ahead of every part. The functions are called
+-- schema-qualified because `pg_temp` is never searched for functions. The
+-- `\copy` path is relative to the repository root, which is where CI's
+-- `migrations` job runs psql. From any other directory the `\copy` fails, and
+-- every part fails with it.
+
+CREATE TEMP TABLE zone_density (
+    south numeric NOT NULL,
+    west  numeric NOT NULL,
+    zones integer NOT NULL CHECK (zones > 0),
+    PRIMARY KEY (south, west)
+);
+
+\copy pg_temp.zone_density (south, west, zones) FROM 'migrations/0001_zone_store.density.csv' WITH (FORMAT csv, HEADER true)
 
 CREATE FUNCTION pg_temp.load_zone_copy() RETURNS bigint
 LANGUAGE plpgsql AS $fn$
 DECLARE
-    lat_min constant numeric := -54.499085;
-    lat_max constant numeric :=  78.654199;
-    lon_min constant numeric := -178.412541;
-    lon_max constant numeric :=  178.834506;
-    n bigint;
+    synthetic_zones constant bigint  := 154845;
+    cell            constant numeric := 0.1;
+    cells      bigint;
+    dump_zones bigint;
+    n          bigint;
 BEGIN
     SELECT count(*) INTO n FROM public.zone;
     IF n > 0 THEN
@@ -100,18 +126,34 @@ BEGIN
         RETURN n;
     END IF;
 
+    SELECT count(*), sum(zones) INTO cells, dump_zones FROM pg_temp.zone_density;
+    IF cells = 0 THEN
+        RAISE EXCEPTION 'loaded copy: the density table is empty, so there is nothing to weight the synthetic zones by.';
+    END IF;
+
+    -- sum() over an integer is a bigint, so both ends are rounded by integer
+    -- division: floor((2 * running * synthetic + dump) / (2 * dump)).
     INSERT INTO public.zone (id, name, latitude, longitude, date_created,
                              total_takeovers, takeover_points, points_per_hour,
                              region_id, region_name, first_seen_at, last_changed_at)
-    SELECT g, 'synthetic-' || g,
-           lat_min + (lat_max - lat_min) * ((0.5 + g * 0.5698402909980532) - floor(0.5 + g * 0.5698402909980532)),
-           lon_min + (lon_max - lon_min) * ((0.5 + g * 0.7548776662466927) - floor(0.5 + g * 0.7548776662466927)),
+    SELECT c.before + k, 'synthetic-' || (c.before + k),
+           c.south + cell * ((0.5 + k * 0.5698402909980532) - floor(0.5 + k * 0.5698402909980532)),
+           c.west  + cell * ((0.5 + k * 0.7548776662466927) - floor(0.5 + k * 0.7548776662466927)),
            timestamptz '2000-01-01T00:00:00Z', 0, 0, 0, 0, 'synthetic', now(), now()
-      FROM generate_series(1, 154845) AS g;
+      FROM (SELECT south, west,
+                   (2 * (running - zones) * synthetic_zones + dump_zones) / (2 * dump_zones) AS before,
+                   (2 * running           * synthetic_zones + dump_zones) / (2 * dump_zones) AS through
+              FROM (SELECT south, west, zones,
+                           sum(zones) OVER (ORDER BY south, west) AS running
+                      FROM pg_temp.zone_density) AS d) AS c
+     CROSS JOIN LATERAL generate_series(1, c.through - c.before) AS k;
 
     GET DIAGNOSTICS n = ROW_COUNT;
-    RAISE NOTICE 'loaded copy: % synthetic zones over latitude [%, %], longitude [%, %].',
-        n, lat_min, lat_max, lon_min, lon_max;
+    IF n <> synthetic_zones THEN
+        RAISE EXCEPTION 'loaded copy: % synthetic zones written, not %.', n, synthetic_zones;
+    END IF;
+    RAISE NOTICE 'loaded copy: % synthetic zones over % cells of % degrees, weighted by the % zones of data/zones-dump-2025-01-04.json.',
+        n, cells, cell, dump_zones;
     RETURN n;
 END
 $fn$;
@@ -583,6 +625,13 @@ VACUUM public.zone;
 -- Each plan is EXPLAIN (ANALYZE, BUFFERS), printed as the statement's result,
 -- and that same output is asserted: a sequential scan of `zone` raises and
 -- turns the run red, with the plan in the message.
+--
+-- The probe corridor starts in the densest cell of the density table, the cell
+-- at (59.3, 18.0) in Stockholm with 687 real zones, and ends on that cell's
+-- eastern edge. Q1 therefore returns rows, inside the 156 to 8,874 that
+-- `Architecture.md § The queries the schema exists to serve` measured for Q1
+-- on real routes, and Q2's lateral side runs once for each of its five
+-- candidates. The row counts appear in the printed plans.
 --
 -- The probe distances below are probe distances. The corridor half-width the
 -- product uses is chosen nowhere yet — item 7 of the same section holds it
