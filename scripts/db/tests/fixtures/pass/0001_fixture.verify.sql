@@ -37,7 +37,7 @@ CREATE TEMP TABLE fixture_guard (LIKE public.fixture_point INCLUDING GENERATED);
 
 INSERT INTO pg_temp.fixture_guard (id, latitude, longitude)
 VALUES (1, 0, 0),
-       (2, 0, 1);
+       (2, 1, 0);
 
 DO $$
 DECLARE
