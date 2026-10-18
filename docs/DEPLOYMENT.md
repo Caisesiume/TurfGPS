@@ -45,7 +45,7 @@ This follows the reasoning of `Architecture.md § D8` rather than inventing a se
 | Artefact | What it establishes |
 |---|---|
 | `deploy/turfgps.service` | The service's systemd unit — a long-lived process, restarted on failure, never per request. **This is the file `docs/Requirements/runtime-and-deployment-shape.md § NFR-004`'s second criterion is satisfied against.** |
-| `deploy/proxy/` | The reverse proxy configuration — TLS termination, the static client, the route to the service, and the proxy's share of the two plan-code constraints below: the caller-address constraint whole, and the proxy half of the log constraint |
+| `deploy/proxy/` | The Caddy configuration — TLS termination on certificates Caddy obtains and renews itself, the route to the service on the API's own subdomain, and the proxy's share of the two plan-code constraints below: the caller-address constraint whole, and the proxy half of the log constraint |
 | `deploy/provisioning/` | What must be true of the host before the first apply — the seam `§ What this document does not decide` leaves open, and the exposure invariant of `§ What is deployed` |
 | `deploy/README.md` | Apply order |
 
@@ -57,7 +57,7 @@ The zone sync and the plan retention sweep under `§ Operational duties` need un
 
 **Two constraints exist because of the plan code, and `deploy/proxy/` carries the caller-address one whole and only the proxy's half of the other.** `Architecture.md § Personal data` records that the code is a plan's only credential and that the object behind it holds a coordinate that is frequently the user's home.
 
-**No host log may record a plan code — not the proxy's, not the service's.** The code travels in the request line, and stock nginx, Caddy and Apache all log the full request target by default. An access log is not something a deployment adds; it is something a deployment must deliberately constrain, so deferring observability to `Architecture.md § Still owed by this document` does not defer this. The proxy configuration must satisfy the proxy's half on its face.
+**No host log may record a plan code — not the proxy's, not the service's.** The code travels in the request line, and stock nginx and Apache log the full request target by default. **Caddy, the proxy `docs/adr/ADR-0006-deployment-topology.md` chose, differs in a way that is easy to misread as safety.** It writes no access log until a `log` directive enables one ([`log` directive](https://caddyserver.com/docs/caddyfile/directives/log); [`app.go:243`](https://github.com/caddyserver/caddy/blob/v2.11.7/modules/caddyhttp/app.go#L243) at v2.11.7), and an enabled one records the request's `uri` ([How Logging Works § Structured logs](https://caddyserver.com/docs/logging#structured-logs)), so an access log, if `deploy/proxy/` enables one, must not record the request target. Its HTTP error logger is always on, though: a request that fails with a status of 500 or above — the `502` it returns when the service is down is one — is logged at `ERROR` with the request, `uri` included, to Caddy's default log on standard error, with no `log` directive anywhere ([`server.go:652`](https://github.com/caddyserver/caddy/blob/v2.11.7/modules/caddyhttp/server.go#L652), [`server.go:773`](https://github.com/caddyserver/caddy/blob/v2.11.7/modules/caddyhttp/server.go#L773), [`reverseproxy.go:1675`](https://github.com/caddyserver/caddy/blob/v2.11.7/modules/caddyhttp/reverseproxy/reverseproxy.go#L1675), [`logging.go:45`](https://github.com/caddyserver/caddy/blob/v2.11.7/logging.go#L45)). A log is not something a deployment adds; it is something a deployment must deliberately constrain, so deferring observability to `Architecture.md § Still owed by this document` does not defer this. The proxy configuration must satisfy the proxy's half on its face, against the error log as well as the access log.
 
 **The other half has a different home, and `deploy/` is not it.** The service writes its own log through `log/slog` from its own source and installs no handler, so it goes to standard error — which the systemd unit above collects into the journal, a host log in exactly the sense the constraint above means. No file under `deploy/` can constrain what it records: a proxy directive reaches the proxy's access log and nothing else. The service's half of this constraint therefore binds whoever writes those log statements in `service/`, and it is stated here because this is where the constraint is derived rather than where it is discharged. One control, two enforcement points; a deployment that satisfies only the proxy's has satisfied half of it.
 
@@ -65,23 +65,25 @@ The zone sync and the plan retention sweep under `§ Operational duties` need un
 
 ### What is deployed
 
-Five units, deployed independently, on one host:
+Five units, deployed independently — four on one host, and the client on Vercel:
 
 | Unit | Built from | Deployed as |
 |---|---|---|
 | The service | `service/` | One executable plus one systemd unit |
-| The client | `web/` | A directory of static files, served by the reverse proxy |
-| The reverse proxy | — | The host's proxy package, configured from `deploy/proxy/` |
+| The client | `web/` | A directory of static files, deployed on Vercel rather than on the host |
+| The reverse proxy | — | Caddy, configured from `deploy/proxy/` |
 | The data plane | — | PostgreSQL with PostGIS, and Valhalla with its tiles, per `Architecture.md § D4` and `Architecture.md § D3` |
 | The elevation surface | — | Elevation data, held wherever `Architecture.md § D6` settles it — that decision is open, and this document does not anticipate it |
 
-**The proxy is counted even though nothing in this repository builds it**, because three of the five rows share that property and deploying it is a deliberate act with configuration of its own. What decides a row is whether the unit has to be put on the host and kept correct there, not whether a build produces it.
+**The proxy is counted even though nothing in this repository builds it**, because three of the five rows share that property and deploying it is a deliberate act with configuration of its own. What decides a row is whether the unit has to be put in place and kept correct there, not whether a build produces it.
 
 **The tile set and the elevation data are built once for the first release and are not refreshed on a schedule.** The tile set derives from the extract of `Architecture.md § D5`. **The elevation data does not derive from it** — the extract decides only which footprint of the elevation surface is held, and where that surface comes from is what `Architecture.md § D6` is still open on. Rebuilding either is a deliberate act — new extract, rebuild, swap — rather than a timer. OSM data ages, so a tile refresh eventually becomes a recurring duty with a cadence and a swap procedure; **that argument reaches the tile set alone**, because the elevation surface is not OSM-derived and does not age with OSM — what would trigger a re-sample there is a new release of that surface or a change of footprint. **This document names both duties and invents neither cadence**, for the same reason `§ Sizing` states no figure.
 
-**The client is deployed independently of the service, and that independence is a requirement rather than a convenience.** `docs/Requirements/runtime-and-deployment-shape.md § NFR-005` obliges the client to be built to files a static file host can serve with no application code executing on the server, and its `Rationale` names this document as what would otherwise have to reconstruct that separation. The reverse proxy serves the built files directly and executes no application code to do so. Publishing a new client is replacing a directory; it needs no service restart, and a service deploy needs no client rebuild.
+**The client is deployed independently of the service, and that independence is a requirement rather than a convenience.** `docs/Requirements/runtime-and-deployment-shape.md § NFR-005` obliges the client to be built to files a static file host can serve with no application code executing on the server, and its `Rationale` names this document as what would otherwise have to reconstruct that separation. **The client is deployed on Vercel, per `docs/adr/ADR-0006-deployment-topology.md`, and that deployment is the built files alone**: no Vercel function, serverless or edge, may be part of it, so no application code executes to serve the client. Publishing a new client is a Vercel deployment; it needs no service restart, and a service deploy needs no client rebuild.
 
-**The reverse proxy is the only component that may face the network, and that is an obligation rather than an observation.** It terminates TLS, serves the client's static files, and forwards the service's HTTP API over the loopback interface. **The service, PostgreSQL and Valhalla must therefore bind loopback only, so that nothing but the proxy is reachable from outside the host — and the service as it is built does not.** This is written as an obligation the deployment owes rather than as a property it has, because the gap below is real today and a reader who took it for a description would provision against a host that is not the one they have.
+**The browser calls the service directly, on the API's own subdomain, under CORS — never through a Vercel rewrite.** A rewrite would carry every API request line, plan codes included, through a platform whose logs nothing in this repository configures: the log constraint of `§ Where the deployment configuration lives`, breached off the host where no directive reaches. The API's subdomain resolves to the host, and its requests reach the service through Caddy like any other. Whether Caddy or the service sets the CORS headers, and which origins they admit, is the artefacts' to settle. **The same constraint reaches the client's own addresses.** `Architecture.md § Persistence and cross-device transfer` lets the code be given as a link, and a link to the client is a request to Vercel, so a plan code may never sit in its path or query. A link that carries one carries it in the fragment, which the user agent separates from the URI before the request is made ([RFC 3986 § 3.5](https://www.rfc-editor.org/rfc/rfc3986#section-3.5)). That binds whoever designs the link, and it is stated here because this is where the constraint is derived.
+
+**The reverse proxy is the only component that may face the network, and that is an obligation rather than an observation.** It terminates TLS and forwards the service's HTTP API over the loopback interface, and it listens on ports 80 and 443, which Caddy's certificate issuance needs reachable from outside ([Automatic HTTPS § Overview](https://caddyserver.com/docs/automatic-https#overview)). **The service, PostgreSQL and Valhalla must therefore bind loopback only, so that nothing but the proxy is reachable from outside the host — and the service as it is built does not.** This is written as an obligation the deployment owes rather than as a property it has, because the gap below is real today and a reader who took it for a description would provision against a host that is not the one they have.
 
 **`deploy/provisioning/` owns enforcing that invariant**, because no component enforces it on the others' behalf and two of the three violate it if left alone. Valhalla's HTTP daemon does not bind loopback on its own, so an unconstrained host publishes a routing engine — and through it the tile set — to the internet.
 
@@ -96,7 +98,8 @@ The invariant is therefore checked against the host's listening sockets, which i
 ```mermaid
 flowchart TD
     U["Browser — React SPA"]
-    RP["Reverse proxy on the host<br/>TLS · static client files · /api route"]
+    VC["Vercel — the client's static files"]
+    RP["Caddy on the host<br/>TLS, automatic certificates · route to the service"]
     SVC["turfgps service — one executable<br/>systemd unit, long-lived<br/>solve sessions held in process"]
     SYNC["Zone sync — scheduled, packaging open"]
     SWEEP["Plan retention sweep — scheduled, packaging open"]
@@ -105,8 +108,8 @@ flowchart TD
     DEM[("Elevation data")]
     T(["Turf API v5 — external"])
 
-    U -- "HTTPS" --> RP
-    RP -- "static files" --> U
+    U -- "HTTPS, page load" --> VC
+    U -- "HTTPS, API subdomain, CORS" --> RP
     RP -- "HTTP, loopback" --> SVC
     SVC --> PG
     SVC --> VAL
@@ -117,7 +120,7 @@ flowchart TD
     SWEEP --> PG
 ```
 
-Everything above the external Turf API sits on **one host**. That is the deployment model's whole shape, and the sections below are what it costs to operate.
+Everything but Vercel and the external Turf API sits on **one host**. That is the deployment model's whole shape, and the sections below are what it costs to operate.
 
 ---
 
@@ -139,7 +142,7 @@ What is known is bounded and small on one surface and unknown on the others. `Ar
 
 ## Operational duties
 
-Four things must run on a schedule. Three exist because a section elsewhere requires them; the fourth exists because this document put TLS on the proxy.
+Four things must run on a schedule. Three exist because a section elsewhere requires them; the fourth exists because this document put TLS on the proxy, and the proxy runs it itself.
 
 **The zone sync, and its rate limit is the binding constraint.** `Architecture.md § Runtime topology` records the zone endpoint as rate-limited — that section states the interval and this one does not restate it — and requires the sync to be a scheduled worker that is never on a request path. The deployment consequence is a timer rather than anything in the service's request handling.
 
@@ -149,7 +152,7 @@ Four things must run on a schedule. Three exist because a section elsewhere requ
 
 **Daily is the proposed sweep cadence**, per the convention in `docs/README.md § Conventions` that a concrete default is a position to argue against rather than a measured result. The period is what decides how long an expired plan outlives its own expiry, and it is judged against the two clocks `Architecture.md § The plan table` states — which this document cites rather than repeats, and which a reader checking this judgement reads there. A day of overhang is immaterial to either guarantee and cheap to run. Hourly buys nothing anyone could observe; weekly is long enough to be worth arguing about, which is the argument this default exists to invite.
 
-**TLS certificate renewal, and it is the one duty this document creates rather than inherits.** `§ What is deployed` obliges the reverse proxy to be the sole ingress and gives it TLS termination, so an expired certificate is a total outage of the only component that **may** face the network — arriving roughly ninety days after the first deploy on the automated issuers a single host would use, which is late enough that nobody is expecting it. Renewal must be automatic and monitored, and **the renewal hook must reload the proxy**: a renewed certificate sitting on disk that the running proxy has not re-read fails in exactly the way an expired one does. `deploy/proxy/` owns it.
+**TLS certificate renewal, and it is the one duty this document creates rather than inherits — Caddy performs it, and what is left to the operator is a check that it happened.** `§ What is deployed` obliges the reverse proxy to be the sole ingress and gives it TLS termination, so an expired certificate is a total outage of the only component that **may** face the network, arriving late enough after the first deploy that nobody is expecting it. Caddy obtains and renews its certificates itself, from Let's Encrypt and falling back to ZeroSSL, with no downtime and no separate tooling ([Automatic HTTPS](https://caddyserver.com/docs/automatic-https), its opening paragraph and *Issuer fallback*), so there is no renewal hook to write and no proxy reload to forget. **The check is still owed, because a failing renewal is invisible to anyone using the site until the certificate expires.** Caddy manages certificates in the background and keeps serving while it retries, backing off for up to 30 days (same page, *Errors*). The check reads the expiry of the certificate the proxy actually serves, because that is the one that expires. Renewal also depends on things the host must keep true: the domain's A/AAAA records pointing at it, ports 80 and 443 reachable from outside, and Caddy's data directory writeable and persistent (same page, *Overview*). `deploy/proxy/` owns the configuration; where the check runs belongs with observability, owed by `Architecture.md § Still owed by this document`.
 
 **Backup and restore are owed and are not designed here.** `Architecture.md § What this section does not cover` explicitly leaves backup, restore and retention of the database itself outside the schema design, and this document does not close it by assertion. What it does state, because the sweep above is void without it, is the obligation that design inherits — see `§ Still owed by this document`.
 
@@ -182,11 +185,11 @@ Naming these is the point: a reader who expects one of them here should learn it
 
 The deployment model above is written. These are not, and each is owed by `docs/README.md § The documents`, which defines this document's scope:
 
-- **Hosting options with price and complexity comparisons.** The model names a shape — one Linux host — and does not name a provider, a tier, or a cost. This is the section `Architecture.md § The cost consequence` will need when the self-hosting-versus-metered question is answered, and it cannot be written before the sizing below.
+- **Hosting options with price and complexity comparisons.** The model names a shape — one Linux host, with the client on Vercel — and names no host provider, no tier and no cost, Vercel's included. This is the section `Architecture.md § The cost consequence` will need when the self-hosting-versus-metered question is answered, and it cannot be written before the sizing below.
 - **Host sizing**, which needs the two measurements nothing in the repository has taken: the on-disk size of the Valhalla tile set built over the extract of `Architecture.md § D5` together with the elevation data held for that footprint, and the memory Valhalla needs to serve that tile set.
 - **Pipeline and CI detail.** Two checks are already specified elsewhere and must be run by whatever pipeline is built — the set-equality test over the live catalogue in `Architecture.md § The two absences, and the test that keeps them absent`, and the three-assertion coordinate guard in `Architecture.md § Geometry, SRID, and the coordinate guard`, both against a migrated copy. `local-gates § When these activate` records the root `Makefile` as the canonical gate runner, and that `Makefile` now exists, so whatever pipeline is built invokes its targets rather than composing command lines of its own. `Architecture.md § D8` binds every CI job reaching the Go toolchain to set its working directory explicitly; **that section is where the obligation is argued, and `local-gates § Backend (Go)` is where what each gate actually reports from the wrong directory was measured.** This document restates neither, and the two are not interchangeable: the obligation would bind even if every gate were loud about a missing module. **The pipeline that runs all of this is not designed here.**
 - **Backup, restore, and database retention**, left open by `Architecture.md § What this section does not cover`. **That design carries the plan-retention obligation with it, and this is the constraint it must be written against**: a backup is a second copy of the plan table, so a backup set held longer than the plans themselves voids the retention guarantees `Architecture.md § The plan table` states. Deleting a row while a restorable copy of it survives is not deletion. Either backup retention is bounded by those same two clocks, or the restore path re-applies the sweep before the restored data is reachable.
-- **Secrets handling** — the database credential, any provider key, and the reverse proxy's TLS private key. Nothing in the repository states where these come from, and the model above deliberately does not invent an answer. What it does settle is the boundary: `§ Where the deployment configuration lives` puts none of them in this repository, and that binds whatever mechanism this work chooses.
+- **Secrets handling** — the database credential, any provider key, and the reverse proxy's TLS private key. Caddy stores that key with the certificates it obtains in its data directory, which is therefore not a cache and must persist ([Automatic HTTPS § Storage](https://caddyserver.com/docs/automatic-https#storage), [Conventions § Data directory](https://caddyserver.com/docs/conventions#data-directory)); nothing in the repository states where the other two come from, and the model above deliberately does not invent an answer. What it does settle is the boundary: `§ Where the deployment configuration lives` puts none of them in this repository, and that binds whatever mechanism this work chooses.
 - **The upgrade and rollback procedure**, which cannot be finished before the restart question above is settled.
 
 ---
