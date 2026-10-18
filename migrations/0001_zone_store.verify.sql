@@ -595,7 +595,6 @@ BEGIN;
 SELECT pg_temp.load_zone_copy() AS zones_in_copy;
 
 ANALYZE public.zone;
-DROP INDEX public.zone_geom_gist;  -- PLANTED (#20): the missing index, reverted next
 
 SELECT plan_line AS "QUERY PLAN (Q1, corridor containment)"
   FROM pg_temp.explain_asserting_gist('Q1', $q$
