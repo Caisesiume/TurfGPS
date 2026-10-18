@@ -184,6 +184,13 @@ func TestAMalformedTunableIsRefusedRatherThanDefaulted(t *testing.T) {
 		"a ratio of zero":            {EnvMinZoneRatio, "0"},
 		"a byte count that is not":   {EnvMaxResponseBytes, "lots"},
 
+		// ParseFloat reads all three as numbers. NaN compares false against
+		// both bounds, so a range check written as the two refusals lets it
+		// load, and a floor computed from it holds nothing back.
+		"a ratio that is not a number": {EnvMinZoneRatio, "NaN"},
+		"an infinite ratio":            {EnvMinZoneRatio, "+Inf"},
+		"a negatively infinite ratio":  {EnvMinZoneRatio, "-Inf"},
+
 		// The ceiling was bounded below and not above, so this value loaded
 		// and reached the adapter, where it is what breaks the read's own
 		// arithmetic. It is refused here as a malformed tunable and not as a

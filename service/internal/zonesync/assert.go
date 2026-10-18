@@ -50,8 +50,12 @@ func (s Staged) Verify(minZoneRatio float64) []string {
 	// truncated response must not be merged at all: `Architecture.md § Absence
 	// is recorded and never acted on` records what merging one costs and why
 	// the next opportunity to repair it is a whole interval away.
-	floor := int(minZoneRatio * float64(s.CurrentZoneRows))
-	if s.Rows < floor {
+	//
+	// A ratio outside (0, 1] gives no floor, so it refuses rather than passes:
+	// NaN and the infinities convert to an int the row count always clears.
+	if !floorRatioInRange(minZoneRatio) {
+		reasons = append(reasons, fmt.Sprintf("the floor ratio %v is outside (0, 1], so no floor holds — the response is not merged", minZoneRatio))
+	} else if floor := int(minZoneRatio * float64(s.CurrentZoneRows)); s.Rows < floor {
 		reasons = append(reasons, fmt.Sprintf("the response carries %d zones, below the floor of %d for the %d rows now held — a truncated response is not merged", s.Rows, floor, s.CurrentZoneRows))
 	}
 
@@ -89,4 +93,11 @@ func (s Staged) Verify(minZoneRatio float64) []string {
 	}
 
 	return reasons
+}
+
+// floorRatioInRange reports whether f is in (0, 1]. It is written as the range
+// it accepts and not as the two it refuses, because NaN compares false against
+// both bounds and would pass `f <= 0 || f > 1`.
+func floorRatioInRange(f float64) bool {
+	return f > 0 && f <= 1
 }

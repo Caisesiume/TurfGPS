@@ -311,7 +311,9 @@ func ratio(lookup LookupFunc, name string, fallback float64) (float64, error) {
 		return 0, fmt.Errorf("%s=%q is not a number: %w", name, raw, err)
 	}
 
-	if f <= 0 || f > 1 {
+	// Written as the range it accepts, not as the two it refuses: ParseFloat
+	// reads "NaN" as a number, and NaN compares false against both bounds.
+	if !(f > 0 && f <= 1) {
 		return 0, fmt.Errorf("%s=%q is outside (0, 1]", name, raw)
 	}
 

@@ -453,7 +453,7 @@ func newRunner(cfg Config) (*runner, error) {
 		}
 	}
 
-	if cfg.MinZoneRatio <= 0 || cfg.MinZoneRatio > 1 {
+	if !floorRatioInRange(cfg.MinZoneRatio) {
 		return nil, fmt.Errorf("the minimum zone ratio %v is outside (0, 1]", cfg.MinZoneRatio)
 	}
 

@@ -1,6 +1,8 @@
 package zonesync
 
 import (
+	"fmt"
+	"math"
 	"strings"
 	"testing"
 )
@@ -87,6 +89,26 @@ func TestTheFirstRealResponseIsAcceptedAgainstAnEmptyTable(t *testing.T) {
 
 	if reasons := first.Verify(0.9); len(reasons) != 0 {
 		t.Errorf("the first response into an empty store was refused for %v, want it merged", reasons)
+	}
+}
+
+// TestAFloorRatioOutsideItsRangeRefusesTheResponse fails closed. A ratio that
+// is not in (0, 1] gives no floor: NaN and the infinities turn the conversion to
+// an int into a figure the row count always clears, so a truncated response
+// would merge as `ok`. The response carried here is that truncated one.
+func TestAFloorRatioOutsideItsRangeRefusesTheResponse(t *testing.T) {
+	t.Parallel()
+
+	truncated := Staged{Rows: 10, DistinctIDs: 10, CurrentZoneRows: 154845}
+
+	for _, f := range []float64{math.NaN(), math.Inf(1), math.Inf(-1), 0, -0.5} {
+		t.Run(fmt.Sprint(f), func(t *testing.T) {
+			t.Parallel()
+
+			if reasons := truncated.Verify(f); len(reasons) == 0 {
+				t.Errorf("with a floor ratio of %v, %d zones against %d held was accepted for merge, want it refused", f, truncated.Rows, truncated.CurrentZoneRows)
+			}
+		})
 	}
 }
 

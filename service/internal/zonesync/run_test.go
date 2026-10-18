@@ -3,6 +3,8 @@ package zonesync
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"testing"
 	"time"
 )
@@ -295,5 +297,32 @@ func TestARunThatCannotRecordItsStartDoesNotFetch(t *testing.T) {
 
 	if calls := fetch.count(); calls != 0 {
 		t.Errorf("the endpoint was called %d times by a run that could not record itself, want 0", calls)
+	}
+}
+
+// TestAFloorRatioOutsideItsRangeIsRefusedAtConstruction is the runner's half of
+// the same refusal `config` makes at load, for a Config built by any other
+// caller. NaN is the case a range check written as the two refusals misses.
+func TestAFloorRatioOutsideItsRangeIsRefusedAtConstruction(t *testing.T) {
+	t.Parallel()
+
+	fetch := &fakeFetch{body: []byte(oneZoneResponse), status: 200}
+
+	for _, f := range []float64{math.NaN(), math.Inf(1), math.Inf(-1), 0, -0.5, 1.5} {
+		t.Run(fmt.Sprint(f), func(t *testing.T) {
+			t.Parallel()
+
+			_, err := newRunner(Config{
+				Fetch:           fetch.fetch,
+				Store:           okStore(),
+				FetchTimeout:    time.Second,
+				DatabaseTimeout: time.Second,
+				MergeTimeout:    time.Second,
+				MinZoneRatio:    f,
+			})
+			if err == nil {
+				t.Errorf("a runner was built with a floor ratio of %v, want it refused", f)
+			}
+		})
 	}
 }
