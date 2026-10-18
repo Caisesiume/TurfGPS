@@ -102,10 +102,10 @@ const syncAdvisoryLockKey int64 = 20260820
 // agree by POSITION rather than by name: the staging list is what COPY is given,
 // and the row builder supplied values in the order it hoped that list was in.
 // Swap two columns between them and the compiler accepts it. Cross two
-// columns the database will take from each other — area_name with
-// region_name — and pgx accepts it, PostgreSQL accepts it, and the first thing
-// to notice is a zone whose area name is its region name. Which crossings the
-// compiler accepts, and what these columns' Go types do and do not decide
+// columns the database will take from each other — region_country with
+// area_name — and pgx accepts it, PostgreSQL accepts it, and the first thing
+// to notice is a zone whose country is the name of its area. Which crossings
+// the compiler accepts, and what these columns' Go types do and do not decide
 // about that, is stated in the header of `columns_test.go` and is not
 // restated here. Naming the column beside its accessor makes that swap
 // unwriteable; deriving the other five lists from this one slice makes them
