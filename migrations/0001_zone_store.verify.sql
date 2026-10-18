@@ -5,25 +5,24 @@
 --     psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.verify.sql
 --
 -- Every assertion below raises with a message naming what it found. A silent
--- run is a pass. It writes nothing that survives: it creates one temporary
--- table, and one probe in part B inserts into `sync_run` inside subtransactions
--- it then discards, which consumes a few values from that table's id sequence
--- and leaves no row behind. Nothing is written to `zone` or `zone_incoming` at
--- all. Parts D and E are only meaningful against a loaded copy.
+-- run is a pass. It writes nothing that survives: it creates temporary objects,
+-- one probe in part B inserts into `sync_run` inside subtransactions it then
+-- discards, which consumes a few values from that table's id sequence and
+-- leaves no row behind, and parts D and E fill an EMPTY `zone` with the
+-- synthetic copy described above part A, inside a transaction each rolls back.
+-- Nothing is ever written to a `zone` that holds a row, or to `zone_incoming`.
 --
 -- ----------------------------------------------------------------------------
--- NEVER EXECUTED. This script has not been run. There is no database in this
--- repository, none was provisioned, and PostgreSQL is not installed on the
--- host that authored it. Nothing below is evidence yet; all of it is the
--- instrument that produces evidence.
+-- EXECUTED ON THROWAWAY INSTANCES ONLY. CI's `migrations` job runs this file
+-- part by part through `scripts/db/migrate-verify.sh` (#153), after applying
+-- 0001 to an ephemeral PostGIS, on every pull request.
 --
--- `Architecture.md § What is unproven` item 1 makes part E — EXPLAIN against a
--- loaded copy — an acceptance condition of the first migration. That condition
--- is NOT met. Until part E has run and its output is in the PR, the index set
--- is a prediction — and running it is necessary rather than sufficient. Part E
--- probes `zone_geom_gist` on the two spatial shapes and carries no `sync_run`
--- query at all, so the two indexes on `sync_run` are still a prediction on the
--- far side of it.
+-- `Architecture.md § What is unproven` item 1 makes EXPLAIN (ANALYZE, BUFFERS)
+-- against a loaded copy an acceptance condition of the first migration, for Q1
+-- and Q2; Q3's is owed by the migration that creates `plan`. Part E prints
+-- both plans and fails on either one that scans `zone` sequentially. It
+-- carries no `sync_run` query at all, so the two indexes on `sync_run` are
+-- still a prediction on the far side of it.
 -- ----------------------------------------------------------------------------
 --
 -- Part A  the column set, in both directions
@@ -65,6 +64,92 @@
 -- the temp schema whatever the path says.
 
 SET search_path = pg_catalog, public, pg_temp;
+
+-- --- The loaded copy, for parts D and E -------------------------------------
+--
+-- At sample size the planner seq-scans whatever indexes exist, so an empty
+-- migrated copy proves nothing about index use. `load_zone_copy` fills an
+-- EMPTY `zone` with 154,845 synthetic zones — the table's size in
+-- `Architecture.md § Volume` — spread evenly over the bounding box of every
+-- zone in `data/zones-dump-2025-01-04.json`: latitude -54.499085 (id 45629) to
+-- 78.654199 (id 475900), longitude -178.412541 (id 62505) to 178.834506
+-- (id 47194). That is the Owner's decision on #142 (Q1 (a),
+-- #issuecomment-6255605444). It is hermetic, deterministic and at production
+-- row count; it does not reproduce the real spatial distribution, so it says
+-- nothing about how many zones a corridor returns.
+--
+-- A `zone` that already holds a row is used as it is and nothing is added, so
+-- the load never meets a real row; parts D and E call it inside a transaction
+-- they roll back, so it never outlives the part. The spread is the R2
+-- low-discrepancy sequence, in numeric, so every server produces the same rows.
+-- These are temporary functions, defined ahead of every part and called
+-- schema-qualified because `pg_temp` is never searched for functions.
+
+CREATE FUNCTION pg_temp.load_zone_copy() RETURNS bigint
+LANGUAGE plpgsql AS $fn$
+DECLARE
+    lat_min constant numeric := -54.499085;
+    lat_max constant numeric :=  78.654199;
+    lon_min constant numeric := -178.412541;
+    lon_max constant numeric :=  178.834506;
+    n bigint;
+BEGIN
+    SELECT count(*) INTO n FROM public.zone;
+    IF n > 0 THEN
+        RAISE NOTICE 'loaded copy: zone already holds % row(s); used as it is, nothing synthetic added.', n;
+        RETURN n;
+    END IF;
+
+    INSERT INTO public.zone (id, name, latitude, longitude, date_created,
+                             total_takeovers, takeover_points, points_per_hour,
+                             region_id, region_name, first_seen_at, last_changed_at)
+    SELECT g, 'synthetic-' || g,
+           lat_min + (lat_max - lat_min) * ((0.5 + g * 0.5698402909980532) - floor(0.5 + g * 0.5698402909980532)),
+           lon_min + (lon_max - lon_min) * ((0.5 + g * 0.7548776662466927) - floor(0.5 + g * 0.7548776662466927)),
+           timestamptz '2000-01-01T00:00:00Z', 0, 0, 0, 0, 'synthetic', now(), now()
+      FROM generate_series(1, 154845) AS g;
+
+    GET DIAGNOSTICS n = ROW_COUNT;
+    RAISE NOTICE 'loaded copy: % synthetic zones over latitude [%, %], longitude [%, %].',
+        n, lat_min, lat_max, lon_min, lon_max;
+    RETURN n;
+END
+$fn$;
+
+-- EXPLAIN (ANALYZE, BUFFERS) of one query, returned line by line so the plan is
+-- the statement's printed result, and asserted on that same output: a
+-- sequential scan of `zone`, or a plan that never names `zone_geom_gist`,
+-- raises with the plan in the message. Below 1000 rows the planner is not
+-- answering the real question, so it reports unreached instead of judging.
+CREATE FUNCTION pg_temp.explain_asserting_gist(shape text, sql_text text)
+RETURNS SETOF text
+LANGUAGE plpgsql AS $fn$
+DECLARE
+    line       text;
+    plan       text[] := ARRAY[]::text[];
+    rows_total bigint;
+BEGIN
+    SELECT count(*) INTO rows_total FROM public.zone;
+
+    FOR line IN EXECUTE 'EXPLAIN (ANALYZE, BUFFERS) ' || sql_text LOOP
+        plan := plan || line;
+    END LOOP;
+
+    IF rows_total < 1000 THEN
+        RAISE NOTICE 'part E, %: zone holds % row(s), too few for the planner to be answering the real question. Index use is UNPROVEN. This is not a pass.', shape, rows_total;
+    ELSIF EXISTS (SELECT 1 FROM unnest(plan) AS l WHERE l ~ 'Seq Scan on (public\.)?zone( |$)') THEN
+        RAISE EXCEPTION E'part E, %: the plan reads zone by a sequential scan over % rows, not by zone_geom_gist. Plan:\n%',
+            shape, rows_total, array_to_string(plan, E'\n');
+    ELSIF NOT EXISTS (SELECT 1 FROM unnest(plan) AS l WHERE l ~ 'zone_geom_gist') THEN
+        RAISE EXCEPTION E'part E, %: the plan never names zone_geom_gist over % rows. Plan:\n%',
+            shape, rows_total, array_to_string(plan, E'\n');
+    END IF;
+
+    FOREACH line IN ARRAY plan LOOP
+        RETURN NEXT line;
+    END LOOP;
+END
+$fn$;
 
 -- === Part A — the column set, in both directions =============================
 --
@@ -419,9 +504,11 @@ DROP TABLE pg_temp.zone_guard;
 
 -- === Part D — the axis order over every row actually stored ==================
 --
--- Part C proves the DDL. This proves the table. On an empty migrated copy it
--- passes trivially and says so; on a loaded copy it is the assertion that
--- notices a row whose point does not match the scalars it was derived from.
+-- Part C proves the DDL. This proves the table: on a loaded copy it is the
+-- assertion that notices a row whose point does not match the scalars it was
+-- derived from. An empty migrated copy is first given the synthetic load above
+-- part A, inside a transaction rolled back at the end of this part, so there
+-- it shows the generation expression over 154,845 rows and not the sync's.
 --
 -- WHAT IT CANNOT NOTICE, stated so the gap is chosen rather than assumed
 -- closed. A stored point that disagrees with its own scalars is a crossed
@@ -439,6 +526,10 @@ DROP TABLE pg_temp.zone_guard;
 -- anything at all. The binding is decided in Go, before a statement reaches a
 -- server, and it is pinned there — by `TestEveryColumnIsLoadedFromItsOwnField`
 -- in `service/internal/syncstore/columns_test.go`.
+
+BEGIN;
+
+SELECT pg_temp.load_zone_copy() AS zones_in_copy;
 
 DO $$
 DECLARE
@@ -467,6 +558,13 @@ BEGIN
 END
 $$;
 
+ROLLBACK;
+
+-- The rolled-back load leaves dead tuples and a stale row estimate behind;
+-- this returns the heap to the state the part found it in, so part E's plans
+-- are not costed against them.
+VACUUM public.zone;
+
 -- === Part E — EXPLAIN, which is the only thing that proves an index is used ==
 --
 -- `CREATE INDEX` succeeding proves nothing. A corridor query falling back to a
@@ -474,9 +572,17 @@ $$;
 -- product and a timeout, and it fails no other check in this file.
 --
 -- `Architecture.md § What is unproven` item 1 makes this part an acceptance
--- condition of the first migration, against a LOADED copy. On an empty copy
--- the planner will legitimately choose a sequential scan and these assertions
--- would be meaningless, so they skip and say they skipped.
+-- condition of the first migration, against a LOADED copy, for Q1 and Q2. Q3
+-- reads `plan`, which 0001 does not create; its EXPLAIN is owed by the
+-- migration that creates `plan` (the same item, as amended on #142), and this
+-- part reports it so rather than as a pass.
+--
+-- An empty copy is given the synthetic load above part A, inside a transaction
+-- rolled back at the end of this part, and ANALYZEd, so the planner costs the
+-- real row count rather than its default guess for a table it never measured.
+-- Each plan is EXPLAIN (ANALYZE, BUFFERS), printed as the statement's result,
+-- and that same output is asserted: a sequential scan of `zone` raises and
+-- turns the run red, with the plan in the message.
 --
 -- The probe distances below are probe distances. The corridor half-width the
 -- product uses is chosen nowhere yet — item 7 of the same section holds it
@@ -484,37 +590,24 @@ $$;
 --
 -- WKT is longitude first, exactly as ST_MakePoint is.
 
-DO $do$
-DECLARE
-    loaded  bigint;
-    plan_q1 json;
-    plan_q2 json;
-BEGIN
-    SELECT count(*) INTO loaded FROM public.zone;
+BEGIN;
 
-    IF loaded < 1000 THEN
-        RAISE NOTICE 'part E: zone holds % row(s), too few for the planner to be answering the real question. Index use is UNPROVEN. This is not a pass.', loaded;
-        RETURN;
-    END IF;
+SELECT pg_temp.load_zone_copy() AS zones_in_copy;
 
-    EXECUTE $q$
-        EXPLAIN (FORMAT JSON)
+ANALYZE public.zone;
+
+SELECT plan_line AS "QUERY PLAN (Q1, corridor containment)"
+  FROM pg_temp.explain_asserting_gist('Q1', $q$
         SELECT id, name, latitude, longitude, date_created, total_takeovers,
                takeover_points, points_per_hour, type_id
         FROM   public.zone
         WHERE  ST_DWithin(geom,
                           ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
                           1000)
-    $q$ INTO plan_q1;
+  $q$) AS plan_line;
 
-    IF plan_q1::text NOT LIKE '%zone_geom_gist%' THEN
-        RAISE EXCEPTION
-            'the corridor query does not use zone_geom_gist. It is scanning % rows to answer the one query that sits on the request path. Plan: %',
-            loaded, plan_q1;
-    END IF;
-
-    EXECUTE $q$
-        EXPLAIN (FORMAT JSON)
+SELECT plan_line AS "QUERY PLAN (Q2, activity baseline)"
+  FROM pg_temp.explain_asserting_gist('Q2', $q$
         WITH candidate AS (
             SELECT id, geom
             FROM   public.zone
@@ -533,54 +626,11 @@ BEGIN
                  ORDER  BY z.geom <-> c.geom
                  LIMIT  100
                ) n
-    $q$ INTO plan_q2;
+  $q$) AS plan_line;
 
-    IF plan_q2::text NOT LIKE '%zone_geom_gist%' THEN
-        RAISE EXCEPTION
-            'the activity-baseline query does not use zone_geom_gist. This runs once per candidate, so a sequential scan here is multiplied by the corridor result size. Plan: %',
-            plan_q2;
-    END IF;
+SELECT 'owed by the migration that creates plan, per Architecture.md § What is unproven, item 1' AS "Q3, plan lookup by code";
 
-    IF plan_q2::text LIKE '%Seq Scan%' THEN
-        RAISE EXCEPTION
-            'the activity-baseline query contains a sequential scan. Plan: %', plan_q2;
-    END IF;
+ROLLBACK;
 
-    RAISE NOTICE 'part E: both spatial query shapes use zone_geom_gist against % rows.', loaded;
-END
-$do$;
-
--- The evidence itself. `Architecture.md § What is unproven` item 1 asks for
--- EXPLAIN (ANALYZE, BUFFERS) against a loaded copy, and these two statements
--- are what produces it. Paste their output into the migration's PR — it is the
--- output, not a claim about it, that discharges the condition. The third query
--- that item names reads the plan table, which this migration does not create;
--- it is owed by the migration that does.
-
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT id, name, latitude, longitude, date_created, total_takeovers,
-       takeover_points, points_per_hour, type_id
-FROM   public.zone
-WHERE  ST_DWithin(geom,
-                  ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
-                  1000);
-
-EXPLAIN (ANALYZE, BUFFERS)
-WITH candidate AS (
-    SELECT id, geom
-    FROM   public.zone
-    WHERE  ST_DWithin(geom,
-                      ST_GeogFromText('SRID=4326;LINESTRING(18.02 59.33, 18.10 59.37)'),
-                      1000)
-    LIMIT  5
-)
-SELECT c.id, n.id AS neighbour_id, n.total_takeovers, n.date_created
-FROM   candidate c
-CROSS  JOIN LATERAL (
-         SELECT z.id, z.total_takeovers, z.date_created
-         FROM   public.zone z
-         WHERE  ST_DWithin(z.geom, c.geom, 25000)
-           AND  z.id <> c.id
-         ORDER  BY z.geom <-> c.geom
-         LIMIT  100
-       ) n;
+-- As at the end of part D: the heap returns to the state the part found it in.
+VACUUM public.zone;
