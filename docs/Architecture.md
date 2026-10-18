@@ -295,9 +295,13 @@ The ports:
 | `RoutingProvider` | Car and pedestrian routes, matrices, edge attributes at a point | Valhalla; openrouteservice registered alongside |
 | `ElevationProvider` | Point and profile sampling | Copernicus GLO-30 |
 | `ZoneRepository` | Zone lookup, corridor queries, activity baseline | PostGIS |
+| `ZoneSyncStore` | The sync's run record, staging, and one-transaction merge | PostGIS |
+| `ZoneSyncLock` | The sync's exclusive lock, shared with any migration that touches `zone` | PostgreSQL advisory lock |
 | `TurfClient` | Player rank, held zones, region lords, zone sync | Turf API v5 |
 | `PlanStore` | Short-code plan persistence and expiry | PostGIS |
 | `Geocoder` | Address, place, and zone-name resolution | Self-hosted; zone names local |
+
+`ZoneSyncStore` and `ZoneSyncLock` are the sync worker's write side; `ZoneRepository` stays the read side, and the only one of the three a request may reach.
 
 The requirement this places on the rest of the system is that **every consumer of external data must tolerate varying quality**, because coverage differs between one part of a route and another. That is already true of the confidence model under *Terrain confidence* in `SPECIFICATION.md`, which extends naturally to provenance: a stop analysed against a two-metre national elevation model is more confident than one analysed with a global thirty-metre model, and the recommendation must say so.
 
@@ -482,7 +486,7 @@ The widths are measured, not guessed. `id` runs 71 to 811,670 and fits `integer`
 
 `currentOwner` and `dateLastTaken` are absent from every one of the 154,845 records. There are therefore **no columns for them**, and there must never be: they are round-scoped, per *§ Volatile and optional fields*, and a synced table that acquires a round-scoped column acquires a rollover problem it currently does not have.
 
-Documenting that is not enough, because the failure is an *addition* made later by someone who has not read this paragraph. The mechanism is a **set-equality test** over the live catalogue, run in CI against a migrated copy:
+Documenting that is not enough, because the failure is an *addition* made later by someone who has not read this paragraph. The mechanism is a **set-equality test** over the live catalogue of a migrated copy, in `migrations/0001_zone_store.verify.sql`; not yet run by CI:
 
 ```sql
 SELECT array_agg(column_name ORDER BY column_name)
@@ -549,7 +553,7 @@ The test exists anyway, because the one line may be wrong.
 
 **A range check is not that test, and the corpus says why.** Under a table-wide swap, `CHECK (latitude BETWEEN -90 AND 90)` fires only on rows whose true longitude exceeds 90°. That is **5,982 rows — 3.86%** of the corpus, and all of them are in Korea (1,884), the United States (1,744), Japan (1,362), Australia (299), Thailand (163), New Zealand (152), China (87) and Canada (56). **In all six primary markets of *§ D5* — Sweden, the UK, Germany, Norway, Denmark and Finland — the number of rows a latitude range check would catch is zero.** Swedish longitudes run 10.99° to 24.17°; British, 0.00° to 8.57°. A developer writing a fixture from Nordic data — which is what a Turf developer writes, and what the prototype used — gets a check that cannot fail. For **96.14%** of the corpus a swapped coordinate is still a coordinate PostGIS accepts without complaint.
 
-**The guard is three assertions, run in CI against a migrated copy.** It uses two real zones from the corpus, with the expected distances computed independently by Vincenty on the WGS84 spheroid.
+**The guard is three assertions against a migrated copy, in `migrations/0001_zone_store.verify.sql`; not yet run by CI.** It uses two real zones from the corpus, with the expected distances computed independently by Vincenty on the WGS84 spheroid.
 
 *Assertion 1 — a known distance.* Zone `8240` **VonScheeles** (59.346932, 18.021527) and zone `119704` **StGravkoret** (59.354872, 18.029727) are **1000.0006 m** apart. `ST_Distance(a.geom, b.geom)` must equal that to within 1 mm. The pair was chosen for being almost exactly a kilometre apart, because a fixture whose expected value is memorable is a fixture someone will notice has changed.
 
@@ -561,7 +565,7 @@ Two further things that fixture pins, both silent failures otherwise. That 1.237
 
 ### The indexes
 
-Two on `zone`, two on `plan`, one on the sync log. That is all of them.
+Two on `zone`, two on `plan`, three on the sync log. That is all of them.
 
 ```sql
 -- zone
@@ -574,6 +578,8 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS plan_expires_at_idx ON plan (expires_at)
 
 -- sync_run
 sync_run_pkey                 btree (id)          -- implicit
+CREATE INDEX CONCURRENTLY IF NOT EXISTS sync_run_completed_at_ok ON sync_run (completed_at DESC) WHERE outcome = 'ok';  -- the currency read
+CREATE INDEX CONCURRENTLY IF NOT EXISTS sync_run_started_at ON sync_run (started_at DESC);  -- the rate-limit gate
 ```
 
 `zone_pkey` serves the upsert's conflict target in Q5 and the resolution of zone ids held in a stored plan. `zone_geom_gist` serves **both** Q1 and Q2 — the `ST_DWithin` containment and the `<->` nearest-neighbour ordering come off one index, which is a property of GiST on geography and not a coincidence to be relied on silently. `plan_expires_at_idx` serves Q3's predicate and Q4's sweep.
@@ -669,7 +675,7 @@ CREATE TABLE IF NOT EXISTS sync_run (
     id             bigserial   PRIMARY KEY,
     started_at     timestamptz NOT NULL,
     completed_at   timestamptz,
-    outcome        text        NOT NULL,   -- ok | http_error | assertion_failed | aborted
+    outcome        text        NOT NULL,   -- running | ok | http_error | assertion_failed | aborted
     http_status    smallint,
     response_bytes bigint,
     zones_received integer,
@@ -680,6 +686,8 @@ CREATE TABLE IF NOT EXISTS sync_run (
     absent_ids     integer[]
 );
 ```
+
+`running` is the one non-terminal value: the row is inserted carrying it when a run starts, so a run killed part-way leaves a trace rather than looking like a run that never happened.
 
 `completed_at` is what `last_changed_at` on a zone row is stamped with, so every changed row is attributable to a run. Two figures are worth watching from the first day: `rows_updated` far above the modelled ~1,840 means the change-detection `WHERE` has stopped discriminating, and `zones_received` falling means a truncated response — the failure the staging assertions exist to catch.
 

@@ -68,7 +68,7 @@ import (
 // Outcome is what one run writes to `sync_run.outcome`.
 //
 // The vocabulary's home is `Architecture.md § The sync write path`, which gives
-// each value its meaning and says which of them are terminal, and it is
+// each value and says which one is not terminal, and it is
 // enforced by a CHECK constraint in `migrations/0001_zone_store.sql`. These
 // constants are the binding of that vocabulary into Go and add nothing to it,
 // which is a claim this file has to keep true rather than merely make.
@@ -385,7 +385,7 @@ func (r *runner) receive(ctx context.Context, log *slog.Logger, result *Result) 
 	zones, err := ParseAllZones(body)
 	if err != nil {
 		// A body that would not parse is an unusable response, which
-		// `Architecture.md § The sync write path` puts under http_error
+		// this file, not `Architecture.md`, puts under http_error
 		// alongside a refused request. response_bytes is already recorded and
 		// is what separates the two.
 		result.Outcome = OutcomeHTTPError
