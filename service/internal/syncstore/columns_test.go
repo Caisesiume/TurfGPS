@@ -211,18 +211,17 @@ func TestEveryPinnedValueDiffersFromEveryOther(t *testing.T) {
 // failure mode aimed one level up: prose asserting a property, with nothing
 // underneath it that would go red when the property stopped holding.
 //
-// AT 3a99a15 THERE ARE EIGHT SUCH CITATIONS IN FOUR FILES outside this package
-// — docs/Architecture.md, migrations/0001_zone_store.sql (four),
+// WHEN THIS BRANCH WAS RE-CUT ONTO c9975be THERE WERE SEVEN SUCH CITATIONS IN
+// THREE FILES outside this package — migrations/0001_zone_store.sql (four),
 // migrations/0001_zone_store.verify.sql (two) and migrations/README.md — and
-// the count is stated with the commit it was counted at rather than as a
-// standing fact, because it has risen on every revision of this branch and rose
-// again in the commit named here.
+// the count is stated with the base it was counted at rather than as a
+// standing fact, because it has changed on every revision of this branch.
 //
 // NO GATE CLOSES THIS, AND THE NEAREST CANDIDATE WAS CHECKED AND DOES NOT.
 // scripts/gates/d8-root-run-claims.sh performs no existence check of any kind —
 // it matches phrases, and its only resolution step locates a markdown heading
 // against a hard-coded table — and its corpus pathspec is `'*.md' 'Makefile'`
-// (:559), which reaches two of the eight citations and none of the six in .sql
+// (:559), which reaches one of the seven citations and none of the six in .sql
 // files. Widening it is owed work that the script's own header (:449) exempts
 // from being treated as a one-word change, and it is tracked as FW-24 rather
 // than assumed done. Until something lands, the guard on this guard is a human

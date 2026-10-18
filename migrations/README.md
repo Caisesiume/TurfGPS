@@ -124,8 +124,8 @@ each column with the field it is loaded from, and a crossed pair there leaves
 `geom` agreeing with its own columns exactly as before. Neither this migration
 nor its verification detects it — including the `ST_X`/`ST_Y` assertion, which
 passes under one. What pins it is `TestEveryColumnIsLoadedFromItsOwnField` in
-`service/internal/syncstore/columns_test.go`, and the reasoning is
-`Architecture.md § What the DDL cannot reach`.
+`service/internal/syncstore/columns_test.go`, and the reasoning is that file's
+header.
 
 **`region` and `type` are flattened, not normalised.** There is no `region`
 table, no `area` table and no `country` dimension, and there cannot be one built

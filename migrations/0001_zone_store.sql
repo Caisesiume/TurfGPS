@@ -302,13 +302,12 @@ CREATE TABLE IF NOT EXISTS public.zone (
     -- `syncstore.zoneColumns` and is pinned in Go by
     -- `TestEveryColumnIsLoadedFromItsOwnField`. Why nothing in this file can
     -- detect a crossed binding — including the ST_X/ST_Y assertion, which
-    -- passes under one — is `Architecture.md § What the DDL cannot reach`, and
-    -- is not restated here.
+    -- passes under one — is the header of
+    -- `service/internal/syncstore/columns_test.go`, and is not restated here.
     --
     -- The two scalars above are kept precisely so that the derived
     -- point has something to be checked against; see
-    -- `Architecture.md § Geometry, SRID, and the coordinate guard` and
-    -- `Architecture.md § What the DDL cannot reach`.
+    -- `Architecture.md § Geometry, SRID, and the coordinate guard`.
     geom             geography(Point, 4326)
                      GENERATED ALWAYS AS (
                        ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
@@ -344,7 +343,7 @@ CREATE TABLE IF NOT EXISTS public.zone (
     -- assertions. That binding is pinned in Go, by
     -- `TestEveryColumnIsLoadedFromItsOwnField` in
     -- `service/internal/syncstore/columns_test.go`; see the note on `geom`
-    -- above and `Architecture.md § What the DDL cannot reach`.
+    -- above.
     CONSTRAINT zone_lat_range        CHECK (latitude  BETWEEN  -90 AND  90),
     CONSTRAINT zone_lon_range        CHECK (longitude BETWEEN -180 AND 180),
     CONSTRAINT zone_takeovers_nonneg CHECK (total_takeovers >= 0)
@@ -381,8 +380,8 @@ CREATE TABLE IF NOT EXISTS public.zone (
 -- Were the generated column present it would derive the point faithfully from
 -- the crossed pair and catch none of it. That binding is pinned by
 -- `TestEveryColumnIsLoadedFromItsOwnField`
--- in `service/internal/syncstore/columns_test.go`; see the note on `geom` above
--- and `Architecture.md § What the DDL cannot reach`.
+-- in `service/internal/syncstore/columns_test.go`; see the note on `geom`
+-- above.
 
 CREATE UNLOGGED TABLE IF NOT EXISTS public.zone_incoming (
     id               integer,
