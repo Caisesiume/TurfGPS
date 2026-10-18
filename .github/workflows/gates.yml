@@ -15,10 +15,23 @@
 # detector runs, and a container runtime, so the image test runs — and a gate
 # the script could not run is `incomplete` (exit 3): red here, never a pass.
 #
-# Supply chain: every action is pinned to a full commit SHA with its version
-# beside it; the job may read the repository and nothing else; no secret is
-# used. Making `gates` a required status check is branch protection, which the
-# Owner sets.
+# The `migrations` job (#153) executes the migrations rather than arguing them:
+# `scripts/db/migrate-verify.sh` applies `migrations/[0-9]*.sql` in order to a
+# throwaway PostGIS service container, runs each `*.verify.sql` part by part,
+# runs each `*.down.sql` twice to observe its exit status, and shows any
+# EXPLAIN output in a step of its own. A part that cannot reach its condition is
+# `unreached` and the run `incomplete` (exit 3) — red, as above. Before that it proves itself on a
+# fixture under `scripts/db/tests/fixtures/` — one that must pass and one with
+# planted failures that must be reported as failures. With no `migrations/` in
+# the tree it applies nothing and says so. The container is the job's and is
+# discarded with it; nothing durable is provisioned and nothing touches
+# `deploy/`.
+#
+# Supply chain: every action is pinned to a full commit SHA, and the PostGIS
+# image to a digest, with its version beside it; each job may read the
+# repository and nothing else; no secret is used — the database password is the
+# throwaway container's own, set here. Making `gates` and `migrations` required
+# status checks is branch protection, which the Owner sets.
 name: gates
 
 on:
@@ -82,4 +95,113 @@ jobs:
             echo "::group::$(basename "$f" .log)"
             cat "$f"
             echo "::endgroup::"
+          done
+
+  migrations:
+    name: migrations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    services:
+      postgis:
+        # The test instance's version, not production's: that is unchosen
+        # (`Architecture.md § What is unproven`, item 3).
+        image: postgis/postgis@sha256:eeead53aa76f9219eac3af490e00484a7dd604dbcbc3ed2ae0e96668986f16f3 # 17-3.6
+        env:
+          POSTGRES_PASSWORD: throwaway-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: throwaway-ci-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Two fixture migrations applied in order, every verify part passing, both
+      # rollbacks run twice. The script's exit status is the step's.
+      - name: fixture — apply, verify, roll back
+        run: |
+          rc=0
+          bash scripts/db/migrate-verify.sh scripts/db/tests/fixtures/pass > "$RUNNER_TEMP/mv-fixture.yml" || rc=$?
+          cat "$RUNNER_TEMP/mv-fixture.yml"
+          exit "$rc"
+
+      # The runner must be able to say no. The planted fixture holds a failing
+      # part, an unreachable part and a migration that does not apply; the step
+      # fails unless the result reports each of them as such and exits 1.
+      - name: fixture — planted failures are reported as failures
+        run: |
+          out="$RUNNER_TEMP/mv-planted.yml"
+          rc=0
+          bash scripts/db/migrate-verify.sh scripts/db/tests/fixtures/planted > "$out" || rc=$?
+          cat "$out"
+          bad=0
+          [ "$rc" -eq 1 ] || { echo "::error::the planted fixture exited $rc, not 1"; bad=1; }
+          for want in \
+            '{part: A, result: pass}' \
+            '{part: B, result: fail, exit: 3, error: "0001_planted.verify.sql:' \
+            '{part: C, result: unreached, says: "0001_planted.verify.sql:' \
+            'apply: {result: fail, exit: 3, error: "0002_planted.sql:' \
+            'apply: not run — an earlier apply failed' \
+            'run1: {exit: 0, dropped: [public.planted_point, public.planted_point_pkey]}, run2: {exit: 0, dropped: []}' \
+            '  residue: none' \
+            '  result: fail'; do
+            grep -qF -- "$want" "$out" || { echo "::error::the planted result lacks: $want"; bad=1; }
+          done
+          exit "$bad"
+
+      - name: migrations/
+        run: |
+          if [ ! -d migrations ]; then
+            echo '::notice title=migrations::no migrations/ in this tree — nothing applied, verified or rolled back'
+            exit 0
+          fi
+          rc=0
+          bash scripts/db/migrate-verify.sh migrations > "$RUNNER_TEMP/mv-migrations.yml" || rc=$?
+          cat "$RUNNER_TEMP/mv-migrations.yml"
+          { echo '```yaml'; cat "$RUNNER_TEMP/mv-migrations.yml"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
+      # Any part whose output carried a query plan, from the logs directory
+      # each result names — the EXPLAIN (ANALYZE, BUFFERS) evidence.
+      - name: EXPLAIN output
+        if: always()
+        run: |
+          for res in "$RUNNER_TEMP"/mv-*.yml; do
+            [ -f "$res" ] || continue
+            dir="$(sed -n 's/^  logs: //p' "$res")"
+            [ -n "$dir" ] && [ -d "$dir" ] || continue
+            for f in "$dir"/*.explain; do
+              [ -f "$f" ] || continue
+              echo "::group::$(basename "$res" .yml) — $(basename "$f" .explain)"
+              cat "$f"
+              echo "::endgroup::"
+            done
+          done
+
+      # Every step's own output: each apply, verify part and rollback run.
+      - name: step logs
+        if: always()
+        run: |
+          for res in "$RUNNER_TEMP"/mv-*.yml; do
+            [ -f "$res" ] || continue
+            dir="$(sed -n 's/^  logs: //p' "$res")"
+            [ -n "$dir" ] && [ -d "$dir" ] || continue
+            for f in "$dir"/*.log; do
+              [ -f "$f" ] || continue
+              echo "::group::$(basename "$res" .yml) — $(basename "$f" .log)"
+              cat "$f"
+              echo "::endgroup::"
+            done
           done
