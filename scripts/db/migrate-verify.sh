@@ -93,7 +93,10 @@ server="$("${PSQL[@]}" -At -d "$DB" -c 'SHOW server_version' 2>/dev/null | head 
 postgis="$("${PSQL[@]}" -At -d "$DB" -c "SELECT coalesce(default_version, 'absent') FROM pg_available_extensions WHERE name = 'postgis' UNION ALL SELECT 'absent' LIMIT 1" 2>/dev/null | head -n 1)"
 
 # The relations a migration could have made: every pg_class entry outside the
-# system schemas, except an extension's own and the indexes on them, and TOAST.
+# system schemas, except TOAST and an extension's own — its tables, the indexes
+# on them, and the relation behind each composite type it owns (PostGIS's
+# geometry_dump and valid_detail, which the first runner run reported as
+# residue before this clause).
 SNAP_SQL="SELECT format('%s.%s', n.nspname, c.relname)
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
   LEFT JOIN pg_index i ON i.indexrelid = c.oid
@@ -101,8 +104,9 @@ SNAP_SQL="SELECT format('%s.%s', n.nspname, c.relname)
    AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
    AND n.nspname !~ '^pg_(toast_)?temp_'
    AND NOT EXISTS (SELECT 1 FROM pg_depend d
-                    WHERE d.classid = 'pg_class'::regclass AND d.deptype = 'e'
-                      AND d.objid IN (c.oid, coalesce(i.indrelid, 0::oid)))
+                    WHERE d.deptype = 'e'
+                      AND ((d.classid = 'pg_class'::regclass AND d.objid IN (c.oid, coalesce(i.indrelid, 0::oid)))
+                        OR (d.classid = 'pg_type'::regclass AND d.objid = c.reltype)))
 "
 # Sorted here, not in SQL: comm needs the byte order LC_ALL=C gives, and the
 # server's collation is not that.
