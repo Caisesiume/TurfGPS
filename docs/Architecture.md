@@ -149,7 +149,7 @@ Three properties of this shape are requirements rather than preferences:
 
 **The service is stateful and long-lived.** Solve sessions live in it. This is not a scale-out-behind-a-load-balancer design without deliberate session affinity, and `DEPLOYMENT.md` must account for that.
 
-**The zone sync is never on a request path.** *Retrieving zones* below records `GET /v5/zones/all` as **rate-limited to one request per 30 minutes** — which is the binding constraint, and holds regardless of how quickly the response transfers. It is a scheduled worker writing to PostGIS, and the pipeline must tolerate the sync being mid-refresh or up to an hour stale.
+**The zone sync is never on a request path.** *Retrieving zones* below records `GET /v5/zones/all` as **rate-limited to one request per 30 minutes**, which holds regardless of how quickly the response transfers, and records the schedule: new zones from the zone feed every 20 minutes, every zone refreshed once a month. It is a scheduled worker writing to PostGIS, and the pipeline must tolerate the sync being mid-refresh or stale by up to the bound that section records.
 
 **Nothing in a stored plan depends on the Turf API.** This is what makes *Never gate stored plans on the wizard* in `DESIGN.md` implementable: an outage degrades the volatile overlay and nothing else.
 
@@ -159,7 +159,7 @@ Three properties of this shape are requirements rather than preferences:
 
 The Turf API is the sole source of zone and player data. The following was verified directly against the live API and supersedes any assumption made elsewhere in the documentation set.
 
-**The general rate limit is one request per second per resource**, and it governs the whole API — `POST /v5/users` and `GET /v5/regions` no less than the zone endpoints. Where one endpoint is held more tightly than that, its own limit is recorded with it; `GET /v5/zones/all` is the only one that is, and that limit is the constraint the zone sync is designed around.
+**The general rate limit is one request per second per resource**, and it governs the whole API — `POST /v5/users` and `GET /v5/regions` no less than the zone endpoints. Where one endpoint is held more tightly than that, its own limit is recorded with it; `GET /v5/zones/all` is the only one that is. The monthly full sync runs far inside that limit, and the zone feed is held to the general one (*§ Retrieving zones*).
 
 Two facts about zone data are product facts rather than integration ones and are stated in `SPECIFICATION.md` instead: *The coordinate is the target*, which is the modelling decision the API's silence about zone extent forces, and *Rounds*, which governs what ownership data means.
 
@@ -187,7 +187,7 @@ The guideline remains useful as a rough expectation for candidate density in ord
 
 ### Retrieving zones
 
-Two endpoints return zones.
+Three endpoints return zones.
 
 `GET /v5/zones/all` returns every zone in the game, refreshed at least hourly, limited to **one request per 30 minutes**. This is the primary source for candidate discovery. The system maintains its own periodically-synced copy with a spatial index, and resolves route corridors against that local copy.
 
@@ -221,7 +221,7 @@ One record in 138,830 is not a reason to re-fetch, but it is a reason not to mod
 
 An earlier note in this section described a partial download reaching ~82,000 zones and 23 MB before timing out at five minutes. **That observation no longer reproduces and has been replaced by the measurement above.** Extrapolated to the full corpus it implied about **9.5 minutes** for a transfer that now completes in **under 20 seconds** — so anyone sizing the sync against it would budget for something close to thirty times the time actually required, and would design around a timeout problem that no longer exists.
 
-**The architectural conclusion is unchanged, because it never rested on the download being slow.** The sync must be a background job on a schedule, never anything that happens on a request path, and the pipeline must tolerate the sync being mid-refresh or stale by up to an hour — and that follows from the **one request per 30 minutes** limit alone. A response that arrives in 20 seconds is still a response the system may only ask for twice an hour, so freshness is bounded by the limit no matter how fast the transfer is.
+**The architectural conclusion is unchanged, because it never rested on the download being slow.** The sync must be a background job on a schedule, never anything that happens on a request path — and that follows from the **one request per 30 minutes** limit alone: a response that arrives in 20 seconds is still a response the system may only ask for twice an hour. The pipeline must tolerate the sync being mid-refresh, and the copy being stale by up to the bound: **the time since the last successful zone-feed run, the copy being stale after one hour without one** (Owner decision, 20 October 2026, #20). Point values are not what the bound measures; they change monthly, and the monthly full sync below refreshes them.
 
 `POST /v5/zones` returns zones by name, by id, or within a bounding box, and accepts several areas in one request body. This is the fallback and the means of refreshing volatile per-zone fields. Its area constraint is a **product, not a per-axis limit**: a request is rejected when
 
@@ -231,6 +231,10 @@ An earlier note in this section described a partial download reaching ~82,000 zo
 ```
 
 Tiling logic must respect the product. Splitting a corridor into tiles far below the permitted area multiplies request count for no benefit.
+
+`GET /v5/feeds/zone` returns the latest created zones, and `afterDate=` restricts it to items newer than a given time. It is held to the general limit. The API index says the feed's data "can be resetted from time to time" and that the number of items per request is unspecified, "from 0 to x", so it is not a complete record of zone creation. A live request on 20 October 2026 returned 99 items, each carrying the nine fields every all-zones record carries, `type` on 14, and `dateLastTaken`, which no all-zones record carries. The index shows a zone item's `name` only, so that shape is observed, not promised.
+
+**The sync schedule** (Owner decision, 20 October 2026, #20). New zones come from `GET /v5/feeds/zone` **every 20 minutes**, with `afterDate`, through the process-wide Turf budget. A full `GET /v5/zones/all` runs **on the first Sunday of each month at 16:00 Europe/Stockholm**, to update every zone with its monthly points change. **Takeovers are not polled**: the copy stores no ownership, so nothing would consume them. A new zone the feed misses stays missing until the next monthly full sync, and that consequence is accepted.
 
 ### Player data
 
@@ -270,7 +274,7 @@ Their absence does **not** mean the zone has never been taken. Both fields are *
 
 The absence of `currentOwner` is therefore a useful positive signal rather than missing data: it identifies a zone nobody holds this round.
 
-Ownership and point values change continuously. Any locally cached copy is a snapshot, and a recommendation's confidence should reflect the age of the data it was built from.
+Ownership changes continuously, and point values change monthly. Any locally cached copy is a snapshot, and a recommendation's confidence should reflect the age of the data it was built from.
 
 ---
 
@@ -522,7 +526,7 @@ Two related facts, recorded so nobody keys on the wrong thing. Region *names* ar
 
 ### What becomes a constraint
 
-A property measured true today is not thereby a constraint. The test is not *is it true* but *should a violation abort the sync* — because that is what a constraint does: it takes the whole 154,845-row transaction down and leaves the table an hour stale, with the next attempt thirty minutes away.
+A property measured true today is not thereby a constraint. The test is not *is it true* but *should a violation abort the sync* — because that is what a constraint does: it takes the whole 154,845-row transaction down and leaves the month's refresh unapplied, with the next attempt thirty minutes away.
 
 | Property | Measured on the corpus | Enforced? |
 |---|---|---|
@@ -586,7 +590,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS sync_run_started_at ON sync_run (started
 
 **Four indexes are deliberately not created**, and the reasoning is recorded because each looks obviously useful:
 
-* **No index on `region_id`, `area_id`, `region_country` or `type_id`.** No query shape reads them as a predicate. `type_id` is the tempting one, since the cost model consumes it — but it consumes it for rows Q1 has already selected, which makes it a projection. An unused index is not free: it is paid for on every one of the roughly 1,840 rows a sync writes, forty-eight times a day, forever.
+* **No index on `region_id`, `area_id`, `region_country` or `type_id`.** No query shape reads them as a predicate. `type_id` is the tempting one, since the cost model consumes it — but it consumes it for rows Q1 has already selected, which makes it a projection. An unused index is not free: it is paid for on every one of the roughly 96,000 rows a monthly full sync writes, and on every zone the feed adds, forever.
 * **No index on `total_takeovers` or `date_created`.** The takeover rate is computed across a corridor result set, never looked up by rate.
 * **No BRIN.** BRIN requires physical correlation between value and page order. The sync writes in the API's response order, which is neither spatial nor temporal, and updated rows land wherever there is free space. BRIN would not fail; it would degrade to a full scan while still appearing in `EXPLAIN`, which is the worse outcome.
 * **No SP-GiST.** Its point opclasses cover `geometry`, not `geography`. Adopting it means adopting a planar type and reintroducing the projection problem the previous section rejected.
@@ -597,7 +601,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS sync_run_started_at ON sync_run (started
 
 ### The sync write path
 
-The sync is a scheduled worker, never anything on a request path, for the reason *§ Retrieving zones* gives: the limit of one request per 30 minutes bounds freshness regardless of how fast the transfer is. What follows is how it writes.
+The sync is a scheduled worker, never anything on a request path, for the reason *§ Retrieving zones* gives: the limit of one request per 30 minutes keeps the all-zones fetch off any request path regardless of how fast the transfer is. What follows is how the monthly full sync writes.
 
 **Stage, assert, merge — in that order, with one transaction for the merge.**
 
@@ -664,9 +668,9 @@ Four properties of that statement are load-bearing.
 
 **`IS DISTINCT FROM` rather than `<>`, and this is not pedantry.** `type_id`, `region_country`, `area_id` and `area_name` are nullable, and `<>` yields `NULL` — not true — when either side is `NULL`, so an update that should fire silently does not. The measurement says what that costs: `type` **appeared or vanished on 206 ids** in nineteen months. With `<>`, every one of those 206 rows keeps a stale `type_id` forever.
 
-**The `WHERE` on the `DO UPDATE` is what keeps the sync small.** At the reference instant the corpus sustains 1,406,301 takeovers per month, about 1,926 an hour. Modelled as independent arrivals, the expected number of *distinct* zones whose `totalTakeovers` changes is **941 in thirty minutes (0.61% of the table)** and **1,840 in an hour (1.19%)**; over 24 hours it is 24,242 (15.66%), and over the full nineteen months between dumps 92.61% of common ids changed. Writing only changed rows makes a sync write on the order of a thousand rows. Writing every row makes it 154,845 — a hundredfold difference, forty-eight times a day.
+**The `WHERE` on the `DO UPDATE` is what keeps the sync to changed rows.** At the reference instant the corpus sustains 1,406,301 takeovers per month, about 1,926 an hour. Modelled as independent arrivals, the expected number of *distinct* zones whose `totalTakeovers` changes is **941 in thirty minutes (0.61% of the table)** and **1,840 in an hour (1.19%)**; over 24 hours it is 24,242 (15.66%), over a month **about 96,000 (62%)**, and over the full nineteen months between dumps 92.61% of common ids changed. Writing only changed rows makes the monthly full sync write on the order of 96,000 rows, plus any the points change alone touches, and a feed run only the zones it brings. Writing every row makes every full sync 154,845.
 
-**A single transaction is also the whole answer to tolerating a mid-refresh read.** Under MVCC no reader can observe a partial merge: Q1 and Q2 see either the state before the sync or the state after it, never a mixture. The merge takes `ROW EXCLUSIVE`, which does not block readers. Staleness of up to an hour remains — that is a product fact, forced by the rate limit — but *partial* state is not something a query has to defend against, provided the sync never splits its merge into batches. It must not.
+**A single transaction is also the whole answer to tolerating a mid-refresh read.** Under MVCC no reader can observe a partial merge: Q1 and Q2 see either the state before the sync or the state after it, never a mixture. The merge takes `ROW EXCLUSIVE`, which does not block readers. Staleness remains — a product fact, bounded under *§ Retrieving zones* — but *partial* state is not something a query has to defend against, provided the sync never splits its merge into batches. It must not.
 
 **Sync bookkeeping** is a table rather than log lines, because the questions asked of it are queries:
 
@@ -689,21 +693,21 @@ CREATE TABLE IF NOT EXISTS sync_run (
 
 `running` is the one non-terminal value: the row is inserted carrying it when a run starts, so a run killed part-way leaves a trace rather than looking like a run that never happened.
 
-`completed_at` is what `last_changed_at` on a zone row is stamped with, so every changed row is attributable to a run. Two figures are worth watching from the first day: `rows_updated` far above the modelled ~1,840 means the change-detection `WHERE` has stopped discriminating, and `zones_received` falling means a truncated response — the failure the staging assertions exist to catch.
+`completed_at` is what `last_changed_at` on a zone row is stamped with, so every changed row is attributable to a run. Two figures are worth watching from the first day: `rows_updated` far above the modelled month's ~96,000 means the change-detection `WHERE` has stopped discriminating, and `zones_received` falling means a truncated response — the failure the staging assertions exist to catch.
 
-There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows every thirty minutes — roughly 23 MB of dead tuples per run, forty-eight runs a day, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
+There is deliberately **no `last_seen_at` column on the zone row.** Writing it would rewrite all 154,845 rows on every full sync — roughly 23 MB of dead tuples per run, against a 22 MB table — to record a fact true of essentially every row. Absence is recorded on the run instead, which is the next section.
 
 ### Absence is recorded and never acted on
 
 An id present in the table and missing from the response is computed on every run, recorded in `sync_run.absent_ids`, and **nothing is deleted on the strength of it.**
 
-The measurement is the argument. Of the **138,830** ids in the January 2025 dump, **zero** are missing from the August 2026 response; 16,015 ids were added. **Zone deletion has never been observed in nineteen months.** Against that, the cost of getting it wrong is unbounded in one direction: *§ Retrieving zones* records an earlier observation of a download that stopped at roughly 82,000 zones. Under a delete-on-absence rule, merging that response removes about 47% of the table in one transaction — and the next opportunity to repair it is thirty minutes away, because the rate limit does not care that the last response was broken.
+The measurement is the argument. Of the **138,830** ids in the January 2025 dump, **zero** are missing from the August 2026 response; 16,015 ids were added. **Zone deletion has never been observed in nineteen months.** Against that, the cost of getting it wrong is unbounded in one direction: *§ Retrieving zones* records an earlier observation of a download that stopped at roughly 82,000 zones. Under a delete-on-absence rule, merging that response removes about 47% of the table in one transaction — and the next scheduled full sync that could repair it is a month away, because the schedule does not care that the last response was broken.
 
 The asymmetry decides it. The condition a delete rule handles has never occurred; the condition it creates is a half-empty zone table on a request path. Absence is a **signal to a human**, surfaced through `sync_run.absent_count`, and never an instruction to the write path. If deletion is one day observed, `absent_ids` is the evidence that says so, and the rule can be revisited with data rather than with caution.
 
 ### Migrating against a running sync
 
-Once the table is live, the sync holds a write transaction over it every thirty minutes and a migration has to be written around that. `postgis-migration-protocol` governs; four points are specific to this table.
+Once the table is live, the zone feed may write to it every twenty minutes and the full sync holds a large write transaction over it monthly, and a migration has to be written around that. `postgis-migration-protocol` governs; four points are specific to this table.
 
 **Take a `lock_timeout` before any `ALTER TABLE`.** `ALTER TABLE` needs `ACCESS EXCLUSIVE`, and a *queued* `ACCESS EXCLUSIVE` request blocks every reader behind it — including Q1 on the request path. Waiting behind a sync therefore stalls the product, not merely the migration. `SET lock_timeout = '2s'` and retry; never wait.
 
@@ -713,7 +717,7 @@ Once the table is live, the sync holds a write transaction over it every thirty 
 
 **Adding a `CHECK` is two steps.** `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE CONSTRAINT` in a separate transaction — validation takes only `SHARE UPDATE EXCLUSIVE` and does not block the sync's writes.
 
-And the one that argues for settling all of this now: **adding a `STORED` generated column rewrites the whole table under `ACCESS EXCLUSIVE`.** On 154,845 rows that is seconds rather than minutes, but it is a full rewrite holding the strongest lock in the system, scheduled against a job that runs forty-eight times a day. In migration 001 there is no data, no sync, and no lock to contend with. Getting `geom` right in the first migration costs nothing; adding it in the fourth costs a rewrite and a maintenance window.
+And the one that argues for settling all of this now: **adding a `STORED` generated column rewrites the whole table under `ACCESS EXCLUSIVE`.** On 154,845 rows that is seconds rather than minutes, but it is a full rewrite holding the strongest lock in the system, scheduled against a feed that runs every twenty minutes. In migration 001 there is no data, no sync, and no lock to contend with. Getting `geom` right in the first migration costs nothing; adding it in the fourth costs a rewrite and a maintenance window.
 
 ### The plan table
 
@@ -776,7 +780,7 @@ The user's held-zone list is round-scoped and is deliberately **not** in the dat
 
 **The one place a rollover bug could still be introduced is the stored plan,** and it is worth saying before someone does. A plan that recorded *you own this zone* would be true for one round and wrong afterwards. Plans are long-lived by design — ninety days rolling, twelve months absolute — and Turf rounds are far shorter, so a plan near its ceiling spans on the order of a dozen rounds and anything round-scoped inside it is wrong for most of its life. **The plan payload therefore stores no ownership**, and the indicator is recomputed at review time from the live `zones` array on every open.
 
-*§ Volatile and optional fields* notes that the floor of `dateLastTaken` reveals the current round's start date, derivable from the data rather than from a calendar. The sync cannot supply it — neither field is in the response — so if the round start is ever needed it comes from `POST /v5/zones`, and it is not stored by this schema.
+*§ Volatile and optional fields* notes that the floor of `dateLastTaken` reveals the current round's start date, derivable from the data rather than from a calendar. The sync does not supply it — neither field is in the all-zones response, and the zone feed's `dateLastTaken` has no column to land in — so if the round start is ever needed it comes from `POST /v5/zones`, and it is not stored by this schema.
 
 ### Volume
 
@@ -786,7 +790,7 @@ Volume is not a risk on the zone surface, and the figures are worth having so th
 
 **Growth.** 16,015 ids were added between 4 January 2025 and the reference instant — 18.92 months, about **846 a month**, roughly 10,000 a year. Yearly creation across the corpus's history runs from 1,091 in 2010 to 23,239 in 2021, so the rate varies by a factor of twenty; but even at the historical peak the table takes years to double. Nothing here needs partitioning.
 
-**Churn and vacuum.** With change-only writes, roughly 941 row versions per thirty-minute run, on the order of 45,000 a day against a 154,845-row table. Autovacuum's default scale factor triggers at about 31,000 dead tuples, so the table wants vacuuming a small number of times a day and gets it. Coordinate changes are rare enough — 1,034 in nineteen months — that almost every update leaves the indexed column untouched and is HOT-eligible given free space on the page, which argues for a `fillfactor` below 100. No value has been chosen; see *§ What is unproven*, item 8.
+**Churn and vacuum.** With change-only writes, about 96,000 dead row versions per monthly full sync against a 154,845-row table, and few from the feed, whose items are new zones. Autovacuum's default scale factor triggers at about 31,000 dead tuples, so the table wants vacuuming after each full sync and gets it. Coordinate changes are rare enough — 1,034 in nineteen months — that almost every update leaves the indexed column untouched and is HOT-eligible given free space on the page, which argues for a `fillfactor` below 100. No value has been chosen; see *§ What is unproven*, item 8.
 
 **Plans are the surface where volume could actually hurt**, and it is unknowable today because usage is unknown. What *is* knowable is the bound: with the ceiling, the store holds at most twelve months of plan creation regardless of how often anything is opened. At 0.03–3.39 MB a plan uncompressed, ten thousand plans a year is single-digit gigabytes at the low end and tens of gigabytes at the high end. That range is wide because the per-candidate size is invented, and narrowing it is a measurement to take as soon as the plan format exists.
 
@@ -798,11 +802,11 @@ Ten things. The first is the one that matters most, and it disqualifies this sec
 2. **The generated column's expression may not be accepted as `STORED`.** PostgreSQL requires it be `IMMUTABLE`, and `ST_SetSRID(ST_MakePoint(...), 4326)::geography` composes three PostGIS functions plus a cast. PostGIS marks them immutable, but this has not been run. If it is rejected, the axis order moves back into the write path and the three-assertion guard stops being a backstop and becomes the only defence.
 3. **KNN ordering on `geography` is assumed exact.** `ORDER BY geom <-> $point` returns true distance ordering on geography in PostGIS 2.2 and later; on older versions `<->` returns a bounding-box measure, and *the nearest 100* would be nearest-ish — silently, and plausibly. The PostGIS version is not chosen anywhere in this document, and Q2's correctness depends on it.
 4. **The plan payload size is estimated, not measured.** The candidate counts are real — 156 to 8,874 across the measured routes — but the bytes per candidate are invented, because the plan format does not exist. Every storage figure for plans moves linearly with that guess.
-5. **Sync churn is modelled, not observed.** The 941-per-half-hour and 1,840-per-hour figures are Poisson expectations derived from lifetime rates, which assume takeovers arrive uniformly in time. They do not — Turf is played in daylight and at weekends. The peak exceeds the mean by an unmeasured factor, and the write path must be sized against the peak rather than against these numbers.
+5. **Sync churn is modelled, not observed.** The ~96,000-per-month figure, like the 941-per-half-hour and 1,840-per-hour ones, is a Poisson expectation derived from lifetime rates, which assume takeovers arrive uniformly in time. They do not — Turf is played in daylight and at weekends — and the monthly points change adds rows the model does not count. The first full sync's `rows_updated` is the measurement, and the write path must be sized against it rather than against these numbers.
 6. **Whether a 25 km neighbourhood is ever entirely zero-activity remains inferred.** *CalculationSpecification.md § The activity baseline* records this and the schema inherits it. The query that would settle it is Q2, which needs the database that does not exist.
 7. **The corridor half-width is not chosen anywhere.** Measured results span 156 to 8,874 rows, a factor of 57. The index's usefulness does not depend on the choice; the row counts the rest of the pipeline must absorb depend on it entirely, and no document sets it.
 8. **The row-size and index-size estimates are arithmetic, not `pg_total_relation_size`.** About 150 bytes a row and about 35 MB in total are computed from column widths and typical GiST overhead. Real figures depend on alignment, fillfactor and TOAST decisions that have not been tested — and no `fillfactor` has been chosen for `zone`, though the HOT-update argument above says one below 100 is wanted.
-9. **No autovacuum settings have been tested against this write pattern.** The vacuum estimate assumes defaults and the modelled churn, and both may be wrong. A table that bloats under a writer running forty-eight times a day fails slowly and quietly, which is the hardest kind to notice.
+9. **No autovacuum settings have been tested against this write pattern.** The vacuum estimate assumes defaults and the modelled churn, and both may be wrong. A table that bloats under a feed writing every twenty minutes and a monthly full sync updating most of its rows fails slowly and quietly, which is the hardest kind to notice.
 10. **The plan code's entropy is unspecified, and the store is the only thing behind it.** The code is the sole credential for an object containing a dwelling coordinate. Choosing its length and alphabet is a security decision that belongs to review rather than to this section; it is recorded here so that it is an open item and not an oversight.
 
 ### What this section does not cover
