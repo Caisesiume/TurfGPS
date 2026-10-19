@@ -1,106 +1,48 @@
 // @vitest-environment node
 //
-// NFR-005's acceptance test — issue #26, AC1 and AC2.
+// NFR-005's acceptance test: issue #26, AC1 and AC2, in the arrangement
+// `docs/adr/ADR-0006-deployment-topology.md` deploys. The client is static
+// files on one origin (§ D3, Vercel), and the browser calls the service on
+// another, under CORS, never through a rewrite (§ D4).
 //
-// NFR-005's `Verification` field reads:
+// What is real and what stands in, phrase by phrase of NFR-005's Verification:
 //
-//   test — the built client is served by a plain static file server with no
-//   application runtime present, and loads and completes a call to the service
-//   over HTTP
+//   "the built client": a production build into a temporary directory. Nothing
+//   here imports `web/src`; no dev server, no stale `web/dist`.
 //
-// That clause admits two readings, and which one a harness picks decides
-// whether the test can fail on anything. So this file states, phrase by
-// phrase, which words it satisfies literally and which it satisfies under the
-// arrangement `DEPLOYMENT.md § Deployment architecture` actually deploys.
-// Picking whichever reading goes green most easily is the defect
-// `docs/DELIVERY.md § Proof that a test can fail` exists to prevent.
+//   "a plain static file server": a `node:http` server that answers every
+//   request by reading a file out of that directory, or 404. It forwards
+//   nothing, rewrites nothing, and has no SPA fallback. Under ADR-0006 it needs
+//   none, because the client's call goes to the service's own origin.
 //
-// LITERALLY
+//   "with no application runtime present": no file from `web/src` or from the
+//   build output executes on the server side. The harness is a Node process, as
+//   any static host is a program; AC1 bounds project code run to serve the
+//   client, not the existence of software on the host.
 //
-//   "the built client" — `beforeAll` runs the production build into a
-//   temporary directory and serves nothing else. This file imports nothing
-//   from `web/src`; no dev server, no source transform, no stale `web/dist`.
+//   "a call to the service over HTTP": a stub on a second loopback origin,
+//   answering the one route the service serves today. Both hops are real HTTP.
+//   The stub admits the client's origin with Access-Control-Allow-Origin; the
+//   real service sends no CORS header yet, and that is owed to the backend
+//   story that adds it, not to this file.
 //
-//   "a static file server" — every byte of the client is produced by reading a
-//   file off that directory and writing it out. The origin holds no route
-//   table for the client, no template, no rewrite, and deliberately no SPA
-//   fallback to index.html.
+//   "loads": the document and every subresource are fetched over HTTP from the
+//   static origin. jsdom does not run `<script type="module">` and has no
+//   fetch, so the bundle is evaluated as a classic script in a window whose URL
+//   is that origin, and the window is given a fetch that applies the browser's
+//   rule for a simple cross-origin GET: it sends Origin, and unless the answer
+//   carries Access-Control-Allow-Origin for that origin or `*`, it rejects with
+//   the TypeError a browser throws. A request a browser would preflight is
+//   refused outright, because no preflight is emulated. This is an emulation,
+//   not a browser; the second evaluation, against a service sending no CORS
+//   header, is what shows it can refuse.
 //
-//   "over HTTP" — two real `node:http` servers on loopback. Nothing in this
-//   file stubs `fetch`, which is the whole difference between it and
-//   `web/src/App.test.tsx`: that one asserts what the component does with an
-//   answer, this one asserts that an answer arrives at all.
-//
-//   "with no application runtime present" — literally in the sense AC1's
-//   metric states it, *server-side application code executed to serve the
-//   client: none*, and that count is zero here: no file from `web/src` and no
-//   file from the build output is executed on the server side. Not in the
-//   sense of *no process exists* — this harness is itself a Node process, as
-//   any static host is itself a program. AC1 bounds project code executing to
-//   produce a client response, not the existence of software on the host.
-//
-// UNDER THE DEPLOYED READING
-//
-//   "plain" — a plain file server does not forward anything, and this origin
-//   forwards `/api` to the service. `DEPLOYMENT.md § Deployment architecture`
-//   puts one reverse proxy in front of both — it serves the client's files and
-//   routes /api to the service, on one origin — so serving the client is
-//   plain, and the forward is the second half of that same deployed component.
-//   Read literally instead, the client and the service land on different
-//   origins, the service sets no CORS headers, and no call completes: the
-//   literal reading makes AC2 unsatisfiable by the arrangement this project
-//   deploys. The test is written against the deployed arrangement, and that
-//   the clause admits a reading its own deployment model cannot satisfy is
-//   reported as a defect in the record's wording rather than repaired here.
-//
-//   "loads" — literal for the HTTP half: the document and every subresource it
-//   references are fetched from the origin and must be answered from files.
-//   Under the reading for the execution half: the built bundle is evaluated in
-//   a jsdom window whose URL is that origin, because jsdom does not execute
-//   `<script type="module">`. Today's build is one self-contained chunk with
-//   no `import`, no `export` and no `import.meta`, so classic-script and
-//   module evaluation coincide.
-//
-//   That coincidence is a premise, and the evaluation is a poor guard on it. A
-//   static `import`, an `export` and an `import.meta` each throw `SyntaxError`
-//   under a classic-script evaluation. `import('./chunk.js')` does not — it is
-//   valid classic-script syntax and parses without throwing, and it is
-//   precisely what code splitting emits.
-//
-//   Measured here on 30 August 2026, vite 8.2.2: a build carrying a dynamic
-//   import also carries an `import.meta`, both from a `React.lazy` split and
-//   from a hand-written `import()` of an external URL, with `modulePreload`
-//   on or off. So the evaluation does currently throw on a split — but on the
-//   `import.meta` beside it rather than on the split, which is a coupling in
-//   what Vite chooses to emit and not a property of the form. And what it
-//   throws is a `beforeAll` failure, which reports one suite error and skips
-//   all of the assertions below rather than naming the premise that broke.
-//
-//   Neither half of the premise is therefore left to the evaluation. Both are
-//   asserted, by the two tests named for them below, which fail on the thing
-//   that changed and go on running the rest of the file.
-//
-//   "a call to the service" — the upstream is a stub answering the one route
-//   the service serves today. This item's scope excludes `service/`, and the
-//   criterion measures whether the client can reach a service from the static
-//   arrangement, not what the service replies. What is proved without a
-//   reading is that the call leaves the client as a relative URL, resolves to
-//   the origin the client was served from, crosses a real HTTP connection, and
-//   arrives back in the rendered document.
-//
-// `vite preview` is not used, and could not stand in for this: it is Vite's
-// own server carrying a configured dev proxy, so it is both an application
-// runtime and a development-server configuration rather than the deployed
-// artefact — it satisfies neither reading of the clause.
-//
-// This file is outside `tsconfig.json`'s `include`, so `tsc --noEmit` does not
-// check it and no `@types/node` or `@types/jsdom` dependency is added for it.
-// The harness is exercised end to end by its own assertions, which is what
-// would surface a mistake in it.
+// `vite preview` is not used: it is Vite's own server, an application runtime,
+// and not the deployed artefact.
 
 import { execFileSync } from 'node:child_process'
-import { createServer } from 'node:http'
-import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -110,87 +52,149 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 
 const webDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-// Distinctive on purpose: rendering it proves the text crossed the wire from
-// the upstream, rather than coming from anything baked into the bundle.
+// Distinctive, so rendering it proves the text crossed the wire from the stub.
 const SERVICE_ANSWER = 'TurfGPS service (NFR-005 harness upstream)'
+const UNREACHABLE = 'The service could not be reached.'
 
 const CONTENT_TYPES: Record<string, string> = {
   css: 'text/css',
   html: 'text/html; charset=utf-8',
   ico: 'image/x-icon',
   js: 'text/javascript',
-  json: 'application/json',
   png: 'image/png',
   svg: 'image/svg+xml',
   woff2: 'font/woff2',
 }
 
-// The shapes a server-rendering or serverless target emits into a build
-// output. Corroborating only, and deliberately not the check that decides AC1:
-// a name list can always be evaded by a framework it does not name. What
-// decides AC1 is that the load below was answered entirely out of files.
+// Corroborating only: a name list can be evaded by a framework it does not
+// name. What decides AC1 is that the load was answered entirely out of files.
 const SERVER_SHAPED =
   /(^|\/)(package\.json|server|functions|\.netlify|\.vercel|\.output|\.next)(\/|$)|(^|\/)(entry-server|ssr-manifest)[^/]*$|\.node$/
+// What Vercel would execute if it sat in the project: functions under `api/`
+// and routing middleware. ADR-0006 lets the client go there as files only.
+const VERCEL_EXECUTES = ['api', 'middleware.js', 'middleware.ts', 'middleware.mjs', 'middleware.mts']
 
-type Served = { path: string; mode: 'file' | 'forward' | 'absent'; status: number }
+type Evaluation = { requested: string[]; heading: string; status: string; paragraphs: string[] }
 
 let outDir = ''
 let builtFiles: string[] = []
-const served: Served[] = []
-const requestedByClient: string[] = []
+let staticOrigin = ''
+let serviceBase = ''
+let serviceSendsCors = true
+const servedByStatic: string[] = []
 const receivedByService: string[] = []
 const subresources: string[] = []
 const evaluatedSources: string[] = []
-let rootText = ''
-let headingText = ''
-let paragraphTexts: string[] = []
-let servers: { close: () => void }[] = []
-let window: { close: () => void } | null = null
+let withCors: Evaluation = { requested: [], heading: '', status: '', paragraphs: [] }
+let withoutCors: Evaluation = withCors
+const servers: Server[] = []
+const windows: { close: () => void }[] = []
 
 function listFiles(root: string, prefix = ''): string[] {
   return readdirSync(root).flatMap((entry) => {
-    const full = join(root, entry)
     const rel = prefix === '' ? entry : `${prefix}/${entry}`
-    return statSync(full).isDirectory() ? listFiles(full, rel) : [rel]
+    return statSync(join(root, entry)).isDirectory() ? listFiles(join(root, entry), rel) : [rel]
   })
 }
 
-// Resolve a URL path to a file inside the build output, or null if it escapes.
-function resolveInOutput(pathname: string): string | null {
-  const segments = decodeURIComponent(pathname)
-    .split('/')
-    .filter((segment) => segment !== '')
-  if (segments.some((s) => s === '.' || s === '..' || s.includes('\\'))) return null
-  return join(outDir, ...(segments.length === 0 ? ['index.html'] : segments))
-}
-
-function listen(server: ReturnType<typeof createServer>): Promise<number> {
+function listen(server: Server): Promise<string> {
+  servers.push(server)
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () => {
       const address = server.address()
-      resolve(typeof address === 'object' && address !== null ? address.port : 0)
+      resolve(`http://127.0.0.1:${typeof address === 'object' && address !== null ? address.port : 0}`)
     })
   })
 }
 
+// The static host: a file out of the build output, or 404. Nothing else.
+function staticHost(): Server {
+  return createServer((request, response) => {
+    void (async () => {
+      const pathname = new URL(request.url ?? '/', 'http://placeholder').pathname
+      const segments = decodeURIComponent(pathname).split('/').filter((s) => s !== '')
+      const escapes = segments.some((s) => s === '.' || s === '..' || s.includes('\\'))
+      const file = join(outDir, ...(segments.length === 0 ? ['index.html'] : segments))
+      const bytes = escapes ? null : await readFile(file).catch(() => null)
+      servedByStatic.push(`${request.method} ${pathname} ${bytes === null ? 'absent 404' : 'file 200'}`)
+      if (bytes === null) {
+        response.writeHead(404).end()
+        return
+      }
+      const extension = file.slice(file.lastIndexOf('.') + 1).toLowerCase()
+      response.writeHead(200, { 'content-type': CONTENT_TYPES[extension] ?? 'application/octet-stream' })
+      response.end(bytes)
+    })()
+  })
+}
+
+// The service stand-in: its one route, and the CORS header the backend story
+// will add, admitting the client's origin and no other.
+function serviceStub(): Server {
+  return createServer((request, response) => {
+    const origin = request.headers.origin ?? '-'
+    receivedByService.push(`${request.method} ${request.url} origin=${origin}`)
+    const headers: Record<string, string> = { 'content-type': 'text/plain; charset=utf-8' }
+    if (serviceSendsCors && origin === staticOrigin) headers['access-control-allow-origin'] = staticOrigin
+    response.writeHead(200, headers)
+    response.end(`${SERVICE_ANSWER}\n`)
+  })
+}
+
+// The browser's rule for a cross-origin request, as far as a simple GET needs.
+function browserFetch(pageOrigin: string, requested: string[]) {
+  return async (input: unknown, init?: RequestInit): Promise<Response> => {
+    const url = new URL(String(input), `${pageOrigin}/`)
+    requested.push(url.href)
+    if (url.origin === pageOrigin) return fetch(url, init)
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (method !== 'GET' || [...new Headers(init?.headers).keys()].length > 0) {
+      throw new Error(`harness: ${method} ${url.href} would be preflighted, and no preflight is emulated`)
+    }
+    const response = await fetch(url, { ...init, headers: { origin: pageOrigin } })
+    const allowed = response.headers.get('access-control-allow-origin')
+    if (allowed !== pageOrigin && allowed !== '*') {
+      await response.arrayBuffer()
+      throw new TypeError('Failed to fetch')
+    }
+    return response
+  }
+}
+
+// Evaluate the built bundle in a window at the static origin, and read what it
+// rendered once the status leaves its checking state.
+async function evaluate(html: string): Promise<Evaluation> {
+  const requested: string[] = []
+  const dom = new JSDOM(html, { url: `${staticOrigin}/`, runScripts: 'outside-only', pretendToBeVisual: true })
+  windows.push(dom.window)
+  // One set, as a browser provides them: undici rejects a foreign AbortSignal.
+  Object.assign(dom.window, { AbortController, AbortSignal, fetch: browserFetch(staticOrigin, requested) })
+  for (const source of evaluatedSources) dom.window.eval(source)
+
+  const root = () => dom.window.document.getElementById('root')
+  const status = () => root()?.querySelector('[role="status"]')?.textContent ?? ''
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline && (status() === '' || status().startsWith('Checking'))) {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  return {
+    requested,
+    heading: root()?.querySelector('h1')?.textContent ?? '',
+    status: status(),
+    paragraphs: [...(root()?.querySelectorAll('p') ?? [])].map((p) => p.textContent ?? ''),
+  }
+}
+
 beforeAll(async () => {
   outDir = mkdtempSync(join(tmpdir(), 'turfgps-nfr005-'))
+  staticOrigin = await listen(staticHost())
+  serviceBase = await listen(serviceStub())
 
-  // vite directly rather than `npm run build`: that script is `tsc --noEmit &&
-  // vite build`, and the type check emits nothing, so the artefact is the same
-  // one and the build gate already runs the check.
-  //
-  // The two variables below are removed rather than inherited, and NODE_ENV is
-  // the one that matters. Vitest sets it to `test`, and a build carrying that
-  // resolves React's development entry: measured here, 389 kB against the
-  // deployed build's 191 kB, and its StrictMode double-invokes the effect that
-  // calls the service. Inheriting it would have left this file asserting
-  // against an artefact no deploy produces while still going green.
-  // VITE_API_BASE_URL is removed so the build takes the same-origin default
-  // `/api` that `web/.env.example` documents and the deployment model deploys.
-  const env = { ...process.env }
+  // The service's address is a build input, as it is on Vercel. NODE_ENV is
+  // removed because vitest sets it to `test`, which would build React's
+  // development entry: an artefact no deploy produces.
+  const env: NodeJS.ProcessEnv = { ...process.env, VITE_API_BASE_URL: serviceBase }
   delete env.NODE_ENV
-  delete env.VITE_API_BASE_URL
   execFileSync(
     process.execPath,
     [join(webDir, 'node_modules', 'vite', 'bin', 'vite.js'), 'build', '--outDir', outDir, '--emptyOutDir'],
@@ -198,189 +202,77 @@ beforeAll(async () => {
   )
   builtFiles = listFiles(outDir).sort()
 
-  // The service. Reachable only over HTTP, and it records what reached it.
-  const service = createServer((request, response) => {
-    receivedByService.push(`${request.method} ${request.url}`)
-    response.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
-    response.end(`${SERVICE_ANSWER}\n`)
-  })
-  const servicePort = await listen(service)
-
-  // The origin the client is served from: files for the client, and the /api
-  // forward `DEPLOYMENT.md § Deployment architecture` gives the reverse proxy.
-  // The prefix is stripped because the service's only route today is its root,
-  // which is what `web/vite.config.ts` does for the dev and preview servers.
-  const origin = createServer((request, response) => {
-    void (async () => {
-      const url = new URL(request.url ?? '/', 'http://placeholder')
-      if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        const upstream = await fetch(`http://127.0.0.1:${servicePort}${url.pathname.slice(4) || '/'}`, {
-          method: request.method,
-        })
-        const body = Buffer.from(await upstream.arrayBuffer())
-        served.push({ path: url.pathname, mode: 'forward', status: upstream.status })
-        response.writeHead(upstream.status, {
-          'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
-        })
-        response.end(body)
-        return
-      }
-      const file = resolveInOutput(url.pathname)
-      let bytes: Buffer | null = null
-      if (file !== null) {
-        bytes = await readFile(file).catch(() => null)
-      }
-      if (bytes === null) {
-        served.push({ path: url.pathname, mode: 'absent', status: 404 })
-        response.writeHead(404).end()
-        return
-      }
-      served.push({ path: url.pathname, mode: 'file', status: 200 })
-      const extension = file!.slice(file!.lastIndexOf('.') + 1).toLowerCase()
-      response.writeHead(200, { 'content-type': CONTENT_TYPES[extension] ?? 'application/octet-stream' })
-      response.end(bytes)
-    })()
-  })
-  const base = `http://127.0.0.1:${await listen(origin)}/`
-  servers = [service, origin]
-
-  // Load it the way a browser does: the document, then every subresource it
-  // references, each over HTTP from that origin. Nothing here throws on a bad
-  // answer — a failed load has to reach an assertion to produce a message.
-  const document = await fetch(base)
+  // Load it as a browser does: the document, then every subresource it names.
+  const document = await fetch(`${staticOrigin}/`)
   const html = document.ok ? await document.text() : ''
   const parsed = new JSDOM(html)
   const references = [...parsed.window.document.querySelectorAll('script[src], link[href]')].map(
     (element) => element.getAttribute('src') ?? element.getAttribute('href') ?? '',
   )
+  parsed.window.close()
   for (const reference of references) {
-    const asset = await fetch(new URL(reference, base))
+    const asset = await fetch(new URL(reference, `${staticOrigin}/`))
     subresources.push(reference)
     if (asset.ok && reference.endsWith('.js')) evaluatedSources.push(await asset.text())
     else await asset.arrayBuffer()
   }
-  parsed.window.close()
-
   if (html === '' || evaluatedSources.length === 0) return
 
-  // Execute the built bundle against a document whose URL is that origin.
-  // fetch, AbortController and AbortSignal are injected as one set because a
-  // browser provides them as one: undici rejects a foreign AbortSignal, and
-  // resolving a relative URL against the document is what a browser does with
-  // the client's `/api` — an absolute URL baked in at build time would ignore
-  // that base and never reach this origin, which is the point of recording it.
-  const dom = new JSDOM(html, { url: base, runScripts: 'outside-only', pretendToBeVisual: true })
-  window = dom.window
-  Object.assign(dom.window, {
-    AbortController,
-    AbortSignal,
-    fetch: (input: unknown, init?: unknown) => {
-      requestedByClient.push(String(input))
-      return fetch(new URL(String(input), dom.window.location.href), init as RequestInit)
-    },
-  })
-  for (const source of evaluatedSources) dom.window.eval(source)
-
-  const read = () => dom.window.document.getElementById('root')?.textContent ?? ''
-  const deadline = Date.now() + 5_000
-  while (Date.now() < deadline && !read().includes(SERVICE_ANSWER)) {
-    await new Promise((resolve) => setTimeout(resolve, 20))
-  }
-  rootText = read()
-
-  // Elements, not the root's flattened text. Everything the upstream sends
-  // arrives as escaped text inside a paragraph React rendered, so a heading or
-  // a paragraph *equal to* a value below can only have been produced by the
-  // client's own component tree — which is what gives AC2's mount assertion a
-  // failure mode independent of the answer that reached it.
-  const root = dom.window.document.getElementById('root')
-  headingText = root?.querySelector('h1')?.textContent ?? ''
-  paragraphTexts = [...(root?.querySelectorAll('p') ?? [])].map((p) => p.textContent ?? '')
+  withCors = await evaluate(html)
+  serviceSendsCors = false
+  withoutCors = await evaluate(html)
 }, 120_000)
 
 afterAll(() => {
-  window?.close()
+  for (const window of windows) window.close()
   for (const server of servers) server.close()
   if (outDir !== '') rmSync(outDir, { recursive: true, force: true })
 })
 
-const servingTheClient = () => served.filter((entry) => !entry.path.startsWith('/api'))
-
-test('AC1 — every byte of the client is a file read, and nothing else ran to serve it', () => {
-  // The exact list is the assertion, and the exactness is the point: anything
-  // the origin forwarded, executed or failed to find while the client loaded
-  // would appear here as an extra entry or a mode other than `file`, and AC1's
-  // threshold is *none*. The client's own call to the service is excluded
-  // because it is AC2's subject rather than part of serving the client.
-  expect(servingTheClient().map((e) => `${e.path} ${e.mode} ${e.status}`)).toEqual([
-    '/ file 200',
-    ...subresources.map((reference) => `${reference} file 200`),
-  ])
+test('AC1: every request the static host answered was a file read, and nothing else reached it', () => {
+  // Exact on purpose. The client's call goes to the service's origin, so any
+  // request it sent here, or anything the host failed to find, is an extra
+  // entry; AC1's threshold is none.
+  expect(servedByStatic).toEqual(['GET / file 200', ...subresources.map((r) => `GET ${r} file 200`)])
   expect(subresources.length).toBeGreaterThan(0)
 })
 
-test('AC1 — the build output carries no server-shaped artefact', () => {
+test('AC1: neither the build output nor the project carries anything a host would execute', () => {
   expect(builtFiles.filter((file) => SERVER_SHAPED.test(file))).toEqual([])
   expect(builtFiles).toContain('index.html')
+  expect(VERCEL_EXECUTES.filter((name) => existsSync(join(webDir, name)))).toEqual([])
 })
 
-test('AC1 — the build output is the one script index.html declares, and no other', () => {
-  // Subresource discovery reads `index.html` only, so AC1's exact list ranges
-  // over what the document declares rather than over what the origin would
-  // serve. A second `.js` in the output is therefore invisible to every other
-  // assertion in this file: not in `subresources`, not in the exact list, and
-  // not in `SERVER_SHAPED`, which names server shapes and would not name an
-  // ordinary chunk. It would be a file the deploy serves that this harness had
-  // neither fetched nor run — which is AC1's "every byte" going false by
-  // omission, in silence. Pinning the count is what breaks that silence.
+test('AC1: the build output is the one script index.html declares, and no other', () => {
+  // Discovery reads index.html only, so a second chunk would be served by the
+  // deploy and seen by no assertion here. Pinning the count breaks that silence.
   expect(builtFiles.filter((file) => file.endsWith('.js'))).toHaveLength(1)
   expect(evaluatedSources).toHaveLength(1)
 })
 
-test('AC2 — nothing evaluated carries a dynamic import, which the evaluation would not catch', () => {
-  // Separate from the count above deliberately: one `expect` failing skips the
-  // rest of its test, and these two premises fail for different reasons and
-  // want to be readable independently.
-  //
-  // This is the form the header's "LOADS" paragraph records as unguarded —
-  // `import(...)` parses under a classic-script evaluation where the static
-  // forms throw. Today it arrives with an `import.meta` that does throw, but on
-  // a coupling in Vite's output that nothing here controls, so it is asserted.
-  // The match is deliberately truncated: a whole minified bundle in a failure
-  // message is unreadable, and the call site is what identifies the split.
+test('AC2: nothing evaluated carries a dynamic import, which a classic-script evaluation would not catch', () => {
   expect(evaluatedSources.flatMap((source) => source.match(/\bimport\s*\([^)]{0,60}/g) ?? [])).toEqual([])
 })
 
-test('AC2 — the built client loads and mounts from that arrangement', () => {
-  // Neither needle can be supplied by anything the client did not render
-  // itself, and that is the whole requirement on them. A substring search for
-  // `TurfGPS` over the root's text had no independent failure mode: it is
-  // inside `SERVICE_ANSWER`, which `beforeAll` blocks until it sees, and it is
-  // inside the served `index.html`'s own `<title>` — so deleting the `<h1>`
-  // from `App.tsx` left this green, and so would a build whose base URL
-  // resolved to `/` and rendered the client's own markup back as the greeting.
-  //
-  // The heading is an element the upstream's answer cannot become: that answer
-  // is escaped into a paragraph. The `/api` paragraph is the base the client
-  // actually used, rendered from the same constant the call was built from —
-  // a build that resolved it to `''`, to `/`, or to an absolute address baked
-  // in at build time renders that instead, and fails here.
-  expect(headingText).toBe('TurfGPS')
-  expect(paragraphTexts).toContain('/api')
+test('AC2: the built client loads and mounts from the static host, naming the service it was built for', () => {
+  // The heading is an element the service's answer cannot become; the base is
+  // rendered from the same constant the call is built from.
+  expect(withCors.heading).toBe('TurfGPS')
+  expect(withCors.paragraphs).toContain(serviceBase)
 })
 
-test('AC2 — and completes its first call to the service over HTTP, same-origin', () => {
-  // Relative, so a browser resolves it against the origin the client was
-  // served from. This is what makes the two assertions below attributable to
-  // the deployed arrangement rather than to an address baked in at build time.
-  //
-  // The count is pinned deliberately, and it earned that: a second identical
-  // entry here is what exposed the NODE_ENV leak above, the development
-  // build's StrictMode calling the service twice. A client that legitimately
-  // starts retrying changes what "the first successful call" means and should
-  // come back through this assertion rather than past it.
-  expect(requestedByClient).toEqual(['/api/'])
-  expect(served.filter((entry) => entry.mode === 'forward').map((entry) => entry.path)).toEqual(['/api/'])
-  expect(receivedByService).toEqual(['GET /'])
-  expect(rootText).toContain(SERVICE_ANSWER)
+test('AC2: its first call crosses to the service origin over HTTP and completes under CORS', () => {
+  // One call, to the absolute base fixed at build time, carrying the client's
+  // origin. A second identical call would mean a development build slipped in.
+  expect(withCors.requested).toEqual([`${serviceBase}/`])
+  expect(receivedByService[0]).toBe(`GET / origin=${staticOrigin}`)
+  expect(withCors.status).toBe(SERVICE_ANSWER)
+})
+
+test('AC2 depends on CORS: a service sending no CORS header is answered but refused, and the client says so', () => {
+  // This is the real service today. The request arrives and is answered; the
+  // browser withholds the answer, and the card reports the service unreachable.
+  expect(withoutCors.requested).toEqual([`${serviceBase}/`])
+  expect(receivedByService).toEqual([`GET / origin=${staticOrigin}`, `GET / origin=${staticOrigin}`])
+  expect(withoutCors.status).toBe(UNREACHABLE)
 })
