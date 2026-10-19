@@ -33,7 +33,7 @@ The reason for stating this as a general distinction rather than a carve-out is 
 
 "Reasonable spatial limits", in *Candidate zone identification* in `SPECIFICATION.md`, must be a number, or the requirement that per-journey call volume be bounded has nothing bounding it. Two mechanisms apply together, and both are **proposed defaults**.
 
-**A corridor scaled to the time budget.** How far a zone can lie from the route and remain worth considering depends on how much extra time the user has allowed. The corridor half-width is derived from the per-leg time allowance — roughly the distance drivable in half the remaining allowance — then **floored at 1 km and capped at 15 km**.
+**A corridor scaled to the time budget.** How far a zone can lie from the route and remain worth considering depends on how much extra time the user has allowed. The corridor half-width is derived from the per-leg time allowance, the user's spare time beyond the A→B drive time that TurfGPS's own routing engine computes (Valhalla, *§ D3* in `Architecture.md`), not from Google Maps — roughly the distance drivable in half the remaining allowance — then **floored at 1 km and capped at 50 km**. The Owner's reason for the cap: "It wouldn't be a large selection, since the routes will be prioritizing attribute zones, so there will be significantly less zones than the total number" (#20, 20 October 2026).
 
 The floor keeps a corridor usable even for a very small budget. The cap is generous on purpose: a highly ranked attribute is rare enough, per *Attribute rarity* in `SPECIFICATION.md`, that a genuinely valuable zone may sit well off the main road, and a tight corridor would never see it.
 
