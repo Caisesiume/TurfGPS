@@ -23,7 +23,9 @@
 # `unreached` and the run `incomplete` (exit 3) — red, as above. Before that it proves itself on a
 # fixture under `scripts/db/tests/fixtures/` — one that must pass and one with
 # planted failures that must be reported as failures. With no `migrations/` in
-# the tree it applies nothing and says so. The container is the job's and is
+# the tree it applies nothing and says so. After it, the Go tests built under
+# the `postgis` tag run against a scratch database migrated in the same
+# container (#27). The container is the job's and is
 # discarded with it; nothing durable is provisioned and nothing touches
 # `deploy/`.
 #
@@ -172,6 +174,31 @@ jobs:
           cat "$RUNNER_TEMP/mv-migrations.yml"
           { echo '```yaml'; cat "$RUNNER_TEMP/mv-migrations.yml"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$rc"
+
+      # The Go tests built under the `postgis` tag (#27) — today `FR-023` AC1,
+      # the corridor query and the pool it runs under — executed against the
+      # schema rather than argued. A scratch database in this job's container
+      # gets `migrations/` applied by psql, the tagged tests run against it
+      # with the race detector, and it is dropped. The tests refuse a host
+      # that is not loopback and a copy that already holds rows.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: service/go.mod
+          cache-dependency-path: |
+            service/go.mod
+            service/go.sum
+
+      - name: postgis-tagged Go tests against the migrated schema
+        run: |
+          db=turfgps_postgis_tests
+          psql -v ON_ERROR_STOP=1 -q -d postgres -c "CREATE DATABASE \"$db\" TEMPLATE template0"
+          trap 'psql -q -d postgres -c "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)"' EXIT
+          find migrations -maxdepth 1 -type f -name '[0-9]*.sql' ! -name '*.verify.sql' ! -name '*.down.sql' | sort |
+            while IFS= read -r f; do psql -v ON_ERROR_STOP=1 -q -d "$db" -f "$f"; done
+          cd service
+          go vet -tags postgis ./internal/zonestore
+          TURFGPS_TEST_DATABASE_URL="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable" \
+            go test -tags postgis -race -count=1 -v ./internal/zonestore
 
       # Any part whose output carried a query plan, from the logs directory
       # each result names — the EXPLAIN (ANALYZE, BUFFERS) evidence.
