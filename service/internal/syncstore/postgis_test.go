@@ -108,16 +108,12 @@ func emptiedAfter(t *testing.T, pool *pgxpool.Pool) {
 func hold(t *testing.T, pool *pgxpool.Pool, z fixtureZone) {
 	t.Helper()
 
-	if z.typeID != nil {
-		t.Fatal("hold writes no type_id; a held zone with a type is not a fixture this file needs")
-	}
-
 	if _, err := pool.Exec(t.Context(), `
 INSERT INTO zone (id, name, latitude, longitude, date_created, total_takeovers,
-                  takeover_points, points_per_hour, region_id, region_name,
-                  first_seen_at, last_changed_at)
-VALUES ($1, $2, 59.3, 18.06, $3, $4, 120, 3, 141, 'a region', now(), now())`,
-		z.id, fmt.Sprintf("zone %d", z.id), z.created, z.id%97); err != nil {
+                  takeover_points, points_per_hour, type_id, region_id,
+                  region_name, first_seen_at, last_changed_at)
+VALUES ($1, $2, 59.3, 18.06, $3, $4, 120, 3, $5, 141, 'a region', now(), now())`,
+		z.id, fmt.Sprintf("zone %d", z.id), z.created, z.id%97, z.typeID); err != nil {
 		t.Fatalf("seeding zone %d as held: %v", z.id, err)
 	}
 }
@@ -192,11 +188,14 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 	// a merge that never updates anything. So the held row is built on purpose,
 	// identical to the returned record in every column but date_created —
 	// which also makes date_created alone what the merge's change test has to
-	// see.
+	// see. Both carry a type, so neither case turns on how a record without
+	// one is stored: that is #39's, below.
+	typed := int16(3)
+
 	t.Run("a held id's stored dateCreated is replaced by the returned one", func(t *testing.T) {
 		emptiedAfter(t, pool)
 
-		held := fixtureZone{id: 101, created: time.Date(2019, 5, 6, 7, 8, 9, 0, time.UTC)}
+		held := fixtureZone{id: 101, created: time.Date(2019, 5, 6, 7, 8, 9, 0, time.UTC), typeID: &typed}
 		returned := held
 		returned.created = time.Date(2021, 3, 4, 5, 6, 7, 0, time.UTC)
 
@@ -217,7 +216,7 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 	t.Run("an id new to the copy is stored with the returned dateCreated", func(t *testing.T) {
 		emptiedAfter(t, pool)
 
-		returned := fixtureZone{id: 102, created: time.Date(2022, 9, 10, 11, 12, 13, 0, time.UTC)}
+		returned := fixtureZone{id: 102, created: time.Date(2022, 9, 10, 11, 12, 13, 0, time.UTC), typeID: &typed}
 
 		merged := refresh(t, store, returned)
 
@@ -237,8 +236,6 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 	// column, or an assertion counting the absence, is the form this refuses.
 	// The run's half — the mapping, and what the run raises — is
 	// `internal/zonesync`'s absenttype_test.go.
-	typed := int16(3)
-
 	for _, set := range []struct {
 		name  string
 		zones []fixtureZone
