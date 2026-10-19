@@ -23,9 +23,12 @@
 # `unreached` and the run `incomplete` (exit 3) — red, as above. Before that it proves itself on a
 # fixture under `scripts/db/tests/fixtures/` — one that must pass and one with
 # planted failures that must be reported as failures. With no `migrations/` in
-# the tree it applies nothing and says so. After it, the Go tests built under
-# the `postgis` tag run against a scratch database migrated in the same
-# container (#27). The container is the job's and is
+# the tree it applies nothing and says so. After it, one step runs the Go tests
+# that need the schema — `internal/zonestore`'s, built under the `postgis` tag
+# (#27), and `internal/syncstore`'s write path (#38, #39) — against a scratch
+# database migrated in the same container. go test's exit status is the step's;
+# a skip in that run is red as well, because syncstore's test skips wherever no
+# copy is named. The container is the job's and is
 # discarded with it; nothing durable is provisioned and nothing touches
 # `deploy/`.
 #
@@ -175,30 +178,42 @@ jobs:
           { echo '```yaml'; cat "$RUNNER_TEMP/mv-migrations.yml"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$rc"
 
-      # The Go tests built under the `postgis` tag (#27) — today `FR-023` AC1,
-      # the corridor query and the pool it runs under — executed against the
-      # schema rather than argued. A scratch database in this job's container
-      # gets `migrations/` applied by psql, the tagged tests run against it
-      # with the race detector, and it is dropped. The tests refuse a host
-      # that is not loopback and a copy that already holds rows.
+      # The Go tests that need the schema, executed against it rather than
+      # argued: `internal/zonestore`'s, built under the `postgis` tag (#27) —
+      # today `FR-023` AC1, the corridor query and the pool it runs under — and
+      # `internal/syncstore`'s write path (#38, #39). A scratch database in
+      # this job's container gets `migrations/` applied by psql, the tests run
+      # against it with the race detector, and it is dropped. Both packages
+      # write `zone` and refuse a copy that already holds rows, so they run one
+      # at a time (-p 1); each empties what it wrote. Both steps run whatever
+      # the step above concluded: the scratch database is one the rollbacks
+      # above never touch.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: ${{ !cancelled() }}
         with:
           go-version-file: service/go.mod
           cache-dependency-path: |
             service/go.mod
             service/go.sum
 
-      - name: postgis-tagged Go tests against the migrated schema
+      # go test's exit status is the step's (the job's shell runs with
+      # pipefail). syncstore's test skips wherever TURFGPS_TEST_DATABASE_URL is
+      # unset where the tagged tests fail, so a skip in the run is red too.
+      - name: Go tests against the migrated schema
+        if: ${{ !cancelled() }}
         run: |
           db=turfgps_postgis_tests
+          pkgs=(./internal/zonestore ./internal/syncstore)
           psql -v ON_ERROR_STOP=1 -q -d postgres -c "CREATE DATABASE \"$db\" TEMPLATE template0"
           trap 'psql -q -d postgres -c "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)"' EXIT
           find migrations -maxdepth 1 -type f -name '[0-9]*.sql' ! -name '*.verify.sql' ! -name '*.down.sql' | sort |
             while IFS= read -r f; do psql -v ON_ERROR_STOP=1 -q -d "$db" -f "$f"; done
           cd service
-          go vet -tags postgis ./internal/zonestore
+          go vet -tags postgis "${pkgs[@]}"
+          log="$RUNNER_TEMP/schema-tests.log"
           TURFGPS_TEST_DATABASE_URL="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable" \
-            go test -tags postgis -race -count=1 -v ./internal/zonestore
+            go test -tags postgis -race -count=1 -p 1 -v "${pkgs[@]}" 2>&1 | tee "$log"
+          if grep -q -- '--- SKIP' "$log"; then echo '::error::a test skipped against the migrated schema, so it measured nothing'; exit 1; fi
 
       # Any part whose output carried a query plan, from the logs directory
       # each result names — the EXPLAIN (ANALYZE, BUFFERS) evidence.
