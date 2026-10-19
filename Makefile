@@ -53,16 +53,17 @@
 # linkage while `Architecture.md § D6` is open, and a build flag here would
 # settle it.
 #
-# The frontend targets are dormant until `web/package.json` exists. They belong
-# to the commit that creates it — writing them now would mean shipping recipes
-# nobody can run.
+# The frontend targets run from $(WEB_DIR)/, the same commands
+# scripts/team/gates.sh runs once `web/package.json` exists.
 
 GO_DIR  := service
+WEB_DIR := web
 BIN_DIR := bin
 IMAGE   ?= turfgps-service:dev
 
 .DEFAULT_GOAL := help
-.PHONY: help gates d8-claims size-ratchet fmt vet lint test build image clean
+.PHONY: help gates d8-claims size-ratchet fmt vet lint test build image clean \
+        web-install web-build web-lint web-test
 
 help:
 	@echo 'TurfGPS — agents run scripts/team/gates.sh, which decides the gates a change owes.'
@@ -77,6 +78,10 @@ help:
 	@echo '  make build   all of $(GO_DIR)/cmd/..., into ./$(BIN_DIR)/'
 	@echo '  make image   container image $(IMAGE), context $(GO_DIR)/'
 	@echo '  make clean   remove ./$(BIN_DIR)/'
+	@echo '  make web-install  npm ci, from $(WEB_DIR)/ — the lockfile exactly'
+	@echo '  make web-build    npm run build — both type checks, then vite build'
+	@echo '  make web-lint     npm run lint -- --max-warnings 0'
+	@echo '  make web-test     npm run test — vitest, one run'
 
 # The five backend gates, in the order scripts/team/gates.sh runs them.
 #
@@ -228,3 +233,17 @@ image:
 
 clean:
 	rm -rf $(BIN_DIR)
+
+# The web gates scripts/team/gates.sh runs, one target each. gates.sh installs
+# only where web/node_modules is absent; web-install always does.
+web-install:
+	cd $(WEB_DIR) && npm ci
+
+web-build:
+	cd $(WEB_DIR) && npm run build
+
+web-lint:
+	cd $(WEB_DIR) && npm run lint -- --max-warnings 0
+
+web-test:
+	cd $(WEB_DIR) && npm run test

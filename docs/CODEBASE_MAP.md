@@ -24,13 +24,13 @@ root, and the Go service is one peer directory among several.
 |---|---|
 | `docs/` | the documentation set, which is this repository's primary artifact |
 | `service/` | the Go service — one module, `github.com/Caisesiume/TurfGPS/service` |
+| `web/` | the client of `Architecture.md § D2` — a Vite + React build to static files |
 | `migrations/` | the DDL for the PostgreSQL/PostGIS store of `Architecture.md § D4` |
 | `scripts/` | shell utilities for the team and the agent loop, and the gates — `TEAM.md § Scripts` |
 | `.github/` | the CI workflow that runs `scripts/team/gates.sh` on every pull request — `TEAM.md § Scripts` |
 | `.claude/` | the agent library — the agent definitions and the skills |
 | `Makefile` | the gate recipes, which `scripts/team/gates.sh` runs directly where there is no `make` |
 
-`web/` does not exist yet; `Architecture.md § D8` reserves it for the client.
 `bin/` appears on a machine that has built the service and is not in the
 repository — `.gitignore` covers it.
 
@@ -69,6 +69,15 @@ request surface imports either. That is checked rather than intended, by a test
 that refuses rather than passes when the packages it names are missing —
 `service/internal/zonesync/offrequestpath_test.go`, which is also where the
 argument for guarding this structurally lives.
+
+## The client
+
+`web/` builds to static files, deployed on Vercel and calling the service
+cross-origin, per `docs/adr/ADR-0006-deployment-topology.md`. `src/api.ts` is
+the one call path to the service; `src/apiBaseUrl.ts` validates the service's
+address, which `vite.config.ts` fixes into the bundle at build time.
+`test/nfr-005-static-serving.test.ts` serves the built output from a plain
+file server and is `NFR-005`'s acceptance test.
 
 ## Why the zone store is two packages
 
