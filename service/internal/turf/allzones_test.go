@@ -325,6 +325,11 @@ func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
 		"no version at all":                     "/zones/all",
 		"the current version below the first":   "/proxy" + currentPath,
 		"the current version with no separator": "/" + APIVersion + "zones/all",
+		// Both read as the current version in the first segment and resolve
+		// (RFC 3986 § 5.2.4) to the preceding one, which is what a server that
+		// cleans the path then serves.
+		"the preceding version behind a dot segment":          "/" + APIVersion + "/../" + version(current-1) + "/zones/all",
+		"the preceding version behind an encoded dot segment": "/" + APIVersion + "/%2e%2e/" + version(current-1) + "/zones/all",
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -334,4 +339,90 @@ func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestARedirectLeavingTheCurrentVersionIsNotFollowed is the hop half of the
+// guard above. NewClient checking the configured endpoint held only for the
+// first request: an endpoint under the current version that answered with a
+// redirect to another version's path was followed, and the corpus came from
+// the version the guard exists to refuse. The server here is a ServeMux serving
+// both versions, the shape of the finding that opened this test.
+//
+// THE CONTROL IS WHAT KEEPS THIS HONEST. A policy that refused every redirect
+// would pass the first case, and would also fail the sync on an ordinary
+// redirect that normalises a path under the same version.
+func TestARedirectLeavingTheCurrentVersionIsNotFollowed(t *testing.T) {
+	t.Parallel()
+
+	current, err := strconv.Atoi(strings.TrimPrefix(APIVersion, "v"))
+	if err != nil {
+		t.Fatalf("APIVersion is not of the form v<number>, so the version this test redirects to cannot be derived from it: %v", err)
+	}
+
+	const (
+		substituted = `[{"id":1,"latitude":59.0,"longitude":18.0}]`
+		genuine     = `[{"id":2}]`
+	)
+
+	previousPath := "/v" + strconv.Itoa(current-1) + "/zones/all"
+	movedPath := "/" + APIVersion + "/zones/moved"
+
+	reached := make(chan struct{}, 1)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc(previousPath, func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case reached <- struct{}{}:
+		default:
+		}
+
+		_, _ = w.Write([]byte(substituted))
+	})
+	mux.HandleFunc(currentPath, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, previousPath, http.StatusMovedPermanently)
+	})
+	mux.HandleFunc(movedPath, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/"+APIVersion+"/zones/served", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/"+APIVersion+"/zones/served", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(genuine))
+	})
+
+	srv := httptest.NewTLSServer(mux)
+	defer srv.Close()
+
+	t.Run("a hop to another version is refused", func(t *testing.T) {
+		body, _, err := clientFor(t, srv, 1<<20).FetchAllZones(t.Context())
+		if err == nil {
+			t.Fatalf("the redirect from %s to %s was followed and the response accepted, want it refused: the sync would merge a corpus from a version other than the one `Architecture.md § API version` records as current", currentPath, previousPath)
+		}
+
+		if strings.Contains(string(body), substituted) {
+			t.Errorf("the other version's body came back with the error: %q", body)
+		}
+
+		select {
+		case <-reached:
+			t.Errorf("%s was requested, want the redirect refused before the request was made", previousPath)
+		default:
+		}
+	})
+
+	t.Run("a hop within the current version is followed", func(t *testing.T) {
+		c, err := NewClient(srv.URL+movedPath, 1<<20)
+		if err != nil {
+			t.Fatalf("building the client: %v", err)
+		}
+
+		c.setHTTPClient(srv.Client())
+
+		body, status, err := c.FetchAllZones(t.Context())
+		if err != nil {
+			t.Fatalf("a redirect that stays under %s was refused with %v, want it followed: refusing every redirect is not the guarantee this policy exists to give", APIVersion, err)
+		}
+
+		if status != http.StatusOK || string(body) != genuine {
+			t.Errorf("got %d %q, want 200 %q", status, body, genuine)
+		}
+	})
 }

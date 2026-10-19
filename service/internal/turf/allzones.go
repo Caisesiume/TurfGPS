@@ -40,13 +40,29 @@ import (
 const APIVersion = "v5"
 
 // addressesCurrentVersion refuses an endpoint whose path does not begin with
-// APIVersion as a whole segment.
+// APIVersion as a whole segment, or that holds a dot segment anywhere.
 //
 // WHOLE SEGMENT, NOT PREFIX: a string-prefix test would admit a version whose
 // name merely starts with the current one's. And it is the FIRST segment, which
 // is where every endpoint that section records carries it; a path that names
 // the version further down is not one of those endpoints.
+//
+// A DOT SEGMENT IS REFUSED OUTRIGHT, because the first segment is only the
+// version addressed once the path is resolved. "/<current>/../<other>/…" reads
+// as the current version and resolves (RFC 3986 § 5.2.4) to another, and a
+// server that cleans the path — net/http's ServeMux answers it with a redirect
+// to the cleaned one — serves the other. url.URL.Path is the DECODED path, so
+// "%2e%2e" is caught here as "..", and so is "%2f" splitting a segment in two.
+// No endpoint that section records needs a dot segment, so refusing every one
+// is sound where resolving them and re-checking would be a second parser.
 func addressesCurrentVersion(endpoint *url.URL) error {
+	for _, segment := range strings.Split(endpoint.Path, "/") {
+		if segment == "." || segment == ".." {
+			return fmt.Errorf("the endpoint %q has a dot segment in its path, which can resolve to an API version other than %q: its path must name /%s/ with no . or .. segment, raw or percent-encoded",
+				endpoint.Redacted(), APIVersion, APIVersion)
+		}
+	}
+
 	first, _, _ := strings.Cut(strings.TrimPrefix(endpoint.Path, "/"), "/")
 	if first != APIVersion {
 		return fmt.Errorf("the endpoint %q does not address API version %q, the one `Architecture.md § API version` records as current: its path must begin /%s/",
@@ -94,8 +110,8 @@ const maxCeiling = math.MaxInt32 - 1 - bytes.MinRead
 // below is a strengthening of the default and never a hole in it.
 const maxRedirects = 10
 
-// httpsOnly is the client's redirect policy: every hop stays on https, and the
-// chain is finite.
+// httpsOnly is the transport half of the client's redirect policy, followable
+// below: every hop stays on https, and the chain is finite.
 //
 // net/http's default policy follows a redirect from https to http without
 // comment, so an endpoint configured as https was only as encrypted as whatever
@@ -119,6 +135,32 @@ func httpsOnly(req *http.Request, via []*http.Request) error {
 
 	if req.URL.Scheme != "https" {
 		return fmt.Errorf("the all-zones endpoint redirected to scheme %q and the redirect was refused: following it would put the zone corpus on the wire in plaintext, where it can be rewritten before it is merged", req.URL.Scheme)
+	}
+
+	return nil
+}
+
+// followable is the client's redirect policy: a hop is followed only if
+// httpsOnly allows it AND it still addresses APIVersion.
+//
+// THE VERSION HALF IS addressesCurrentVersion, THE SAME RULE NewClient APPLIES,
+// so the configured endpoint and every hop it redirects to answer to one check.
+// Without it the guard held only for the first request: an endpoint under the
+// current version that answered 301 to another version's path — which is what
+// net/http's ServeMux does for a path it cleans — was followed, and the corpus
+// came from the version the guard exists to refuse. A redirect that stays under
+// the version, such as one that normalises a trailing slash, is still followed;
+// refusing every redirect would turn that ordinary case into a failed sync.
+// net/http has already resolved the Location against the request by the time
+// this runs, so a ".." there has been removed and the version it resolves to is
+// the one checked.
+func followable(req *http.Request, via []*http.Request) error {
+	if err := httpsOnly(req, via); err != nil {
+		return err
+	}
+
+	if err := addressesCurrentVersion(req.URL); err != nil {
+		return fmt.Errorf("the all-zones endpoint redirected away from API version %q and the redirect was refused: %w", APIVersion, err)
 	}
 
 	return nil
@@ -161,7 +203,7 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 
 	return &Client{
 		allZonesURL: allZonesURL,
-		http:        &http.Client{CheckRedirect: httpsOnly},
+		http:        &http.Client{CheckRedirect: followable},
 		maxBytes:    maxBytes,
 	}, nil
 }
@@ -182,23 +224,20 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 // useful, and it is also what would quietly discard the policy NewClient
 // installed: httptest's own Client carries no CheckRedirect, so a test reaching
 // through here would have been exercising net/http's default — the very policy
-// httpsOnly exists to replace — and a test asserting the downgrade is refused
+// followable exists to replace — and a test asserting the downgrade is refused
 // would have been asserting it against a client that no longer refused it.
 // Mutating the argument is the narrower cost, and it is confined to this
 // package's tests because nothing else can call this.
 func (c *Client) setHTTPClient(h *http.Client) {
-	h.CheckRedirect = httpsOnly
+	h.CheckRedirect = followable
 	c.http = h
 }
 
 // FetchAllZones fetches the complete zone set.
 //
 // THE REQUEST IS ADDRESSED TO THE ENDPOINT NewClient ACCEPTED, and so to
-// APIVersion. A redirect is followed to wherever the server sends it, under
-// httpsOnly: the hop's path is the server's and names no version of this
-// module's, and refusing one that left the versioned path would rest on a
-// claim about the endpoint's redirects that `Architecture.md § Retrieving
-// zones` does not record.
+// APIVersion, and every redirect it follows stays there: followable refuses a
+// hop that leaves https or leaves the current version.
 //
 // It returns the body, the HTTP status, and an error. The status is zero when no
 // response arrived at all, which is what lets a refused request and a body that
