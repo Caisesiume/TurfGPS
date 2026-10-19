@@ -1735,3 +1735,114 @@ Affects:        RD-038, one statement of which is superseded and whose ruling,
                 grounds and is corrected in this same diff. `DOC-12` on PR
                 #135, which it closes.
 ```
+
+## RD-041 — Does a zone-feed item for an id the copy already holds update that row?
+
+```
+Date:           2026-10-20
+Question:       The Owner's zone-sync decision on #20
+                (`#issuecomment-6279336314`) has the zone feed supply new
+                zones. A feed item can name an id the local synced copy
+                already holds — a zone re-dated under its own id, or an item
+                the feed repeats. Is such an item ignored, or does it update
+                the row?
+Interpretation: **It updates the row, through the same change-only merge the
+                all-zones path uses.** An item whose values match the stored
+                row changes nothing; one whose values differ replaces them.
+                FR-121's second criterion carries it.
+Rung:           4 — existing requirements, decisive. FR-035 binds the value a
+                refresh stores for a zone whether or not the copy already
+                holds it, and the feed ingest writes the same copy. Rung 5
+                agrees: the merge under
+                `Architecture.md § The sync write path` is the copy's one
+                write path.
+Affects:        FR-121; #232.
+```
+
+## RD-042 — What makes a zone-feed item one the copy cannot store?
+
+```
+Date:           2026-10-20
+Question:       #232 obliges that a feed item which cannot be stored is
+                recorded and never guessed. Which items are those: only an
+                item missing a field, or also one carrying a value the copy
+                would refuse?
+Interpretation: **An item is unstorable when its zone lacks a field the zone
+                table holds as non-nullable, or carries a value the per-row
+                assertions under `Architecture.md § The sync write path`
+                refuse** — a coordinate out of range, or a `dateCreated` later
+                than the run's start. An item lacking only `type`,
+                `region.country` or `region.area` is ordinary, per FR-036, and
+                is stored. The whole-response assertions, the row-count floor
+                among them, are the all-zones path's and do not apply to a
+                feed batch. A batch naming one id twice stores it once, from
+                the item with the later feed time.
+Rung:           2 — architecture constraints, decisive.
+                `Architecture.md § The zone table` fixes which columns are
+                non-nullable and `Architecture.md § The sync write path` fixes
+                the per-row assertions. Rung 5 agrees: the all-zones mapping
+                in `service/internal/zonesync/ingest.go` requires the same
+                set.
+Affects:        FR-122; #232.
+```
+
+## RD-043 — Does the latest feed time advance past an item recorded as unstorable?
+
+```
+Date:           2026-10-20
+Question:       FR-120 asks each zone-feed request only for items newer than
+                the latest feed time processed. When the newest item in a
+                batch is recorded as unstorable under FR-122, does that time
+                move past it?
+Interpretation: **Yes.** The record is the trace. Holding the time back would
+                re-read and re-record the same item on every request, and the
+                item cannot change into one the copy can store. The monthly
+                all-zones refresh carries every zone, so it recovers the
+                zone.
+Rung:           7 — the most conservative reasonable reading. No document
+                decides it. Advancing loses nothing the monthly refresh does
+                not restore, and the Owner's decision on #20 already accepts
+                that a zone the feed misses waits for that refresh.
+Affects:        FR-120; FR-122; #232.
+```
+
+## RD-044 — When is the month's all-zones refresh due, across restarts, failures and an empty copy?
+
+```
+Date:           2026-10-20
+Question:       The Owner's decision on #20 moves the all-zones refresh to a
+                monthly calendar instant, and #233 obliges that a restart
+                neither skip nor double the month's run. What makes the run
+                due, after a failed attempt and against an empty copy?
+Interpretation: **The run is due exactly when the most recent monthly instant
+                at or before now has passed and no all-zones refresh has
+                completed since it.** Completed means a run recorded as
+                successful. A failed or refused attempt is retried as soon as
+                NFR-001 permits, and a zone-feed run never counts. So a
+                restart after the month's completed run issues nothing, a
+                process that was down at the instant runs when it starts, and
+                an empty copy fills at once instead of waiting a month.
+Rung:           5 — existing system behaviour, decisive. The scheduler gates
+                on the run recorded in the store and never on process lifetime
+                (`untilDue` in `service/internal/zonesync/scheduler.go`), the
+                rule `DEPLOYMENT.md` states for a sync that must survive a
+                restart. Rung 4 corroborates the empty-copy branch: FR-033
+                plans no journey where no copy is held.
+Affects:        FR-123; FR-124; #233.
+```
+
+## RD-045 — Does FR-026 bind the zone-feed ingest?
+
+```
+Date:           2026-10-20
+Question:       FR-026's acceptance named the ingest mapping for the all-zones
+                response, then the copy's only writer. The zone feed now
+                writes the copy too, and a live zone-feed sample of
+                20 October 2026 carried `dateLastTaken` on every item. Does
+                FR-026 reach the feed's mapping?
+Interpretation: **Yes.** The statement binds the copy and not a writer, so the
+                acceptance is widened to every ingest mapping that writes the
+                copy, and #232 resolves FR-026 alongside #29.
+Rung:           4 — existing requirements, decisive: FR-026's own statement.
+Affects:        FR-026; #232. #29's schema half stands unchanged.
+```
