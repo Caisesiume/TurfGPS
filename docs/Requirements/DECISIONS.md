@@ -1821,7 +1821,8 @@ Interpretation: **The run is due exactly when the most recent monthly instant
                 NFR-001 permits, and a zone-feed run never counts. So a
                 restart after the month's completed run issues nothing, a
                 process that was down at the instant runs when it starts, and
-                an empty copy fills at once instead of waiting a month.
+                an empty copy fills at once instead of waiting a month. The
+                instant is read in the time zone RD-046 records.
 Rung:           5 — existing system behaviour, decisive. The scheduler gates
                 on the run recorded in the store and never on process lifetime
                 (`untilDue` in `service/internal/zonesync/scheduler.go`), the
@@ -1845,4 +1846,126 @@ Interpretation: **Yes.** The statement binds the copy and not a writer, so the
                 copy, and #232 resolves FR-026 alongside #29.
 Rung:           4 — existing requirements, decisive: FR-026's own statement.
 Affects:        FR-026; #232. #29's schema half stands unchanged.
+```
+
+## RD-046 — In what time zone is the monthly all-zones instant read?
+
+```
+Date:           2026-10-20
+Decided-by:     the Owner, answering question 1 of
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279590639
+                in
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279805746,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere; it is not a ladder resolution.
+Question:       The Owner's zone-sync decision on #20 sets the monthly
+                all-zones instant as a day and a time of day. No document
+                names the time zone it is read in. Which is it?
+Interpretation: **A named zone, Europe/Stockholm, and never a fixed offset**,
+                so the instant keeps its local wall-clock time on either side
+                of a daylight-saving change. The ruling, verbatim: 'The
+                monthly full sync runs on the first Sunday at 16:00
+                **Europe/Stockholm**.' The records cite the instant and its
+                zone under `Architecture.md § Retrieving zones` and restate
+                neither.
+Rung:           n/a — Owner ruling, and no rung is claimed. Rungs 1 to 3 are
+                silent on the zone. Rung 5 offered a data point and no more:
+                live `/v5/rounds` starts fall on first Sundays at 12:00
+                Stockholm time, which the question carried as its
+                recommendation. Whose clock the schedule keeps is product
+                intent no document defines, so the escalation was owed.
+Affects:        FR-123, whose statement now reads the instant in the recorded
+                zone and whose first criterion pins the daylight-saving case;
+                FR-124 through FR-123's instant; RD-044. `Architecture.md`
+                carries it through the approved amendment.
+```
+
+## RD-047 — What does the staleness bound measure once the all-zones refresh is monthly?
+
+```
+Date:           2026-10-20
+Decided-by:     the Owner, answering question 2 of
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279590639
+                in
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279805746,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with one edge the ruling leaves open decided
+                on the ladder below.
+Question:       `Architecture.md § Retrieving zones` tolerates a copy stale
+                by up to a bound written when the all-zones refresh ran within
+                the hour, and FR-024, FR-033, FR-034 and FR-116 cite it.
+                Measured against a monthly refresh, every result would read
+                stale. What does the bound measure?
+Interpretation: **The time since the last successful zone-feed run.** The
+                ruling, verbatim: 'The staleness bound measures the time since
+                the **last successful feed run**; a copy is stale after one
+                hour without one.' The monthly all-zones refresh is current by
+                design, and its age never makes a copy stale. A run is
+                successful when its request returned and its batch was
+                ingested, an empty batch and one with items recorded under
+                FR-122 included; a failed request or a refused write is not.
+                **A copy with no successful feed run recorded is stale beyond
+                the bound**, a fresh all-zones fill included. The records cite
+                the bound and restate it nowhere.
+Rung:           n/a for the measure — Owner ruling. Rung 2 named the bound
+                and not what it measures once the schedule it was written
+                against was gone, so no rung reached it. The two edges rest on
+                the ladder. Success: rung 5, the outcome every sync run
+                already records in `sync_run.outcome`
+                (`service/internal/zonesync/run.go`), which a feed run joins.
+                No run recorded: rung 7, the ruling's literal text and the
+                conservative reading — a marking present a few
+                minutes too long costs a line of disclosure, a marking wrongly
+                absent is the silent failure FR-034 exists to prevent, and
+                FR-033 plans either way.
+Affects:        FR-024, FR-033 and FR-034, whose criteria now measure the
+                last successful zone-feed run and which now depend on FR-119;
+                FR-116's `Volatility`; #33 and #35. `Architecture.md` carries
+                it through the approved amendment.
+```
+
+## RD-048 — How wide is a route's corridor, and beyond which A→B time does it grow?
+
+```
+Date:           2026-10-20
+Decided-by:     the Owner, answering question 4 of
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279590639
+                in
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279805746
+                and, on the two clarifications asked there,
+                https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279845172,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere; it is not a ladder resolution.
+Question:       `CalculationSpecification.md § Bounding the candidate set`
+                derives the corridor half-width from the time allowance
+                between a proposed floor and cap, while
+                `Architecture.md § What is unproven` (item 7) says the
+                half-width is chosen nowhere. Which governs, with which
+                figures, and against which A→B time?
+Interpretation: **A 1 km floor, a half-width growing with the user's available
+                time beyond the A→B time, and a 50 km cap; the A→B time is the
+                one TurfGPS's own routing engine returns, the one recorded
+                under `Architecture.md § D3`, and never a third-party
+                service's.** The Owner's words: '1km floor with a distance
+                growing based of the users available time extra beyond the
+                time it will take according to Google Maps from A to B',
+                clarified as Valhalla and not Google Maps, with a 50 km cap.
+                The reason for the wide cap, verbatim: 'It wouldn't be a large
+                selection, since the routes will be prioritizing attribute
+                zones, so there will be significantly less zones than the
+                total number'. How fast the half-width grows between floor and
+                cap is not ruled and stays the cited section's proposed
+                default. The figures are amended into
+                `CalculationSpecification.md § Bounding the candidate set` and
+                `Architecture.md` under the Owner's approval, in the docs PR
+                that carries the sync amendment; the records cite them and
+                restate none.
+Rung:           n/a — Owner ruling, and no rung is claimed. Rung 1 gave a
+                derivation whose figures are proposed defaults, and rung 2
+                said none is chosen: two product documents disagreeing is an
+                escalation condition, and the cap is a business trade-off
+                between call volume and the rare far zone.
+Affects:        FR-063: its third criterion, `Volatility` and `Rationale`.
+                FR-064 is untouched; its cap still bounds what reaches
+                routing, which is what makes a 50 km corridor affordable.
 ```
