@@ -259,6 +259,12 @@ func TestEveryColumnIsLoadedFromItsOwnField(t *testing.T) {
 // above cannot: a field added to the ingest type and to no column here is
 // decoded from the response, carried the whole way through the sync, and
 // silently never written. The merge would report every such row unchanged.
+//
+// WITH THE TWO TESTS ABOVE IT IS ALSO THE INGEST HALF OF #29's PIN. No owner,
+// last-taken (`FR-026`) or extent (`FR-020`) field can reach the ingest type,
+// or a column the mapping writes, without one of the three going red or
+// pinnedColumns being edited to admit it. The schema half is part A of
+// `migrations/0001_zone_store.verify.sql`.
 func TestEveryFieldOfAZoneReachesAColumn(t *testing.T) {
 	t.Parallel()
 
