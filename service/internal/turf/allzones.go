@@ -3,17 +3,10 @@
 //
 // It carries the zone sync's half of that port and nothing else yet.
 //
-// NO API PATH IS WRITTEN IN THIS PACKAGE. The all-zones endpoint is named by
-// role in `Architecture.md § Retrieving zones` and arrives here as a resolved
-// URL from configuration, so this package is not a second home for the API
-// version.
-//
-// THAT DOES NOT PUT IT OUTSIDE `FR-019`, which is the reading this comment
-// carried. The record's class is the paths that construct a Turf request
-// together with the configuration they draw a base path from, and this package
-// is one of those paths whether or not it compiles a version in. A versioned
-// path written here would not pre-empt the record: it would be bound by it, and
-// would have to name the one version recorded as current.
+// NO API PATH IS WRITTEN IN THIS PACKAGE, AND ONE API VERSION IS. The all-zones
+// endpoint is named by role in `Architecture.md § Retrieving zones` and arrives
+// here as a resolved URL from configuration. The version that URL may address
+// is APIVersion, below — the one place `FR-019`'s class names it.
 package turf
 
 import (
@@ -24,7 +17,60 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
+	"strings"
 )
+
+// APIVersion is the Turf API version every request this module issues
+// addresses, in the form it takes as the first segment of an endpoint's path.
+//
+// IT IS THE ONE PLACE THE MODULE NAMES THE VERSION. `FR-019` binds the paths
+// that construct a Turf request, together with any configuration they draw a
+// base path from, to name exactly one version between them, and that version
+// to be the one `Architecture.md § API version` records as current. The
+// endpoint is configuration and lives outside this repository, so with no
+// version named here the class named none a reader could find, and the sync
+// issued against whatever version the environment happened to name. NewClient
+// refuses an endpoint addressing any other, which is what makes this constant
+// the version issued against rather than a description of it.
+//
+// The value is that section's, in the path form `Architecture.md § Data sources
+// and constraints` gives every endpoint. A version bump moves it here and
+// nowhere else: no other line of this module, its tests included, carries it.
+const APIVersion = "v5"
+
+// addressesCurrentVersion refuses an endpoint whose path does not begin with
+// APIVersion as a whole segment, or that holds a dot segment anywhere.
+//
+// WHOLE SEGMENT, NOT PREFIX: a string-prefix test would admit a version whose
+// name merely starts with the current one's. And it is the FIRST segment, which
+// is where every endpoint that section records carries it; a path that names
+// the version further down is not one of those endpoints.
+//
+// A DOT SEGMENT IS REFUSED OUTRIGHT, because the first segment is only the
+// version addressed once the path is resolved. "/<current>/../<other>/…" reads
+// as the current version and resolves (RFC 3986 § 5.2.4) to another, and a
+// server that cleans the path — net/http's ServeMux answers it with a redirect
+// to the cleaned one — serves the other. url.URL.Path is the DECODED path, so
+// "%2e%2e" is caught here as "..", and so is "%2f" splitting a segment in two.
+// No endpoint that section records needs a dot segment, so refusing every one
+// is sound where resolving them and re-checking would be a second parser.
+func addressesCurrentVersion(endpoint *url.URL) error {
+	for _, segment := range strings.Split(endpoint.Path, "/") {
+		if segment == "." || segment == ".." {
+			return fmt.Errorf("the endpoint %q has a dot segment in its path, which can resolve to an API version other than %q: its path must name /%s/ with no . or .. segment, raw or percent-encoded",
+				endpoint.Redacted(), APIVersion, APIVersion)
+		}
+	}
+
+	first, _, _ := strings.Cut(strings.TrimPrefix(endpoint.Path, "/"), "/")
+	if first != APIVersion {
+		return fmt.Errorf("the endpoint %q does not address API version %q, the one `Architecture.md § API version` records as current: its path must begin /%s/",
+			endpoint.Redacted(), APIVersion, APIVersion)
+	}
+
+	return nil
+}
 
 // errorBodySnippet is how much of an unusable response is quoted into the error.
 // Enough for an API error object to be readable, short enough that a
@@ -64,8 +110,8 @@ const maxCeiling = math.MaxInt32 - 1 - bytes.MinRead
 // below is a strengthening of the default and never a hole in it.
 const maxRedirects = 10
 
-// httpsOnly is the client's redirect policy: every hop stays on https, and the
-// chain is finite.
+// httpsOnly is the transport half of the client's redirect policy, followable
+// below: every hop stays on https, and the chain is finite.
 //
 // net/http's default policy follows a redirect from https to http without
 // comment, so an endpoint configured as https was only as encrypted as whatever
@@ -94,6 +140,32 @@ func httpsOnly(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
+// followable is the client's redirect policy: a hop is followed only if
+// httpsOnly allows it AND it still addresses APIVersion.
+//
+// THE VERSION HALF IS addressesCurrentVersion, THE SAME RULE NewClient APPLIES,
+// so the configured endpoint and every hop it redirects to answer to one check.
+// Without it the guard held only for the first request: an endpoint under the
+// current version that answered 301 to another version's path — which is what
+// net/http's ServeMux does for a path it cleans — was followed, and the corpus
+// came from the version the guard exists to refuse. A redirect that stays under
+// the version, such as one that normalises a trailing slash, is still followed;
+// refusing every redirect would turn that ordinary case into a failed sync.
+// net/http has already resolved the Location against the request by the time
+// this runs, so a ".." there has been removed and the version it resolves to is
+// the one checked.
+func followable(req *http.Request, via []*http.Request) error {
+	if err := httpsOnly(req, via); err != nil {
+		return err
+	}
+
+	if err := addressesCurrentVersion(req.URL); err != nil {
+		return fmt.Errorf("the all-zones endpoint redirected away from API version %q and the redirect was refused: %w", APIVersion, err)
+	}
+
+	return nil
+}
+
 // Client fetches from the Turf API.
 type Client struct {
 	allZonesURL string
@@ -112,6 +184,15 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 		return nil, errors.New("no all-zones endpoint")
 	}
 
+	endpoint, err := url.Parse(allZonesURL)
+	if err != nil {
+		return nil, fmt.Errorf("the all-zones endpoint is not a URL: %w", err)
+	}
+
+	if err := addressesCurrentVersion(endpoint); err != nil {
+		return nil, err
+	}
+
 	if maxBytes <= 0 {
 		return nil, fmt.Errorf("the response ceiling %d is not positive", maxBytes)
 	}
@@ -122,7 +203,7 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 
 	return &Client{
 		allZonesURL: allZonesURL,
-		http:        &http.Client{CheckRedirect: httpsOnly},
+		http:        &http.Client{CheckRedirect: followable},
 		maxBytes:    maxBytes,
 	}, nil
 }
@@ -143,16 +224,20 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 // useful, and it is also what would quietly discard the policy NewClient
 // installed: httptest's own Client carries no CheckRedirect, so a test reaching
 // through here would have been exercising net/http's default — the very policy
-// httpsOnly exists to replace — and a test asserting the downgrade is refused
+// followable exists to replace — and a test asserting the downgrade is refused
 // would have been asserting it against a client that no longer refused it.
 // Mutating the argument is the narrower cost, and it is confined to this
 // package's tests because nothing else can call this.
 func (c *Client) setHTTPClient(h *http.Client) {
-	h.CheckRedirect = httpsOnly
+	h.CheckRedirect = followable
 	c.http = h
 }
 
 // FetchAllZones fetches the complete zone set.
+//
+// THE REQUEST IS ADDRESSED TO THE ENDPOINT NewClient ACCEPTED, and so to
+// APIVersion, and every redirect it follows stays there: followable refuses a
+// hop that leaves https or leaves the current version.
 //
 // It returns the body, the HTTP status, and an error. The status is zero when no
 // response arrived at all, which is what lets a refused request and a body that

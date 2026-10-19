@@ -206,6 +206,12 @@ $fn$;
 -- `Architecture.md § The two absences, and the test that keeps them absent`.
 -- Both are round-scoped. A synced table that acquires one acquires a rollover
 -- problem that today it simply does not have.
+--
+-- The same equality refuses an extent, radius or footprint column, which
+-- `FR-020` forbids because `Architecture.md § Zone geometry` records that the
+-- API exposes none, so this part is the pin `FR-020` and `FR-026` share over
+-- the persisted zone (#29). Their ingest half is pinned in Go, by
+-- `service/internal/syncstore/columns_test.go`.
 
 DO $$
 DECLARE

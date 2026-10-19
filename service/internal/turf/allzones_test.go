@@ -5,15 +5,20 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
 
+// currentPath is an all-zones path under APIVersion, built from the constant so
+// that no test here carries the version literal the constant is the home of.
+var currentPath = "/" + APIVersion + "/zones/all"
+
 func clientFor(t *testing.T, srv *httptest.Server, maxBytes int64) *Client {
 	t.Helper()
 
-	c, err := NewClient(srv.URL, maxBytes)
+	c, err := NewClient(srv.URL+currentPath, maxBytes)
 	if err != nil {
 		t.Fatalf("building the client: %v", err)
 	}
@@ -167,7 +172,7 @@ func TestAnEndpointIsRequired(t *testing.T) {
 		t.Error("a client with no endpoint was built, want it refused")
 	}
 
-	if _, err := NewClient("https://example.test/zones", 0); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, 0); err == nil {
 		t.Error("a client with no response ceiling was built, want it refused")
 	}
 
@@ -176,7 +181,7 @@ func TestAnEndpointIsRequired(t *testing.T) {
 	// two failures it produces are a panic and a fetch that succeeds over an
 	// empty body, neither of which is reachable from a constructor that
 	// refuses it.
-	if _, err := NewClient("https://example.test/zones", math.MaxInt64); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, math.MaxInt64); err == nil {
 		t.Error("a client with a response ceiling above what it can read within was built, want it refused")
 	}
 }
@@ -287,6 +292,137 @@ func TestTheRedirectPolicyDecides(t *testing.T) {
 		via := make([]*http.Request, maxRedirects)
 		if err := httpsOnly(hop(t, "https://example.test/elsewhere"), via); err == nil {
 			t.Errorf("a chain of %d https hops was extended, want it refused: a non-nil CheckRedirect replaces net/http's default limit rather than adding to it, so this policy has to carry the bound itself", maxRedirects)
+		}
+	})
+}
+
+// TestOnlyTheCurrentAPIVersionIsAddressed is the guard `FR-019` (#18) rests on:
+// the endpoint arrives from configuration, so the version it addresses is the
+// environment's unless NewClient refuses every version but APIVersion.
+//
+// Every refused path is derived from APIVersion rather than written out, so
+// this test carries no version literal and moves with the constant. It assumes
+// only the "v<number>" form `Architecture.md § Data sources and constraints`
+// gives every endpoint path, and says so if that form ever changes.
+func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
+	t.Parallel()
+
+	current, err := strconv.Atoi(strings.TrimPrefix(APIVersion, "v"))
+	if err != nil {
+		t.Fatalf("APIVersion is not of the form v<number>, so the versions this test refuses cannot be derived from it: %v", err)
+	}
+
+	version := func(n int) string { return "v" + strconv.Itoa(n) }
+
+	if _, err := NewClient("https://example.test"+currentPath, 1<<20); err != nil {
+		t.Fatalf("an endpoint addressing APIVersion was refused: %v — refusing every endpoint is not the guarantee this guard exists to give", err)
+	}
+
+	for name, path := range map[string]string{
+		"the preceding version":                 "/" + version(current-1) + "/zones/all",
+		"the following version":                 "/" + version(current+1) + "/zones/all",
+		"a version the current one prefixes":    "/" + APIVersion + "0/zones/all",
+		"no version at all":                     "/zones/all",
+		"the current version below the first":   "/proxy" + currentPath,
+		"the current version with no separator": "/" + APIVersion + "zones/all",
+		// Both read as the current version in the first segment and resolve
+		// (RFC 3986 § 5.2.4) to the preceding one, which is what a server that
+		// cleans the path then serves.
+		"the preceding version behind a dot segment":          "/" + APIVersion + "/../" + version(current-1) + "/zones/all",
+		"the preceding version behind an encoded dot segment": "/" + APIVersion + "/%2e%2e/" + version(current-1) + "/zones/all",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := NewClient("https://example.test"+path, 1<<20); err == nil {
+				t.Errorf("NewClient accepted an endpoint addressing %s, want it refused: the sync would issue its request against a version other than the one `Architecture.md § API version` records as current", name)
+			}
+		})
+	}
+}
+
+// TestARedirectLeavingTheCurrentVersionIsNotFollowed is the hop half of the
+// guard above. NewClient checking the configured endpoint held only for the
+// first request: an endpoint under the current version that answered with a
+// redirect to another version's path was followed, and the corpus came from
+// the version the guard exists to refuse. The server here is a ServeMux serving
+// both versions, the shape of the finding that opened this test.
+//
+// THE CONTROL IS WHAT KEEPS THIS HONEST. A policy that refused every redirect
+// would pass the first case, and would also fail the sync on an ordinary
+// redirect that normalises a path under the same version.
+func TestARedirectLeavingTheCurrentVersionIsNotFollowed(t *testing.T) {
+	t.Parallel()
+
+	current, err := strconv.Atoi(strings.TrimPrefix(APIVersion, "v"))
+	if err != nil {
+		t.Fatalf("APIVersion is not of the form v<number>, so the version this test redirects to cannot be derived from it: %v", err)
+	}
+
+	const (
+		substituted = `[{"id":1,"latitude":59.0,"longitude":18.0}]`
+		genuine     = `[{"id":2}]`
+	)
+
+	previousPath := "/v" + strconv.Itoa(current-1) + "/zones/all"
+	movedPath := "/" + APIVersion + "/zones/moved"
+
+	reached := make(chan struct{}, 1)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc(previousPath, func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case reached <- struct{}{}:
+		default:
+		}
+
+		_, _ = w.Write([]byte(substituted))
+	})
+	mux.HandleFunc(currentPath, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, previousPath, http.StatusMovedPermanently)
+	})
+	mux.HandleFunc(movedPath, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/"+APIVersion+"/zones/served", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/"+APIVersion+"/zones/served", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(genuine))
+	})
+
+	srv := httptest.NewTLSServer(mux)
+	defer srv.Close()
+
+	t.Run("a hop to another version is refused", func(t *testing.T) {
+		body, _, err := clientFor(t, srv, 1<<20).FetchAllZones(t.Context())
+		if err == nil {
+			t.Fatalf("the redirect from %s to %s was followed and the response accepted, want it refused: the sync would merge a corpus from a version other than the one `Architecture.md § API version` records as current", currentPath, previousPath)
+		}
+
+		if strings.Contains(string(body), substituted) {
+			t.Errorf("the other version's body came back with the error: %q", body)
+		}
+
+		select {
+		case <-reached:
+			t.Errorf("%s was requested, want the redirect refused before the request was made", previousPath)
+		default:
+		}
+	})
+
+	t.Run("a hop within the current version is followed", func(t *testing.T) {
+		c, err := NewClient(srv.URL+movedPath, 1<<20)
+		if err != nil {
+			t.Fatalf("building the client: %v", err)
+		}
+
+		c.setHTTPClient(srv.Client())
+
+		body, status, err := c.FetchAllZones(t.Context())
+		if err != nil {
+			t.Fatalf("a redirect that stays under %s was refused with %v, want it followed: refusing every redirect is not the guarantee this policy exists to give", APIVersion, err)
+		}
+
+		if status != http.StatusOK || string(body) != genuine {
+			t.Errorf("got %d %q, want 200 %q", status, body, genuine)
 		}
 	})
 }

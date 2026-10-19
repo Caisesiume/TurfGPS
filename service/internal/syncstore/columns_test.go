@@ -11,25 +11,17 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// THIS FILE IS DATABASE-FREE AND LEAVES THE SQL HALF OF THIS PACKAGE'S
-// NEVER-EXECUTED MARKER STANDING. It falsified the other half. Read that marker
-// at the top of syncstore.go before adding to this file, and read which of its
-// two claims this file is on each side of:
-//
-//   - STANDING, and this file does not touch it: not one statement in
-//     syncstore.go has been sent to a PostgreSQL server. Nothing here sends one,
-//     opens a pool, or fakes one, so what PostgreSQL does with those statements
-//     is exactly as unmeasured as it was before this file existed.
-//   - FALSIFIED, by this file's existence: the marker also said the package
-//     carried no tests and that there was no test file in this directory. Those
-//     sentences were narrowed away when this file landed, rather than left to be
-//     read as the standing half.
+// THIS FILE IS DATABASE-FREE AND LEAVES THIS PACKAGE'S NEVER-EXECUTED MARKER
+// AS IT FINDS IT. Read that marker at the top of syncstore.go before adding to
+// this file: which statements have been sent to a PostgreSQL server is
+// postgis_test.go's business and the marker's record, and nothing here sends
+// one, opens a pool, or fakes one.
 //
 // The distinction is the file's whole licence to be here. What it measures is a
 // question decided inside this process, before any statement is sent — which
 // value is bound to which column name — and that question has an answer whether
 // or not a database exists. What it must never do is let a green run here be
-// read as evidence about the half above it that is still standing.
+// read as evidence about what PostgreSQL does with any statement.
 //
 // THE BINDING IS THE ONE ERROR NO GUARD OVER THE WRITTEN ZONES CAN SEE, and it
 // is worth being exact about why, because four of them stand over the
@@ -259,6 +251,12 @@ func TestEveryColumnIsLoadedFromItsOwnField(t *testing.T) {
 // above cannot: a field added to the ingest type and to no column here is
 // decoded from the response, carried the whole way through the sync, and
 // silently never written. The merge would report every such row unchanged.
+//
+// WITH THE TWO TESTS ABOVE IT IS ALSO THE INGEST HALF OF #29's PIN. No owner,
+// last-taken (`FR-026`) or extent (`FR-020`) field can reach the ingest type,
+// or a column the mapping writes, without one of the three going red or
+// pinnedColumns being edited to admit it. The schema half is part A of
+// `migrations/0001_zone_store.verify.sql`.
 func TestEveryFieldOfAZoneReachesAColumn(t *testing.T) {
 	t.Parallel()
 

@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
+	"github.com/Caisesiume/TurfGPS/service/internal/turf"
 )
 
 // Tests over the one mapping in this file that a compiler cannot check:
@@ -75,7 +76,7 @@ func unreachedPool() *pgxpool.Pool { return &pgxpool.Pool{} }
 func wireable() config.ZoneSync {
 	return config.ZoneSync{
 		DatabaseURL:      "postgres://localhost/turfgps",
-		AllZonesURL:      "https://example.test/zones",
+		AllZonesURL:      "https://example.test/" + turf.APIVersion + "/zones/all",
 		Interval:         11 * time.Minute,
 		FetchTimeout:     13 * time.Second,
 		DatabaseTimeout:  17 * time.Second,
