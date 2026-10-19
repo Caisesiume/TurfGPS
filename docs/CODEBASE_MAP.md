@@ -39,6 +39,8 @@ repository — `.gitignore` covers it.
 Everything under `service/` is one module. `cmd/turfgps` is the executable and
 the composition root: it reads configuration, opens the connection pool, starts
 the HTTP server and the sync worker, and drains what is in flight on a signal.
+The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
+(#125).
 
 | Package | What it is for |
 |---|---|
