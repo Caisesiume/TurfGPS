@@ -24,7 +24,7 @@ At most two reviewers per PR: the critic, and the sentinel on a safety path. Mec
 5. The lead dispatches `safety-sentinel` if a safety path is touched, and the critic with at most two lenses from the table below.
 6. The sentinel posts its verdict, and the critic posts the ruling and the GitHub review, both through `post-review.sh`. Blocking findings each carry a falsifier.
 7. A remand fixes only the blocking findings. A PR still blocked after cycle 3 goes to the Owner, with the open findings and a recommendation.
-8. The Owner merges; `board-sync.sh` runs.
+8. The lead merges through `merge.sh` (`adr/ADR-0007-lead-merges.md`): approved by TheReviewNinja and green at the head. A PR in the four categories of `§ Escalation and human judgement`, or under `awaiting-human`, the lead labels `owner-merge`, and the Owner merges it. Then `board-sync.sh` runs.
 
 | Change | Lenses |
 |---|---|
@@ -48,6 +48,7 @@ Every agent answers in the typed envelope — at most 25 lines of YAML with a `c
 | `.github/workflows/gates.yml` | the same `gates.sh --all` on every pull request and every push to `main`, on a GitHub-hosted runner carrying what the reference host lacks: a C compiler for the race detector and a container runtime for the image test. Where it and a local run disagree, the runner's result is authoritative — a local `unrun`, or a red naming a missing host capability, is the host's; a red on the runner is a defect in the tree — the change's, or one the host had been hiding. Its `migrations` job runs `scripts/db/migrate-verify.sh` against a throwaway PostGIS service container (#153). Making `gates` and `migrations` required status checks is branch protection the Owner sets |
 | `scripts/db/migrate-verify.sh` | what a directory of migrations does on a real PostGIS: each apply, each verify part as pass, fail or unreached, each rollback's exit status on two runs beside what it actually dropped, and anything left behind. It creates and drops its own database, refuses a host that is not loopback, and runs in CI only — the reference host has no PostgreSQL |
 | `scripts/team/post-review.sh` | the one way a verdict, ruling or review is posted. The only user of `GH_JUDGE_TOKEN`; refuses a moved head, an approval under `awaiting-human`, and an approval on a safety path without a passing safety verdict at that head; never merges |
+| `scripts/team/merge.sh` | the one way an agent merges, and only the lead runs it. Dry run unless `--apply`; under the default account, never `GH_JUDGE_TOKEN`. Refuses a PR that is not open, not by `Caisesiume`, at a moved head, labelled `awaiting-human` or `owner-merge`, without a TheReviewNinja `APPROVED` review at the head, without `gates` and `migrations` successful there, or on a safety path without a passing safety verdict there. Merges with a merge commit pinned by `--match-head-commit` |
 | `scripts/gates/size-ratchet.sh` | no agent or skill past its baseline, and all of them under 100 KB together |
 
 `scripts/loop/claim.sh` and `scripts/loop/owed-work.sh` stay in the repository but are not part of the flow.

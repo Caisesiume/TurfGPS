@@ -1,0 +1,30 @@
+# ADR-0007 — The lead merges approved, green PRs through a guarded script
+
+**Status:** accepted — 2026-10-20, by the Owner on #229; in force from the merge of the PR that adds it.
+**Source:** #229 § Owner decision — the Owner's request, and the scope the Owner chose through AskUserQuestion in the lead session, with the lead's recommendation. Where this record and that section differ, the issue is the Owner's and this record is the defect.
+**Relation:** amends ADR-0005 in one clause, the one it homed in `team-protocol § Posting a ruling`: "No agent merges — the Owner does" becomes the rule below. ADR-0005 otherwise stands, and so does #202: approval is still only a TheReviewNinja `APPROVED` review at the head.
+
+## Context
+
+Under ADR-0005 every PR waited for the Owner to merge it, after TheReviewNinja had approved it and the runner had passed it. The merge added no judgement the review and the checks had not already made, and it made the Owner the queue every finished change waited in. The Owner asked that the lead may merge PRs itself, and chose the scope: all PRs except the Owner-reserved ones.
+
+## Decision
+
+- **The lead merges** a PR, and only through `scripts/team/merge.sh`, when the script finds all of: the PR open and authored by `Caisesiume`; its head equal to the SHA given; the latest TheReviewNinja review at that head `APPROVED`; the required checks `gates` and `migrations` successful at that head, a missing check counting as a failure; no `awaiting-human` label; and, when `scripts/loop/diff-domains.sh` lists a safety path among the PR's files, a TheReviewNinja safety verdict `pass` at that head. Any other finding is a refusal, and nothing is merged.
+- **Owner-reserved, never merged by the lead:** a change to a safety rule, accessibility classification, a requirement verified by human judgement, an artifact from an untrusted author, and anything labelled `awaiting-human`. The lead labels such a PR `owner-merge`, and the script refuses it.
+- **The merge runs under the default account** (`Caisesiume`), never with `GH_JUDGE_TOKEN`: the judge approves and the author's account merges, so no one identity both judges and lands a change. The method is a merge commit, pinned to the approved head with `--match-head-commit`.
+- **Dry run by default.** `merge.sh` prints the merge it would make; `--apply` makes it.
+- The PR that adds this record is the last merged by hand under the old rule.
+
+## Consequences
+
+**Gained:** an approved, green PR lands without waiting for the Owner; the Owner's attention goes to the reserved categories, which the label and the script keep in the Owner's hands.
+
+**Given up, stated rather than implied:**
+
+- A last human look before `main` moves. A defect the critic and the runner both missed now lands without one.
+- The reserved categories are guarded by a label, and applying it is the lead's judgement. The script cannot tell a safety-rule change that was never labelled from an ordinary one; the safety-path check catches only what `diff-domains.sh` lists, which is a floor (ADR-0005).
+- The checks and the merge are not atomic. The head pin makes GitHub refuse a moved head, but a review, label or verdict that lands between the script's reads and the merge is not seen.
+- `merge.sh`'s test stubs `gh`, so it proves the decisions, not the `--jq` filters; those were run live, read-only.
+
+**Reversibility: high.** Reverting the PR restores "no agent merges"; nothing merged under this rule depends on it.
