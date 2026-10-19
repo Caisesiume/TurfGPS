@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
 )
 
 const (
@@ -56,7 +58,7 @@ func TestServeAnswersRequestThenStopsOnCancel(t *testing.T) {
 	defer cancel()
 
 	stopped := make(chan error, 1)
-	go func() { stopped <- serve(ctx, ln) }()
+	go func() { stopped <- serve(ctx, ln, httpapi.NewHandler(nil)) }()
 
 	// The request carries the test's own context rather than ctx. Cancelling
 	// ctx is the stop signal under test, so a request derived from it would be
@@ -136,7 +138,7 @@ func TestServeFinishesInFlightResponseOnCancel(t *testing.T) {
 	defer cancel()
 
 	stopped := make(chan error, 1)
-	go func() { stopped <- serve(ctx, held.listener(base)) }()
+	go func() { stopped <- serve(ctx, held.listener(base), httpapi.NewHandler(nil)) }()
 
 	conn, err := net.Dial("tcp", base.Addr().String())
 	if err != nil {

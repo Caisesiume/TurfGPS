@@ -44,7 +44,7 @@ the HTTP server and the sync worker, and drains what is in flight on a signal.
 |---|---|
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
-| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here |
+| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224) |
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters` |
 | `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where the connection pool is opened |
 | `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |

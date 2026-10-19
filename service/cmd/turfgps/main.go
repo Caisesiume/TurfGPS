@@ -105,6 +105,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	handler, err := newHandler(os.LookupEnv)
+	if err != nil {
+		slog.Error("the cross-origin configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
 	ln, err := net.Listen("tcp", defaultAddr)
 	if err != nil {
 		slog.Error("cannot listen", "addr", defaultAddr, "error", err)
@@ -117,7 +123,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	serveErr := serve(ctx, ln)
+	serveErr := serve(ctx, ln, handler)
 
 	// Cancelled here, explicitly, rather than left to the deferred stop above.
 	// serve returns for two reasons and only one of them has already cancelled
@@ -325,15 +331,35 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 	})
 }
 
+// newHandler builds the request surface with the cross-origin grant its
+// configuration names (#224). It refuses rather than starts when that
+// configuration is malformed, before anything listens: a service that came up
+// granting nothing would fail every call the client makes, with nothing on the
+// service's side saying why.
+//
+// The request surface is a package of its own. `internal/httpapi` says why: it
+// is the seam `FR-022` AC2 is checked over, and a mux built inline here would
+// put every future handler inside the one package the invariant has to permit
+// to reach the sync worker.
+func newHandler(lookup config.LookupFunc) (http.Handler, error) {
+	origins, err := config.LoadAllowedOrigins(lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(origins) == 0 {
+		slog.Info("no cross-origin access is granted, so a client served from another origin cannot read the API's responses",
+			"configure", config.EnvCORSAllowedOrigins)
+	}
+
+	return httpapi.NewHandler(origins), nil
+}
+
 // serve runs the HTTP server on ln until ctx is cancelled, then drains
 // in-flight requests and returns. It takes ownership of ln and closes it.
-func serve(ctx context.Context, ln net.Listener) error {
-	// The request surface is a package of its own. `internal/httpapi` says why:
-	// it is the seam `FR-022` AC2 is checked over, and a mux built inline here
-	// would put every future handler inside the one package the invariant has
-	// to permit to reach the sync worker.
+func serve(ctx context.Context, ln net.Listener, handler http.Handler) error {
 	srv := &http.Server{
-		Handler:           httpapi.NewMux(),
+		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
