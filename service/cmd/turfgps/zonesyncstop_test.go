@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
+	"github.com/Caisesiume/TurfGPS/service/internal/turf"
 )
 
 // Tests over the one thing startZoneSync tells main that main acts on: whether
@@ -89,7 +90,7 @@ func syncConfigured(t *testing.T) {
 	t.Helper()
 
 	t.Setenv(config.EnvDatabaseURL, "postgres://turfgps@127.0.0.1:1/turfgps")
-	t.Setenv(config.EnvAllZonesURL, "https://example.test/zones")
+	t.Setenv(config.EnvAllZonesURL, "https://example.test/"+turf.APIVersion+"/zones/all")
 	t.Setenv(config.EnvInterval, "1h")
 }
 

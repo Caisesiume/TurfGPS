@@ -5,15 +5,20 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
 
+// currentPath is an all-zones path under APIVersion, built from the constant so
+// that no test here carries the version literal the constant is the home of.
+var currentPath = "/" + APIVersion + "/zones/all"
+
 func clientFor(t *testing.T, srv *httptest.Server, maxBytes int64) *Client {
 	t.Helper()
 
-	c, err := NewClient(srv.URL, maxBytes)
+	c, err := NewClient(srv.URL+currentPath, maxBytes)
 	if err != nil {
 		t.Fatalf("building the client: %v", err)
 	}
@@ -167,7 +172,7 @@ func TestAnEndpointIsRequired(t *testing.T) {
 		t.Error("a client with no endpoint was built, want it refused")
 	}
 
-	if _, err := NewClient("https://example.test/zones", 0); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, 0); err == nil {
 		t.Error("a client with no response ceiling was built, want it refused")
 	}
 
@@ -176,7 +181,7 @@ func TestAnEndpointIsRequired(t *testing.T) {
 	// two failures it produces are a panic and a fetch that succeeds over an
 	// empty body, neither of which is reachable from a constructor that
 	// refuses it.
-	if _, err := NewClient("https://example.test/zones", math.MaxInt64); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, math.MaxInt64); err == nil {
 		t.Error("a client with a response ceiling above what it can read within was built, want it refused")
 	}
 }
@@ -289,4 +294,44 @@ func TestTheRedirectPolicyDecides(t *testing.T) {
 			t.Errorf("a chain of %d https hops was extended, want it refused: a non-nil CheckRedirect replaces net/http's default limit rather than adding to it, so this policy has to carry the bound itself", maxRedirects)
 		}
 	})
+}
+
+// TestOnlyTheCurrentAPIVersionIsAddressed is the guard `FR-019` (#18) rests on:
+// the endpoint arrives from configuration, so the version it addresses is the
+// environment's unless NewClient refuses every version but APIVersion.
+//
+// Every refused path is derived from APIVersion rather than written out, so
+// this test carries no version literal and moves with the constant. It assumes
+// only the "v<number>" form `Architecture.md § Data sources and constraints`
+// gives every endpoint path, and says so if that form ever changes.
+func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
+	t.Parallel()
+
+	current, err := strconv.Atoi(strings.TrimPrefix(APIVersion, "v"))
+	if err != nil {
+		t.Fatalf("APIVersion is not of the form v<number>, so the versions this test refuses cannot be derived from it: %v", err)
+	}
+
+	version := func(n int) string { return "v" + strconv.Itoa(n) }
+
+	if _, err := NewClient("https://example.test"+currentPath, 1<<20); err != nil {
+		t.Fatalf("an endpoint addressing APIVersion was refused: %v — refusing every endpoint is not the guarantee this guard exists to give", err)
+	}
+
+	for name, path := range map[string]string{
+		"the preceding version":                 "/" + version(current-1) + "/zones/all",
+		"the following version":                 "/" + version(current+1) + "/zones/all",
+		"a version the current one prefixes":    "/" + APIVersion + "0/zones/all",
+		"no version at all":                     "/zones/all",
+		"the current version below the first":   "/proxy" + currentPath,
+		"the current version with no separator": "/" + APIVersion + "zones/all",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := NewClient("https://example.test"+path, 1<<20); err == nil {
+				t.Errorf("NewClient accepted an endpoint addressing %s, want it refused: the sync would issue its request against a version other than the one `Architecture.md § API version` records as current", name)
+			}
+		})
+	}
 }

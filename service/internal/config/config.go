@@ -14,14 +14,12 @@
 //     zones`, and a default compiled into this package would be a second home
 //     for it — one that goes wrong silently when that section moves.
 //   - The all-zones endpoint. It is named by role in that same section and
-//     reaches the service as a resolved URL, so no versioned API path appears
-//     anywhere in this module. That absence is NOT an exemption from `FR-019`,
-//     which is how this comment read it: that record's class is the paths that
-//     construct a Turf request TOGETHER WITH any configuration they draw a base
-//     path from, so the version this service issues against is whatever the
-//     environment sets here, and it is inside the class rather than outside it.
-//     What the absence buys is only that this module is not a second home for
-//     the version.
+//     reaches the service as a resolved URL, so no API path is written in this
+//     module. The VERSION that URL addresses is not this package's to check:
+//     `FR-019`'s class is the paths that construct a Turf request together with
+//     any configuration they draw a base path from, and `internal/turf` names
+//     the version once, as APIVersion, and refuses an endpoint addressing any
+//     other.
 //
 // Both therefore arrive from the environment or the sync does not run at all.
 package config

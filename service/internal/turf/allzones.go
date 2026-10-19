@@ -3,17 +3,10 @@
 //
 // It carries the zone sync's half of that port and nothing else yet.
 //
-// NO API PATH IS WRITTEN IN THIS PACKAGE. The all-zones endpoint is named by
-// role in `Architecture.md § Retrieving zones` and arrives here as a resolved
-// URL from configuration, so this package is not a second home for the API
-// version.
-//
-// THAT DOES NOT PUT IT OUTSIDE `FR-019`, which is the reading this comment
-// carried. The record's class is the paths that construct a Turf request
-// together with the configuration they draw a base path from, and this package
-// is one of those paths whether or not it compiles a version in. A versioned
-// path written here would not pre-empt the record: it would be bound by it, and
-// would have to name the one version recorded as current.
+// NO API PATH IS WRITTEN IN THIS PACKAGE, AND ONE API VERSION IS. The all-zones
+// endpoint is named by role in `Architecture.md § Retrieving zones` and arrives
+// here as a resolved URL from configuration. The version that URL may address
+// is APIVersion, below — the one place `FR-019`'s class names it.
 package turf
 
 import (
@@ -24,7 +17,44 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
+	"strings"
 )
+
+// APIVersion is the Turf API version every request this module issues
+// addresses, in the form it takes as the first segment of an endpoint's path.
+//
+// IT IS THE ONE PLACE THE MODULE NAMES THE VERSION. `FR-019` binds the paths
+// that construct a Turf request, together with any configuration they draw a
+// base path from, to name exactly one version between them, and that version
+// to be the one `Architecture.md § API version` records as current. The
+// endpoint is configuration and lives outside this repository, so with no
+// version named here the class named none a reader could find, and the sync
+// issued against whatever version the environment happened to name. NewClient
+// refuses an endpoint addressing any other, which is what makes this constant
+// the version issued against rather than a description of it.
+//
+// The value is that section's, in the path form `Architecture.md § Data sources
+// and constraints` gives every endpoint. A version bump moves it here and
+// nowhere else: no other line of this module, its tests included, carries it.
+const APIVersion = "v5"
+
+// addressesCurrentVersion refuses an endpoint whose path does not begin with
+// APIVersion as a whole segment.
+//
+// WHOLE SEGMENT, NOT PREFIX: a string-prefix test would admit a version whose
+// name merely starts with the current one's. And it is the FIRST segment, which
+// is where every endpoint that section records carries it; a path that names
+// the version further down is not one of those endpoints.
+func addressesCurrentVersion(endpoint *url.URL) error {
+	first, _, _ := strings.Cut(strings.TrimPrefix(endpoint.Path, "/"), "/")
+	if first != APIVersion {
+		return fmt.Errorf("the endpoint %q does not address API version %q, the one `Architecture.md § API version` records as current: its path must begin /%s/",
+			endpoint.Redacted(), APIVersion, APIVersion)
+	}
+
+	return nil
+}
 
 // errorBodySnippet is how much of an unusable response is quoted into the error.
 // Enough for an API error object to be readable, short enough that a
@@ -112,6 +142,15 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 		return nil, errors.New("no all-zones endpoint")
 	}
 
+	endpoint, err := url.Parse(allZonesURL)
+	if err != nil {
+		return nil, fmt.Errorf("the all-zones endpoint is not a URL: %w", err)
+	}
+
+	if err := addressesCurrentVersion(endpoint); err != nil {
+		return nil, err
+	}
+
 	if maxBytes <= 0 {
 		return nil, fmt.Errorf("the response ceiling %d is not positive", maxBytes)
 	}
@@ -153,6 +192,13 @@ func (c *Client) setHTTPClient(h *http.Client) {
 }
 
 // FetchAllZones fetches the complete zone set.
+//
+// THE REQUEST IS ADDRESSED TO THE ENDPOINT NewClient ACCEPTED, and so to
+// APIVersion. A redirect is followed to wherever the server sends it, under
+// httpsOnly: the hop's path is the server's and names no version of this
+// module's, and refusing one that left the versioned path would rest on a
+// claim about the endpoint's redirects that `Architecture.md § Retrieving
+// zones` does not record.
 //
 // It returns the body, the HTTP status, and an error. The status is zero when no
 // response arrived at all, which is what lets a refused request and a body that
