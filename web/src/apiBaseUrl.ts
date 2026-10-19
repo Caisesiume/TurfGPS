@@ -8,8 +8,24 @@
 // forbids, so it is refused here rather than deployed.
 
 // The service listens on :8080 (`service/cmd/turfgps/main.go`). An unset
-// VITE_API_BASE_URL falls back to it; `vite.config.ts` says when.
+// VITE_API_BASE_URL falls back to it, except on Vercel; `resolveApiBaseUrl`
+// is the rule.
 export const LOCAL_SERVICE = 'http://127.0.0.1:8080'
+
+// resolveApiBaseUrl is the build-time rule. A set value must pass
+// `parseApiBaseUrl`. An unset one refuses a Vercel build, which Vercel marks by
+// setting VERCEL, so a deploy cannot ship a client pointed at loopback; any
+// other build falls back to the local service, because the gate and CI builds
+// run with no environment.
+export function resolveApiBaseUrl(raw: string | undefined, onVercel: boolean): string {
+  if (raw?.trim()) {
+    return parseApiBaseUrl(raw)
+  }
+  if (onVercel) {
+    throw new Error('VITE_API_BASE_URL is unset on a Vercel build (VERCEL is set): name the service, e.g. https://api.example.org')
+  }
+  return LOCAL_SERVICE
+}
 
 // parseApiBaseUrl returns the base with no trailing slash, or throws naming
 // what is wrong with the configured value.

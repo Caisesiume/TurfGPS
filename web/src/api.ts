@@ -1,8 +1,9 @@
 // The one call path to the service.
 //
-// The base is fixed into the bundle at build time by `vite.config.ts`, which
-// validates it with `parseApiBaseUrl` and fails the build when it is missing,
-// so the output stays static files and nothing is looked up at runtime.
+// The base is fixed into the bundle at build time by `vite.config.ts`, under
+// `resolveApiBaseUrl`'s rule: a malformed value fails the build; an unset one
+// fails a Vercel build and otherwise falls back to the local service. So the
+// output stays static files and nothing is looked up at runtime.
 export const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL
 
 // fetchServiceGreeting calls the service's root route, which answers text/plain.
