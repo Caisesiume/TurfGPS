@@ -26,6 +26,12 @@ func complete() map[string]string {
 		EnvDatabaseURL: "postgres://localhost/turfgps",
 		EnvAllZonesURL: "https://example.test/zones",
 		EnvInterval:    "3m",
+
+		// The limits are the test's own figures as well, unlike the API's and
+		// unlike each other, and the schedule above is no shorter than the
+		// all-zones one, which the loader requires.
+		EnvRequestInterval:  "250ms",
+		EnvAllZonesInterval: "2m",
 	}
 }
 
@@ -54,7 +60,7 @@ func TestNoSyncConfiguredIsNotAnError(t *testing.T) {
 func TestPartialConfigurationIsRefused(t *testing.T) {
 	t.Parallel()
 
-	for _, missing := range []string{EnvDatabaseURL, EnvAllZonesURL, EnvInterval} {
+	for _, missing := range ZoneSyncRequired() {
 		t.Run("without "+missing, func(t *testing.T) {
 			t.Parallel()
 
@@ -228,6 +234,8 @@ func unoverridden() ZoneSync {
 		MergeTimeout:     defaultMergeTimeout,
 		MaxResponseBytes: defaultMaxResponseBytes,
 		MinZoneRatio:     defaultMinZoneRatio,
+		RequestInterval:  250 * time.Millisecond, // complete()'s own limits, parsed.
+		AllZonesInterval: 2 * time.Minute,
 	}
 }
 
@@ -252,6 +260,8 @@ func differences(got, want ZoneSync) []string {
 		{"MergeTimeout", got.MergeTimeout, want.MergeTimeout},
 		{"MaxResponseBytes", got.MaxResponseBytes, want.MaxResponseBytes},
 		{"MinZoneRatio", got.MinZoneRatio, want.MinZoneRatio},
+		{"RequestInterval", got.RequestInterval, want.RequestInterval},
+		{"AllZonesInterval", got.AllZonesInterval, want.AllZonesInterval},
 	} {
 		if f.got != f.want {
 			out = append(out, fmt.Sprintf("%s = %v, want %v", f.name, f.got, f.want))

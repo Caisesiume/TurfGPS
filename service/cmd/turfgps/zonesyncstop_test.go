@@ -67,7 +67,7 @@ import (
 // ---------------------------------------------------------------------------
 
 // noSyncConfigured puts the environment in the state `NFR-003` measures: none
-// of the three keys that turn the sync on.
+// of the keys that turn the sync on.
 //
 // Empty rather than unset, because `config.LoadZoneSync` counts a key set to
 // the empty string as unset and t.Setenv cannot remove one. That equivalence is
@@ -76,7 +76,7 @@ import (
 func noSyncConfigured(t *testing.T) {
 	t.Helper()
 
-	for _, key := range []string{config.EnvDatabaseURL, config.EnvAllZonesURL, config.EnvInterval} {
+	for _, key := range config.ZoneSyncRequired() {
 		t.Setenv(key, "")
 	}
 }
@@ -85,13 +85,17 @@ func noSyncConfigured(t *testing.T) {
 //
 // The endpoint is never fetched and the DSN is never dialled; see the note on
 // port 1 in the file header. The interval is long enough that a scheduler which
-// somehow reached its loop would sleep rather than attempt.
+// somehow reached its loop would sleep rather than attempt. The two limits are
+// this test's own figures, unlike the API's, and the schedule is no shorter than
+// the all-zones one, which the loader requires.
 func syncConfigured(t *testing.T) {
 	t.Helper()
 
 	t.Setenv(config.EnvDatabaseURL, "postgres://turfgps@127.0.0.1:1/turfgps")
 	t.Setenv(config.EnvAllZonesURL, "https://example.test/"+turf.APIVersion+"/zones/all")
 	t.Setenv(config.EnvInterval, "1h")
+	t.Setenv(config.EnvRequestInterval, "250ms")
+	t.Setenv(config.EnvAllZonesInterval, "45m")
 }
 
 // countedStop is a root-cancel that records whether the composition root used
