@@ -26,9 +26,14 @@ import (
 )
 
 const (
-	// defaultAddr is where the server listens. All interfaces, because the
-	// process is expected to be the only thing in its container.
-	defaultAddr = ":8080"
+	// defaultAddr is where the server listens when config.EnvListenAddr is
+	// unset: LOOPBACK, and a test fails if it widens (#125). The reverse proxy
+	// is the only component that may face the network and reaches this process
+	// over loopback (`DEPLOYMENT.md § What is deployed`), so every other
+	// interface is one a deployment opens by setting that variable, never one
+	// it inherits by leaving it out. The image sets it, and `service/Dockerfile`
+	// says why.
+	defaultAddr = "127.0.0.1:8080"
 
 	// shutdownTimeout bounds the drain of in-flight requests once the process
 	// has been asked to stop. It stays well inside a container runtime's usual
@@ -111,9 +116,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	ln, err := net.Listen("tcp", defaultAddr)
+	addr, err := listenAddr(os.LookupEnv)
 	if err != nil {
-		slog.Error("cannot listen", "addr", defaultAddr, "error", err)
+		slog.Error("the listen address is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		slog.Error("cannot listen", "addr", addr, "error", err)
 		os.Exit(1)
 	}
 
@@ -353,6 +364,13 @@ func newHandler(lookup config.LookupFunc) (http.Handler, error) {
 	}
 
 	return httpapi.NewHandler(origins), nil
+}
+
+// listenAddr is the address main binds: the one config.EnvListenAddr names, or
+// defaultAddr when it names none (#125). It is the call main makes and the one
+// the default's test makes, so the default under test is the default served.
+func listenAddr(lookup config.LookupFunc) (string, error) {
+	return config.LoadListenAddr(lookup, defaultAddr)
 }
 
 // serve runs the HTTP server on ln until ctx is cancelled, then drains
