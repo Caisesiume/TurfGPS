@@ -40,31 +40,48 @@ func TestTheLimitsAreCarriedFromTheEnvironmentAndNowhereElse(t *testing.T) {
 	}
 }
 
-// TestAScheduleShorterThanTheAllZonesIntervalIsRefused is AC2's first guard: a
-// schedule that would ask the all-zones endpoint more often than it permits
-// does not load. A schedule equal to the interval does, because it asks no more
-// often than permitted.
-func TestAScheduleShorterThanTheAllZonesIntervalIsRefused(t *testing.T) {
+// TestAScheduleShorterThanTheIntervalPlusTheFetchDeadlineIsRefused is AC2's
+// first guard: a schedule that could ask the all-zones endpoint sooner than it
+// permits does not load. Across a restart only the schedule holds, so that
+// includes a schedule equal to the interval, which asks no more often than
+// permitted and still breaks it there — the case
+// TestTheAllZonesIntervalHoldsAcrossARestart in `internal/turf` runs. The
+// shortest schedule that loads is the interval plus the fetch deadline.
+func TestAScheduleShorterThanTheIntervalPlusTheFetchDeadlineIsRefused(t *testing.T) {
 	t.Parallel()
 
 	pairs := complete()
 	pairs[EnvAllZonesInterval] = "7m"
-	pairs[EnvInterval] = "6m59s"
+	pairs[EnvFetchTimeout] = "41s"
 
-	cfg, err := LoadZoneSync(env(pairs))
-	if err == nil {
-		t.Fatalf("a schedule of %s under an all-zones interval of %s loaded as %+v, want it refused", pairs[EnvInterval], pairs[EnvAllZonesInterval], cfg)
-	}
+	for _, schedule := range []string{"7m", "7m40.999s"} {
+		pairs[EnvInterval] = schedule
 
-	for _, name := range []string{EnvInterval, EnvAllZonesInterval} {
-		if !strings.Contains(err.Error(), name) {
-			t.Errorf("the refusal reads %q, want it to name %s", err, name)
+		cfg, err := LoadZoneSync(env(pairs))
+		if err == nil {
+			t.Errorf("a schedule of %s under an all-zones interval of %s and a fetch deadline of %s loaded as %+v, want it refused",
+				schedule, pairs[EnvAllZonesInterval], pairs[EnvFetchTimeout], cfg)
+
+			continue
+		}
+
+		for _, name := range []string{EnvInterval, EnvAllZonesInterval, EnvFetchTimeout} {
+			if !strings.Contains(err.Error(), name) {
+				t.Errorf("the refusal reads %q, want it to name %s", err, name)
+			}
 		}
 	}
 
-	pairs[EnvInterval] = "7m"
+	pairs[EnvInterval] = "7m41s"
 
-	if _, err := LoadZoneSync(env(pairs)); err != nil {
-		t.Errorf("a schedule equal to the all-zones interval was refused with %v, want it loaded", err)
+	cfg, err := LoadZoneSync(env(pairs))
+	if err != nil {
+		t.Fatalf("a schedule of the all-zones interval plus the fetch deadline was refused with %v, want it loaded", err)
+	}
+
+	// The restart test runs the sync at ShortestInterval, so it must be the
+	// shortest schedule that loads and not merely one that does.
+	if shortest := ShortestInterval(cfg.AllZonesInterval, cfg.FetchTimeout); cfg.Interval != shortest {
+		t.Errorf("the shortest schedule that loads is %s and ShortestInterval says %s, want them equal", cfg.Interval, shortest)
 	}
 }

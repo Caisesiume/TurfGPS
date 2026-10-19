@@ -141,7 +141,7 @@ type ZoneSync struct {
 
 	// Interval is how long must pass between one attempt and the next. Its home
 	// is `Architecture.md § Retrieving zones`, and it is never shorter than
-	// AllZonesInterval.
+	// ShortestInterval(AllZonesInterval, FetchTimeout).
 	Interval time.Duration
 
 	FetchTimeout     time.Duration
@@ -249,19 +249,46 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 		return nil, err
 	}
 
-	// REFUSED RATHER THAN CLAMPED, as every figure in this file is. A schedule
-	// shorter than the endpoint permits asks for requests the API will refuse,
-	// and `NFR-001`'s Risk is that a refused all-zones request costs the next
-	// window rather than a moment. `internal/turf` holds one process's requests
-	// to the interval whatever the schedule, but that hold starts empty in a new
-	// process. Across a restart it is the schedule, gated on the recorded last
-	// attempt, that holds the interval — and only if it is no shorter.
-	if cfg.Interval < cfg.AllZonesInterval {
-		return nil, fmt.Errorf("%s=%s is shorter than %s=%s: the sync would be scheduled to ask the all-zones endpoint more often than it permits",
-			EnvInterval, cfg.Interval, EnvAllZonesInterval, cfg.AllZonesInterval)
+	// REFUSED RATHER THAN CLAMPED, as every figure in this file is. `NFR-001`'s
+	// Risk is that a refused all-zones request costs the next window rather than
+	// a moment, and ShortestInterval says why the bound is the sum.
+	if shortest := ShortestInterval(cfg.AllZonesInterval, cfg.FetchTimeout); cfg.Interval < shortest {
+		return nil, fmt.Errorf("%s=%s is shorter than %s=%s plus %s=%s: across a restart the sync could ask the all-zones endpoint sooner than it permits after the previous request — lengthen the first, or shorten the fetch deadline",
+			EnvInterval, cfg.Interval, EnvAllZonesInterval, cfg.AllZonesInterval, EnvFetchTimeout, cfg.FetchTimeout)
 	}
 
 	return cfg, nil
+}
+
+// ShortestInterval is the shortest sync schedule LoadZoneSync accepts: the
+// all-zones interval, plus the deadline one all-zones fetch is bounded by.
+//
+// THE SUM, BECAUSE THE TWO HOLDS ON THAT ENDPOINT COUNT FROM DIFFERENT INSTANTS.
+// Across a restart only the schedule holds, and it counts from the recorded
+// start of the last run (`sync_run.started_at`), which is all a new process can
+// read. `internal/turf`'s gate holds one process, and it counts from when the
+// previous request RETURNED. A schedule of the interval alone satisfies each in
+// its own terms and not both: every tick the gate holds a request back by the
+// previous one's time to headers, so the request trails its recorded start by
+// a little more each run, and a new process that waits the interval from the
+// last start asks that much early.
+//
+// The fetch deadline closes the gap, because it bounds the request whatever the
+// gate did: it is set as soon as the store has answered for the run's start,
+// and before the gate is taken, so a request has returned within the deadline
+// of its run's start. The next run's request, too, leaves only once the store
+// has answered for its own start, so that answer is on both sides. A schedule
+// at least the deadline longer than the interval therefore starts every run —
+// in this process or in the next, both counted from the same recorded start —
+// the interval after the previous request returned. The gate then never holds
+// a scheduled request back, no request drifts behind its start, and nothing
+// remains for a restart to miss.
+//
+// The send instant would close it too, and is not recorded anywhere a new
+// process can read: `sync_run` dates a run by its start, and a column for the
+// send is a migration.
+func ShortestInterval(allZonesInterval, fetchTimeout time.Duration) time.Duration {
+	return allZonesInterval + fetchTimeout
 }
 
 // ZoneSyncRequired names every variable the sync needs set and has no default

@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
 )
 
@@ -166,12 +168,18 @@ func (s *standInStore) Acquire(context.Context) (func(context.Context), bool, er
 func startSync(t *testing.T, srv *httptest.Server, limits Limits, schedule, fetchTimeout time.Duration) func() {
 	t.Helper()
 
+	return startSyncOn(t, srv, limits, schedule, fetchTimeout, &standInStore{})
+}
+
+// startSyncOn is startSync on a store the caller holds, so that a second
+// process can be started on the first one's record of when it last ran.
+func startSyncOn(t *testing.T, srv *httptest.Server, limits Limits, schedule, fetchTimeout time.Duration, store *standInStore) func() {
+	t.Helper()
+
 	client, err := NewClient(srv.URL+currentPath, 1<<20, limits)
 	if err != nil {
 		t.Fatalf("building the sync's client: %v", err)
 	}
-
-	store := &standInStore{}
 
 	scheduler, err := zonesync.NewScheduler(zonesync.Config{
 		Fetch:           client.FetchAllZones,
@@ -375,6 +383,100 @@ func TestTheAllZonesIntervalHoldsUnderAScheduleThatAsksMoreOften(t *testing.T) {
 					schedule, gap, len(arrivals), limits.AllZones)
 			}
 		})
+	}
+}
+
+// TestTheAllZonesIntervalHoldsAcrossARestart is AC2 across a restart, under the
+// shortest schedule the configuration accepts.
+//
+// A restart is where the in-process gate cannot help: a new process starts with
+// no gate that has seen a request, and the one hold left is the schedule's,
+// counted from the recorded start of the last run. So the sync runs here at
+// config.ShortestInterval, is stopped, and runs again on the same store with
+// this server's gates forgotten — which is all a restart changes — and the gap
+// read is the one across it.
+//
+// The server takes a while before its headers, as the endpoint does. Under a
+// schedule of the interval alone, the gate holds each request back by the
+// previous one's time to headers, so the requests drift behind their recorded
+// starts one tick at a time, and the restarted process, waiting the interval
+// from the last start, asks early (#226, F1).
+func TestTheAllZonesIntervalHoldsAcrossARestart(t *testing.T) {
+	t.Parallel()
+
+	const (
+		toHeaders    = 30 * time.Millisecond
+		fetchTimeout = 120 * time.Millisecond
+
+		// Enough ticks for the drift to pass the interval's margin under the
+		// schedule this test was written against, and few enough that every
+		// request in them is still answered inside the fetch deadline.
+		before = 4
+	)
+
+	limits := Limits{Request: time.Millisecond, AllZones: 200 * time.Millisecond}
+	schedule := config.ShortestInterval(limits.AllZones, fetchTimeout)
+
+	rec := &recorder{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		rec.mu.Lock()
+		rec.arrivals = append(rec.arrivals, arrival{at: time.Now(), path: req.URL.Path})
+		rec.mu.Unlock()
+
+		select {
+		case <-time.After(toHeaders):
+		case <-req.Context().Done():
+			return
+		}
+
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer srv.Close()
+
+	store := &standInStore{}
+
+	stopSync := startSyncOn(t, srv, limits, schedule, fetchTimeout, store)
+
+	waitFor(t, fmt.Sprintf("%d all-zones requests", before), func() bool { return len(rec.seen()) >= before })
+	stopSync()
+
+	made := len(rec.seen())
+
+	restart(t, srv)
+
+	stopSync = startSyncOn(t, srv, limits, schedule, fetchTimeout, store)
+
+	waitFor(t, "the restarted sync's first request", func() bool { return len(rec.seen()) > made })
+	stopSync()
+
+	arrivals := rec.seen()
+
+	if gap := arrivals[made].at.Sub(arrivals[made-1].at); gap < limits.AllZones {
+		t.Errorf("across a restart the sync, scheduled every %s, reached the all-zones endpoint twice %s apart, want at least its interval %s: the new process waited the schedule out from the last run's recorded start, and that run's request had left later than its start",
+			schedule, gap, limits.AllZones)
+	}
+}
+
+// restart forgets every gate this process holds for srv, which is what a new
+// process starts with. The rest of the budget is left alone, because it belongs
+// to the tests running beside this one.
+func restart(t *testing.T, srv *httptest.Server) {
+	t.Helper()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatalf("reading the server's address: %v", err)
+	}
+
+	host := hostKey(u)
+
+	budget.mu.Lock()
+	defer budget.mu.Unlock()
+
+	for key := range budget.gates {
+		if key.host == host {
+			delete(budget.gates, key)
+		}
 	}
 }
 

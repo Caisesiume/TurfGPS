@@ -25,11 +25,12 @@ func complete() map[string]string {
 	return map[string]string{
 		EnvDatabaseURL: "postgres://localhost/turfgps",
 		EnvAllZonesURL: "https://example.test/zones",
-		EnvInterval:    "3m",
+		EnvInterval:    "11m",
 
 		// The limits are the test's own figures as well, unlike the API's and
 		// unlike each other, and the schedule above is no shorter than the
-		// all-zones one, which the loader requires.
+		// all-zones one plus the default fetch deadline, which the loader
+		// requires.
 		EnvRequestInterval:  "250ms",
 		EnvAllZonesInterval: "2m",
 	}
@@ -228,7 +229,7 @@ func unoverridden() ZoneSync {
 	return ZoneSync{
 		DatabaseURL:      complete()[EnvDatabaseURL],
 		AllZonesURL:      complete()[EnvAllZonesURL],
-		Interval:         3 * time.Minute, // complete()'s own interval, parsed.
+		Interval:         11 * time.Minute, // complete()'s own interval, parsed.
 		FetchTimeout:     defaultFetchTimeout,
 		DatabaseTimeout:  defaultDatabaseTimeout,
 		MergeTimeout:     defaultMergeTimeout,
