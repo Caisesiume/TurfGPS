@@ -109,6 +109,18 @@ func (c *SessionClient) FetchPlayer(ctx context.Context, name string) ([]byte, e
 	return c.do(req, "player-data")
 }
 
+// FetchRegions makes the one region request: one GET of the regions endpoint, which returns
+// every region with its current `regionLord` in one response. It has the shape
+// of ownership.FetchRegionsFunc without naming it.
+func (c *SessionClient) FetchRegions(ctx context.Context) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.regions, nil)
+	if err != nil {
+		return nil, fmt.Errorf("building the region request: %w", err)
+	}
+
+	return c.do(req, "region")
+}
+
 // do sends req once and returns its body, refusing a status other than 200 and
 // a body past the ceiling rather than truncating it.
 func (c *SessionClient) do(req *http.Request, role string) ([]byte, error) {

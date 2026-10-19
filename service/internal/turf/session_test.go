@@ -167,6 +167,72 @@ func TestReviewingMoreZonesCostsNoMoreRequests(t *testing.T) {
 	}
 }
 
+// regionsWithLord is a region response in which plannerID leads region 141
+// alone, another player leads 200, and 201 has no lord — `regionLord` absent,
+// as the live response carries a region with none.
+const regionsWithLord = `[
+	{"id":141,"name":"Stockholm","country":"se","regionLord":{"name":"planner","id":4242}},
+	{"id":200,"name":"Elsewhere","country":"se","regionLord":{"name":"someone","id":9}},
+	{"id":201,"name":"Nowhere","country":"se"}
+]`
+
+// TestALordshipHeldInAnotherRegionStillCounts is #24 AC1: the lordship is in a
+// region the journey never enters, and it resolves as held from one region
+// request.
+func TestALordshipHeldInAnotherRegionStillCounts(t *testing.T) {
+	t.Parallel()
+
+	stand := &turfStandIn{users: plannerUsers, regions: regionsWithLord}
+	client := sessionFor(t, stand)
+
+	player, err := ownership.LoadPlayer(t.Context(), client.FetchPlayer, planner)
+	if err != nil {
+		t.Fatalf("the player-data call: %v", err)
+	}
+
+	// The journey's zones lie in regions 200 and 201 only; the lordship is in 141.
+	journeyRegions := []int{200, 201}
+	if slices.Contains(journeyRegions, 141) {
+		t.Fatal("the journey must lie entirely outside the region the user leads")
+	}
+
+	held, err := ownership.RegionLord(t.Context(), client.FetchRegions, player.ID)
+	if err != nil {
+		t.Fatalf("determining region-lord status: %v", err)
+	}
+
+	if !held {
+		t.Errorf("region-lord status resolved not held for a user leading region 141 on a journey through %v, want held: the bonus applies globally", journeyRegions)
+	}
+
+	if n := stand.count(regionsPath); n != 1 {
+		t.Errorf("determining region-lord status issued %d region requests, want exactly 1", n)
+	}
+}
+
+// TestNoLordshipResolvesNotHeldAtTheSameCost is #24 AC2.
+func TestNoLordshipResolvesNotHeldAtTheSameCost(t *testing.T) {
+	t.Parallel()
+
+	stand := &turfStandIn{regions: regionsWithLord}
+	client := sessionFor(t, stand)
+
+	const noLord = 77
+
+	held, err := ownership.RegionLord(t.Context(), client.FetchRegions, noLord)
+	if err != nil {
+		t.Fatalf("determining region-lord status: %v", err)
+	}
+
+	if held {
+		t.Errorf("region-lord status resolved held for user %d, who leads no region", noLord)
+	}
+
+	if n := stand.count(regionsPath); n != 1 {
+		t.Errorf("determining region-lord status issued %d region requests, want exactly 1", n)
+	}
+}
+
 // TestTheSessionDrawsOnTheOneBudget holds `NFR-001` for the session's requests:
 // a SessionClient and the sync's Client against one API are spaced by the
 // general limit between them, whichever sends first.
@@ -194,13 +260,14 @@ func TestTheSessionDrawsOnTheOneBudget(t *testing.T) {
 	for range 3 {
 		wg.Go(func() { _, _, _ = syncClient.FetchAllZones(t.Context()) })
 		wg.Go(func() { _, _ = session.FetchPlayer(t.Context(), planner) })
+		wg.Go(func() { _, _ = session.FetchRegions(t.Context()) })
 	}
 
 	wg.Wait()
 
 	arrivals := rec.seen()
-	if len(arrivals) != 6 {
-		t.Fatalf("the server saw %d requests, want 6", len(arrivals))
+	if len(arrivals) != 9 {
+		t.Fatalf("the server saw %d requests, want 9", len(arrivals))
 	}
 
 	if gap, a, b := closestPair(arrivals); gap < limits.Request {
