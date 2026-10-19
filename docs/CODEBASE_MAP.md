@@ -8,8 +8,9 @@ path, the ports, the refresh interval and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
-**Accurate as of 19 October 2026**, against the tree that lands the scheduled
-zone sync and corridor resolution against the local copy. It is maintained by the work that changes the structure: a PR that
+**Accurate as of 20 October 2026**, against the tree that lands the scheduled
+zone sync, corridor resolution against the local copy, and the review
+session's ownership decisions. It is maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
 from disk is worse than no map, because the reader who trusts it opens the
@@ -47,7 +48,8 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224) |
-| `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters` |
+| `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
+| `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters`: `Client` for the sync's all-zones fetch, `SessionClient` for a review session's player-data and region requests, both drawing on the process's one request budget |
 | `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where the connection pool is opened |
 | `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |
 | `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
