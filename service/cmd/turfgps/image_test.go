@@ -114,7 +114,9 @@ const (
 	pollInterval = 250 * time.Millisecond
 
 	// containerPort is the port the entry point listens on inside the image,
-	// per defaultAddr in main.go and EXPOSE in `service/Dockerfile`.
+	// per the TURFGPS_LISTEN_ADDR and EXPOSE that `service/Dockerfile` sets
+	// (#125). It is published on 127.0.0.1 alone, so the host side of this
+	// harness binds loopback only.
 	containerPort = "8080"
 
 	// executablePath is where `service/Dockerfile` copies the executable, and

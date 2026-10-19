@@ -92,6 +92,16 @@ COPY --from=build /out/turfgps /usr/local/bin/turfgps
 # nonroot uid; the listen port is above 1024 and needs no privilege.
 USER 65532:65532
 
+# Every interface, set here on purpose (#125). The executable binds loopback
+# unless TURFGPS_LISTEN_ADDR says otherwise, and inside a container loopback is
+# the container's own: a published port arrives on the container's interface,
+# never on its loopback, so an image left at the default would start and serve
+# nothing reachable. Every interface of the container is the boundary of this
+# process alone. What faces the host is decided by the runtime's --publish
+# address, which is where a deployment of this image keeps it on loopback —
+# the image harness publishes on 127.0.0.1.
+ENV TURFGPS_LISTEN_ADDR=:8080
+
 EXPOSE 8080
 
 # Exec form, so the executable is PID 1 and receives SIGTERM directly — which
