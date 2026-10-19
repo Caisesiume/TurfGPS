@@ -83,6 +83,7 @@ func TestAMalformedOriginIsRefusedNamingTheSetting(t *testing.T) {
 		"https://turfgps.example/",
 		"https://turfgps.example/plans",
 		"https://turfgps.example:443",
+		"http://localhost:80",
 		"https://turfgps.example:",
 		"https://turfgps.example?",
 		"https://turfgps.example#",
@@ -101,6 +102,42 @@ func TestAMalformedOriginIsRefusedNamingTheSetting(t *testing.T) {
 
 			if !strings.Contains(err.Error(), EnvCORSAllowedOrigins) {
 				t.Errorf("the refusal %q does not name %s, so an operator cannot tell which setting to fix", err, EnvCORSAllowedOrigins)
+			}
+
+			if got != nil {
+				t.Errorf("LoadAllowedOrigins(%q) returned %q beside its error, want nothing", value, got)
+			}
+		})
+	}
+}
+
+// TestAnHTTPOriginOffLoopbackIsRefused binds the other half of the loopback
+// allowance (N2): http is accepted on localhost, 127.0.0.1 and [::1] alone, so
+// an http origin on any other host — a public one, or one that only spells a
+// loopback name inside it — is still refused at load, naming the setting.
+func TestAnHTTPOriginOffLoopbackIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []string{
+		"http://turfgps.example",
+		"http://preview.turfgps.example:5173",
+		"http://203.0.113.7:5173",
+		"http://[2001:db8::1]:5173",
+		"http://localhost.attacker.example:5173",
+		"http://127.0.0.1.attacker.example",
+		"http://localhost@attacker.example",
+		"http://localhost,http://attacker.example",
+	} {
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := LoadAllowedOrigins(lookupOrigins(value, true))
+			if err == nil {
+				t.Fatalf("LoadAllowedOrigins(%q) = %q with no error, want a refusal: http is accepted on loopback only", value, got)
+			}
+
+			if !strings.Contains(err.Error(), EnvCORSAllowedOrigins) {
+				t.Errorf("the refusal %q does not name %s", err, EnvCORSAllowedOrigins)
 			}
 
 			if got != nil {

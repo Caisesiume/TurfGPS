@@ -58,14 +58,28 @@ func LoadAllowedOrigins(lookup LookupFunc) ([]string, error) {
 	return origins, nil
 }
 
-// validateOrigin holds one entry to the serialization of an https origin —
-// scheme, host and an optional non-default port, lowercase, and nothing else —
-// because the browser compares nothing: the grant is an exact string match on
-// the `Origin` header, and that header is always in this form.
+// loopbackHosts are the only hosts an http origin may name, spelled as
+// url.Hostname returns them. A page on one of them is served by the machine
+// the browser itself runs on, so there is no network path for an observer to
+// inject into it from.
+var loopbackHosts = map[string]bool{"localhost": true, "127.0.0.1": true, "::1": true}
+
+// defaultPorts are the ports a browser leaves out of the origin it sends.
+var defaultPorts = map[string]string{"https": "443", "http": "80"}
+
+// validateOrigin holds one entry to the serialization of an origin — scheme,
+// host and an optional non-default port, lowercase, and nothing else — because
+// the browser compares nothing: the grant is an exact string match on the
+// `Origin` header, and that header is always in this form.
 //
-// HTTPS IS REQUIRED. The client is served from Vercel over https, and an http
-// origin admitted here grants a read of the API's responses to any page an
-// observer on the network path can inject into that origin.
+// HTTPS IS REQUIRED, except on loopback. The client is served from Vercel over
+// https, and an http origin on any other host grants a read of the API's
+// responses to any page an observer on the network path can inject into that
+// origin. On localhost, 127.0.0.1 and [::1] there is no such path, and the
+// development client is served there over http and calls the service
+// cross-origin (`web/vite.config.ts`, ADR-0006 § D4 in every mode), so an http
+// origin on those three hosts is accepted — when it is configured, like any
+// other: nothing here grants one by default.
 func validateOrigin(origin string) error {
 	if origin == "" {
 		return fmt.Errorf("an entry is empty: list each origin once, separated by commas")
@@ -80,21 +94,26 @@ func validateOrigin(origin string) error {
 		return fmt.Errorf("%q is not an origin: %w", origin, err)
 	}
 
-	if u.Scheme != "https" {
-		return fmt.Errorf("%q has scheme %q, want https", origin, u.Scheme)
+	host := strings.ToLower(u.Hostname())
+
+	switch {
+	case u.Scheme == "https":
+	case u.Scheme == "http" && loopbackHosts[host]:
+	default:
+		return fmt.Errorf("%q has scheme %q, want https: http is accepted only on the loopback hosts localhost, 127.0.0.1 and [::1]", origin, u.Scheme)
 	}
 
-	if u.Hostname() == "" {
+	if host == "" {
 		return fmt.Errorf("%q names no host", origin)
 	}
 
-	canonical := "https://" + strings.ToLower(u.Hostname())
-	if strings.Contains(u.Hostname(), ":") {
-		canonical = "https://[" + strings.ToLower(u.Hostname()) + "]"
+	canonical := u.Scheme + "://" + host
+	if strings.Contains(host, ":") {
+		canonical = u.Scheme + "://[" + host + "]"
 	}
 
-	if port := u.Port(); port != "" && port != "443" {
-		canonical = "https://" + net.JoinHostPort(strings.ToLower(u.Hostname()), port)
+	if port := u.Port(); port != "" && port != defaultPorts[u.Scheme] {
+		canonical = u.Scheme + "://" + net.JoinHostPort(host, port)
 	}
 
 	if origin != canonical {
