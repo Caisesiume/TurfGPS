@@ -83,6 +83,8 @@ func wireable() config.ZoneSync {
 		MergeTimeout:     19 * time.Second,
 		MaxResponseBytes: 1 << 20,
 		MinZoneRatio:     0.9,
+		RequestInterval:  23 * time.Second,
+		AllZonesInterval: 29 * time.Second,
 	}
 }
 
@@ -208,6 +210,42 @@ func TestTheEndpointAndTheCeilingReachTheClient(t *testing.T) {
 				t.Errorf("config.ZoneSync.%s was made unacceptable and the scheduler was built anyway, so that field reaches no client", c.field)
 			} else if !strings.Contains(err.Error(), c.refusal) {
 				t.Errorf("config.ZoneSync.%s was made unacceptable and the refusal reads %q, want it to name %q", c.field, err, c.refusal)
+			}
+		})
+	}
+}
+
+// TestTheLimitsReachTheClientEachInItsOwnPlace covers the two limits (#28).
+// Both are durations passed into one struct, so crossing them type-checks — and
+// a crossed pair holds the all-zones endpoint to the general interval, which
+// is the breach `NFR-001` AC2 exists to exclude. Read backwards as the test
+// above it reads the scheduler: spoil one, and the refusal names where it went.
+func TestTheLimitsReachTheClientEachInItsOwnPlace(t *testing.T) {
+	t.Parallel()
+
+	for _, c := range []struct {
+		field     string
+		spoil     func(*config.ZoneSync)
+		refusal   string
+		alsoNamed string
+	}{
+		{"RequestInterval", func(c *config.ZoneSync) { c.RequestInterval = 0 }, "request interval", "all-zones"},
+		{"AllZonesInterval", func(c *config.ZoneSync) { c.AllZonesInterval = 0 }, "all-zones endpoint's interval", "request interval"},
+	} {
+		t.Run(c.field, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := wireable()
+			c.spoil(&cfg)
+
+			_, err := newZoneSyncScheduler(&cfg, unreachedPool())
+			if err == nil {
+				t.Fatalf("config.ZoneSync.%s was made unacceptable and the scheduler was built anyway, so that limit reaches no client", c.field)
+			}
+
+			if !strings.Contains(err.Error(), c.refusal) || strings.Contains(err.Error(), c.alsoNamed) {
+				t.Errorf("config.ZoneSync.%s was made unacceptable and the refusal reads %q, want it to name %q and not %q — naming the other is the two limits having been crossed",
+					c.field, err, c.refusal, c.alsoNamed)
 			}
 		})
 	}

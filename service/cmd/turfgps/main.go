@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -185,7 +186,7 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 
 	if cfg == nil {
 		slog.Info("no zone sync is configured, so the local zone copy will not be refreshed",
-			"configure", config.EnvDatabaseURL+", "+config.EnvAllZonesURL+" and "+config.EnvInterval)
+			"configure", strings.Join(config.ZoneSyncRequired(), ", "))
 
 		// False rather than true: a sync that was never started has not died,
 		// and this is the configuration `NFR-003` measures the image in.
@@ -313,7 +314,10 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 		return nil, err
 	}
 
-	client, err := turf.NewClient(cfg.AllZonesURL, cfg.MaxResponseBytes)
+	client, err := turf.NewClient(cfg.AllZonesURL, cfg.MaxResponseBytes, turf.Limits{
+		Request:  cfg.RequestInterval,
+		AllZones: cfg.AllZonesInterval,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -15,10 +15,15 @@ import (
 // that no test here carries the version literal the constant is the home of.
 var currentPath = "/" + APIVersion + "/zones/all"
 
+// testLimits are the shortest intervals a Client accepts, for the tests that are
+// about something other than the limits. Every request is still metered through
+// the process's budget; it simply never waits long enough to matter.
+var testLimits = Limits{Request: time.Nanosecond, AllZones: time.Nanosecond}
+
 func clientFor(t *testing.T, srv *httptest.Server, maxBytes int64) *Client {
 	t.Helper()
 
-	c, err := NewClient(srv.URL+currentPath, maxBytes)
+	c, err := NewClient(srv.URL+currentPath, maxBytes, testLimits)
 	if err != nil {
 		t.Fatalf("building the client: %v", err)
 	}
@@ -168,11 +173,11 @@ func TestTheCallerDeadlineBoundsTheFetch(t *testing.T) {
 func TestAnEndpointIsRequired(t *testing.T) {
 	t.Parallel()
 
-	if _, err := NewClient("", 1<<20); err == nil {
+	if _, err := NewClient("", 1<<20, testLimits); err == nil {
 		t.Error("a client with no endpoint was built, want it refused")
 	}
 
-	if _, err := NewClient("https://example.test"+currentPath, 0); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, 0, testLimits); err == nil {
 		t.Error("a client with no response ceiling was built, want it refused")
 	}
 
@@ -181,7 +186,7 @@ func TestAnEndpointIsRequired(t *testing.T) {
 	// two failures it produces are a panic and a fetch that succeeds over an
 	// empty body, neither of which is reachable from a constructor that
 	// refuses it.
-	if _, err := NewClient("https://example.test"+currentPath, math.MaxInt64); err == nil {
+	if _, err := NewClient("https://example.test"+currentPath, math.MaxInt64, testLimits); err == nil {
 		t.Error("a client with a response ceiling above what it can read within was built, want it refused")
 	}
 }
@@ -314,7 +319,7 @@ func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
 
 	version := func(n int) string { return "v" + strconv.Itoa(n) }
 
-	if _, err := NewClient("https://example.test"+currentPath, 1<<20); err != nil {
+	if _, err := NewClient("https://example.test"+currentPath, 1<<20, testLimits); err != nil {
 		t.Fatalf("an endpoint addressing APIVersion was refused: %v — refusing every endpoint is not the guarantee this guard exists to give", err)
 	}
 
@@ -334,7 +339,7 @@ func TestOnlyTheCurrentAPIVersionIsAddressed(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			if _, err := NewClient("https://example.test"+path, 1<<20); err == nil {
+			if _, err := NewClient("https://example.test"+path, 1<<20, testLimits); err == nil {
 				t.Errorf("NewClient accepted an endpoint addressing %s, want it refused: the sync would issue its request against a version other than the one `Architecture.md § API version` records as current", name)
 			}
 		})
@@ -409,7 +414,7 @@ func TestARedirectLeavingTheCurrentVersionIsNotFollowed(t *testing.T) {
 	})
 
 	t.Run("a hop within the current version is followed", func(t *testing.T) {
-		c, err := NewClient(srv.URL+movedPath, 1<<20)
+		c, err := NewClient(srv.URL+movedPath, 1<<20, testLimits)
 		if err != nil {
 			t.Fatalf("building the client: %v", err)
 		}

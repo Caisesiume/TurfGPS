@@ -7,7 +7,7 @@
 // service's unit references an out-of-repo source, and this package reads what
 // that source sets.
 //
-// TWO VALUES DELIBERATELY HAVE NO DEFAULT HERE, and that is the point of the
+// FOUR VALUES DELIBERATELY HAVE NO DEFAULT HERE, and that is the point of the
 // package rather than an omission.
 //
 //   - The refresh interval. Its one home is `Architecture.md § Retrieving
@@ -20,8 +20,15 @@
 //     any configuration they draw a base path from, and `internal/turf` names
 //     the version once, as APIVersion, and refuses an endpoint addressing any
 //     other.
+//   - The Turf API's two published rate limits (`NFR-001`): the general one,
+//     whose home is `Architecture.md § Data sources and constraints`, and the
+//     all-zones endpoint's own, whose home is `Architecture.md § Retrieving
+//     zones`. They are the API's figures, not this service's, so they are
+//     carried rather than chosen; `internal/turf` holds every request the
+//     process sends to them.
 //
-// Both therefore arrive from the environment or the sync does not run at all.
+// All four therefore arrive from the environment or the sync does not run at
+// all.
 package config
 
 import (
@@ -42,6 +49,12 @@ const (
 	EnvMergeTimeout     = "TURFGPS_ZONE_SYNC_MERGE_TIMEOUT"
 	EnvMaxResponseBytes = "TURFGPS_ZONE_SYNC_MAX_RESPONSE_BYTES"
 	EnvMinZoneRatio     = "TURFGPS_ZONE_SYNC_MIN_ZONE_RATIO"
+
+	// The Turf API's published limits, each as the shortest interval it permits
+	// between two requests. TURF rather than ZONE_SYNC, because the limit is
+	// the API's and binds every caller of it, of which the sync is the first.
+	EnvRequestInterval  = "TURFGPS_TURF_MIN_REQUEST_INTERVAL"
+	EnvAllZonesInterval = "TURFGPS_TURF_ALL_ZONES_MIN_INTERVAL"
 )
 
 // Defaults for the tunables that are this service's own operational choices
@@ -127,7 +140,8 @@ type ZoneSync struct {
 	AllZonesURL string
 
 	// Interval is how long must pass between one attempt and the next. Its home
-	// is `Architecture.md § Retrieving zones`.
+	// is `Architecture.md § Retrieving zones`, and it is never shorter than
+	// ShortestInterval(AllZonesInterval, FetchTimeout).
 	Interval time.Duration
 
 	FetchTimeout     time.Duration
@@ -135,6 +149,16 @@ type ZoneSync struct {
 	MergeTimeout     time.Duration
 	MaxResponseBytes int64
 	MinZoneRatio     float64
+
+	// RequestInterval is the Turf API's general limit, as the shortest interval
+	// between two requests. Its home is `Architecture.md § Data sources and
+	// constraints`.
+	RequestInterval time.Duration
+
+	// AllZonesInterval is the all-zones endpoint's own limit, as the shortest
+	// interval between two requests to it. Its home is `Architecture.md §
+	// Retrieving zones`.
+	AllZonesInterval time.Duration
 }
 
 // LookupFunc reads one environment variable and reports whether it was set at
@@ -143,14 +167,18 @@ type LookupFunc func(name string) (string, bool)
 
 // LoadZoneSync reads the zone sync's configuration.
 //
-// It returns (nil, nil) when NONE of the three required variables is set, which
-// is how a service with no sync configured still starts and serves — the
-// property `NFR-003` binds and this story must not spend. It returns an error
-// when SOME of them are set: partial configuration is a mistake rather than an
+// It returns (nil, nil) when NONE of the required variables is set, which is
+// how a service with no sync configured still starts and serves — the property
+// `NFR-003` binds and this story must not spend. It returns an error when SOME
+// of them are set: partial configuration is a mistake rather than an
 // intention, and a service that started quietly with a half-configured sync
 // would be indistinguishable from one deliberately running without one.
+//
+// The two limits are required with the sync because the sync is, so far, the
+// only caller of the API: a sync that ran without them would have nothing to
+// hold its requests to.
 func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
-	required := []string{EnvDatabaseURL, EnvAllZonesURL, EnvInterval}
+	required := ZoneSyncRequired()
 
 	var set, unset []string
 
@@ -213,7 +241,61 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 		return nil, err
 	}
 
+	if cfg.RequestInterval, err = positiveDuration(lookup, EnvRequestInterval, 0); err != nil {
+		return nil, err
+	}
+
+	if cfg.AllZonesInterval, err = positiveDuration(lookup, EnvAllZonesInterval, 0); err != nil {
+		return nil, err
+	}
+
+	// REFUSED RATHER THAN CLAMPED, as every figure in this file is. `NFR-001`'s
+	// Risk is that a refused all-zones request costs the next window rather than
+	// a moment, and ShortestInterval says why the bound is the sum.
+	if shortest := ShortestInterval(cfg.AllZonesInterval, cfg.FetchTimeout); cfg.Interval < shortest {
+		return nil, fmt.Errorf("%s=%s is shorter than %s=%s plus %s=%s: across a restart the sync could ask the all-zones endpoint sooner than it permits after the previous request — lengthen the first, or shorten the fetch deadline",
+			EnvInterval, cfg.Interval, EnvAllZonesInterval, cfg.AllZonesInterval, EnvFetchTimeout, cfg.FetchTimeout)
+	}
+
 	return cfg, nil
+}
+
+// ShortestInterval is the shortest sync schedule LoadZoneSync accepts: the
+// all-zones interval, plus the deadline one all-zones fetch is bounded by.
+//
+// THE SUM, BECAUSE THE TWO HOLDS ON THAT ENDPOINT COUNT FROM DIFFERENT INSTANTS.
+// Across a restart only the schedule holds, and it counts from the recorded
+// start of the last run (`sync_run.started_at`), which is all a new process can
+// read. `internal/turf`'s gate holds one process, and it counts from when the
+// previous request RETURNED. A schedule of the interval alone satisfies each in
+// its own terms and not both: every tick the gate holds a request back by the
+// previous one's time to headers, so the request trails its recorded start by
+// a little more each run, and a new process that waits the interval from the
+// last start asks that much early.
+//
+// The fetch deadline closes the gap, because it bounds the request whatever the
+// gate did: it is set as soon as the store has answered for the run's start,
+// and before the gate is taken, so a request has returned within the deadline
+// of its run's start. The next run's request, too, leaves only once the store
+// has answered for its own start, so that answer is on both sides. A schedule
+// at least the deadline longer than the interval therefore starts every run —
+// in this process or in the next, both counted from the same recorded start —
+// the interval after the previous request returned. The gate then never holds
+// a scheduled request back, no request drifts behind its start, and nothing
+// remains for a restart to miss.
+//
+// The send instant would close it too, and is not recorded anywhere a new
+// process can read: `sync_run` dates a run by its start, and a column for the
+// send is a migration.
+func ShortestInterval(allZonesInterval, fetchTimeout time.Duration) time.Duration {
+	return allZonesInterval + fetchTimeout
+}
+
+// ZoneSyncRequired names every variable the sync needs set and has no default
+// for. Setting all of them runs the sync, and setting none runs the service
+// without it.
+func ZoneSyncRequired() []string {
+	return []string{EnvDatabaseURL, EnvAllZonesURL, EnvInterval, EnvRequestInterval, EnvAllZonesInterval}
 }
 
 // validateEndpoint rejects an endpoint the fetcher could not use, at load time

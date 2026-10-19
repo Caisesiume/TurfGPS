@@ -1,7 +1,9 @@
 // Package turf is the adapter for the Turf API — the TurfClient port of
 // `Architecture.md § Ports and adapters`.
 //
-// It carries the zone sync's half of that port and nothing else yet.
+// It carries the zone sync's half of that port and nothing else yet, and the
+// process's one budget against the API's published rate limits (`NFR-001`),
+// which every request any Client sends is drawn from — see budget.go.
 //
 // NO API PATH IS WRITTEN IN THIS PACKAGE, AND ONE API VERSION IS. The all-zones
 // endpoint is named by role in `Architecture.md § Retrieving zones` and arrives
@@ -167,8 +169,13 @@ func followable(req *http.Request, via []*http.Request) error {
 }
 
 // Client fetches from the Turf API.
+//
+// Every request it sends draws on the process's one budget — see budget — so
+// two Clients are never two allowances.
 type Client struct {
 	allZonesURL string
+	endpoint    *url.URL
+	limits      Limits
 	http        *http.Client
 	maxBytes    int64
 }
@@ -179,7 +186,11 @@ type Client struct {
 // context whose deadline the caller sets, and a second bound here would be a
 // budget nothing in the caller could see — the sync's fetch budget is
 // configuration, and this is where it is obeyed rather than where it is decided.
-func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
+//
+// limits are required and are refused when either is not positive: there is no
+// default to fall back on, because the figures are the API's and are recorded
+// where Limits says, not here.
+func NewClient(allZonesURL string, maxBytes int64, limits Limits) (*Client, error) {
 	if allZonesURL == "" {
 		return nil, errors.New("no all-zones endpoint")
 	}
@@ -201,10 +212,23 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 		return nil, fmt.Errorf("the response ceiling %d is above the %d this adapter can read within", maxBytes, maxCeiling)
 	}
 
+	if limits.Request <= 0 {
+		return nil, fmt.Errorf("the Turf API's request interval %s is not positive", limits.Request)
+	}
+
+	if limits.AllZones <= 0 {
+		return nil, fmt.Errorf("the all-zones endpoint's interval %s is not positive", limits.AllZones)
+	}
+
 	return &Client{
 		allZonesURL: allZonesURL,
-		http:        &http.Client{CheckRedirect: followable},
-		maxBytes:    maxBytes,
+		endpoint:    endpoint,
+		limits:      limits,
+		http: &http.Client{
+			CheckRedirect: followable,
+			Transport:     newLimitedTransport(http.DefaultTransport, endpoint, limits),
+		},
+		maxBytes: maxBytes,
 	}, nil
 }
 
@@ -228,8 +252,15 @@ func NewClient(allZonesURL string, maxBytes int64) (*Client, error) {
 // would have been asserting it against a client that no longer refused it.
 // Mutating the argument is the narrower cost, and it is confined to this
 // package's tests because nothing else can call this.
+//
+// THE BUDGET IS INSTALLED THE SAME WAY AND FOR THE SAME REASON: a substituted
+// client whose transport skipped it would be a caller the limit does not count.
+// newLimitedTransport never wraps itself, so handing one *http.Client to two
+// Clients, as a test serving several from one server does, meters each request
+// once.
 func (c *Client) setHTTPClient(h *http.Client) {
 	h.CheckRedirect = followable
+	h.Transport = newLimitedTransport(h.Transport, c.endpoint, c.limits)
 	c.http = h
 }
 
