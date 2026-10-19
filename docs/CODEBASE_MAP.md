@@ -8,8 +8,8 @@ path, the ports, the refresh interval and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
-**Accurate as of 18 October 2026**, against the tree that lands the scheduled
-zone sync. It is maintained by the work that changes the structure: a PR that
+**Accurate as of 19 October 2026**, against the tree that lands the scheduled
+zone sync and corridor resolution against the local copy. It is maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
 from disk is worse than no map, because the reader who trusts it opens the
@@ -43,9 +43,10 @@ the HTTP server and the sync worker, and drains what is in flight on a signal.
 | Package | What it is for |
 |---|---|
 | `internal/config` | reads the runtime configuration from the process environment |
+| `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here |
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters` |
-| `internal/zonestore` | the read side of the synced zone store, and where the connection pool is opened |
+| `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where the connection pool is opened |
 | `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |
 | `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
 
@@ -80,8 +81,11 @@ of every handler that ever reads a zone. The argument in full is on
 `service/internal/zonestore/zonestore.go`'s package doc, beside the code it
 constrains, and this file does not repeat it.
 
-The boundary itself: `internal/zonestore` answers questions — it opens the pool
-and reports how current the local copy is — and a handler may import it.
+The boundary itself: `internal/zonestore` answers questions — it opens the pool,
+reports how current the local copy is, and resolves a corridor's zones from it —
+and a handler may import it. Neither it nor `internal/corridor` may reach
+`internal/turf` or `net/http`, which `service/internal/corridor/noturf_test.go`
+checks.
 `internal/syncstore` writes, imports `internal/zonesync` for its port
 types, and no handler could usefully import it.
 
@@ -99,9 +103,10 @@ on that branch, and what it leaves behind for an operator reading `sync_run` is
 `Architecture.md § The sync write path`.
 
 **Today that pool reaches one half.** The root hands it to `internal/syncstore`
-and to nothing else: `zonestore.NewReader` and `Reader.Currency` are written and
-have **no callers**, and `internal/httpapi` imports neither store, so the read
-half is built and unreached. One pool serving both is what the split is *for* —
+and to nothing else: `zonestore.NewReader`, `Reader.Currency`,
+`Reader.ZonesInCorridor` and `corridor.Resolve` are written and have **no
+callers** outside their tests, and `internal/httpapi` imports neither store, so
+the read half is built and unreached. One pool serving both is what the split is *for* —
 the handler that eventually reads the currency takes the same reference rather
 than opening a second pool — but that is owed work rather than the built
 topology, and this file states it as owed.

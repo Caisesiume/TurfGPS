@@ -27,8 +27,8 @@ staging table, `sync_run`, one index on `zone` and two on `sync_run`.
 authorised operator after PR approval and explicit human authorisation, per
 `postgis-migration-protocol`. Migrations are not applied at boot, and this
 repository's own tooling applies them only to the throwaway PostGIS of CI's
-`migrations` job (`scripts/db/migrate-verify.sh`, #153), never to a lasting
-database.
+`migrations` job (`scripts/db/migrate-verify.sh`, #153, and the scratch database
+the `postgis`-tagged Go tests run against, #27), never to a lasting database.
 
 ```
 psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.sql

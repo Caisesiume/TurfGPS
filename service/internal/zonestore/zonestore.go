@@ -13,23 +13,27 @@
 // writes. A handler may import this and could not usefully import that.
 //
 // ---------------------------------------------------------------------------
-// NEVER EXECUTED, AND THIS PACKAGE CARRIES NO TESTS.
+// EXECUTED IN CI ONLY, AND ONLY IN PART.
 //
-// The currency query below has not been sent to a PostgreSQL server, the pool
-// this file opens has not opened, and there is no test file in this directory.
-// `internal/syncstore` carries the write half of the same condition and the
-// argument in full — why a fake over `pgxpool` is refused rather than owed, and
-// what discharges the marker. This comment does not restate it.
+// `corridor_postgis_test.go` is built only under the `postgis` tag, by CI's
+// `migrations` job, against a scratch database that job has just migrated. It
+// opens a pool through Open, reads Currency over a completed run, and resolves
+// a corridor through ZonesInCorridor — and that is the whole of what this
+// package has sent to a PostgreSQL server. The default suite builds
+// `corridor_test.go` alone, which sends nothing. `internal/syncstore` carries
+// the argument for why a fake over `pgxpool` is refused rather than owed; this
+// comment does not restate it.
 //
 // ONE UNVERIFIED CLAIM HERE IS MORE EXPOSED THAN THE REST, because it is the
 // one a request reaches. `Currency` reads pgx.ErrNoRows as "no run has ever
 // succeeded" and returns it as an answer rather than a failure — which is
 // right, and is byte-for-byte the same answer the query would give while
 // resolving against a `sync_run` this service has never written to.
-// `poolSearchPath` below is what is supposed to keep those two apart, and it
-// has never resolved anything. A copy reported as never-synced for a reason
-// nobody can see is the asymmetry `Architecture.md § Absence is recorded and
-// never acted on` weighs, and neither branch has been observed here.
+// `poolSearchPath` below is what is supposed to keep those two apart. The test
+// above has seen it resolve `zone` and `sync_run` in a database holding both,
+// and has never run the no-row branch. A copy reported as never-synced for a
+// reason nobody can see is the asymmetry `Architecture.md § Absence is recorded
+// and never acted on` weighs, and that branch has not been observed here.
 // ---------------------------------------------------------------------------
 package zonestore
 
