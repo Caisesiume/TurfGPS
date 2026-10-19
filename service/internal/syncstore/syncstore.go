@@ -17,16 +17,17 @@
 // it says so and why, at the statement.
 //
 // ---------------------------------------------------------------------------
-// NEVER EXECUTED, EXCEPT THE THREE STATEMENTS A REFRESH WRITES THROUGH.
+// NEVER EXECUTED, EXCEPT THE THREE METHODS A REFRESH WRITES THROUGH.
 //
-// Stage, Inspect and Merge are sent to PostgreSQL by postgis_test.go, against a
-// database `migrations/0001_zone_store.sql` has been applied to. CI's
-// `migrations` job is the one place such a database exists: it names it in the
-// variable that test reads, and fails if the test skips. Everywhere else the
-// test skips, so a green `go test ./...` on a host without a database says
-// nothing about these statements. What it measures is what a refresh leaves
-// stored — a held id's revised date_created and a new id's (#38) — and nothing
-// about isolation, the advisory lock, or what a concurrent writer would do to
+// The statements of Stage, Inspect and Merge are sent to PostgreSQL by
+// postgis_test.go, against a database `migrations/0001_zone_store.sql` has been
+// applied to. CI's `migrations` job is the one place such a database exists: it
+// names it in the variable that test reads, and fails if the test skips.
+// Everywhere else the test skips, so a green `go test ./...` on a host without
+// a database says nothing about them. What it measures is what a refresh
+// leaves stored — a held id's revised date_created and a new id's (#38), and a
+// zone set some of whose records carry no type (#39) — and nothing about
+// isolation, the advisory lock, or what a concurrent writer would do to
 // Merge's counts.
 //
 // NOTHING ELSE IN THIS FILE HAS RUN. beginRunSQL, finishRunSQL,

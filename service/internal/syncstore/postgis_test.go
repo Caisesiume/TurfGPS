@@ -230,4 +230,46 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 			t.Errorf("the merge reports %d inserted and %d updated for one zone new to the copy, want 1 and 0", merged.Inserted, merged.Updated)
 		}
 	})
+
+	// `FR-036` (#39), the store's half: a set in which some records carry no
+	// `type` is staged, asserted and merged as one in which every record
+	// carries one, and every record is held afterwards. A NOT NULL on the
+	// column, or an assertion counting the absence, is the form this refuses.
+	// The run's half — the mapping, and what the run raises — is
+	// `internal/zonesync`'s absenttype_test.go.
+	typed := int16(3)
+
+	for _, set := range []struct {
+		name  string
+		zones []fixtureZone
+	}{
+		{"every record carries a type", []fixtureZone{
+			{id: 201, created: time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC), typeID: &typed},
+			{id: 202, created: time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC), typeID: &typed},
+			{id: 203, created: time.Date(2020, 1, 4, 0, 0, 0, 0, time.UTC), typeID: &typed},
+			{id: 204, created: time.Date(2020, 1, 5, 0, 0, 0, 0, time.UTC), typeID: &typed},
+		}},
+		{"some records carry none", []fixtureZone{
+			{id: 201, created: time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC), typeID: &typed},
+			{id: 202, created: time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)},
+			{id: 203, created: time.Date(2020, 1, 4, 0, 0, 0, 0, time.UTC), typeID: &typed},
+			{id: 204, created: time.Date(2020, 1, 5, 0, 0, 0, 0, time.UTC)},
+		}},
+	} {
+		t.Run("a zone set in which "+set.name+" is held whole", func(t *testing.T) {
+			emptiedAfter(t, pool)
+
+			merged := refresh(t, store, set.zones...)
+
+			var held int
+
+			if err := pool.QueryRow(t.Context(), `SELECT count(*) FROM zone`).Scan(&held); err != nil {
+				t.Fatalf("counting the zones held: %v", err)
+			}
+
+			if held != len(set.zones) || merged.Inserted != len(set.zones) {
+				t.Errorf("a refresh of %d records left %d held and reports %d inserted, want every record retained", len(set.zones), held, merged.Inserted)
+			}
+		})
+	}
 }
