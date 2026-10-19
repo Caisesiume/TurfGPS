@@ -14,6 +14,7 @@ This folder is the front door to the TurfGPS documentation set. Each document an
 | `DEPLOYMENT.md` | How should this system operate with as little complexity as possible? |
 | `TEAM.md` | Who builds it, and how does work get planned, reviewed, and merged? |
 | `adr/` | Which consequential engineering decisions were made, and why? |
+| `CODEBASE_MAP.md` | What is actually on disk, and where does the boundary between two directories or packages lie? |
 
 ### SPECIFICATION.md
 
