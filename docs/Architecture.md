@@ -141,7 +141,7 @@ flowchart TD
     S --> P
     S --> E
     S -- "rank, held zones, region lords" --> T
-    W -- "GET /v5/zones/all" --> T
+    W -- "GET /v5/feeds/zone, every 20 min<br/>GET /v5/zones/all, monthly" --> T
     W --> P
 ```
 

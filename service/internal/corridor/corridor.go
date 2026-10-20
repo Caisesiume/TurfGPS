@@ -8,11 +8,11 @@
 // issue a Turf request: `noturf_test.go` checks that over the import graph
 // rather than trusting this sentence.
 //
-// IT CHOOSES NO HALF-WIDTH. `Architecture.md § What is unproven` item 7 holds the
-// value open, and how one is derived for a route is
+// IT CHOOSES NO HALF-WIDTH. The rule that derives one for a route is decided in
 // `CalculationSpecification.md § Bounding the candidate set`, which `FR-063`
-// carries. The caller passes it in metres; this package only refuses one that
-// would resolve a corridor nobody asked for.
+// carries (#20); `Architecture.md § What is unproven` item 7 now holds open only
+// the row counts it yields at its cap. The caller passes it in metres; this
+// package only refuses one that would resolve a corridor nobody asked for.
 package corridor
 
 import (

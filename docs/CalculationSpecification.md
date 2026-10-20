@@ -130,7 +130,7 @@ The model this constant serves — soft target, hard ceiling, and the clearly-la
 
 **Two properties, both binding.** The 15% figure is a **proposed default**: nothing measured establishes it, and it may not be quoted to a user as though something did. What it fixes is the **maximum permitted value** stated above, and revising that is a change to this specification, ratified here — the maximum is not a deployment setting. The **value a deployment enforces** is a separate object, governed by the strict direction stated above: a deployment running stricter than the maximum revises nothing, and needs no ratification to do it. The ceiling's **enforcement is not a proposal**: whatever value the constant holds, no recommendation may exceed it, for any reason, however valuable the zone. A statement carrying only the first property leaves the constraint tunable in both directions; one carrying only the second falsely claims a measured figure. Both are stated because either alone is wrong.
 
-This ceiling is **unrelated to the 15 km corridor cap** under *Bounding the candidate set*, which shares no more than a numeral with it. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
+This ceiling is **unrelated to the 50 km corridor cap** under *Bounding the candidate set*. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
 
 ---
 
