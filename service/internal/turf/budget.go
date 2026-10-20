@@ -169,10 +169,14 @@ type limitedTransport struct {
 	limits Limits
 
 	// allZones is the configured all-zones endpoint. A request addressed to it
-	// passes the all-zones gate as well as the API's.
+	// passes the all-zones gate as well as the API's. It is the zero key for a
+	// client configured with no all-zones endpoint, and no request matches that
+	// key, because every request names a host.
 	allZones gateKey
 }
 
+// newLimitedTransport meters base. allZones is nil for a client configured with
+// no all-zones endpoint, such as the SessionClient.
 func newLimitedTransport(base http.RoundTripper, allZones *url.URL, limits Limits) *limitedTransport {
 	// Never wrapped twice. A second layer would take the same gate's slot while
 	// the first layer holds it, and wait for itself for ever.
@@ -184,11 +188,12 @@ func newLimitedTransport(base http.RoundTripper, allZones *url.URL, limits Limit
 		base = http.DefaultTransport
 	}
 
-	return &limitedTransport{
-		base:     base,
-		limits:   limits,
-		allZones: gateKey{host: hostKey(allZones), path: allZones.Path},
+	t := &limitedTransport{base: base, limits: limits}
+	if allZones != nil {
+		t.allZones = gateKey{host: hostKey(allZones), path: allZones.Path}
 	}
+
+	return t
 }
 
 // RoundTrip takes the all-zones gate, when the request is addressed to that

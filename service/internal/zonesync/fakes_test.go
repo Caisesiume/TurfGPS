@@ -16,10 +16,20 @@ var errStore = errors.New("the store said no")
 type fakeStore struct {
 	mu sync.Mutex
 
-	sinceLastAttempt time.Duration
-	everAttempted    bool
+	// clock is the store's own clock, the one `now()` reads in SQL; nil is the
+	// process's. A test that drives the scheduler's clock hands it here too,
+	// because the real store's instants are the server's and move with time.
+	clock func() time.Time
+
+	// lastBegun and lastCompleted are the two instants `sync_run` answers the
+	// scheduler from: the start of the latest run of any outcome, and the
+	// completion of the latest one recorded `ok`. A test seeds them to stand
+	// for runs a process that is now gone recorded; the fake moves them the way
+	// the real store's writes do.
+	lastBegun        time.Time
+	lastCompleted    time.Time
 	lastAttemptErr   error
-	lastAttempts     int
+	lastCompletedErr error
 
 	beginErr error
 	nextID   int64
@@ -39,17 +49,46 @@ type fakeStore struct {
 	merges   int
 }
 
-func (f *fakeStore) SinceLastAttempt(context.Context) (time.Duration, bool, error) {
+// now reads the store's clock. The caller holds mu.
+func (f *fakeStore) now() time.Time {
+	if f.clock != nil {
+		return f.clock()
+	}
+
+	return time.Now()
+}
+
+func (f *fakeStore) setClock(clock func() time.Time) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.lastAttempts++
+	f.clock = clock
+}
+
+func (f *fakeStore) SinceLastAttempt(context.Context) (time.Duration, bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if f.lastAttemptErr != nil {
 		return 0, false, f.lastAttemptErr
 	}
 
-	return f.sinceLastAttempt, f.everAttempted, nil
+	if f.lastBegun.IsZero() {
+		return 0, false, nil
+	}
+
+	return f.now().Sub(f.lastBegun), true, nil
+}
+
+func (f *fakeStore) LastCompleted(context.Context) (time.Time, time.Time, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.lastCompletedErr != nil {
+		return time.Time{}, time.Time{}, f.lastCompletedErr
+	}
+
+	return f.now(), f.lastCompleted, nil
 }
 
 func (f *fakeStore) BeginRun(context.Context) (int64, time.Time, error) {
@@ -62,16 +101,14 @@ func (f *fakeStore) BeginRun(context.Context) (int64, time.Time, error) {
 
 	// The store dates the run, so the fake does too rather than being handed an
 	// instant it would only echo.
-	startedAt := time.Now()
+	startedAt := f.now()
 
 	f.begun = append(f.begun, startedAt)
 	f.nextID++
 
 	// A started run is the recorded attempt the rate limit is gated on, so the
-	// fake records it the way the real store's INSERT does: the server's answer
-	// to how long ago the last attempt was becomes none at all.
-	f.sinceLastAttempt = 0
-	f.everAttempted = true
+	// fake records it the way the real store's INSERT does.
+	f.lastBegun = startedAt
 
 	return f.nextID, startedAt, nil
 }
@@ -85,6 +122,12 @@ func (f *fakeStore) FinishRun(_ context.Context, _ int64, result Result) error {
 	}
 
 	f.finished = append(f.finished, result)
+
+	// What `ok` writes is what the monthly gate reads back, as the real
+	// store's max(completed_at) over `ok` rows does.
+	if result.Outcome == OutcomeOK && result.CompletedAt != nil && result.CompletedAt.After(f.lastCompleted) {
+		f.lastCompleted = *result.CompletedAt
+	}
 
 	return nil
 }
@@ -129,7 +172,7 @@ func (f *fakeStore) Merge(context.Context) (Merged, error) {
 	// that did not set one is completed by the fake rather than modelling a
 	// merge that stamped the zero instant.
 	if merged.CompletedAt.IsZero() {
-		merged.CompletedAt = time.Now()
+		merged.CompletedAt = f.now()
 	}
 
 	return merged, nil
@@ -152,6 +195,14 @@ func (f *fakeStore) results() []Result {
 	defer f.mu.Unlock()
 
 	return append([]Result(nil), f.finished...)
+}
+
+// starts is when each run the store recorded began, by the store's clock.
+func (f *fakeStore) starts() []time.Time {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return append([]time.Time(nil), f.begun...)
 }
 
 func (f *fakeStore) mergeCount() int {

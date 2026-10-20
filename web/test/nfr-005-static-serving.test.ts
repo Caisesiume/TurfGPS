@@ -20,11 +20,19 @@
 //   any static host is a program; AC1 bounds project code run to serve the
 //   client, not the existence of software on the host.
 //
-//   "a call to the service over HTTP": a stub on a second loopback origin,
-//   answering the one route the service serves today. Both hops are real HTTP.
-//   The stub admits the client's origin with Access-Control-Allow-Origin; the
-//   real service sends no CORS header yet, and that is owed to the backend
-//   story that adds it, not to this file.
+//   "a call to the service over HTTP": the service itself. Its binary is built
+//   from `service/` with the host's Go toolchain and started as an operator
+//   starts it, with TURFGPS_CORS_ALLOWED_ORIGINS naming the static host's
+//   origin (#224) and no other TURFGPS_ variable. It listens on :8080, the one
+//   address it has (`service/cmd/turfgps/main.go`), so this file waits for that
+//   port to be free and is ready only once the service it started says it is
+//   listening. A missing Go toolchain or a port that stays taken fails the
+//   file; nothing here skips.
+//
+//   Without a grant: a second static host on another loopback origin serves
+//   the same files, and the grant does not name it. Same service process, same
+//   bundle; only the page's origin differs, so the refusal is the service's
+//   own exact-origin decision.
 //
 //   "loads": the document and every subresource are fetched over HTTP from the
 //   static origin. jsdom does not run `<script type="module">` and has no
@@ -33,16 +41,16 @@
 //   rule for a simple cross-origin GET: it sends Origin, and unless the answer
 //   carries Access-Control-Allow-Origin for that origin or `*`, it rejects with
 //   the TypeError a browser throws. A request a browser would preflight is
-//   refused outright, because no preflight is emulated. This is an emulation,
-//   not a browser; the second evaluation, against a service sending no CORS
-//   header, is what shows it can refuse.
+//   refused outright, because no preflight is emulated. The browser is the one
+//   part emulated; the headers it judges are the service's own.
 //
 // `vite preview` is not used: it is Vite's own server, an application runtime,
 // and not the deployed artefact.
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createServer, type Server } from 'node:http'
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { connect } from 'node:net'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -51,10 +59,13 @@ import { JSDOM } from 'jsdom'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 
 const webDir = join(dirname(fileURLToPath(import.meta.url)), '..')
+const serviceDir = join(webDir, '..', 'service')
 
-// Distinctive, so rendering it proves the text crossed the wire from the stub.
-const SERVICE_ANSWER = 'TurfGPS service (NFR-005 harness upstream)'
+// The service's one listen address, `defaultAddr` in `service/cmd/turfgps/main.go`.
+const SERVICE_PORT = 8080
+const serviceBase = `http://127.0.0.1:${SERVICE_PORT}`
 const UNREACHABLE = 'The service could not be reached.'
+const NO_GRANT = 'no grant'
 
 const CONTENT_TYPES: Record<string, string> = {
   css: 'text/css',
@@ -74,21 +85,31 @@ const SERVER_SHAPED =
 // and routing middleware. ADR-0006 lets the client go there as files only.
 const VERCEL_EXECUTES = ['api', 'middleware.js', 'middleware.ts', 'middleware.mjs', 'middleware.mts']
 
-type Evaluation = { requested: string[]; heading: string; status: string; paragraphs: string[] }
+type Page = { html: string; references: string[]; sources: string[] }
+type Evaluation = { requested: string[]; answered: string[]; heading: string; status: string; paragraphs: string[] }
 
+const emptyPage: Page = { html: '', references: [], sources: [] }
+const emptyEvaluation: Evaluation = { requested: [], answered: [], heading: '', status: '', paragraphs: [] }
+
+let workDir = ''
 let outDir = ''
 let builtFiles: string[] = []
 let staticOrigin = ''
-let serviceBase = ''
-let serviceSendsCors = true
+let ungrantedOrigin = ''
+let service: ChildProcess | null = null
+let serviceLog = ''
+let serviceAnswer = ''
 const servedByStatic: string[] = []
-const receivedByService: string[] = []
-const subresources: string[] = []
-const evaluatedSources: string[] = []
-let withCors: Evaluation = { requested: [], heading: '', status: '', paragraphs: [] }
-let withoutCors: Evaluation = withCors
+const servedByUngranted: string[] = []
+let page: Page = emptyPage
+let withCors: Evaluation = emptyEvaluation
+let withoutCors: Evaluation = emptyEvaluation
 const servers: Server[] = []
 const windows: { close: () => void }[] = []
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 function listFiles(root: string, prefix = ''): string[] {
   return readdirSync(root).flatMap((entry) => {
@@ -108,7 +129,7 @@ function listen(server: Server): Promise<string> {
 }
 
 // The static host: a file out of the build output, or 404. Nothing else.
-function staticHost(): Server {
+function staticHost(log: string[]): Server {
   return createServer((request, response) => {
     void (async () => {
       const pathname = new URL(request.url ?? '/', 'http://placeholder').pathname
@@ -116,7 +137,7 @@ function staticHost(): Server {
       const escapes = segments.some((s) => s === '.' || s === '..' || s.includes('\\'))
       const file = join(outDir, ...(segments.length === 0 ? ['index.html'] : segments))
       const bytes = escapes ? null : await readFile(file).catch(() => null)
-      servedByStatic.push(`${request.method} ${pathname} ${bytes === null ? 'absent 404' : 'file 200'}`)
+      log.push(`${request.method} ${pathname} ${bytes === null ? 'absent 404' : 'file 200'}`)
       if (bytes === null) {
         response.writeHead(404).end()
         return
@@ -128,21 +149,92 @@ function staticHost(): Server {
   })
 }
 
-// The service stand-in: its one route, and the CORS header the backend story
-// will add, admitting the client's origin and no other.
-function serviceStub(): Server {
-  return createServer((request, response) => {
-    const origin = request.headers.origin ?? '-'
-    receivedByService.push(`${request.method} ${request.url} origin=${origin}`)
-    const headers: Record<string, string> = { 'content-type': 'text/plain; charset=utf-8' }
-    if (serviceSendsCors && origin === staticOrigin) headers['access-control-allow-origin'] = staticOrigin
-    response.writeHead(200, headers)
-    response.end(`${SERVICE_ANSWER}\n`)
+function portTaken(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect(port, '127.0.0.1')
+    socket.once('connect', () => {
+      socket.destroy()
+      resolve(true)
+    })
+    socket.once('error', () => resolve(false))
   })
 }
 
+// Build the service from `service/` and start it granting `origin` alone.
+async function startService(origin: string): Promise<void> {
+  const binary = join(workDir, process.platform === 'win32' ? 'turfgps.exe' : 'turfgps')
+  try {
+    execFileSync('go', ['build', '-o', binary, './cmd/turfgps'], { cwd: serviceDir, stdio: 'pipe' })
+  } catch (error) {
+    const stderr = (error as { stderr?: Buffer }).stderr?.toString() ?? ''
+    throw new Error(`go build ./cmd/turfgps failed in ${serviceDir}; this test runs the real service:\n${stderr}`, { cause: error })
+  }
+
+  // A second gate run on the same host holds the port for seconds; anything
+  // holding it longer is not this file's service, and is not talked to.
+  const deadline = Date.now() + 30_000
+  while (await portTaken(SERVICE_PORT)) {
+    if (Date.now() > deadline) {
+      throw new Error(`port ${SERVICE_PORT} stayed taken for 30 s; the service listens there and nowhere else`)
+    }
+    await sleep(250)
+  }
+
+  // Only the grant: an inherited TURFGPS_ variable would configure more than
+  // this file states, such as a zone sync reaching a database.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('TURFGPS_')))
+  env.TURFGPS_CORS_ALLOWED_ORIGINS = origin
+  const child = spawn(binary, [], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+  service = child
+
+  // Ready when it says so: an answer on the port alone could be another process's.
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`the service did not report listening within 15 s:\n${serviceLog}`)), 15_000)
+    const onOutput = (chunk: Buffer) => {
+      serviceLog += chunk.toString()
+      if (/\blistening\b/.test(serviceLog)) {
+        clearTimeout(timer)
+        resolve()
+      }
+    }
+    child.stdout?.on('data', onOutput)
+    child.stderr?.on('data', onOutput)
+    child.once('exit', (code) => {
+      clearTimeout(timer)
+      reject(new Error(`the service exited ${code} before listening:\n${serviceLog}`))
+    })
+  })
+}
+
+async function stopService(): Promise<void> {
+  const child = service
+  if (child === null || child.exitCode !== null || child.signalCode !== null) return
+  const exited = new Promise((resolve) => child.once('exit', resolve))
+  child.kill()
+  await exited
+}
+
+// Load a page as a browser does: the document, then every subresource it names.
+async function load(origin: string): Promise<Page> {
+  const document = await fetch(`${origin}/`)
+  const html = document.ok ? await document.text() : ''
+  const parsed = new JSDOM(html)
+  const references = [...parsed.window.document.querySelectorAll('script[src], link[href]')].map(
+    (element) => element.getAttribute('src') ?? element.getAttribute('href') ?? '',
+  )
+  parsed.window.close()
+  const sources: string[] = []
+  for (const reference of references) {
+    const asset = await fetch(new URL(reference, `${origin}/`))
+    if (asset.ok && reference.endsWith('.js')) sources.push(await asset.text())
+    else await asset.arrayBuffer()
+  }
+  return { html, references, sources }
+}
+
 // The browser's rule for a cross-origin request, as far as a simple GET needs.
-function browserFetch(pageOrigin: string, requested: string[]) {
+// `answered` records each cross-origin answer's status and the grant it carried.
+function browserFetch(pageOrigin: string, requested: string[], answered: string[]) {
   return async (input: unknown, init?: RequestInit): Promise<Response> => {
     const url = new URL(String(input), `${pageOrigin}/`)
     requested.push(url.href)
@@ -153,6 +245,7 @@ function browserFetch(pageOrigin: string, requested: string[]) {
     }
     const response = await fetch(url, { ...init, headers: { origin: pageOrigin } })
     const allowed = response.headers.get('access-control-allow-origin')
+    answered.push(`${response.status} ${allowed ?? NO_GRANT}`)
     if (allowed !== pageOrigin && allowed !== '*') {
       await response.arrayBuffer()
       throw new TypeError('Failed to fetch')
@@ -161,24 +254,26 @@ function browserFetch(pageOrigin: string, requested: string[]) {
   }
 }
 
-// Evaluate the built bundle in a window at the static origin, and read what it
-// rendered once the status leaves its checking state.
-async function evaluate(html: string): Promise<Evaluation> {
+// Evaluate a page's bundle in a window at `origin`, and read what it rendered
+// once the status leaves its checking state.
+async function evaluate(origin: string, loaded: Page): Promise<Evaluation> {
   const requested: string[] = []
-  const dom = new JSDOM(html, { url: `${staticOrigin}/`, runScripts: 'outside-only', pretendToBeVisual: true })
+  const answered: string[] = []
+  const dom = new JSDOM(loaded.html, { url: `${origin}/`, runScripts: 'outside-only', pretendToBeVisual: true })
   windows.push(dom.window)
   // One set, as a browser provides them: undici rejects a foreign AbortSignal.
-  Object.assign(dom.window, { AbortController, AbortSignal, fetch: browserFetch(staticOrigin, requested) })
-  for (const source of evaluatedSources) dom.window.eval(source)
+  Object.assign(dom.window, { AbortController, AbortSignal, fetch: browserFetch(origin, requested, answered) })
+  for (const source of loaded.sources) dom.window.eval(source)
 
   const root = () => dom.window.document.getElementById('root')
   const status = () => root()?.querySelector('[role="status"]')?.textContent ?? ''
   const deadline = Date.now() + 5_000
   while (Date.now() < deadline && (status() === '' || status().startsWith('Checking'))) {
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    await sleep(20)
   }
   return {
     requested,
+    answered,
     heading: root()?.querySelector('h1')?.textContent ?? '',
     status: status(),
     paragraphs: [...(root()?.querySelectorAll('p') ?? [])].map((p) => p.textContent ?? ''),
@@ -186,9 +281,11 @@ async function evaluate(html: string): Promise<Evaluation> {
 }
 
 beforeAll(async () => {
-  outDir = mkdtempSync(join(tmpdir(), 'turfgps-nfr005-'))
-  staticOrigin = await listen(staticHost())
-  serviceBase = await listen(serviceStub())
+  workDir = mkdtempSync(join(tmpdir(), 'turfgps-nfr005-'))
+  outDir = join(workDir, 'client')
+  mkdirSync(outDir)
+  staticOrigin = await listen(staticHost(servedByStatic))
+  ungrantedOrigin = await listen(staticHost(servedByUngranted))
 
   // The service's address is a build input, as it is on Vercel. NODE_ENV is
   // removed because vitest sets it to `test`, which would build React's
@@ -202,39 +299,30 @@ beforeAll(async () => {
   )
   builtFiles = listFiles(outDir).sort()
 
-  // Load it as a browser does: the document, then every subresource it names.
-  const document = await fetch(`${staticOrigin}/`)
-  const html = document.ok ? await document.text() : ''
-  const parsed = new JSDOM(html)
-  const references = [...parsed.window.document.querySelectorAll('script[src], link[href]')].map(
-    (element) => element.getAttribute('src') ?? element.getAttribute('href') ?? '',
-  )
-  parsed.window.close()
-  for (const reference of references) {
-    const asset = await fetch(new URL(reference, `${staticOrigin}/`))
-    subresources.push(reference)
-    if (asset.ok && reference.endsWith('.js')) evaluatedSources.push(await asset.text())
-    else await asset.arrayBuffer()
-  }
-  if (html === '' || evaluatedSources.length === 0) return
+  await startService(staticOrigin)
+  // What the service answers its root route, read directly, so the card can be
+  // held to it without this file restating the service's text.
+  serviceAnswer = (await (await fetch(`${serviceBase}/`)).text()).trim()
 
-  withCors = await evaluate(html)
-  serviceSendsCors = false
-  withoutCors = await evaluate(html)
-}, 120_000)
+  page = await load(staticOrigin)
+  if (page.html === '' || page.sources.length === 0) return
+  withCors = await evaluate(staticOrigin, page)
+  withoutCors = await evaluate(ungrantedOrigin, await load(ungrantedOrigin))
+}, 180_000)
 
-afterAll(() => {
+afterAll(async () => {
   for (const window of windows) window.close()
   for (const server of servers) server.close()
-  if (outDir !== '') rmSync(outDir, { recursive: true, force: true })
+  await stopService()
+  if (workDir !== '') rmSync(workDir, { recursive: true, force: true })
 })
 
 test('AC1: every request the static host answered was a file read, and nothing else reached it', () => {
   // Exact on purpose. The client's call goes to the service's origin, so any
   // request it sent here, or anything the host failed to find, is an extra
   // entry; AC1's threshold is none.
-  expect(servedByStatic).toEqual(['GET / file 200', ...subresources.map((r) => `GET ${r} file 200`)])
-  expect(subresources.length).toBeGreaterThan(0)
+  expect(servedByStatic).toEqual(['GET / file 200', ...page.references.map((r) => `GET ${r} file 200`)])
+  expect(page.references.length).toBeGreaterThan(0)
 })
 
 test('AC1: neither the build output nor the project carries anything a host would execute', () => {
@@ -247,11 +335,11 @@ test('AC1: the build output is the one script index.html declares, and no other'
   // Discovery reads index.html only, so a second chunk would be served by the
   // deploy and seen by no assertion here. Pinning the count breaks that silence.
   expect(builtFiles.filter((file) => file.endsWith('.js'))).toHaveLength(1)
-  expect(evaluatedSources).toHaveLength(1)
+  expect(page.sources).toHaveLength(1)
 })
 
 test('AC2: nothing evaluated carries a dynamic import, which a classic-script evaluation would not catch', () => {
-  expect(evaluatedSources.flatMap((source) => source.match(/\bimport\s*\([^)]{0,60}/g) ?? [])).toEqual([])
+  expect(page.sources.flatMap((source) => source.match(/\bimport\s*\([^)]{0,60}/g) ?? [])).toEqual([])
 })
 
 test('AC2: the built client loads and mounts from the static host, naming the service it was built for', () => {
@@ -261,18 +349,23 @@ test('AC2: the built client loads and mounts from the static host, naming the se
   expect(withCors.paragraphs).toContain(serviceBase)
 })
 
-test('AC2: its first call crosses to the service origin over HTTP and completes under CORS', () => {
-  // One call, to the absolute base fixed at build time, carrying the client's
-  // origin. A second identical call would mean a development build slipped in.
+test('AC2: its first call reaches the real service over HTTP and the card shows its answer, under the grant', () => {
+  // One call, to the absolute base fixed at build time. A second identical
+  // call would mean a development build slipped in. The answer is not in the
+  // bundle, so rendering it means it crossed the wire.
+  expect(serviceAnswer).not.toBe('')
+  expect(page.sources.filter((source) => source.includes(serviceAnswer))).toEqual([])
   expect(withCors.requested).toEqual([`${serviceBase}/`])
-  expect(receivedByService[0]).toBe(`GET / origin=${staticOrigin}`)
-  expect(withCors.status).toBe(SERVICE_ANSWER)
+  expect(withCors.status).toBe(serviceAnswer)
+  expect(withCors.answered).toEqual([`200 ${staticOrigin}`])
 })
 
-test('AC2 depends on CORS: a service sending no CORS header is answered but refused, and the client says so', () => {
-  // This is the real service today. The request arrives and is answered; the
-  // browser withholds the answer, and the card reports the service unreachable.
+test('AC2 without a grant: the service answers an origin it does not name, the browser withholds it, and the card says so', () => {
+  // The same files from a second static host. They load and make the same
+  // call; the service answers it with no grant, so the answer is refused.
+  expect(servedByUngranted[0]).toBe('GET / file 200')
+  expect(withoutCors.heading).toBe('TurfGPS')
   expect(withoutCors.requested).toEqual([`${serviceBase}/`])
-  expect(receivedByService).toEqual([`GET / origin=${staticOrigin}`, `GET / origin=${staticOrigin}`])
+  expect(withoutCors.answered).toEqual([`200 ${NO_GRANT}`])
   expect(withoutCors.status).toBe(UNREACHABLE)
 })

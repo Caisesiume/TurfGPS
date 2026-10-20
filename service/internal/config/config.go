@@ -7,11 +7,14 @@
 // service's unit references an out-of-repo source, and this package reads what
 // that source sets.
 //
-// FOUR VALUES DELIBERATELY HAVE NO DEFAULT HERE, and that is the point of the
+// FIVE VALUES DELIBERATELY HAVE NO DEFAULT HERE, and that is the point of the
 // package rather than an omission.
 //
-//   - The refresh interval. Its one home is `Architecture.md § Retrieving
-//     zones`, and a default compiled into this package would be a second home
+//   - The monthly instant's time of day and time zone (#233). The all-zones
+//     refresh falls due on the first Sunday of each month at that time, read
+//     in that zone, by the Owner's decision on #20; its home is
+//     `Architecture.md § Retrieving zones` once the amendment approved there
+//     lands, and a default compiled into this package would be a second home
 //     for it — one that goes wrong silently when that section moves.
 //   - The all-zones endpoint. It is named by role in that same section and
 //     reaches the service as a resolved URL, so no API path is written in this
@@ -27,7 +30,7 @@
 //     carried rather than chosen; `internal/turf` holds every request the
 //     process sends to them.
 //
-// All four therefore arrive from the environment or the sync does not run at
+// All five therefore arrive from the environment or the sync does not run at
 // all.
 package config
 
@@ -36,6 +39,12 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	// The time zone database, embedded, so the monthly instant is read in the
+	// zone the operator named on any host, including an image that carries no
+	// zoneinfo of its own (`NFR-003`'s one executable). Without it,
+	// time.LoadLocation reads the host's files and refuses a zone they lack.
+	_ "time/tzdata"
 )
 
 // Environment names. The prefix keeps the service's variables distinguishable
@@ -43,7 +52,8 @@ import (
 const (
 	EnvDatabaseURL      = "TURFGPS_DATABASE_URL"
 	EnvAllZonesURL      = "TURFGPS_ZONE_SYNC_ALL_ZONES_URL"
-	EnvInterval         = "TURFGPS_ZONE_SYNC_INTERVAL"
+	EnvMonthlyTime      = "TURFGPS_ZONE_SYNC_MONTHLY_TIME"
+	EnvTimeZone         = "TURFGPS_ZONE_SYNC_TIME_ZONE"
 	EnvFetchTimeout     = "TURFGPS_ZONE_SYNC_FETCH_TIMEOUT"
 	EnvDatabaseTimeout  = "TURFGPS_ZONE_SYNC_DB_TIMEOUT"
 	EnvMergeTimeout     = "TURFGPS_ZONE_SYNC_MERGE_TIMEOUT"
@@ -59,7 +69,7 @@ const (
 
 // Defaults for the tunables that are this service's own operational choices
 // rather than facts recorded elsewhere. Each is overridable, none of them
-// restates a measurement, and none of them is the interval.
+// restates a measurement, and none of them is the schedule.
 const (
 	// defaultFetchTimeout bounds one all-zones request end to end. It exists to
 	// make the call finite rather than to predict it: the transfer measured in
@@ -139,10 +149,18 @@ type ZoneSync struct {
 	// `Architecture.md § Retrieving zones` names by role.
 	AllZonesURL string
 
-	// Interval is how long must pass between one attempt and the next. Its home
-	// is `Architecture.md § Retrieving zones`, and it is never shorter than
-	// ShortestInterval(AllZonesInterval, FetchTimeout).
-	Interval time.Duration
+	// MonthlyHour and MonthlyMinute are the local time of day, and TimeZone the
+	// location, the month's all-zones refresh falls due at on the first Sunday
+	// of each month (#233). Their home is named in the package doc.
+	MonthlyHour   int
+	MonthlyMinute int
+	TimeZone      *time.Location
+
+	// RetryInterval is how long must pass between one attempt and the next. It
+	// is derived rather than read, as ShortestInterval(AllZonesInterval,
+	// FetchTimeout), so a retry is paced by `NFR-001` and not by a figure of
+	// its own (`DECISIONS.md § RD-044`).
+	RetryInterval time.Duration
 
 	FetchTimeout     time.Duration
 	DatabaseTimeout  time.Duration
@@ -217,7 +235,11 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 
 	var err error
 
-	if cfg.Interval, err = positiveDuration(lookup, EnvInterval, 0); err != nil {
+	if cfg.MonthlyHour, cfg.MonthlyMinute, err = timeOfDay(lookup, EnvMonthlyTime); err != nil {
+		return nil, err
+	}
+
+	if cfg.TimeZone, err = location(lookup, EnvTimeZone); err != nil {
 		return nil, err
 	}
 
@@ -249,25 +271,26 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 		return nil, err
 	}
 
-	// REFUSED RATHER THAN CLAMPED, as every figure in this file is. `NFR-001`'s
-	// Risk is that a refused all-zones request costs the next window rather than
-	// a moment, and ShortestInterval says why the bound is the sum.
-	if shortest := ShortestInterval(cfg.AllZonesInterval, cfg.FetchTimeout); cfg.Interval < shortest {
-		return nil, fmt.Errorf("%s=%s is shorter than %s=%s plus %s=%s: across a restart the sync could ask the all-zones endpoint sooner than it permits after the previous request — lengthen the first, or shorten the fetch deadline",
-			EnvInterval, cfg.Interval, EnvAllZonesInterval, cfg.AllZonesInterval, EnvFetchTimeout, cfg.FetchTimeout)
-	}
+	// DERIVED RATHER THAN READ. The interval schedule this replaces was an
+	// operator's figure held to this floor (#226). A monthly schedule only
+	// retries a month's refresh that did not complete, and `NFR-001`'s Risk is
+	// that a refused all-zones request costs the next window rather than a
+	// moment, so the retry is spaced at the floor itself. ShortestInterval
+	// says why the floor is the sum.
+	cfg.RetryInterval = ShortestInterval(cfg.AllZonesInterval, cfg.FetchTimeout)
 
 	return cfg, nil
 }
 
-// ShortestInterval is the shortest sync schedule LoadZoneSync accepts: the
-// all-zones interval, plus the deadline one all-zones fetch is bounded by.
+// ShortestInterval is the shortest spacing the sync may put between two
+// attempts: the all-zones interval, plus the deadline one all-zones fetch is
+// bounded by. LoadZoneSync spaces the retries of a month's refresh at it.
 //
 // THE SUM, BECAUSE THE TWO HOLDS ON THAT ENDPOINT COUNT FROM DIFFERENT INSTANTS.
-// Across a restart only the schedule holds, and it counts from the recorded
+// Across a restart only the scheduler's gate holds, and it counts from the recorded
 // start of the last run (`sync_run.started_at`), which is all a new process can
 // read. `internal/turf`'s gate holds one process, and it counts from when the
-// previous request RETURNED. A schedule of the interval alone satisfies each in
+// previous request RETURNED. A spacing of the interval alone satisfies each in
 // its own terms and not both: every tick the gate holds a request back by the
 // previous one's time to headers, so the request trails its recorded start by
 // a little more each run, and a new process that waits the interval from the
@@ -277,7 +300,7 @@ func LoadZoneSync(lookup LookupFunc) (*ZoneSync, error) {
 // gate did: it is set as soon as the store has answered for the run's start,
 // and before the gate is taken, so a request has returned within the deadline
 // of its run's start. The next run's request, too, leaves only once the store
-// has answered for its own start, so that answer is on both sides. A schedule
+// has answered for its own start, so that answer is on both sides. A spacing
 // at least the deadline longer than the interval therefore starts every run —
 // in this process or in the next, both counted from the same recorded start —
 // the interval after the previous request returned. The gate then never holds
@@ -295,7 +318,40 @@ func ShortestInterval(allZonesInterval, fetchTimeout time.Duration) time.Duratio
 // for. Setting all of them runs the sync, and setting none runs the service
 // without it.
 func ZoneSyncRequired() []string {
-	return []string{EnvDatabaseURL, EnvAllZonesURL, EnvInterval, EnvRequestInterval, EnvAllZonesInterval}
+	return []string{EnvDatabaseURL, EnvAllZonesURL, EnvMonthlyTime, EnvTimeZone, EnvRequestInterval, EnvAllZonesInterval}
+}
+
+// timeOfDay reads a local time of day written as hours and minutes on the
+// 24-hour clock, such as 07:45.
+func timeOfDay(lookup LookupFunc, name string) (hour, minute int, err error) {
+	raw, _ := lookup(name)
+
+	t, err := time.Parse("15:04", raw)
+	if err != nil {
+		return 0, 0, fmt.Errorf("%s=%q is not a time of day written as HH:MM on the 24-hour clock: %w", name, raw, err)
+	}
+
+	return t.Hour(), t.Minute(), nil
+}
+
+// location reads an IANA time zone name, such as Europe/Paris.
+//
+// "Local" IS REFUSED, though time.LoadLocation accepts it, because it names
+// whatever zone the host is set to: the instant would move with the machine
+// the service happens to run on, which is what naming the zone is for.
+func location(lookup LookupFunc, name string) (*time.Location, error) {
+	raw, _ := lookup(name)
+
+	if raw == "Local" {
+		return nil, fmt.Errorf("%s=%q names the host's zone rather than one: set an IANA zone name", name, raw)
+	}
+
+	loc, err := time.LoadLocation(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%s=%q is not an IANA time zone name: %w", name, raw, err)
+	}
+
+	return loc, nil
 }
 
 // validateEndpoint rejects an endpoint the fetcher could not use, at load time
@@ -331,7 +387,7 @@ func validateEndpoint(raw string) error {
 }
 
 // positiveDuration reads a duration. A fallback of zero marks the variable
-// required, which is how the interval is kept out of this package.
+// required, which is how the API's limits are kept out of this package.
 func positiveDuration(lookup LookupFunc, name string, fallback time.Duration) (time.Duration, error) {
 	raw, ok := lookup(name)
 	if !ok || raw == "" {

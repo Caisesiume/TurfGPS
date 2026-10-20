@@ -135,6 +135,13 @@ func (s *standInStore) SinceLastAttempt(context.Context) (time.Duration, bool, e
 	return time.Since(s.lastBegun), true, nil
 }
 
+// LastCompleted reports no completion ever, which is true of this store: it
+// refuses to stage, so no run it records reaches `ok`, and the monthly schedule
+// therefore retries at the spacing it is given, as an interval schedule did.
+func (s *standInStore) LastCompleted(context.Context) (time.Time, time.Time, error) {
+	return time.Now(), time.Time{}, nil
+}
+
 func (s *standInStore) BeginRun(context.Context) (int64, time.Time, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -185,7 +192,8 @@ func startSyncOn(t *testing.T, srv *httptest.Server, limits Limits, schedule, fe
 		Fetch:           client.FetchAllZones,
 		Store:           store,
 		Locker:          store,
-		Interval:        schedule,
+		Schedule:        zonesync.Monthly{Location: time.UTC},
+		RetryInterval:   schedule,
 		FetchTimeout:    fetchTimeout,
 		DatabaseTimeout: time.Second,
 		MergeTimeout:    time.Second,
@@ -344,10 +352,10 @@ func TestTheRequestLimitHoldsAcrossEveryCallerAtOnce(t *testing.T) {
 // TestTheAllZonesIntervalHoldsUnderAScheduleThatAsksMoreOften is AC2: the
 // all-zones interval, under a sync schedule far shorter than it.
 //
-// The configuration refuses such a schedule (`internal/config`), and that is
-// the first guard. This is the second: a scheduler built with one anyway — the
-// configuration bypassed, as a test or a later composition can — still does not
-// make the requests. Both ways a request can be held are run: waited out, when
+// The configuration never derives such a spacing (`internal/config`), and that
+// is the first guard. This is the second: a scheduler built with one anyway —
+// the configuration bypassed, as a test or a later composition can — still does
+// not make the requests. Both ways a request can be held are run: waited out, when
 // the fetch's deadline is long enough to wait, and refused unsent, when it is
 // not.
 func TestTheAllZonesIntervalHoldsUnderAScheduleThatAsksMoreOften(t *testing.T) {
@@ -387,7 +395,7 @@ func TestTheAllZonesIntervalHoldsUnderAScheduleThatAsksMoreOften(t *testing.T) {
 }
 
 // TestTheAllZonesIntervalHoldsAcrossARestart is AC2 across a restart, under the
-// shortest schedule the configuration accepts.
+// spacing the configuration derives.
 //
 // A restart is where the in-process gate cannot help: a new process starts with
 // no gate that has seen a request, and the one hold left is the schedule's,
