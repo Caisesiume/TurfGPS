@@ -724,7 +724,10 @@ Depends-on:   FR-034
 Volatility:   settled — `SPECIFICATION.md § Route persistence` states that a
               stored route keeps everything, and the bound under
               `Architecture.md § Retrieving zones` is recorded rather than
-              proposed
+              proposed; what it measures — the time since the last successful
+              zone-feed run — is the Owner's ruling of 20 October 2026
+              (RD-047), which the cited section carries once the approved
+              amendment lands
 Risk:         A marking lost on storage defeats FR-034 outright for exactly
               the plans that live longest: a plan built from a copy stale
               beyond the bound reopens indistinguishable from one built from a

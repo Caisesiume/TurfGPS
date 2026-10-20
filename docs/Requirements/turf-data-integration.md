@@ -147,28 +147,32 @@ Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
 Verification: test — planning completes and returns recommendations both while
-              a refresh job is running and against a copy as old as the
-              tolerated staleness bound
+              a refresh job is running and against a copy whose last
+              successful zone-feed run is as old as the tolerated staleness
+              bound
 Acceptance:   given a refresh of the local synced copy in progress, when a
               journey is planned, then planning completes and returns
               recommendations
-              given a local synced copy whose last completed refresh is as old
-              as the staleness bound recorded under
+              given a local synced copy whose last successful zone-feed run is
+              as old as the staleness bound recorded under
               `Architecture.md § Retrieving zones`, when a journey is planned,
               then planning completes and returns recommendations
 Status:       to-build
-Depends-on:   FR-022; FR-023
+Depends-on:   FR-022; FR-023; FR-119
 Risk:         The refresh runs on a schedule no user sees, so a pipeline that
               refuses to plan while it is running, or against a copy within
               the tolerated age, fails at moments nobody outside can predict
               and nobody inside can reproduce on demand. It presents as an
-              outage rather than as the design choice it is, and the refresh
-              interval makes the window neither rare nor brief.
+              outage rather than as the design choice it is, and the zone
+              feed's schedule makes the window recur throughout the day.
 Rationale:    One obligation under two conditions rather than two obligations:
               the outcome asserted is identical in both criteria, and
               splitting them would leave each half readable as permission to
               fail the other. What the system may conclude from a copy of that
-              age is a confidence question, and it is NFR-002's.
+              age is a confidence question, and it is NFR-002's. Staleness is
+              the time since the last successful zone-feed run, on the Owner's
+              ruling of 20 October 2026 (RD-047); the bound is cited and never
+              restated.
 Resolved-by:  #33
 ```
 
@@ -222,16 +226,23 @@ Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
 Verification: inspection — the local synced copy's schema carries no ownership
-              field, and the ingest mapping for the all-zones response
-              populates none
+              field, and no ingest mapping that writes the copy populates one
 Acceptance:   the schema of the local synced copy carries no owner and no
-              last-taken column, and the ingest mapping for the all-zones
-              response populates neither; a reader confirms this in the zone
-              schema definition and in the ingest mapping, and confirms in
-              `Architecture.md § Retrieving zones` that the endpoint omits
-              both fields
+              last-taken column, and no ingest mapping that writes the copy —
+              the all-zones response's and the zone feed's — populates either;
+              a reader confirms this in the zone schema definition and in each
+              ingest mapping, and confirms in
+              `Architecture.md § Retrieving zones` that the all-zones endpoint
+              omits both fields
 Status:       to-build
 Depends-on:   FR-022
+Volatility:   settled — the schema's omission is enforced by the set-equality
+              test under
+              `Architecture.md § The two absences, and the test that keeps them absent`;
+              that a zone-feed item carries `dateLastTaken` was observed live
+              on 20 October 2026 and is not yet recorded in the cited section,
+              and it moves nothing here, because the obligation holds whatever
+              a response carries; gained on the opportunistic transition
 Risk:         The all-zones response omits `currentOwner` and `dateLastTaken`
               from every record, so a copy carrying those columns holds a
               uniform absence that is indistinguishable, in the store, from
@@ -251,10 +262,12 @@ Rationale:    The obligation binds the store and its consumers rather than any
               the same section records the bounding-box endpoint as able to
               answer per-zone ownership, and records that the first release
               does not require it. The copy this record binds is the one the
-              all-zones sync writes; a volatile overlay held separately, from
-              a response that does carry these fields, is governed by FR-030
-              instead.
-Resolved-by:  #29
+              all-zones sync and the zone-feed ingest write (RD-045); the
+              feed's items carry `dateLastTaken`, so the feed's mapping is
+              where the obligation now bites. A volatile overlay held
+              separately, from a response that does carry these fields, is
+              governed by FR-030 instead.
+Resolved-by:  #29, #232
 ```
 
 ## FR-028 — Decide the user's own holdings by membership in the held-zone list
@@ -421,16 +434,18 @@ Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
 Verification: test — planning completes and returns recommendations against a
-              local copy older than the tolerated staleness bound, and no
-              journey is planned where no local copy exists at all
-Acceptance:   given a local synced copy of the zone set whose last completed
-              refresh is older than the bound recorded under
-              `Architecture.md § Retrieving zones`, when a journey is planned,
-              then planning completes and returns recommendations
+              local copy whose last successful zone-feed run is older than the
+              tolerated staleness bound, and no journey is planned where no
+              local copy exists at all
+Acceptance:   given a local synced copy of the zone set whose last successful
+              zone-feed run is older than the bound recorded under
+              `Architecture.md § Retrieving zones`, or which has none
+              recorded, when a journey is planned, then planning completes and
+              returns recommendations
               given no local synced copy of the zone set, when a journey is
               planned, then the system plans no journey
 Status:       to-build
-Depends-on:   FR-022; FR-023; FR-024
+Depends-on:   FR-022; FR-023; FR-024; FR-119
 Risk:         A refusal beyond the bound puts the whole product behind a
               background job no user can see, retry or reach: one failed or
               delayed sync stops planning for everyone at once, and the outage
@@ -459,7 +474,9 @@ Rationale:    The cited section obliges the pipeline to tolerate a copy stale
               the fact the result must carry is FR-034, separated because a
               plan produced and a plan marked are separately testable
               outcomes. Nothing here fixes how a refusal is surfaced, which
-              has no source yet.
+              has no source yet. Age is the time since the last successful
+              zone-feed run, on the Owner's ruling of 20 October 2026
+              (RD-047), and a copy with none recorded is past the bound.
 Resolved-by:  #33
 ```
 
@@ -473,19 +490,23 @@ Statement:    The system shall record, on each result built from a local
 Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
-Verification: test — a result planned from a local copy older than the
-              tolerated staleness bound carries that fact, and a result
-              planned from a copy within the bound does not
-Acceptance:   given a local synced copy of the zone set whose last completed
-              refresh is older than the bound recorded under
-              `Architecture.md § Retrieving zones`, when a journey is planned,
-              then the result returned carries the fact that it was built from
-              data stale beyond that bound
-              given a local synced copy of the zone set whose last completed
-              refresh is within that bound, when a journey is planned, then
+Verification: test — a result planned from a local copy whose last successful
+              zone-feed run is older than the tolerated staleness bound, or
+              absent, carries that fact, and a result planned from a copy
+              whose last successful zone-feed run is within the bound does
+              not, however old its last all-zones refresh
+Acceptance:   given a local synced copy of the zone set whose last successful
+              zone-feed run is older than the bound recorded under
+              `Architecture.md § Retrieving zones`, or which has none
+              recorded, when a journey is planned, then the result returned
+              carries the fact that it was built from data stale beyond that
+              bound
+              given a local synced copy of the zone set whose last successful
+              zone-feed run is within that bound, however long ago its last
+              all-zones refresh completed, when a journey is planned, then
               the result returned carries no such fact
 Status:       to-build
-Depends-on:   FR-022; FR-033
+Depends-on:   FR-022; FR-033; FR-119
 Risk:         A plan built from data past the tolerated bound and returned
               indistinguishable from one built from a current copy makes the
               degradation the ruling accepted invisible: the product keeps
@@ -518,7 +539,11 @@ Rationale:    Separated from FR-033 on singularity: producing the plan and
               held, what it is called, and whether or how it reaches a user
               are design and interface questions, and the interface has no
               source in the corpus yet. The obligation is that the result
-              carries the fact.
+              carries the fact. What the bound measures is the Owner's ruling
+              of 20 October 2026 (RD-047): the time since the last successful
+              zone-feed run, the monthly all-zones refresh being current by
+              design, which is why the second criterion names that refresh's
+              age as irrelevant.
 Resolved-by:  #35
 ```
 
@@ -705,4 +730,252 @@ Rationale:    The record exists against a named failure mode, and the mode is
               any weakness in the duty. `WON'T-now` would file no story and
               leave a later aggregate free to be silently short.
 Resolved-by:  #40
+```
+
+## FR-119 — Request the zone feed from a scheduled background job
+
+```
+Statement:    The system shall request the zone feed recorded under
+              `Architecture.md § Retrieving zones` on the schedule that
+              section records for it, by a background job that no user
+              request initiates or waits on.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — the feed job issues one zone-feed request when its
+              schedule fires, and a planning request issues none and does not
+              block on the job
+Acceptance:   given the feed schedule fires and no user request is in flight,
+              when the job runs, then one zone-feed request is issued, through
+              the process-wide limit NFR-001 obliges
+              given a planning request served while a zone-feed request is
+              due, when it is served, then it issues no zone-feed request and
+              does not wait on the feed job
+Status:       draft
+Depends-on:   NFR-001
+Volatility:   settled — the zone feed and its schedule are the Owner's
+              decision of 20 October 2026 on #20
+              (`#issuecomment-6279336314`), and the amendment carrying them
+              into the cited section is approved
+              (`#issuecomment-6279805746`) but not yet made; the record stays
+              `draft` until it lands
+Risk:         A feed request on the request path spends the general
+              per-resource allowance on a page load and ties planning to a
+              Turf round trip. A feed job that never runs leaves every zone
+              created since the last all-zones refresh absent from the copy
+              until the next one, and nothing in the copy says so.
+Rationale:    FR-022's obligation, for the second endpoint that writes the
+              copy, and one obligation for the same reason: a job on a
+              schedule that a request can also trigger is not off the request
+              path. The schedule is cited and never restated.
+Resolved-by:  #232
+```
+
+## FR-120 — Request only zone-feed items newer than the latest one processed
+
+```
+Statement:    The system should ask, in each zone-feed request, only for items
+              newer than the latest feed time it has already processed,
+              holding that time across a restart of the process.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     SHOULD
+Verification: test — a request after a recorded feed time, including the first
+              after a restart, carries that time as its lower bound, and a
+              request with none recorded carries no bound
+Acceptance:   given a recorded latest feed time, when the next zone-feed
+              request is issued, including the first after a process restart,
+              then it asks only for items newer than that time
+              given no feed time recorded, when a zone-feed request is issued,
+              then it carries no lower bound
+Status:       draft
+Depends-on:   FR-119
+Volatility:   settled — as FR-119, `draft` until the approved amendment lands;
+              the lower-bound parameter is the one the live API index
+              documents for its feeds, read 20 October 2026
+Rationale:    SHOULD rather than MUST because the failure is waste, not wrong
+              data: the store is idempotent, so a request with no lower bound
+              re-reads items already stored and changes nothing. Neither form
+              guarantees completeness — the API index states that a feed
+              returns an unspecified number of items and may be reset — and
+              the Owner accepted that a zone the feed misses waits for the
+              next monthly all-zones refresh.
+Resolved-by:  #232
+```
+
+## FR-121 — Store the zone each complete zone-feed item carries
+
+```
+Statement:    The system shall store, in its local synced copy of the zone
+              set, the zone each zone-feed item carries when that zone holds
+              every field the copy requires, whether or not the copy already
+              holds that zone.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — a complete item for an id the copy lacks is stored with
+              its values, and one for an id the copy holds replaces the stored
+              values with its own
+Acceptance:   given a zone-feed item whose zone holds every field the copy
+              requires and whose id the copy does not hold, when the item is
+              ingested, then the copy holds that zone with the item's values
+              given such an item for an id the copy already holds with
+              different values, when the item is ingested, then the stored row
+              carries the item's values
+Status:       draft
+Depends-on:   FR-119; FR-022
+Volatility:   unverified-fact — the live API index elides a feed item's zone
+              object to its name; a live sample of 20 October 2026 carried
+              every field the copy requires on every item, which no document
+              yet records; FR-122 governs an item that does not
+Risk:         A feed write that binds a field to the wrong column, or skips
+              the update of a held row, puts a new zone in the wrong place or
+              with the wrong values until the next monthly all-zones refresh
+              overwrites it — a month of silent spatial or value error on
+              exactly the zones the feed exists to add.
+Rationale:    The fields the copy requires are its non-nullable columns under
+              `Architecture.md § The zone table`, cited rather than listed.
+              The second criterion is RD-041: FR-035 binds the value a refresh
+              stores whether or not the copy holds the zone, and the feed
+              writes the same copy.
+Resolved-by:  #232
+```
+
+## FR-122 — Record an unstorable zone-feed item instead of storing it
+
+```
+Statement:    The system shall record, in place of storing, each zone-feed
+              item whose zone lacks a field the local synced copy of the zone
+              set requires or carries a value the per-row assertions under
+              `Architecture.md § The sync write path` refuse.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — an item missing a required field, and one carrying a
+              refused value, each leave no row and a durable record naming
+              them, and an item missing only optional fields is stored
+Acceptance:   given a zone-feed item whose zone lacks a field the copy
+              requires, when the item is ingested, then no row is written or
+              changed from it and a durable record names the item's zone id
+              where present, its feed time and the field missing
+              given a zone-feed item whose zone carries a value those per-row
+              assertions refuse, when the item is ingested, then no row is
+              written or changed from it and a durable record names the item
+              and the assertion
+              given a zone-feed item whose zone lacks only fields the copy
+              holds as optional, when the item is ingested, then the zone is
+              stored per FR-121 and nothing is recorded against it
+Status:       draft
+Depends-on:   FR-121; FR-036
+Volatility:   unverified-fact — as FR-121: which fields a feed item carries is
+              observed rather than documented, which is why the unstorable
+              case is obliged rather than assumed away
+Risk:         A required field filled with a default — a zero coordinate, a
+              zero point value, an invented region — writes a zone that looks
+              valid and is wrong, and nothing downstream can tell it from a
+              real one until the monthly all-zones refresh overwrites it. An
+              item dropped with no record hides a feed whose shape has
+              changed.
+Rationale:    Recording and not storing are one outcome: separated, a record
+              obliging only that nothing is stored is met by a silent drop,
+              and one obliging only a record is met by recording a guess and
+              storing it. What counts as unstorable is RD-042; the latest feed
+              time advancing past a recorded item is RD-043. The third
+              criterion keeps FR-036's ordinary case outside the boundary.
+              Durable means queryable after a restart, by the bookkeeping
+              convention of `Architecture.md § The sync write path` — a table,
+              not log lines.
+Resolved-by:  #232
+```
+
+## FR-123 — Start each month's all-zones refresh until one completes
+
+```
+Statement:    The system shall start the all-zones refresh FR-022 obliges
+              whenever the most recent monthly instant recorded under
+              `Architecture.md § Retrieving zones`, read in the time zone that
+              section records, has passed and no all-zones refresh has
+              completed since it.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — with no refresh completed since the most recent monthly
+              instant, a refresh starts whether the process ran through the
+              instant, started after it or started against an empty copy, and
+              again after an attempt that did not complete; and the instant
+              falls at the same local wall-clock time on either side of a
+              daylight-saving change
+Acceptance:   given two monthly instants, one under the recorded time zone's
+              summer time and one under its standard time, when the schedule
+              is evaluated against each, then each falls due at the local
+              wall-clock time the cited section records and not at a fixed
+              offset from UTC
+              given the most recent monthly instant has passed and no
+              all-zones refresh has completed since it — the process running
+              through the instant, starting after it, or starting against an
+              empty copy — when the schedule is evaluated, then an all-zones
+              refresh starts as soon as NFR-001 permits
+              given an all-zones attempt since that instant that did not
+              complete, when NFR-001 next permits an attempt, then another
+              starts
+              given only zone-feed runs have completed since that instant,
+              when the schedule is evaluated, then an all-zones refresh starts
+Status:       draft
+Depends-on:   FR-022; NFR-001
+Volatility:   settled — the monthly instant is the Owner's decision of
+              20 October 2026 on #20 (`#issuecomment-6279336314`) and the time
+              zone it is read in the Owner's answer of the same day
+              (`#issuecomment-6279805746`, RD-046); the approved amendment
+              carrying both into the cited section is not yet made, and the
+              record stays `draft` until it lands
+Risk:         A month's refresh skipped — by a restart across the instant, by
+              a failed attempt never retried, or by a feed run taken for it —
+              leaves every zone's point values a month stale and every zone
+              the feed missed absent for two months, with nothing in the copy
+              saying so. An empty copy left waiting for the next instant plans
+              no journey, per FR-033, for up to a month.
+Rationale:    RD-044. Completed means a run recorded as successful; an attempt
+              refused by the staging assertions under
+              `Architecture.md § The sync write path` has not completed. The
+              retry is paced by NFR-001 and not by a figure of its own.
+              Anchoring on the most recent instant rather than on the next one
+              is what fills an empty copy at once. The time zone is RD-046 and
+              is cited, never restated; the first criterion is what tells a
+              zone-aware schedule from one fixed to a UTC offset, which agree
+              for half the year.
+Resolved-by:  #233
+```
+
+## FR-124 — Issue no all-zones request once the month's refresh has completed
+
+```
+Statement:    The system shall issue no all-zones request between the
+              completion of an all-zones refresh and the next monthly instant
+              recorded under `Architecture.md § Retrieving zones`.
+Category:     Turf data integration
+Source:       Architecture.md § Retrieving zones
+Priority:     MUST
+Verification: test — after a completed refresh, neither a restart nor any
+              advance of the clock short of the next monthly instant produces
+              an all-zones request
+Acceptance:   given an all-zones refresh completed after the most recent
+              monthly instant, when the process restarts at any time before
+              the next instant, then no all-zones request is issued before
+              that instant
+              given an all-zones refresh completed after the most recent
+              monthly instant, when the clock advances to any time before the
+              next instant, then no all-zones request is issued
+Status:       draft
+Depends-on:   FR-123
+Volatility:   settled — as FR-123, `draft` until the approved amendment lands
+Risk:         A refresh repeated within the month spends the endpoint's
+              allowance and rewrites most of the table for a change the
+              monthly schedule exists to capture once, and a repeat driven by
+              restarts recurs on every crash loop.
+Rationale:    FR-123 obliges the run; this record is what replaces the
+              interval schedule, which satisfies FR-123 on its own. The anchor
+              is the completion recorded in the store and never the process's
+              lifetime, the trap `DEPLOYMENT.md` names for a sync that runs on
+              start-up.
+Resolved-by:  #233
 ```

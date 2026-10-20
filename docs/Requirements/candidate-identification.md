@@ -17,9 +17,10 @@ Source:       SPECIFICATION.md § Candidate zone identification
 Priority:     MUST
 Verification: test — a zone lying further from a route than the corridor
               half-width derived for it is absent from that route's corridor
-              set, and a journey planned with a larger additional-time
-              allowance derives a corridor no narrower than one planned with a
-              smaller allowance
+              set, a journey planned with a larger additional-time allowance
+              derives a corridor no narrower than one planned with a smaller
+              allowance, and the spare time the corridor grows with is
+              measured beyond the A→B time the routing engine returns
 Acceptance:   given a zone lying further from a route alternative than the
               corridor half-width derived for that route, when the corridor
               set is resolved, then the zone is not in it
@@ -29,12 +30,22 @@ Acceptance:   given a zone lying further from a route alternative than the
               narrower than the one derived for the smaller, and both lie
               between the floor and the cap stated under
               `CalculationSpecification.md § Bounding the candidate set`
+              given a routing engine of the kind recorded under
+              `Architecture.md § D3` returning a known A→B time for a journey,
+              when that journey's corridor half-width is derived, then the
+              spare time it grows with is the user's available time beyond
+              that returned A→B time
 Status:       to-build
 Depends-on:   FR-023; FR-038
-Volatility:   proposed-constant — the corridor half-width, its floor and its
-              cap under
-              `CalculationSpecification.md § Bounding the candidate set` are
-              proposed defaults with nothing measured behind them
+Volatility:   proposed-constant — the floor, the cap and the quantity the
+              half-width grows with are the Owner's decision of
+              20 October 2026 on #20
+              (https://github.com/Caisesiume/TurfGPS/issues/20#issuecomment-6279845172,
+              RD-048), carried by
+              `CalculationSpecification.md § Bounding the candidate set` once
+              the approved amendment lands; how fast the half-width grows
+              between floor and cap stays a proposed default with nothing
+              measured behind it
 Risk:         The corridor is where per-journey call volume is decided before
               anything else bounds it: unbounded, it puts every zone in the
               extract into routing and access analysis, and the failure is not
@@ -51,7 +62,13 @@ Rationale:    The obligation is created by the cited section requiring the
               which is what keeps the record from hardening a proposal. That
               the corridor set is reduced much further before full evaluation
               is FR-064's, and this record deliberately admits far more than
-              routing can serve.
+              routing can serve. The third criterion carries the Owner's
+              ruling of 20 October 2026 that the A→B time comes from
+              TurfGPS's own routing engine and not from a third-party service
+              (RD-048), and the cap is wide on the Owner's reason, verbatim:
+              'It wouldn't be a large selection, since the routes will be
+              prioritizing attribute zones, so there will be significantly
+              less zones than the total number'.
 Resolved-by:  —
 ```
 
