@@ -33,7 +33,7 @@ The reason for stating this as a general distinction rather than a carve-out is 
 
 "Reasonable spatial limits", in *Candidate zone identification* in `SPECIFICATION.md`, must be a number, or the requirement that per-journey call volume be bounded has nothing bounding it. Two mechanisms apply together, and both are **proposed defaults**.
 
-**A corridor scaled to the time budget.** How far a zone can lie from the route and remain worth considering depends on how much extra time the user has allowed. The corridor half-width is derived from the per-leg time allowance — roughly the distance drivable in half the remaining allowance — then **floored at 1 km and capped at 15 km**.
+**A corridor scaled to the time budget.** How far a zone can lie from the route and remain worth considering depends on how much extra time the user has allowed. The corridor half-width is derived from the per-leg time allowance, the user's spare time beyond the A→B drive time that TurfGPS's own routing engine computes (Valhalla, *§ D3* in `Architecture.md`), not from Google Maps — roughly the distance drivable in half the remaining allowance — then **floored at 1 km and capped at 50 km**. The Owner's reason for the cap: "It wouldn't be a large selection, since the routes will be prioritizing attribute zones, so there will be significantly less zones than the total number" (#20, 20 October 2026).
 
 The floor keeps a corridor usable even for a very small budget. The cap is generous on purpose: a highly ranked attribute is rare enough, per *Attribute rarity* in `SPECIFICATION.md`, that a genuinely valuable zone may sit well off the main road, and a tight corridor would never see it.
 
@@ -130,7 +130,7 @@ The model this constant serves — soft target, hard ceiling, and the clearly-la
 
 **Two properties, both binding.** The 15% figure is a **proposed default**: nothing measured establishes it, and it may not be quoted to a user as though something did. What it fixes is the **maximum permitted value** stated above, and revising that is a change to this specification, ratified here — the maximum is not a deployment setting. The **value a deployment enforces** is a separate object, governed by the strict direction stated above: a deployment running stricter than the maximum revises nothing, and needs no ratification to do it. The ceiling's **enforcement is not a proposal**: whatever value the constant holds, no recommendation may exceed it, for any reason, however valuable the zone. A statement carrying only the first property leaves the constraint tunable in both directions; one carrying only the second falsely claims a measured figure. Both are stated because either alone is wrong.
 
-This ceiling is **unrelated to the 15 km corridor cap** under *Bounding the candidate set*, which shares no more than a numeral with it. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
+This ceiling is **unrelated to the 50 km corridor cap** under *Bounding the candidate set*. That cap bounds where candidates may be looked for, and being wrong costs result quality; this ceiling bounds what may be recommended, and being wrong routes a driver off their journey.
 
 ---
 

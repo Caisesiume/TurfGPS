@@ -279,7 +279,8 @@ $$;
 -- often enough that NOT NULL would reject real responses.
 --
 -- There are deliberately NO columns for `currentOwner` or `dateLastTaken`.
--- They are round-scoped, they are absent from every record the sync reads, and
+-- They are round-scoped, no all-zones record carries either, the zone feed's
+-- `dateLastTaken` is dropped at ingest (#232), and
 -- a synced table that acquires one acquires a rollover problem it does not
 -- currently have. The argument is in
 -- `Architecture.md § The two absences, and the test that keeps them absent`;
