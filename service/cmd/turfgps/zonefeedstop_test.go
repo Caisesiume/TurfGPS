@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/turf"
 )
 
-// Tests over what startZoneFeed tells main: whether the feed ENDED ON ITS OWN,
+// Tests over what loadZoneFeed and startZoneFeed tell main: whether the feed ENDED ON ITS OWN,
 // which main maps to the exit status, as `zonesyncstop_test.go` tests for the
 // sync and for the reasons its header gives in both directions. As there, no
 // database is reached: the configured case cancels its context before the
@@ -27,6 +28,18 @@ func noFeedConfigured(t *testing.T) {
 	}
 }
 
+// loadedFeed is loadZoneFeed over the process's environment, as main reads it.
+func loadedFeed(t *testing.T) *zoneFeed {
+	t.Helper()
+
+	feed, err := loadZoneFeed(os.LookupEnv)
+	if err != nil {
+		t.Fatalf("the zone feed's configuration was refused: %v", err)
+	}
+
+	return feed
+}
+
 func TestAnUnconfiguredFeedIsNotReportedAsHavingDied(t *testing.T) {
 	noFeedConfigured(t)
 
@@ -35,7 +48,7 @@ func TestAnUnconfiguredFeedIsNotReportedAsHavingDied(t *testing.T) {
 
 	stop := &countedStop{cancel: cancel}
 
-	wait, err := startZoneFeed(ctx, stop.stop)
+	wait, err := startZoneFeed(ctx, stop.stop, loadedFeed(t))
 	if err != nil {
 		t.Fatalf("no zone feed is configured and startZoneFeed refused to start: %v — main maps that to exit 1, so a service with no feed would not start", err)
 	}
@@ -60,7 +73,7 @@ func TestAStoppedFeedIsNotReportedAsHavingDied(t *testing.T) {
 
 	cancel()
 
-	wait, err := startZoneFeed(ctx, stop.stop)
+	wait, err := startZoneFeed(ctx, stop.stop, loadedFeed(t))
 	if err != nil {
 		t.Fatalf("a configured feed refused to start: %v", err)
 	}
@@ -78,11 +91,24 @@ func TestAPartlyConfiguredFeedIsRefused(t *testing.T) {
 	noFeedConfigured(t)
 	t.Setenv(config.EnvZoneFeedInterval, "1h")
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	if _, err := loadZoneFeed(os.LookupEnv); err == nil {
+		t.Error("a feed with an interval and no endpoint was accepted, want a refusal main exits on")
+	}
+}
 
-	if _, err := startZoneFeed(ctx, (&countedStop{cancel: cancel}).stop); err == nil {
-		t.Error("a feed with an interval and no endpoint started, want a refusal main exits on")
+// TestAFeedEndpointOffTheCurrentVersionIsRefusedBeforeAnythingStarts (#238,
+// N2): the feed's client refuses an endpoint not on the API's current version,
+// and loadZoneFeed — which main calls before the listener and the sync start,
+// and which opens nothing — is where that refusal comes from, so main exits on
+// it with nothing running to stop.
+func TestAFeedEndpointOffTheCurrentVersionIsRefusedBeforeAnythingStarts(t *testing.T) {
+	t.Setenv(config.EnvDatabaseURL, "postgres://turfgps@127.0.0.1:1/turfgps")
+	t.Setenv(config.EnvZoneFeedURL, "https://example.test/v4/feeds/zone")
+	t.Setenv(config.EnvZoneFeedInterval, "1h")
+	t.Setenv(config.EnvRequestInterval, "250ms")
+
+	if feed, err := loadZoneFeed(os.LookupEnv); err == nil {
+		t.Errorf("a feed endpoint on /v4 was accepted by loadZoneFeed (%+v), want the refusal main exits on before the sync starts", feed)
 	}
 }
 

@@ -9,9 +9,9 @@
 -- The source is the Owner's zone-sync decision on #20
 -- (`#issuecomment-6279336314`) and the draft records `FR-119` … `FR-122`, until
 -- `Architecture.md § Retrieving zones` is amended to carry the zone feed. What
--- the feed writes into `zone` goes through the merge of
--- `Architecture.md § The sync write path`, unchanged; only its bookkeeping is
--- new, and it is here.
+-- the feed writes into `zone` is the INSERT of
+-- `Architecture.md § The sync write path`, with an id already held left
+-- untouched (#238); only its bookkeeping is new, and it is here.
 --
 -- ----------------------------------------------------------------------------
 -- EXECUTED ON THROWAWAY INSTANCES ONLY, as 0001 is: CI's `migrations` job

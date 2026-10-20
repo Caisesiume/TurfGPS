@@ -12,9 +12,10 @@ import (
 
 // The zone feed's half of the write side (#232): the adapter behind
 // zonesync.FeedStore. Its tables are `migrations/0002_zone_feed.sql`'s; what
-// it writes into `zone` goes through the statement mergeSQL is, built from the
-// same zoneColumns, so the feed binds every value to the column the all-zones
-// path binds it to and updates a held id by the same change-only test.
+// it writes into `zone` goes through the INSERT … SELECT mergeSQL begins with,
+// built from the same zoneColumns, so the feed binds every value to the column
+// the all-zones path binds it to. It never updates a held id: see
+// feedInsertSQL.
 
 var _ zonesync.FeedStore = (*Store)(nil)
 
@@ -27,9 +28,19 @@ var _ zonesync.FeedStore = (*Store)(nil)
 // of a hundred zones.
 const feedStagingTable = "pg_temp.zone_feed_incoming"
 
-// feedMergeSQL is mergeSQL reading from feedStagingTable. Only the FROM line
-// differs, which columns_test.go asserts.
-var feedMergeSQL = buildMergeSQL(feedStagingTable)
+// feedInsertSQL is mergeSQL's INSERT … SELECT reading from feedStagingTable,
+// and it leaves an id `zone` already holds untouched: ON CONFLICT DO NOTHING
+// where mergeSQL updates. columns_test.go asserts both halves.
+//
+// INSERT-ONLY BECAUSE A FEED ITEM IS A CREATION SNAPSHOT. Read live on
+// 20 October 2026, zone 830403's feed item carried 0 takeovers and the
+// placeholder dateLastTaken while `POST /v5/zones` already gave 1 takeover
+// (#238, the safety review's S1). Updating a held id from such an item would
+// write older values over newer ones — coordinates included, reverting a move
+// a full sync recorded until the next one. The Owner's decision on #20 takes
+// *new* zones from the feed; a held zone's values come from the monthly full
+// sync alone. This supersedes `RD-041`.
+var feedInsertSQL = buildInsertSQL(feedStagingTable) + "ON CONFLICT (" + zoneKeyColumn + ") DO NOTHING"
 
 // refusalColumns are the columns of `zone_feed_refusal` a refusal fills; `id`
 // is the sequence's.
@@ -118,7 +129,7 @@ func (s *Store) ApplyFeed(ctx context.Context, batch zonesync.FeedBatch) (zonesy
 	var applied zonesync.FeedApplied
 
 	if len(batch.Zones) > 0 {
-		if applied, err = mergeFeedZones(ctx, tx, batch.Zones, stamp); err != nil {
+		if applied, err = insertFeedZones(ctx, tx, batch.Zones, stamp); err != nil {
 			return zonesync.FeedApplied{}, err
 		}
 	}
@@ -152,16 +163,16 @@ func (s *Store) ApplyFeed(ctx context.Context, batch zonesync.FeedBatch) (zonesy
 	return applied, nil
 }
 
-// mergeFeedZones stages the batch's zones and merges them into `zone`.
+// insertFeedZones stages the batch's zones and inserts those whose id `zone`
+// does not hold; a held id is left as it is (feedInsertSQL).
 //
-// The batch holds each id once — zonesync.ParseZoneFeed keeps one item per id —
-// and that is load-bearing: the merge is one INSERT … ON CONFLICT, which
-// PostgreSQL refuses outright when two staged rows name one id.
+// The batch holds each id once — zonesync.ParseZoneFeed keeps one item per id,
+// the later feed time winning — so which of two items for one new id is stored
+// is decided there, not by the order the rows reach this statement.
 //
-// The counts are separated as Merge separates them, and tested as Merge tests
-// them: this transaction holds the sync's key, so it is the only writer of
-// `zone` while it runs, and a count that says otherwise is not committed.
-func mergeFeedZones(ctx context.Context, tx pgx.Tx, zones []zonesync.Zone, stamp time.Time) (zonesync.FeedApplied, error) {
+// ON CONFLICT DO NOTHING makes the command tag count the rows inserted and
+// nothing else, so every staged zone it did not insert is one the copy held.
+func insertFeedZones(ctx context.Context, tx pgx.Tx, zones []zonesync.Zone, stamp time.Time) (zonesync.FeedApplied, error) {
 	if _, err := tx.Exec(ctx, feedStageSQL); err != nil {
 		return zonesync.FeedApplied{}, fmt.Errorf("creating the zone-feed staging table: %w", err)
 	}
@@ -178,29 +189,12 @@ func mergeFeedZones(ctx context.Context, tx pgx.Tx, zones []zonesync.Zone, stamp
 		return zonesync.FeedApplied{}, fmt.Errorf("staged %d of %d zone-feed zones", copied, len(zones))
 	}
 
-	var before, after int
-
-	if err := tx.QueryRow(ctx, countZonesSQL).Scan(&before); err != nil {
-		return zonesync.FeedApplied{}, fmt.Errorf("counting the zones held: %w", err)
-	}
-
-	tag, err := tx.Exec(ctx, feedMergeSQL, stamp)
+	tag, err := tx.Exec(ctx, feedInsertSQL, stamp)
 	if err != nil {
-		return zonesync.FeedApplied{}, fmt.Errorf("merging the zone-feed zones: %w", err)
+		return zonesync.FeedApplied{}, fmt.Errorf("inserting the zone-feed zones: %w", err)
 	}
 
-	if err := tx.QueryRow(ctx, countZonesSQL).Scan(&after); err != nil {
-		return zonesync.FeedApplied{}, fmt.Errorf("counting the zones held after the zone-feed merge: %w", err)
-	}
+	inserted := int(tag.RowsAffected())
 
-	inserted := after - before
-	updated := int(tag.RowsAffected()) - inserted
-
-	if inserted < 0 || updated < 0 {
-		return zonesync.FeedApplied{}, fmt.Errorf(
-			"the zone-feed merge is not committing: it affected %d rows while `zone` went from %d to %d — figures that cannot both be true while this transaction holds the sync's lock",
-			tag.RowsAffected(), before, after)
-	}
-
-	return zonesync.FeedApplied{Inserted: inserted, Updated: updated}, nil
+	return zonesync.FeedApplied{Inserted: inserted, Held: len(zones) - inserted}, nil
 }

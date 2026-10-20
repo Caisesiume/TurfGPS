@@ -23,7 +23,7 @@ import (
 //
 // What it measures is the zone feed's write (#232): a batch decided by
 // zonesync.ParseZoneFeed from a feed body, written by ApplyFeed and read back —
-// a zone new to the copy and a held one changed (AC3), an item that cannot be
+// a zone new to the copy and a held one left unchanged (AC3), an item that cannot be
 // stored leaving no row and a record (AC4), the latest feed time recorded,
 // read back by a new reader and never moved back (AC2), and nothing written at
 // all while the sync holds its key.
@@ -199,24 +199,46 @@ func TestTheZoneFeedWriteAgainstAMigratedCopy(t *testing.T) {
 			t.Errorf("the copy holds\n%+v\nwant the item's values\n%+v", got, alphaZone)
 		}
 
-		if applied.Inserted != 1 || applied.Updated != 0 {
-			t.Errorf("the write reports %d inserted and %d updated, want 1 and 0", applied.Inserted, applied.Updated)
+		if applied.Inserted != 1 || applied.Held != 0 {
+			t.Errorf("the write reports %d inserted and %d held, want 1 and 0", applied.Inserted, applied.Held)
 		}
 	})
 
-	t.Run("AC3: a complete item for a held id with other values replaces them", func(t *testing.T) {
+	// Insert-only (#238): a feed item is the zone as it was created, so the
+	// copy's values for an id it holds — coordinates included — may be newer,
+	// and the feed leaves them as they are.
+	t.Run("AC3: a complete item for a held id with other values leaves the held row unchanged", func(t *testing.T) {
 		feedEmptiedAfter(t, pool)
 
 		hold(t, pool, fixtureZone{id: 831667, created: time.Date(2019, 5, 6, 7, 8, 9, 0, time.UTC), typeID: i16(3)})
 
-		applied := poll(t, store, feedItem(itemTime, alpha))
-
-		if got, _ := storedZone(t, pool, 831667); !reflect.DeepEqual(got, alphaZone) {
-			t.Errorf("a held zone fed with other values holds\n%+v\nwant the item's\n%+v", got, alphaZone)
+		before, _ := storedZone(t, pool, 831667)
+		if reflect.DeepEqual(before, alphaZone) {
+			t.Fatal("the held fixture already carries the item's values, so this case could not tell an update from none")
 		}
 
-		if applied.Inserted != 0 || applied.Updated != 1 {
-			t.Errorf("the write reports %d inserted and %d updated, want 0 and 1", applied.Inserted, applied.Updated)
+		var changedBefore, changedAfter time.Time
+
+		if err := pool.QueryRow(t.Context(), `SELECT last_changed_at FROM zone WHERE id = 831667`).Scan(&changedBefore); err != nil {
+			t.Fatalf("reading the held zone's last_changed_at: %v", err)
+		}
+
+		applied := poll(t, store, feedItem(itemTime, alpha))
+
+		if after, _ := storedZone(t, pool, 831667); !reflect.DeepEqual(after, before) {
+			t.Errorf("a held zone fed an item with other values changed from\n%+v\nto\n%+v\nwant it unchanged", before, after)
+		}
+
+		if err := pool.QueryRow(t.Context(), `SELECT last_changed_at FROM zone WHERE id = 831667`).Scan(&changedAfter); err != nil {
+			t.Fatalf("reading the held zone's last_changed_at after the feed: %v", err)
+		}
+
+		if !changedAfter.Equal(changedBefore) {
+			t.Errorf("the held zone's last_changed_at moved from %s to %s, want it unchanged", changedBefore, changedAfter)
+		}
+
+		if applied.Inserted != 0 || applied.Held != 1 {
+			t.Errorf("the write reports %d inserted and %d held, want 0 and 1", applied.Inserted, applied.Held)
 		}
 	})
 

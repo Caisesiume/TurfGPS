@@ -198,13 +198,14 @@ func stagingValues(z zonesync.Zone) []any {
 var mergeSQL = buildMergeSQL(stagingTable)
 
 // stagingTable is the all-zones path's staging table, and the source of
-// mergeSQL. The zone feed merges from a table of its own through the same
-// statement — see feedMergeSQL — so that a feed run never overwrites what a
-// refused full response left staged for an operator to inspect.
+// mergeSQL. The zone feed inserts from a table of its own through the same
+// INSERT … SELECT — see feedInsertSQL — so that a feed run never overwrites
+// what a refused full response left staged for an operator to inspect.
 const stagingTable = "zone_incoming"
 
 // buildMergeSQL writes the merge from zoneColumns, reading the staged rows from
-// source. Only the FROM line depends on source.
+// source: buildInsertSQL's statement, with a conflict on a held id updating
+// the row when any column differs.
 func buildMergeSQL(source string) string {
 	width := len(lastChangedColumn)
 
@@ -214,15 +215,10 @@ func buildMergeSQL(source string) string {
 		}
 	}
 
-	names := make([]string, 0, len(zoneColumns))
-	selected := make([]string, 0, len(zoneColumns))
 	assignments := make([]string, 0, len(zoneColumns))
 	changed := make([]string, 0, len(zoneColumns))
 
 	for _, c := range zoneColumns {
-		names = append(names, c.name)
-		selected = append(selected, "i."+c.name)
-
 		if c.name == zoneKeyColumn {
 			continue
 		}
@@ -234,15 +230,31 @@ func buildMergeSQL(source string) string {
 	assignments = append(assignments,
 		fmt.Sprintf("%-*s = excluded.%s", width, lastChangedColumn, lastChangedColumn))
 
+	return buildInsertSQL(source) +
+		"ON CONFLICT (" + zoneKeyColumn + ") DO UPDATE SET\n" +
+		"       " + strings.Join(assignments, ",\n       ") + "\n" +
+		"WHERE  " + strings.Join(changed, "\n   OR  ")
+}
+
+// buildInsertSQL writes the INSERT … SELECT both writers of `zone` share, from
+// zoneColumns, reading the staged rows from source and ending at the FROM
+// line: what each does with an id `zone` already holds is its own ON CONFLICT
+// clause.
+func buildInsertSQL(source string) string {
+	names := make([]string, 0, len(zoneColumns))
+	selected := make([]string, 0, len(zoneColumns))
+
+	for _, c := range zoneColumns {
+		names = append(names, c.name)
+		selected = append(selected, "i."+c.name)
+	}
+
 	return "\n" +
 		"INSERT INTO zone (" + strings.Join(names, ",\n                  ") + ",\n" +
 		"                  " + firstSeenColumn + ", " + lastChangedColumn + ")\n" +
 		"SELECT " + strings.Join(selected, ",\n       ") + ",\n" +
 		"       $1, $1\n" +
-		"FROM   " + source + " i\n" +
-		"ON CONFLICT (" + zoneKeyColumn + ") DO UPDATE SET\n" +
-		"       " + strings.Join(assignments, ",\n       ") + "\n" +
-		"WHERE  " + strings.Join(changed, "\n   OR  ")
+		"FROM   " + source + " i\n"
 }
 
 const (

@@ -124,6 +124,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Read before anything starts, unlike the sync's configuration, which
+	// startZoneSync reads: a feed configured wrongly then exits here, with no
+	// listener and no sync running to be stopped on the way out (#238).
+	feed, err := loadZoneFeed(os.LookupEnv)
+	if err != nil {
+		slog.Error("the zone feed's configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		slog.Error("cannot listen", "addr", addr, "error", err)
@@ -136,7 +145,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	stopFeed, err := startZoneFeed(ctx, stop)
+	stopFeed, err := startZoneFeed(ctx, stop, feed)
 	if err != nil {
 		slog.Error("the zone feed is configured and could not start", "error", err)
 		os.Exit(1)

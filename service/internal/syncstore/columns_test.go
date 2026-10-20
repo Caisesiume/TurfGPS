@@ -395,32 +395,38 @@ WHERE  zone.name            IS DISTINCT FROM excluded.name
    OR  zone.area_id         IS DISTINCT FROM excluded.area_id
    OR  zone.area_name       IS DISTINCT FROM excluded.area_name`
 
-// TestTheFeedMergesThroughTheSameStatement: the zone feed (#232) writes `zone`
-// through mergeSQL itself, reading from its own staging table — the same
-// column binding, the same change-only test, the same refreshed columns — so
-// the two statements differ in their FROM line and nowhere else.
-func TestTheFeedMergesThroughTheSameStatement(t *testing.T) {
+// TestTheFeedInsertsThroughTheSameStatementAndNeverUpdates: the zone feed
+// (#232) writes `zone` through mergeSQL's own INSERT … SELECT, reading from its
+// own staging table — the same column binding — and ends where mergeSQL's
+// conflict clause begins with one that does nothing: a held id is left as the
+// copy holds it, because a feed item is a creation snapshot (#238, S1).
+func TestTheFeedInsertsThroughTheSameStatementAndNeverUpdates(t *testing.T) {
 	t.Parallel()
 
-	feed, full := strings.Split(feedMergeSQL, "\n"), strings.Split(mergeSQL, "\n")
+	feed, full := strings.Split(feedInsertSQL, "\n"), strings.Split(mergeSQL, "\n")
 
-	if len(feed) != len(full) {
-		t.Fatalf("the feed's merge has %d lines and the full refresh's %d, want the same statement", len(feed), len(full))
+	from := indexOf(full, "FROM   "+stagingTable+" i")
+	if from < 0 || len(feed) < from+1 {
+		t.Fatalf("the full refresh's merge has no FROM line, or the feed's statement is shorter than the INSERT … SELECT:\n%s", feedInsertSQL)
 	}
 
 	var differing []string
 
-	for i := range full {
+	for i := 0; i <= from; i++ {
 		if feed[i] != full[i] {
 			differing = append(differing, fmt.Sprintf("line %d: %q against %q", i+1, feed[i], full[i]))
 		}
 	}
 
-	want := fmt.Sprintf("line %d: %q against %q", indexOf(full, "FROM   "+stagingTable+" i")+1,
-		"FROM   "+feedStagingTable+" i", "FROM   "+stagingTable+" i")
+	want := fmt.Sprintf("line %d: %q against %q", from+1, "FROM   "+feedStagingTable+" i", "FROM   "+stagingTable+" i")
 
 	if len(differing) != 1 || differing[0] != want {
-		t.Errorf("the feed's merge differs from the full refresh's at %v, want only %s", differing, want)
+		t.Errorf("the feed's INSERT … SELECT differs from the full refresh's at %v, want only %s", differing, want)
+	}
+
+	if tail := feed[from+1:]; !reflect.DeepEqual(tail, []string{"ON CONFLICT (" + zoneKeyColumn + ") DO NOTHING"}) {
+		t.Errorf("after its FROM line the feed's statement reads %q, want only %q — a feed item would otherwise rewrite a zone the copy holds",
+			tail, "ON CONFLICT ("+zoneKeyColumn+") DO NOTHING")
 	}
 }
 

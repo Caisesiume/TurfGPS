@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -31,39 +30,50 @@ import (
 //
 // Its stop is waited on alongside the sync's, inside the same budget, because
 // main waits for the two at once: see main.
-func startZoneFeed(ctx context.Context, stop context.CancelFunc) (func() bool, error) {
-	cfg, err := config.LoadZoneFeed(os.LookupEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	if cfg == nil {
+//
+// feed is loadZoneFeed's, read before anything started; nil is no feed
+// configured.
+func startZoneFeed(ctx context.Context, stop context.CancelFunc, feed *zoneFeed) (func() bool, error) {
+	if feed == nil {
 		slog.Info("no zone feed is configured, so zones created since the last full sync will not reach the local copy until the next one",
 			"configure", strings.Join(config.ZoneFeedRequired(), ", "))
 
 		return func() bool { return false }, nil
 	}
 
-	pool, err := zonestore.Open(ctx, cfg.DatabaseURL)
+	pool, err := zonestore.Open(ctx, feed.cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	poller, err := newZoneFeedPoller(cfg, pool)
+	poller, err := newZoneFeedPoller(feed, pool)
 	if err != nil {
 		pool.Close()
 
 		return nil, err
 	}
 
-	slog.Info("the zone feed is running", "interval", cfg.Interval)
+	slog.Info("the zone feed is running", "interval", feed.cfg.Interval)
 
 	return superviseBackgroundJob(ctx, stop, "zone feed", poller.Run, pool.Close), nil
 }
 
-func newZoneFeedPoller(cfg *config.ZoneFeed, pool *pgxpool.Pool) (*zonesync.FeedPoller, error) {
-	store, err := syncstore.New(pool, slog.Default())
-	if err != nil {
+// zoneFeed is the zone feed's configuration, read and checked, with the client
+// it configures already built.
+type zoneFeed struct {
+	cfg    *config.ZoneFeed
+	client *turf.FeedClient
+}
+
+// loadZoneFeed reads the feed's configuration and builds its client, and so
+// refuses every configuration either refuses — an endpoint off the API's
+// current version among them — without opening anything. main calls it before
+// the listener and the sync start, so a feed configured wrongly stops the
+// process before there is anything to shut down (#238, N2). Nil, nil is no feed
+// configured.
+func loadZoneFeed(lookup config.LookupFunc) (*zoneFeed, error) {
+	cfg, err := config.LoadZoneFeed(lookup)
+	if err != nil || cfg == nil {
 		return nil, err
 	}
 
@@ -72,8 +82,19 @@ func newZoneFeedPoller(cfg *config.ZoneFeed, pool *pgxpool.Pool) (*zonesync.Feed
 		return nil, err
 	}
 
+	return &zoneFeed{cfg: cfg, client: client}, nil
+}
+
+func newZoneFeedPoller(feed *zoneFeed, pool *pgxpool.Pool) (*zonesync.FeedPoller, error) {
+	store, err := syncstore.New(pool, slog.Default())
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := feed.cfg
+
 	return zonesync.NewFeedPoller(zonesync.FeedConfig{
-		Fetch:           client.FetchZoneFeed,
+		Fetch:           feed.client.FetchZoneFeed,
 		Store:           store,
 		Logger:          slog.Default().With("component", "zone_feed"),
 		Interval:        cfg.Interval,

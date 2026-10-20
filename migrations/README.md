@@ -25,8 +25,9 @@ staging table, `sync_run`, one index on `zone` and two on `sync_run`.
 `zone_feed_state`, the one row holding the latest feed time processed, and
 `zone_feed_refusal`, the record of each feed item the copy could not store. It
 touches nothing 0001 created. The zones the feed carries reach `zone` through
-the merge of `Architecture.md § The sync write path`, mapped as
-`§ The zone ingest field mapping` below says.
+the INSERT of `Architecture.md § The sync write path`, mapped as
+`§ The zone ingest field mapping` below says; an id `zone` already holds is
+left untouched, because a feed item is the zone as created (#238).
 
 ## Applying one
 
@@ -80,7 +81,8 @@ statement in `Architecture.md § The sync write path`.
 **The zone feed (#232) uses this mapping unchanged.** A feed item is
 `{"type":"zone","time":…,"zone":{…}}`, and its `zone` object is mapped by the
 same code onto the same fourteen columns, staged in a session-private table of
-`zone_incoming`'s shape, and merged by the same statement. A feed item's zone
+`zone_incoming`'s shape, and inserted by the same INSERT … SELECT — only where
+`zone` lacks the id. A feed item's zone
 also carries `dateLastTaken` — observed live on 20 October 2026, never on the
 all-zones response — and it is dropped as every unknown key is, which is
 `FR-026`'s obligation on this mapping. What differs is that a feed item the copy

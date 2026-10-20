@@ -13,14 +13,15 @@ package zonesync
 // reaching this one. It is a separate loop from Scheduler, with its own
 // configuration, because the two answer to different schedules.
 //
-// IT WRITES THROUGH THE SAME MAPPING AND THE SAME MERGE. A feed item's zone is
+// IT WRITES THROUGH THE SAME MAPPING, AND ONLY NEW IDS. A feed item's zone is
 // decoded by wireZone and mapped by its zone method — the all-zones mapping,
 // which has no field for an owner or a last-taken date, so the feed's
 // `dateLastTaken` is dropped where every other unknown key is (`FR-026`) — and
-// `internal/syncstore` merges it with the change-only statement of
+// `internal/syncstore` inserts it through the INSERT of
 // `Architecture.md § The sync write path`, built from the one column binding
-// the all-zones path uses. An id the copy already holds is updated by it
-// (`RD-041`).
+// the all-zones path uses. An id the copy already holds is left untouched: a
+// feed item is the zone as it was created, and the copy may hold newer values,
+// coordinates included, from a full sync (#238; this supersedes `RD-041`).
 //
 // WHAT IS NEW IS DECIDING PER ITEM. A full response is refused whole; a feed
 // batch is not, because a feed returns "from 0 to x" items and can be reset
@@ -131,10 +132,11 @@ func (b FeedBatch) empty() bool {
 	return len(b.Zones) == 0 && len(b.Refusals) == 0 && b.Latest == nil
 }
 
-// FeedApplied is what one batch's merge did.
+// FeedApplied is what one batch's write did with its zones: Inserted were new
+// to the copy, and Held were ids it already held, left as they were.
 type FeedApplied struct {
 	Inserted int
-	Updated  int
+	Held     int
 }
 
 // ErrSyncLockHeld is what ApplyFeed returns when the sync's lock is held — by
@@ -153,7 +155,7 @@ type FeedStore interface {
 	FeedCursor(ctx context.Context) (latest *time.Time, now time.Time, err error)
 
 	// ApplyFeed writes the batch in ONE transaction, under the sync's lock:
-	// the zones through the change-only merge, the refusals, and the latest
+	// the zones whose id the copy lacks, the refusals, and the latest
 	// feed time — so a time is never recorded past items that were not
 	// written. It returns ErrSyncLockHeld, having written nothing, when the
 	// lock is held elsewhere.
@@ -330,7 +332,7 @@ func (p *FeedPoller) poll(ctx context.Context) {
 	}
 
 	p.log.Info("a zone-feed batch was written",
-		"zones", len(batch.Zones), "inserted", applied.Inserted, "updated", applied.Updated,
+		"zones", len(batch.Zones), "inserted", applied.Inserted, "held", applied.Held,
 		"refusals", len(batch.Refusals), "latest", batch.Latest)
 }
 
