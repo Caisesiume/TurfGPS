@@ -1784,9 +1784,9 @@ Rung:           2 — architecture constraints, decisive.
                 non-nullable and `Architecture.md § The sync write path` fixes
                 the per-row assertions. Rung 5 agrees: the all-zones mapping
                 in `service/internal/zonesync/ingest.go` requires the same
-                set. The later-item rule rests on rung 4: applied in feed
-                order through FR-121's merge, the later item's values are the
-                ones the row keeps.
+                set. The later-item rule rests on rung 4: applied oldest
+                first, by feed time, through FR-121's merge, the later item's
+                values are the ones the row keeps.
 Affects:        FR-122; #232.
 ```
 
