@@ -42,6 +42,19 @@ run service/internal/configx/owed.go service/internal/configuration/x.go \
 check "near misses are not safety paths" \
   'safety_path_candidates: []'
 
+# service/internal/ownership/ decides held zones and region lordship, which feed
+# takeover time and so the ceiling (#234, from PR #230's safety verdict, S4).
+run service/internal/ownership/lordship.go service/internal/ownership/held_test.go \
+    service/internal/turf/session.go
+check "internal/ownership/ is a safety path" \
+  'safety_path_candidates: [service/internal/ownership/lordship.go, service/internal/ownership/held_test.go]'
+
+# Near misses on either side of the ownership anchors.
+run service/internal/ownershipx/held.go service/internal/ownership \
+    xservice/internal/ownership/held.go service/internal/turf/ownership/held.go
+check "ownership near misses are not safety paths" \
+  'safety_path_candidates: []'
+
 # The six entries the floor already held still match, in input order.
 run docs/CalculationSpecification.md docs/SPECIFICATION.md \
     docs/Requirements/safety-exclusions.md docs/Requirements/access-classification.md \
