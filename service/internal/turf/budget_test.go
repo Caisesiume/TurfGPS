@@ -551,3 +551,151 @@ func TestTheLimitsAreRequired(t *testing.T) {
 		})
 	}
 }
+
+// hangUpOnce answers every request with a small body, except one: the request
+// to drop that arrives after skip others to the same path is read, counted on
+// arrival like every other, and has its connection closed with no response.
+// It is PR #230's hijack-and-close probe.
+type hangUpOnce struct {
+	drop string
+	skip int
+
+	mu     sync.Mutex
+	seen   int
+	counts map[string]int
+}
+
+func (h *hangUpOnce) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	h.counts[r.Method+" "+r.URL.Path]++
+
+	hangUp := false
+	if r.URL.Path == h.drop {
+		hangUp = h.seen == h.skip
+		h.seen++
+	}
+	h.mu.Unlock()
+
+	if !hangUp {
+		_, _ = w.Write([]byte(`[]`))
+
+		return
+	}
+
+	conn, _, err := w.(http.Hijacker).Hijack()
+	if err == nil {
+		_ = conn.Close()
+	}
+}
+
+func (h *hangUpOnce) count(key string) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	return h.counts[key]
+}
+
+// TestATransparentRetryCannotBypassTheBudget is #234 N1, for both clients.
+//
+// net/http re-sends an idempotent GET, inside the one RoundTrip of the
+// transport limitedTransport wraps, when a REUSED connection drops after the
+// server has read the request. The budget is taken once per RoundTrip, so that
+// re-send reached the API unmetered. Each case first makes one ordinary
+// request, so that a kept-alive connection would carry the next, and then the
+// GET whose connection the server drops: the server must see that GET once,
+// and the caller must get the error rather than an unmetered second answer.
+func TestATransparentRetryCannotBypassTheBudget(t *testing.T) {
+	t.Parallel()
+
+	for _, c := range []struct {
+		name string
+		path string
+		skip int // ordinary GETs of path before the dropped one
+		run  func(t *testing.T, base string) error
+	}{
+		{
+			name: "the session client's region GET",
+			path: regionsPath,
+			run: func(t *testing.T, base string) error {
+				s, err := NewSessionClient(SessionEndpoints{Users: base + usersPath, Regions: base + regionsPath}, 1<<20, testLimits)
+				if err != nil {
+					t.Fatalf("building the session client: %v", err)
+				}
+
+				if _, err := s.FetchPlayer(t.Context(), planner); err != nil {
+					t.Fatalf("the player-data call before the probe: %v", err)
+				}
+
+				_, err = s.FetchRegions(t.Context())
+
+				return err
+			},
+		},
+		{
+			name: "the sync client's all-zones GET",
+			path: currentPath,
+			skip: 1,
+			run: func(t *testing.T, base string) error {
+				z, err := NewClient(base+currentPath, 1<<20, testLimits)
+				if err != nil {
+					t.Fatalf("building the sync's client: %v", err)
+				}
+
+				if _, _, err := z.FetchAllZones(t.Context()); err != nil {
+					t.Fatalf("the all-zones fetch before the probe: %v", err)
+				}
+
+				_, _, err = z.FetchAllZones(t.Context())
+
+				return err
+			},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := &hangUpOnce{drop: c.path, skip: c.skip, counts: map[string]int{}}
+			srv := httptest.NewServer(h)
+			t.Cleanup(srv.Close)
+
+			err := c.run(t, srv.URL)
+
+			if got, want := h.count("GET "+c.path), c.skip+1; got != want || err == nil {
+				t.Errorf("GETs of %s at the server=%d err=%v; want %d and an error: the re-send of the dropped GET bypassed the budget", c.path, got, err, want)
+			}
+		})
+	}
+}
+
+// TestTheMeteredTransportSpeaksHTTP11Alone is the second half of #234 N1: the
+// HTTP/2 transport re-sends a request on a fresh connection after some stream
+// errors, so a server that offers HTTP/2 is still answered over HTTP/1.1, on a
+// connection that is not kept for the next request.
+func TestTheMeteredTransportSpeaksHTTP11Alone(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+
+	h := &http.Client{Transport: newLimitedTransport(srv.Client().Transport, nil, testLimits)}
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL, nil)
+	if err != nil {
+		t.Fatalf("building the request: %v", err)
+	}
+
+	resp, err := h.Do(req)
+	if err != nil {
+		t.Fatalf("the request: %v", err)
+	}
+
+	_ = resp.Body.Close()
+
+	if resp.ProtoMajor != 1 || !resp.Close {
+		t.Errorf("answered over %s, connection closed after it=%v; want HTTP/1.1 on a connection that is not kept", resp.Proto, resp.Close)
+	}
+}

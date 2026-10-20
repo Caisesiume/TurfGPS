@@ -188,12 +188,52 @@ func newLimitedTransport(base http.RoundTripper, allZones *url.URL, limits Limit
 		base = http.DefaultTransport
 	}
 
+	if tr, ok := base.(*http.Transport); ok {
+		base = unretried(tr)
+	}
+
 	t := &limitedTransport{base: base, limits: limits}
 	if allZones != nil {
 		t.allZones = gateKey{host: hostKey(allZones), path: allZones.Path}
 	}
 
 	return t
+}
+
+// unretried returns a copy of tr that never re-sends a request it has written.
+//
+// A RE-SEND INSIDE THE TRANSPORT IS A REQUEST THE BUDGET NEVER SAW (#234, N1).
+// net/http re-sends an idempotent GET, within the one RoundTrip limitedTransport
+// meters, when a REUSED HTTP/1 connection drops after the server has read the
+// request; its HTTP/2 transport re-sends on a fresh connection after some
+// stream and connection errors. Either puts a second request on the wire
+// inside one pass through the gate. With no connection kept alive there is no
+// reused connection to re-send on, and with HTTP/1.1 alone there is no HTTP/2
+// re-send. A request the transport never wrote is still retried, and never
+// reached the API.
+//
+// The cost is a new connection, and its handshake, for every request, which a
+// limit of one request per interval makes a small price.
+//
+// Only an *http.Transport can be configured so. Every client this package
+// builds passes http.DefaultTransport; a test that hands setHTTPClient its
+// server's client passes an *http.Transport too.
+func unretried(tr *http.Transport) *http.Transport {
+	c := tr.Clone()
+	c.DisableKeepAlives = true
+
+	var http1 http.Protocols
+	http1.SetHTTP1(true)
+	c.Protocols = &http1
+
+	// A TLS configuration that offers h2 itself would have the server choose
+	// it, and an HTTP/1-only transport cannot speak it. Clone copied the
+	// configuration, so clearing the offer here changes no one else's.
+	if c.TLSClientConfig != nil {
+		c.TLSClientConfig.NextProtos = nil
+	}
+
+	return c
 }
 
 // RoundTrip takes the all-zones gate, when the request is addressed to that
