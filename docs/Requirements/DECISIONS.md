@@ -2056,6 +2056,8 @@ Rung:           n/a for the marking — Owner ruling, escalated because it
                 (#236, safety sentinel finding N4, cycle 3,
                 `#issuecomment-6296008171`).
 Affects:        FR-034: title, statement, `Verification`, criteria,
-                `Depends-on` (FR-123 added), `Risk` and `Rationale`; #35's
-                acceptance criteria.
+                `Depends-on` (FR-123 added), `Risk` and `Rationale`; FR-116:
+                statement, `Verification`, first and third criteria,
+                `Volatility` and `Risk`, so a marking on the full-sync bound
+                alone survives storage; #35's acceptance criteria.
 ```

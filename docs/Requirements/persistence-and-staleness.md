@@ -698,40 +698,49 @@ Resolved-by:  —
 
 ```
 Statement:    The system shall carry the marking that a result was built from
-              a local synced copy of the zone set stale beyond the bound
-              recorded under `Architecture.md § Retrieving zones` through to
-              every reopening of the stored plan made from that result.
+              a local synced copy of the zone set stale beyond either bound
+              recorded under `Architecture.md § Retrieving zones` — the bound
+              on the time since the last successful zone-feed run, or the
+              bound on the time since the last completed all-zones refresh —
+              through to every reopening of the stored plan made from that
+              result.
 Category:     Persistence and staleness
 Source:       SPECIFICATION.md § Route persistence
 Priority:     MUST
-Verification: test — a stored plan made from a marked result carries the
-              marking when it is reopened, one made from an unmarked result
-              carries none, and a refresh of the local synced copy since the
-              plan was computed does not clear it
+Verification: test — a stored plan made from a result marked on either bound,
+              the full-sync bound alone included, carries the marking when it
+              is reopened, one made from an unmarked result carries none, and
+              neither a zone-feed run nor an all-zones refresh since the plan
+              was computed clears it
 Acceptance:   given a result marked as built from a local synced copy of the
-              zone set stale beyond the bound recorded under
-              `Architecture.md § Retrieving zones`, when the plan made from it
-              is stored and later reopened, then the reopened stored plan
-              carries that marking
+              zone set stale beyond either bound recorded under
+              `Architecture.md § Retrieving zones`, including one marked on
+              the full-sync bound alone while within the feed bound, when the
+              plan made from it is stored and later reopened, then the
+              reopened stored plan carries that marking
               given a result carrying no such marking, when the plan made from
               it is stored and later reopened, then the reopened stored plan
               carries no such marking
               given a stored plan made from a marked result, when it is
               reopened after the local synced copy of the zone set has been
-              refreshed within that bound, then the marking is still carried
+              brought within both bounds, by a successful zone-feed run, a
+              completed all-zones refresh or both, then the marking is still
+              carried
 Status:       to-build
 Depends-on:   FR-034
 Volatility:   settled — `SPECIFICATION.md § Route persistence` states that a
-              stored route keeps everything, and the bound under
-              `Architecture.md § Retrieving zones` is recorded rather than
-              proposed; what it measures — the time since the last successful
-              zone-feed run — is the Owner's ruling of 20 October 2026
-              (RD-047), which the cited section carries once the approved
-              amendment lands
+              stored route keeps everything, and the bounds under
+              `Architecture.md § Retrieving zones` are recorded rather than
+              proposed; what the feed bound measures — the time since the
+              last successful zone-feed run — is the Owner's ruling of
+              20 October 2026 (RD-047), and the full-sync bound — the time
+              since the last completed all-zones refresh, none on record
+              counting as beyond it — is the Owner's ruling of the same day
+              (RD-050); the cited section carries both
 Risk:         A marking lost on storage defeats FR-034 outright for exactly
               the plans that live longest: a plan built from a copy stale
-              beyond the bound reopens indistinguishable from one built from a
-              current copy, and the degradation the ruling accepted on
+              beyond either bound reopens indistinguishable from one built
+              from a current copy, and the degradation the ruling accepted on
               condition of disclosure becomes invisible on the morning of
               departure, when the user acts on it.
 Rationale:    `SPECIFICATION.md § Route persistence` says a stored route keeps
