@@ -480,33 +480,41 @@ Rationale:    The cited section obliges the pipeline to tolerate a copy stale
 Resolved-by:  #33
 ```
 
-## FR-034 — Record a result as built from data stale beyond the bound
+## FR-034 — Record a result as built from data stale beyond a bound
 
 ```
 Statement:    The system shall record, on each result built from a local
-              synced copy of the zone set stale beyond the bound recorded
-              under *Retrieving zones* in `Architecture.md`, that the result
-              was built from data stale beyond that bound.
+              synced copy of the zone set stale beyond either bound recorded
+              under `Architecture.md § Retrieving zones` — the bound on the
+              time since the last successful zone-feed run, or the bound on
+              the time since the last completed all-zones refresh — that the
+              result was built from data stale beyond a bound.
 Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
 Verification: test — a result planned from a local copy whose last successful
-              zone-feed run is older than the tolerated staleness bound, or
-              absent, carries that fact, and a result planned from a copy
-              whose last successful zone-feed run is within the bound does
-              not, however old its last all-zones refresh
+              zone-feed run is older than the feed bound, or absent, carries
+              that fact, as does one planned from a copy whose last completed
+              all-zones refresh is older than the full-sync bound, or absent;
+              a result planned from a copy within both bounds does not
 Acceptance:   given a local synced copy of the zone set whose last successful
-              zone-feed run is older than the bound recorded under
+              zone-feed run is older than the feed bound recorded under
               `Architecture.md § Retrieving zones`, or which has none
               recorded, when a journey is planned, then the result returned
-              carries the fact that it was built from data stale beyond that
+              carries the fact that it was built from data stale beyond a
               bound
+              given a local synced copy of the zone set whose last completed
+              all-zones refresh is older than the full-sync bound recorded
+              under that section, or which has none recorded, however recent
+              its last successful zone-feed run, when a journey is planned,
+              then the result returned carries that fact
               given a local synced copy of the zone set whose last successful
-              zone-feed run is within that bound, however long ago its last
-              all-zones refresh completed, when a journey is planned, then
-              the result returned carries no such fact
+              zone-feed run is within the feed bound and whose last completed
+              all-zones refresh is within the full-sync bound, however long
+              ago within it, when a journey is planned, then the result
+              returned carries no such fact
 Status:       to-build
-Depends-on:   FR-022; FR-033; FR-119
+Depends-on:   FR-022; FR-033; FR-119; FR-123
 Risk:         A plan built from data past the tolerated bound and returned
               indistinguishable from one built from a current copy makes the
               degradation the ruling accepted invisible: the product keeps
@@ -515,15 +523,19 @@ Risk:         A plan built from data past the tolerated bound and returned
               diagnosis, the user deciding whether to trust it — can tell
               which answers to discount. The loss is silent, and it is total
               exactly when it matters most: a prolonged sync failure reaches
-              every result at once and none of them says so.
+              every result at once and none of them says so. A full sync
+              failing month after month behind a feed that keeps running is
+              the same loss, slower: every held zone's coordinate and point
+              values age without limit while the feed bound reads every
+              result as current.
 Rationale:    Separated from FR-033 on singularity: producing the plan and
               recording what it was built from are two outcomes on one branch,
               and a statement joining them would be half-satisfiable by the
               half that keeps the product working — which is the half nobody
               forgets to build. It carries the second half of the Owner's
               ruling of 3 August 2026, that the result is marked as built from
-              stale data. The second criterion is as much the record's point
-              as the first: a fact recorded on every result records nothing,
+              stale data. The third criterion is as much the record's point as
+              the first two: a fact recorded on every result records nothing,
               and the marking informs only where it tracks the condition that
               produced it; that criterion asserts nothing about whether
               planning within the bound completes, which is FR-024's. The
@@ -542,8 +554,17 @@ Rationale:    Separated from FR-033 on singularity: producing the plan and
               carries the fact. What the bound measures is the Owner's ruling
               of 20 October 2026 (RD-047): the time since the last successful
               zone-feed run, the monthly all-zones refresh being current by
-              design, which is why the second criterion names that refresh's
-              age as irrelevant.
+              design, which is why the feed bound ignores that refresh's age.
+              The full-sync bound is the Owner's ruling of the same day
+              (RD-050), which placed its marking in this record: the feed
+              adds only zones new to the copy (RD-049), so a held zone's
+              coordinate refreshes only at the all-zones refresh, and when
+              that refresh keeps failing the feed bound alone never sees the
+              age. No completed all-zones refresh on record counts as beyond
+              that bound, as RD-047 counts no feed run: an unknown age is
+              never read as within. One fact serves both bounds; whether it
+              also names the bound exceeded is a mechanism question, left
+              open with the rest.
 Resolved-by:  #35
 ```
 
@@ -803,41 +824,50 @@ Rationale:    SHOULD rather than MUST because the failure is waste, not wrong
 Resolved-by:  #232
 ```
 
-## FR-121 — Store the zone each complete zone-feed item carries
+## FR-121 — Store the zone of each complete zone-feed item new to the copy
 
 ```
 Statement:    The system shall store, in its local synced copy of the zone
               set, the zone each zone-feed item carries when that zone holds
-              every field the copy requires, whether or not the copy already
-              holds that zone.
+              every field the copy requires, and only when the copy does not
+              already hold that zone's id.
 Category:     Turf data integration
 Source:       Architecture.md § Retrieving zones
 Priority:     MUST
 Verification: test — a complete item for an id the copy lacks is stored with
-              its values, and one for an id the copy holds replaces the stored
-              values with its own
+              its values, and one for an id the copy holds leaves the stored
+              row unchanged
 Acceptance:   given a zone-feed item whose zone holds every field the copy
               requires and whose id the copy does not hold, when the item is
               ingested, then the copy holds that zone with the item's values
               given such an item for an id the copy already holds with
-              different values, when the item is ingested, then the stored row
-              carries the item's values
+              different values, its coordinate among them, when the item is
+              ingested, then the stored row is unchanged
 Status:       draft
 Depends-on:   FR-119; FR-022
 Volatility:   unverified-fact — the live API index elides a feed item's zone
               object to its name; a live sample of 20 October 2026 carried
-              every field the copy requires on every item, which no document
-              yet records; FR-122 governs an item that does not
-Risk:         A feed write that binds a field to the wrong column, or skips
-              the update of a held row, puts a new zone in the wrong place or
-              with the wrong values until the next monthly all-zones refresh
-              overwrites it — a month of silent spatial or value error on
-              exactly the zones the feed exists to add.
+              every field the copy requires on every item, which
+              `Architecture.md § Retrieving zones` records as observed and
+              not promised; FR-122 governs an item that does not
+Risk:         A feed write that binds a field to the wrong column puts a new
+              zone in the wrong place or with the wrong values until the next
+              monthly all-zones refresh overwrites it — a month of silent
+              spatial or value error on exactly the zones the feed exists to
+              add. A feed write that changes a held row replaces what the
+              last all-zones refresh stored with the zone as it was created:
+              a re-sited zone reverts to its first site, and the staleness
+              bound, which counts feed runs, never marks a result built on
+              it.
 Rationale:    The fields the copy requires are its non-nullable columns under
               `Architecture.md § The zone table`, cited rather than listed.
-              The second criterion is RD-041: FR-035 binds the value a refresh
-              stores whether or not the copy holds the zone, and the feed
-              writes the same copy.
+              The second criterion is RD-049, which supersedes RD-041: a feed
+              item is the zone as it was created, verified live, and the
+              cited section refreshes a zone the copy holds only at the
+              monthly all-zones refresh. FR-035 binds that refresh and not
+              the feed. Storing only when new is one obligation under two
+              conditions: separated, a record obliging only the insert is met
+              by a merge that also rewrites held rows.
 Resolved-by:  #232
 ```
 

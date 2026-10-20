@@ -1973,3 +1973,89 @@ Affects:        FR-063: its third criterion, `Volatility` and `Rationale`.
                 FR-064 is untouched; its cap still bounds what reaches
                 routing, which is what makes a 50 km corridor affordable.
 ```
+
+## RD-049 — Does a zone-feed item ever change a row the copy already holds?
+
+```
+Date:           2026-10-21
+Question:       RD-041 read a zone-feed item for an id the local synced copy
+                already holds as a refresh of that row, through the
+                change-only merge. A live read has since found its premise
+                false: a feed item is the zone as it was created, not as it
+                now stands. Does such an item change the held row?
+Interpretation: **No. The zone feed adds only zones new to the copy and never
+                changes a row the copy already holds.** An item whose id the
+                copy holds is processed and not written, whatever its values.
+                This supersedes RD-041 entire, which stays as provenance.
+                Three neighbouring readings stand, restated so nobody reopens
+                them. An item the copy cannot store is recorded under FR-122
+                whether or not the copy holds its id, because that record
+                traces the feed's shape and not the write. The latest feed
+                time advances past an item for a held id as past any item
+                processed (FR-120). A batch naming one id twice keeps the item
+                with the later feed time (RD-042), now by that selection
+                before the write: RD-042's closing clause reached the later
+                item through FR-121's merge, and under this entry that merge
+                no longer reaches a held id, so the clause is superseded and
+                the rule rests on rung 7 — of two creation snapshots of one
+                zone, the later is the nearer to the zone as it stands.
+Rung:           2 — architecture constraints, decisive.
+                `Architecture.md § Retrieving zones`, as amended in #236,
+                records that an existing zone's coordinates refresh only at
+                the monthly full sync "because the feed carries only new
+                zones", and the Owner's decision on #20
+                (`#issuecomment-6279336314`) takes new zones from the feed.
+                The domain fact is verified, not inferred: the safety
+                sentinel's live read of 20 October 2026 at 06:54Z on #238
+                (`#issuecomment-6285244854`, finding S1) found zone 830403's
+                feed item carrying 0 takeovers and a `dateLastTaken` of
+                0002-12-02 where `POST /v5/zones` returned 1 takeover, taken
+                2026-10-14T17:26. Rung 4, on which RD-041 rested, no longer
+                reaches the feed: FR-035 binds the all-zones refresh, and a
+                feed item is not one.
+Affects:        FR-121: title, statement, `Verification`, second criterion,
+                `Volatility`, `Risk` and `Rationale`; RD-041, superseded;
+                RD-042, its closing clause superseded; #232's AC3 and notes,
+                and its open PR #238, whose merge updates a held id under
+                RD-041.
+```
+
+## RD-050 — Is a result marked when the all-zones refresh keeps failing?
+
+```
+Date:           2026-10-21
+Decided-by:     the Owner, choosing option (a) of
+                https://github.com/Caisesiume/TurfGPS/pull/236#issuecomment-6285421285
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/236#issuecomment-6287429328,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with one edge the ruling leaves open decided
+                on the ladder below.
+Question:       The staleness bound counts zone-feed runs only (RD-047), and
+                a zone the copy holds has its coordinate refreshed only by the
+                monthly all-zones refresh (RD-049). When that refresh keeps
+                failing, does anything mark a result built on coordinates
+                ageing without limit, and how is a copy with no completed
+                all-zones refresh on record read?
+Interpretation: **A result is also marked when no all-zones refresh has
+                completed within the full-sync bound recorded under
+                `Architecture.md § Retrieving zones`, and that marking is
+                FR-034's.** The ruling, verbatim: 'Coordinate age is accepted
+                up to 35 days (first Sunday to first Sunday). Beyond **40 days
+                without a successful full sync**, results are marked; that
+                marking joins #35 (FR-034).' Completed means a run recorded as
+                successful, as FR-123 reads it. **A copy with no completed
+                all-zones refresh on record is beyond the bound**, never
+                within it. The records cite the bound and restate it nowhere.
+Rung:           n/a for the marking — Owner ruling, escalated because it
+                answered a safety sentinel finding (#236, S2) and the margin
+                is a business trade-off. The edge rests on rung 4: RD-047
+                reads a copy with no feed run recorded as beyond its bound,
+                and reading the second bound the same way keeps FR-034 one
+                rule. Rung 7 agrees: an unknown age is never read as within
+                (#236, safety sentinel finding N4, cycle 3,
+                `#issuecomment-6296008171`).
+Affects:        FR-034: title, statement, `Verification`, criteria,
+                `Depends-on` (FR-123 added), `Risk` and `Rationale`; #35's
+                acceptance criteria.
+```

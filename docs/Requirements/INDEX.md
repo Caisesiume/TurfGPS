@@ -100,13 +100,13 @@ The second-hole debt recorded in `README.md § ID allocation ledger` — that no
 | `FR-030` | Carry an absent ownership field as absent | Turf data integration | MUST | to-build | test | #22 |
 | `FR-031` | Do not read an absent ownership field as a zone never taken | Turf data integration | MUST | to-build | test | #31 |
 | `FR-033` | Plan no journey for lack of zone data only where no copy is held | Turf data integration | MUST | to-build | test | #33 |
-| `FR-034` | Record a result as built from data stale beyond the bound | Turf data integration | MUST | to-build | test | #35 |
+| `FR-034` | Record a result as built from data stale beyond a bound | Turf data integration | MUST | to-build | test | #35 |
 | `FR-035` | Update dateCreated on zones the local copy already holds | Turf data integration | MUST | to-build | test | #38 |
 | `FR-036` | Treat an absent zone type as ordinary data | Turf data integration | MUST | to-build | test | #39 |
 | `FR-037` | Determine a zone's country where the region subkey is absent | Turf data integration | COULD | to-build | test | #40 |
 | `FR-119` | Request the zone feed from a scheduled background job | Turf data integration | MUST | draft | test | #232 |
 | `FR-120` | Request only zone-feed items newer than the latest one processed | Turf data integration | SHOULD | draft | test | #232 |
-| `FR-121` | Store the zone each complete zone-feed item carries | Turf data integration | MUST | draft | test | #232 |
+| `FR-121` | Store the zone of each complete zone-feed item new to the copy | Turf data integration | MUST | draft | test | #232 |
 | `FR-122` | Record an unstorable zone-feed item instead of storing it | Turf data integration | MUST | draft | test | #232 |
 | `FR-123` | Start each month's all-zones refresh until one completes | Turf data integration | MUST | draft | test | #233 |
 | `FR-124` | Issue no all-zones request once the month's refresh has completed | Turf data integration | MUST | draft | test | #233 |

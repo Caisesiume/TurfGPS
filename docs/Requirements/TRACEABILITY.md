@@ -61,7 +61,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-031` — Do not read an absent ownership field as a zone never taken | Zone facts the API actually provides | #31 |
 | `FR-032` — Assume no minimum distance between two zones | Zone facts the API actually provides | #30 |
 | `FR-033` — Plan no journey for lack of zone data only where no copy is held | The synced zone set, and how current it is | #33 |
-| `FR-034` — Record a result as built from data stale beyond the bound | The synced zone set, and how current it is | #35 |
+| `FR-034` — Record a result as built from data stale beyond a bound | The synced zone set, and how current it is | #35 |
 | `FR-035` — Update dateCreated on zones the local copy already holds | The synced zone set, and how current it is | #38 |
 | `FR-036` — Treat an absent zone type as ordinary data | Zone facts the API actually provides | #39 |
 | `FR-037` — Determine a zone's country where the region subkey is absent | Zone facts the API actually provides | #40 |
@@ -155,7 +155,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-118` — Dispatch each Turf stop at its stopping position | — | — |
 | `FR-119` — Request the zone feed from a scheduled background job | The synced zone set, and how current it is | #232 |
 | `FR-120` — Request only zone-feed items newer than the latest one processed | The synced zone set, and how current it is | #232 |
-| `FR-121` — Store the zone each complete zone-feed item carries | The synced zone set, and how current it is | #232 |
+| `FR-121` — Store the zone of each complete zone-feed item new to the copy | The synced zone set, and how current it is | #232 |
 | `FR-122` — Record an unstorable zone-feed item instead of storing it | The synced zone set, and how current it is | #232 |
 | `FR-123` — Start each month's all-zones refresh until one completes | The synced zone set, and how current it is | #233 |
 | `FR-124` — Issue no all-zones request once the month's refresh has completed | The synced zone set, and how current it is | #233 |
