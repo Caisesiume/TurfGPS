@@ -17,20 +17,18 @@ func env(pairs map[string]string) LookupFunc {
 
 // complete is the smallest configuration that runs a sync.
 //
-// The interval here is a test's own figure and is deliberately unlike the one
-// the endpoint permits, whose single home is `Architecture.md § Retrieving
-// zones`. What is under test is that the value is carried through, not what the
-// value is.
+// The monthly time and zone here are a test's own and deliberately unlike the
+// ones decided on #20, whose home is named in the package doc. What is under
+// test is that the values are carried through, not what they are.
 func complete() map[string]string {
 	return map[string]string{
 		EnvDatabaseURL: "postgres://localhost/turfgps",
 		EnvAllZonesURL: "https://example.test/zones",
-		EnvInterval:    "11m",
+		EnvMonthlyTime: "07:45",
+		EnvTimeZone:    "Pacific/Auckland",
 
 		// The limits are the test's own figures as well, unlike the API's and
-		// unlike each other, and the schedule above is no shorter than the
-		// all-zones one plus the default fetch deadline, which the loader
-		// requires.
+		// unlike each other.
 		EnvRequestInterval:  "250ms",
 		EnvAllZonesInterval: "2m",
 	}
@@ -80,30 +78,70 @@ func TestPartialConfigurationIsRefused(t *testing.T) {
 	}
 }
 
-// TestTheIntervalIsCarriedFromTheEnvironmentAndNowhereElse is the constraint
-// this package exists for. The interval has one home and it is a document; this
-// package must hold no default that could stand in for it.
-func TestTheIntervalIsCarriedFromTheEnvironmentAndNowhereElse(t *testing.T) {
+// TestTheMonthlyInstantIsCarriedFromTheEnvironmentAndNowhereElse is the
+// constraint this package exists for (#233). The monthly time and zone have one
+// home and it is not this package, which must hold no default that could stand
+// in for either.
+func TestTheMonthlyInstantIsCarriedFromTheEnvironmentAndNowhereElse(t *testing.T) {
 	t.Parallel()
 
 	pairs := complete()
-	pairs[EnvInterval] = "17m30s"
+	pairs[EnvMonthlyTime] = "21:30"
+	pairs[EnvTimeZone] = "America/New_York"
 
 	cfg, err := LoadZoneSync(env(pairs))
 	if err != nil {
 		t.Fatalf("loading: %v", err)
 	}
 
-	if want := 17*time.Minute + 30*time.Second; cfg.Interval != want {
-		t.Errorf("the interval loaded as %s, want %s", cfg.Interval, want)
+	if cfg.MonthlyHour != 21 || cfg.MonthlyMinute != 30 {
+		t.Errorf("the monthly time loaded as %02d:%02d, want 21:30", cfg.MonthlyHour, cfg.MonthlyMinute)
 	}
 
-	// The same load with the variable empty must fail rather than fall back,
-	// which is what says there is no compiled-in interval to fall back to.
-	pairs[EnvInterval] = ""
+	if got := cfg.TimeZone.String(); got != "America/New_York" {
+		t.Errorf("the time zone loaded as %q, want America/New_York", got)
+	}
 
-	if cfg, err := LoadZoneSync(env(pairs)); err == nil {
-		t.Errorf("an empty interval loaded as %+v, want it refused: a default here would be a second home for a figure that has one", cfg)
+	// The same load with either variable empty must fail rather than fall
+	// back, which is what says there is nothing compiled in to fall back to.
+	for _, name := range []string{EnvMonthlyTime, EnvTimeZone} {
+		pairs := complete()
+		pairs[name] = ""
+
+		if cfg, err := LoadZoneSync(env(pairs)); err == nil {
+			t.Errorf("an empty %s loaded as %+v, want it refused: a default here would be a second home for a value that has one", name, cfg)
+		}
+	}
+}
+
+// TestAMalformedMonthlyInstantIsRefused catches at start-up a schedule that
+// would otherwise fall due at an instant nobody chose.
+func TestAMalformedMonthlyInstantIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for name, pair := range map[string][2]string{
+		"an hour past the day":     {EnvMonthlyTime, "24:00"},
+		"a minute past the hour":   {EnvMonthlyTime, "07:60"},
+		"a time with no minutes":   {EnvMonthlyTime, "7"},
+		"a time that is not one":   {EnvMonthlyTime, "noon"},
+		"a zone that is not one":   {EnvTimeZone, "Mars/Olympus_Mons"},
+		"the host's zone, unnamed": {EnvTimeZone, "Local"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			pairs := complete()
+			pairs[pair[0]] = pair[1]
+
+			cfg, err := LoadZoneSync(env(pairs))
+			if err == nil {
+				t.Fatalf("%s=%q was accepted as %+v, want it refused", pair[0], pair[1], cfg)
+			}
+
+			if !strings.Contains(err.Error(), pair[0]) {
+				t.Errorf("the refusal reads %q, want it to name %s", err, pair[0])
+			}
+		})
 	}
 }
 
@@ -141,7 +179,7 @@ func TestTheEndpointIsValidatedAtLoad(t *testing.T) {
 
 // TestTheTunablesHaveDefaultsAndAreOverridable separates the two kinds of value
 // this package holds: the operational budgets are its own and carry defaults,
-// while the interval and the endpoint are not and do not.
+// while the schedule and the endpoint are not and do not.
 func TestTheTunablesHaveDefaultsAndAreOverridable(t *testing.T) {
 	t.Parallel()
 
@@ -229,7 +267,9 @@ func unoverridden() ZoneSync {
 	return ZoneSync{
 		DatabaseURL:      complete()[EnvDatabaseURL],
 		AllZonesURL:      complete()[EnvAllZonesURL],
-		Interval:         11 * time.Minute, // complete()'s own interval, parsed.
+		MonthlyHour:      7, // complete()'s own time and zone, parsed.
+		MonthlyMinute:    45,
+		TimeZone:         mustLoad("Pacific/Auckland"),
 		FetchTimeout:     defaultFetchTimeout,
 		DatabaseTimeout:  defaultDatabaseTimeout,
 		MergeTimeout:     defaultMergeTimeout,
@@ -237,7 +277,21 @@ func unoverridden() ZoneSync {
 		MinZoneRatio:     defaultMinZoneRatio,
 		RequestInterval:  250 * time.Millisecond, // complete()'s own limits, parsed.
 		AllZonesInterval: 2 * time.Minute,
+
+		// Derived from two of the fields above, and written as the sum
+		// rather than through ShortestInterval, so the derivation is stated
+		// here and not taken on trust from the code under test.
+		RetryInterval: 2*time.Minute + defaultFetchTimeout,
 	}
+}
+
+func mustLoad(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return loc
 }
 
 // differences lists the fields on which two configurations disagree.
@@ -255,7 +309,10 @@ func differences(got, want ZoneSync) []string {
 	}{
 		{"DatabaseURL", got.DatabaseURL, want.DatabaseURL},
 		{"AllZonesURL", got.AllZonesURL, want.AllZonesURL},
-		{"Interval", got.Interval, want.Interval},
+		{"MonthlyHour", got.MonthlyHour, want.MonthlyHour},
+		{"MonthlyMinute", got.MonthlyMinute, want.MonthlyMinute},
+		{"TimeZone", got.TimeZone.String(), want.TimeZone.String()},
+		{"RetryInterval", got.RetryInterval, want.RetryInterval},
 		{"FetchTimeout", got.FetchTimeout, want.FetchTimeout},
 		{"DatabaseTimeout", got.DatabaseTimeout, want.DatabaseTimeout},
 		{"MergeTimeout", got.MergeTimeout, want.MergeTimeout},
@@ -291,7 +348,12 @@ type override struct {
 // other; they are prime seconds so that no two can be confused by arithmetic.
 func overrides() []override {
 	return []override{
-		{EnvFetchTimeout, "41s", func(c *ZoneSync) { c.FetchTimeout = 41 * time.Second }},
+		// The one override that moves a second field, because RetryInterval
+		// is derived from it and from nothing an operator sets beside it.
+		{EnvFetchTimeout, "41s", func(c *ZoneSync) {
+			c.FetchTimeout = 41 * time.Second
+			c.RetryInterval = c.AllZonesInterval + c.FetchTimeout
+		}},
 		{EnvDatabaseTimeout, "43s", func(c *ZoneSync) { c.DatabaseTimeout = 43 * time.Second }},
 		{EnvMergeTimeout, "47s", func(c *ZoneSync) { c.MergeTimeout = 47 * time.Second }},
 		{EnvMaxResponseBytes, "53", func(c *ZoneSync) { c.MaxResponseBytes = 53 }},

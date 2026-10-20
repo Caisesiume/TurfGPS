@@ -270,3 +270,87 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 		})
 	}
 }
+
+// TestTheScheduleGatesReadWhatTheRunRecordsWrote sends the two gates the
+// scheduler reads, and the two writes that move them, to PostgreSQL (#233).
+//
+// The rows are written through BeginRun and FinishRun rather than inserted by
+// hand, so what the gates are asked about is what a run records. The monthly
+// gate must count a completion recorded `ok` and nothing else — not a run in
+// flight, not a failed one after it — or a month's refresh is doubled or
+// skipped on a restart; the retry gate must count every attempt.
+func TestTheScheduleGatesReadWhatTheRunRecordsWrote(t *testing.T) {
+	pool := migratedCopy(t)
+
+	store, err := New(pool, nil)
+	if err != nil {
+		t.Fatalf("building the store: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := pool.Exec(context.Background(), `TRUNCATE sync_run`); err != nil {
+			t.Errorf("emptying sync_run after the case: %v", err)
+		}
+	})
+
+	completed := func(when string) time.Time {
+		t.Helper()
+
+		now, completedAt, err := store.LastCompleted(t.Context())
+		if err != nil {
+			t.Fatalf("reading the last completion %s: %v", when, err)
+		}
+
+		if now.IsZero() {
+			t.Fatalf("the server's instant read as zero %s", when)
+		}
+
+		return completedAt
+	}
+
+	if _, ever, err := store.SinceLastAttempt(t.Context()); err != nil || ever {
+		t.Fatalf("with no run recorded the retry gate read ever=%v, err=%v, want no attempt and no error", ever, err)
+	}
+
+	if got := completed("with no run recorded"); !got.IsZero() {
+		t.Fatalf("with no run recorded the last completion read %s, want none", got.Format(time.RFC3339Nano))
+	}
+
+	first, startedAt, err := store.BeginRun(t.Context())
+	if err != nil {
+		t.Fatalf("recording a run's start: %v", err)
+	}
+
+	if since, ever, err := store.SinceLastAttempt(t.Context()); err != nil || !ever || since < 0 || since > time.Minute {
+		t.Errorf("a moment after a run began the retry gate read %s, ever=%v, err=%v, want a moment ago", since, ever, err)
+	}
+
+	if got := completed("with a run in flight"); !got.IsZero() {
+		t.Errorf("with one run in flight and none finished the last completion read %s, want none: `running` has not completed", got.Format(time.RFC3339Nano))
+	}
+
+	finishedAt := startedAt.Add(time.Second)
+
+	if err := store.FinishRun(t.Context(), first, zonesync.Result{Outcome: zonesync.OutcomeOK, CompletedAt: &finishedAt}); err != nil {
+		t.Fatalf("recording the run's end: %v", err)
+	}
+
+	if got := completed("after an ok run"); !got.Equal(finishedAt) {
+		t.Errorf("after a run recorded ok at %s the last completion read %s, want that instant",
+			finishedAt.Format(time.RFC3339Nano), got.Format(time.RFC3339Nano))
+	}
+
+	second, _, err := store.BeginRun(t.Context())
+	if err != nil {
+		t.Fatalf("recording a second run's start: %v", err)
+	}
+
+	if err := store.FinishRun(t.Context(), second, zonesync.Result{Outcome: zonesync.OutcomeHTTPError}); err != nil {
+		t.Fatalf("recording the second run's end: %v", err)
+	}
+
+	if got := completed("after a failed run"); !got.Equal(finishedAt) {
+		t.Errorf("after an ok run at %s and a failed run after it the last completion read %s, want the ok run's: a failed run has not completed",
+			finishedAt.Format(time.RFC3339Nano), got.Format(time.RFC3339Nano))
+	}
+}

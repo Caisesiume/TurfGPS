@@ -7,14 +7,29 @@ import (
 	"time"
 )
 
-// testInterval is the schedule these tests run on.
+// testRetryInterval is the spacing between attempts these tests run on.
 //
 // IT IS NOT THE INTERVAL THE ENDPOINT PERMITS, and it deliberately looks nothing
 // like it. That figure's one home is `Architecture.md § Retrieving zones`; a
 // fixture carrying it would be a second home that goes wrong silently, which is
 // what #20 forbids in code, comments, fixtures and defaults alike. What these
 // tests measure is that the gate is applied to whatever interval it was given.
-const testInterval = 100 * time.Second
+const testRetryInterval = 100 * time.Second
+
+// testSchedule is the monthly rule these tests run on, and for the same reason
+// its time of day is the tests' own and not the one decided on #20. The zone is
+// a real one with daylight saving, because keeping the local time across a
+// change is part of what is measured.
+var testSchedule = Monthly{Hour: 7, Minute: 45, Location: mustLoad("Europe/Stockholm")}
+
+func mustLoad(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return loc
+}
 
 // scheduleHarness drives Scheduler.Run without waiting on a clock.
 //
@@ -68,15 +83,17 @@ func (h *scheduleHarness) waited() []time.Duration {
 }
 
 // runSchedule builds a scheduler over store, locker and fetch, runs it until the
-// sleep budget is spent, and returns the harness.
-func runSchedule(t *testing.T, store Store, locker Locker, fetch FetchFunc, start time.Time, budget int) *scheduleHarness {
+// sleep budget is spent, and returns the harness. The store's clock is the
+// harness's, as the server's clock and the process's both move with time.
+func runSchedule(t *testing.T, store *fakeStore, locker Locker, fetch FetchFunc, start time.Time, budget int) *scheduleHarness {
 	t.Helper()
 
 	s, err := NewScheduler(Config{
 		Fetch:           fetch,
 		Store:           store,
 		Locker:          locker,
-		Interval:        testInterval,
+		Schedule:        testSchedule,
+		RetryInterval:   testRetryInterval,
 		FetchTimeout:    time.Second,
 		DatabaseTimeout: time.Second,
 		MergeTimeout:    time.Second,
@@ -93,6 +110,8 @@ func runSchedule(t *testing.T, store Store, locker Locker, fetch FetchFunc, star
 
 	s.now = harness.clock
 	s.sleep = harness.sleep
+
+	store.setClock(harness.clock)
 
 	if err := s.Run(ctx); err != nil {
 		t.Fatalf("the scheduler returned %v, want nil", err)
@@ -143,9 +162,9 @@ func TestTheNextFetchIsGatedOnTheRECORDEDLastAttempt(t *testing.T) {
 	start := time.Now()
 
 	store := okStore()
-	// A run recorded a moment ago by a process that is now gone.
-	store.everAttempted = true
-	store.sinceLastAttempt = testInterval / 4
+	// A run recorded a moment ago by a process that is now gone, which did not
+	// complete, so the month's refresh is still due.
+	store.lastBegun = start.Add(-testRetryInterval / 4)
 
 	locker := &fakeLocker{}
 	fetch := &fakeFetch{body: []byte(oneZoneResponse), status: 200}
@@ -161,7 +180,7 @@ func TestTheNextFetchIsGatedOnTheRECORDEDLastAttempt(t *testing.T) {
 		t.Fatalf("the loop waited %d times, want 1", len(waited))
 	}
 
-	if want := testInterval - testInterval/4; waited[0] != want {
+	if want := testRetryInterval - testRetryInterval/4; waited[0] != want {
 		t.Errorf("the loop waited %s, want %s — the remainder of the interval measured from the recorded attempt, not from this process's start", waited[0], want)
 	}
 }
@@ -237,8 +256,8 @@ func TestAStoreThatCannotBeReadCostsFreshnessAndNotTheRateLimit(t *testing.T) {
 	}
 
 	waited := harness.waited()
-	if len(waited) != 1 || waited[0] != testInterval {
-		t.Errorf("the loop waited %v, want one full interval of %s", waited, testInterval)
+	if len(waited) != 1 || waited[0] != testRetryInterval {
+		t.Errorf("the loop waited %v, want one full retry interval of %s", waited, testRetryInterval)
 	}
 }
 
@@ -261,8 +280,8 @@ func TestAStoreThatCannotRecordAStartDoesNotSpin(t *testing.T) {
 	harness := runSchedule(t, store, locker, fetch.fetch, time.Now(), 1)
 
 	waited := harness.waited()
-	if len(waited) != 1 || waited[0] != testInterval {
-		t.Errorf("after a start that could not be recorded the loop waited %v, want one full interval of %s rather than retrying immediately", waited, testInterval)
+	if len(waited) != 1 || waited[0] != testRetryInterval {
+		t.Errorf("after a start that could not be recorded the loop waited %v, want one full retry interval of %s rather than retrying immediately", waited, testRetryInterval)
 	}
 
 	if calls := fetch.count(); calls != 0 {
@@ -279,7 +298,8 @@ func TestRunReturnsOnCancellation(t *testing.T) {
 		Fetch:           (&fakeFetch{body: []byte(oneZoneResponse), status: 200}).fetch,
 		Store:           okStore(),
 		Locker:          &fakeLocker{},
-		Interval:        testInterval,
+		Schedule:        testSchedule,
+		RetryInterval:   testRetryInterval,
 		FetchTimeout:    time.Second,
 		DatabaseTimeout: time.Second,
 		MergeTimeout:    time.Second,

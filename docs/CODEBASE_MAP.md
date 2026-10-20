@@ -4,7 +4,7 @@ A directory-level map of what is on disk: what each directory and package is
 for, and where the boundary between two of them lies.
 
 **It states no model that has a home elsewhere.** The schema, the sync write
-path, the ports, the refresh interval and the API version are cited here and
+path, the ports, the refresh schedule and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
@@ -56,10 +56,11 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 
 Four constraints across that set are not visible from the package names.
 
-**`internal/config` deliberately has no default for two values** — the refresh
-interval and the all-zones endpoint. Both arrive from the environment or the
-sync does not run, so that this module is a second home for neither; their home
-is `Architecture.md § Retrieving zones`. `internal/turf` writes no API path for
+**`internal/config` deliberately has no default for the refresh schedule or the
+all-zones endpoint** — the monthly instant's time of day and time zone (#233),
+and the endpoint. They arrive from the environment or the sync does not run, so
+that this module is a second home for none of them; their home is
+`Architecture.md § Retrieving zones`. `internal/turf` writes no API path for
 the same reason, and takes the endpoint as a resolved URL.
 
 **`internal/zonesync` exports no way to run a single refresh.** The only

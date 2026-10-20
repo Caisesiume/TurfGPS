@@ -77,9 +77,9 @@ import (
 // distinction is worth the line because the file said "every one of them" and
 // that was not true. The four terminal values are each reached from real code by
 // a real failure, and run_test.go asserts each one. `OutcomeRunning` is written
-// only by `internal/syncstore`'s BeginRun, in SQL that has never been sent to a
-// server — see that package's NEVER EXECUTED marker — and it appears in no test
-// in this package. It is in the vocabulary for the reason
+// only by `internal/syncstore`'s BeginRun, in SQL only that package's database
+// test sends to a server — see its NEVER EXECUTED marker — and it appears in no
+// test in this package. It is in the vocabulary for the reason
 // `Architecture.md § The sync write path` gives, which is an argument and not a
 // demonstration, and nothing here should be read as having demonstrated it.
 type Outcome string
@@ -187,6 +187,19 @@ type Store interface {
 	// FinishRun updates that row once, with the terminal outcome and whatever
 	// else the run learned.
 	FinishRun(ctx context.Context, id int64, result Result) error
+
+	// LastCompleted returns the store's current instant and the completed_at of
+	// the most recent run recorded `ok`, which is zero when no run has ever
+	// completed. It is the monthly schedule's gate (#233): the month's refresh
+	// is done exactly when that completion is at or after the most recent
+	// monthly instant.
+	//
+	// BOTH INSTANTS ARE THE STORE'S, for the reason SinceLastAttempt is an
+	// elapsed time: the monthly instant is computed from the first and compared
+	// with the second, so no clock in this process is on either side of the
+	// comparison. A run of any other outcome, `running` included, has not
+	// completed and does not count.
+	LastCompleted(ctx context.Context) (now, completedAt time.Time, err error)
 
 	// Stage truncates the staging table and loads the response into it.
 	Stage(ctx context.Context, zones []Zone) error

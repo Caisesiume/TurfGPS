@@ -84,16 +84,17 @@ func noSyncConfigured(t *testing.T) {
 // syncConfigured turns the sync on with values that reach nothing.
 //
 // The endpoint is never fetched and the DSN is never dialled; see the note on
-// port 1 in the file header. The interval is long enough that a scheduler which
-// somehow reached its loop would sleep rather than attempt. The two limits are
-// this test's own figures, unlike the API's, and the schedule is no shorter than
-// the all-zones one, which the loader requires.
+// port 1 in the file header. A scheduler which somehow reached its loop would
+// find that store unreadable and sleep a retry interval rather than attempt. The
+// two limits and the monthly time and zone are this test's own, unlike the
+// API's and unlike the ones decided on #20.
 func syncConfigured(t *testing.T) {
 	t.Helper()
 
 	t.Setenv(config.EnvDatabaseURL, "postgres://turfgps@127.0.0.1:1/turfgps")
 	t.Setenv(config.EnvAllZonesURL, "https://example.test/"+turf.APIVersion+"/zones/all")
-	t.Setenv(config.EnvInterval, "1h")
+	t.Setenv(config.EnvMonthlyTime, "07:45")
+	t.Setenv(config.EnvTimeZone, "Pacific/Auckland")
 	t.Setenv(config.EnvRequestInterval, "250ms")
 	t.Setenv(config.EnvAllZonesInterval, "45m")
 }
