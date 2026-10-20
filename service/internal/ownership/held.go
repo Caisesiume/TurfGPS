@@ -45,8 +45,8 @@ func (p *Player) Holds(zoneID int32) bool {
 }
 
 type wirePlayer struct {
-	ID    *int64   `json:"id"`
-	Zones *[]int32 `json:"zones"`
+	ID    *int64    `json:"id"`
+	Zones *[]*int32 `json:"zones"`
 }
 
 // parsePlayer reads the response to a request for one player.
@@ -57,6 +57,11 @@ type wirePlayer struct {
 // none: the API's own documentation shows the array and not when it may be omitted, and
 // reading its absence as empty would decide every zone unheld from a field the
 // API never sent.
+//
+// AN ID THAT IS NOT POSITIVE IS REFUSED, NEVER STORED. A player id of 0 would
+// match a lord whose id also decoded to 0 (#234, S1), and a `null` in the held
+// list decodes to 0 and would make Holds(0) true for a zone the API never
+// named (#234, S2). Neither is a value a Turf id takes.
 func parsePlayer(body []byte, name string) (*Player, error) {
 	var wire []wirePlayer
 	if err := json.Unmarshal(body, &wire); err != nil {
@@ -77,13 +82,25 @@ func parsePlayer(body []byte, name string) (*Player, error) {
 		return nil, fmt.Errorf("the player-data response for %q has no id", name)
 	}
 
+	if *w.ID <= 0 {
+		return nil, fmt.Errorf("the player-data response for %q has id %d, which is no Turf id", name, *w.ID)
+	}
+
 	if w.Zones == nil {
 		return nil, fmt.Errorf("the player-data response for %q has no zones array, so whether they hold any zone is unknown", name)
 	}
 
 	held := make(map[int32]struct{}, len(*w.Zones))
-	for _, id := range *w.Zones {
-		held[id] = struct{}{}
+	for i, id := range *w.Zones {
+		if id == nil {
+			return nil, fmt.Errorf("the player-data response for %q has a null at held zone %d", name, i)
+		}
+
+		if *id <= 0 {
+			return nil, fmt.Errorf("the player-data response for %q holds zone %d, which is no zone id", name, *id)
+		}
+
+		held[*id] = struct{}{}
 	}
 
 	return &Player{ID: *w.ID, held: held}, nil

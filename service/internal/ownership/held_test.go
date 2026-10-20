@@ -75,3 +75,35 @@ func TestAPlayerResponseItCannotDecideFromIsRefused(t *testing.T) {
 		t.Error("a failed player-data call produced a player")
 	}
 }
+
+// TestANonPositivePlayerIDIsRefused is #234 S1, the player side: an id of 0
+// would match a lord whose id also decoded to 0, so it never becomes a Player.
+func TestANonPositivePlayerIDIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for _, body := range []string{`[{"id":0,"zones":[]}]`, `[{"id":-1,"zones":[]}]`} {
+		calls := 0
+		if p, err := LoadPlayer(t.Context(), fetchPlayerOnce(body, &calls), "x"); err == nil {
+			t.Errorf("%s: LoadPlayer returned a player with id %d, want the id refused", body, p.ID)
+		}
+	}
+}
+
+// TestANullOrNonPositiveHeldZoneIsRefused is #234 S2: a null in the held list
+// decodes to 0, and must never make Holds(0) true for a zone the API did not
+// name. The whole response is refused, as any other list it cannot read is.
+func TestANullOrNonPositiveHeldZoneIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for _, body := range []string{
+		`[{"id":5,"zones":[null]}]`,
+		`[{"id":5,"zones":[2305,null]}]`,
+		`[{"id":5,"zones":[0]}]`,
+		`[{"id":5,"zones":[-3]}]`,
+	} {
+		calls := 0
+		if p, err := LoadPlayer(t.Context(), fetchPlayerOnce(body, &calls), "x"); err == nil {
+			t.Errorf("%s: LoadPlayer succeeded with Holds(0)=%v, want the held list refused", body, p.Holds(0))
+		}
+	}
+}
