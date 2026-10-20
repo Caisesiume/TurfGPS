@@ -734,8 +734,9 @@ Volatility:   settled — `SPECIFICATION.md § Route persistence` states that a
               proposed; what the feed bound measures — the time since the
               last successful zone-feed run — is the Owner's ruling of
               20 October 2026 (RD-047), and the full-sync bound — the time
-              since the last completed all-zones refresh, none on record
-              counting as beyond it — is the Owner's ruling of the same day
+              since the last completed all-zones refresh — is the Owner's
+              ruling of the same day (RD-050); none on record counting as
+              beyond it rests on rung 4, read as RD-047 reads no feed run
               (RD-050); the cited section carries both
 Risk:         A marking lost on storage defeats FR-034 outright for exactly
               the plans that live longest: a plan built from a copy stale
