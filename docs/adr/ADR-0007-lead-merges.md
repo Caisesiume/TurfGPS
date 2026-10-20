@@ -14,7 +14,7 @@ Under ADR-0005 every PR waited for the Owner to merge it, after TheReviewNinja h
 - **Owner-reserved, never merged by the lead:** a change to a safety rule, accessibility classification, a requirement verified by human judgement, an artifact from an untrusted author, and anything labelled `awaiting-human`. The lead labels such a PR `owner-merge`, and the script refuses it.
 - **The merge runs under the default account** (`Caisesiume`), never with `GH_JUDGE_TOKEN`: the judge approves and the author's account merges, so no one identity both judges and lands a change. That separation is held by rule, not by the environment (§ Consequences). The method is a merge commit, pinned to the approved head with `--match-head-commit`.
 - **Dry run by default.** `merge.sh` prints the merge it would make; `--apply` makes it.
-- **The Owner turns on branch protection for `main`** requiring the `gates` and `migrations` checks: a gate outside any agent's reach, so that `merge.sh` is not the only one. On 2026-10-20 it was not yet on: `GET /branches/main/protection` answered 404, and the active ruleset's `required_status_checks` list was empty.
+- **The Owner turns on branch protection for `main`** requiring the `gates` and `migrations` checks: a gate outside any agent's reach, so that `merge.sh` is not the only one. The Owner turned on ruleset 'Protect main' (25508321) requiring `gates` and `migrations` on `main`, 2026-10-20: `gh api repos/Caisesiume/TurfGPS/rules/branches/main` shows it with enforcement active and a `pull_request` rule. It is a repository ruleset, not classic protection, which is why `GET /branches/main/protection` answers 404.
 - The PR that adds this record is the last merged by hand under the old rule.
 
 ## Consequences
