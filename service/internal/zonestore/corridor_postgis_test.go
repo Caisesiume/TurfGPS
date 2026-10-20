@@ -42,9 +42,9 @@ import (
 const testDatabaseEnv = "TURFGPS_TEST_DATABASE_URL"
 
 // probeHalfWidth is a probe distance, as part E's are in
-// `migrations/0001_zone_store.verify.sql`. The product's half-width is chosen
-// nowhere yet (`Architecture.md § What is unproven`, item 7) and this settles
-// nothing about it.
+// `migrations/0001_zone_store.verify.sql`. The product's half-width follows the
+// rule `CalculationSpecification.md § Bounding the candidate set` decides (#20),
+// and this probe neither applies nor tests it.
 const probeHalfWidth = 1000.0
 
 // The route runs east along latitude 59.33 in Stockholm. The zones below sit
