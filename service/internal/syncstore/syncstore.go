@@ -37,9 +37,13 @@
 // any outcome for the retry gate, and only an `ok` completion for the monthly
 // one — and nothing about two writers at once.
 //
-// NOTHING ELSE IN THIS FILE HAS RUN. The advisory lock Acquire takes and
-// release gives back is sent to no server by any test, so the lock's scope is
-// argued and not measured.
+// feed_postgis_test.go sends the zone feed's statements (feed.go) to the same
+// database, with `migrations/0002_zone_feed.sql` applied, and it is the one
+// test that takes Acquire's lock and gives it back through release: only to
+// show that a feed batch writes nothing while the sync holds the key. What
+// that lock does against a second sync, or a migration, is still unmeasured.
+//
+// NOTHING ELSE IN THIS FILE HAS RUN.
 //
 // columns_test.go sends nothing. What it measures is decided inside this
 // process before any statement is sent: which value `zoneColumns` binds to
@@ -191,9 +195,17 @@ func stagingValues(z zonesync.Zone) []any {
 // including the ones that look constant, the change test is IS DISTINCT FROM
 // rather than <> because four columns are nullable, and the WHERE is what keeps
 // a sync writing a thousand rows instead of all of them.
-var mergeSQL = buildMergeSQL()
+var mergeSQL = buildMergeSQL(stagingTable)
 
-func buildMergeSQL() string {
+// stagingTable is the all-zones path's staging table, and the source of
+// mergeSQL. The zone feed merges from a table of its own through the same
+// statement — see feedMergeSQL — so that a feed run never overwrites what a
+// refused full response left staged for an operator to inspect.
+const stagingTable = "zone_incoming"
+
+// buildMergeSQL writes the merge from zoneColumns, reading the staged rows from
+// source. Only the FROM line depends on source.
+func buildMergeSQL(source string) string {
 	width := len(lastChangedColumn)
 
 	for _, c := range zoneColumns {
@@ -227,7 +239,7 @@ func buildMergeSQL() string {
 		"                  " + firstSeenColumn + ", " + lastChangedColumn + ")\n" +
 		"SELECT " + strings.Join(selected, ",\n       ") + ",\n" +
 		"       $1, $1\n" +
-		"FROM   zone_incoming i\n" +
+		"FROM   " + source + " i\n" +
 		"ON CONFLICT (" + zoneKeyColumn + ") DO UPDATE SET\n" +
 		"       " + strings.Join(assignments, ",\n       ") + "\n" +
 		"WHERE  " + strings.Join(changed, "\n   OR  ")

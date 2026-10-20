@@ -21,6 +21,13 @@ and nothing here is compiled into the Go module.
 `0001_zone_store.sql` creates the synced zone store: `zone`, the `zone_incoming`
 staging table, `sync_run`, one index on `zone` and two on `sync_run`.
 
+`0002_zone_feed.sql` creates the zone feed's own state (#232):
+`zone_feed_state`, the one row holding the latest feed time processed, and
+`zone_feed_refusal`, the record of each feed item the copy could not store. It
+touches nothing 0001 created. The zones the feed carries reach `zone` through
+the merge of `Architecture.md § The sync write path`, mapped as
+`§ The zone ingest field mapping` below says.
+
 ## Applying one
 
 **No agent applies a migration.** Application is a deliberate act by an
@@ -33,6 +40,8 @@ the `postgis`-tagged Go tests run against, #27), never to a lasting database.
 ```
 psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.verify.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.verify.sql
 ```
 
 The verify script runs second and is not optional. `CREATE INDEX` succeeding
@@ -42,9 +51,9 @@ existed.
 
 ## State of proof
 
-**Executed on throwaway instances only.** CI's `migrations` job applies 0001 to
-an ephemeral PostGIS on every pull request, runs its verify file part by part
-and its rollback twice, and checks for residue. Nothing here has been applied to
+**Executed on throwaway instances only.** CI's `migrations` job applies 0001 and
+0002 to an ephemeral PostGIS on every pull request, runs each verify file part
+by part and each rollback twice, and checks for residue. Nothing here has been applied to
 a database that outlives that job.
 
 **Two conditions in `Architecture.md § What is unproven` bear on this
@@ -67,6 +76,17 @@ What the sync worker reads out of one record of the all-zones response recorded
 under `Architecture.md § Retrieving zones`, and where it puts it. Every row of
 `zone_incoming` is one record of that response; the merge into `zone` is the
 statement in `Architecture.md § The sync write path`.
+
+**The zone feed (#232) uses this mapping unchanged.** A feed item is
+`{"type":"zone","time":…,"zone":{…}}`, and its `zone` object is mapped by the
+same code onto the same fourteen columns, staged in a session-private table of
+`zone_incoming`'s shape, and merged by the same statement. A feed item's zone
+also carries `dateLastTaken` — observed live on 20 October 2026, never on the
+all-zones response — and it is dropped as every unknown key is, which is
+`FR-026`'s obligation on this mapping. What differs is that a feed item the copy
+cannot store is refused on its own and recorded in `zone_feed_refusal`, rather
+than refusing the whole response; `service/internal/zonesync/feed.go` says
+which items those are.
 
 **Nullability here is the schema's fact and is enforced by the DDL. Why a field
 is nullable is a measurement, and its home is

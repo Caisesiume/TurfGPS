@@ -277,7 +277,7 @@ func TestEveryFieldOfAZoneReachesAColumn(t *testing.T) {
 func TestTheMergeStatementIsExactlyAsPinned(t *testing.T) {
 	t.Parallel()
 
-	got := buildMergeSQL()
+	got := buildMergeSQL(stagingTable)
 	if got == wantMergeSQL {
 		return
 	}
@@ -394,3 +394,42 @@ WHERE  zone.name            IS DISTINCT FROM excluded.name
    OR  zone.region_country  IS DISTINCT FROM excluded.region_country
    OR  zone.area_id         IS DISTINCT FROM excluded.area_id
    OR  zone.area_name       IS DISTINCT FROM excluded.area_name`
+
+// TestTheFeedMergesThroughTheSameStatement: the zone feed (#232) writes `zone`
+// through mergeSQL itself, reading from its own staging table — the same
+// column binding, the same change-only test, the same refreshed columns — so
+// the two statements differ in their FROM line and nowhere else.
+func TestTheFeedMergesThroughTheSameStatement(t *testing.T) {
+	t.Parallel()
+
+	feed, full := strings.Split(feedMergeSQL, "\n"), strings.Split(mergeSQL, "\n")
+
+	if len(feed) != len(full) {
+		t.Fatalf("the feed's merge has %d lines and the full refresh's %d, want the same statement", len(feed), len(full))
+	}
+
+	var differing []string
+
+	for i := range full {
+		if feed[i] != full[i] {
+			differing = append(differing, fmt.Sprintf("line %d: %q against %q", i+1, feed[i], full[i]))
+		}
+	}
+
+	want := fmt.Sprintf("line %d: %q against %q", indexOf(full, "FROM   "+stagingTable+" i")+1,
+		"FROM   "+feedStagingTable+" i", "FROM   "+stagingTable+" i")
+
+	if len(differing) != 1 || differing[0] != want {
+		t.Errorf("the feed's merge differs from the full refresh's at %v, want only %s", differing, want)
+	}
+}
+
+func indexOf(lines []string, line string) int {
+	for i, l := range lines {
+		if l == line {
+			return i
+		}
+	}
+
+	return -2
+}
