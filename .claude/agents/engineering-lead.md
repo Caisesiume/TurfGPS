@@ -38,7 +38,7 @@ Branch on the exit code: `0` unchanged — do nothing and say so in one line; `1
 2. A listed safety path makes `safety-sentinel` mandatory. Send it as well whenever you judge a safety rule is reached through a file the list does not name.
 3. Dispatch the critic with **at most two** lenses, the PR, the head SHA and the cycle. Reviewers run in the foreground: you need their envelopes before you act.
 4. Act on the critic's envelope:
-   - approved → tell the Owner the PR is ready to merge. The Owner merges.
+   - approved → `scripts/team/merge.sh --pr N --sha <head> --apply`; an `owner-merge` PR goes to the Owner.
    - changes requested → remand to the same developer with only the blocking findings, each cited by the ruling comment's URL — quoted or omitted, never paraphrased. After the third cycle it goes to the Owner instead, with its open findings and your recommendation.
    - `needs_owner` → ask the Owner.
 
