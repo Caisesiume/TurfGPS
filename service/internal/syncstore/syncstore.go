@@ -17,7 +17,8 @@
 // it says so and why, at the statement.
 //
 // ---------------------------------------------------------------------------
-// NEVER EXECUTED, EXCEPT THE THREE METHODS A REFRESH WRITES THROUGH.
+// NEVER EXECUTED, EXCEPT THE THREE METHODS A REFRESH WRITES THROUGH AND THE
+// RUN RECORD THE SCHEDULE READS.
 //
 // The statements of Stage, Inspect and Merge are sent to PostgreSQL by
 // postgis_test.go, against a database `migrations/0001_zone_store.sql` has been
@@ -30,10 +31,15 @@
 // isolation, the advisory lock, or what a concurrent writer would do to
 // Merge's counts.
 //
-// NOTHING ELSE IN THIS FILE HAS RUN. beginRunSQL, finishRunSQL,
-// sinceLastAttemptSQL and the advisory lock Acquire takes and release gives
-// back are sent to no server by any test, so the run's bookkeeping, the rate
-// limit's gate and the lock's scope are argued and none of them is measured.
+// So are beginRunSQL, finishRunSQL, sinceLastAttemptSQL and lastCompletedSQL,
+// by the same file and on the same terms (#233). What that measures is that
+// the two gates read back what the run's two writes recorded — an attempt of
+// any outcome for the retry gate, and only an `ok` completion for the monthly
+// one — and nothing about two writers at once.
+//
+// NOTHING ELSE IN THIS FILE HAS RUN. The advisory lock Acquire takes and
+// release gives back is sent to no server by any test, so the lock's scope is
+// argued and not measured.
 //
 // columns_test.go sends nothing. What it measures is decided inside this
 // process before any statement is sent: which value `zoneColumns` binds to
@@ -269,6 +275,16 @@ WHERE  id = $1`
 	// rows.
 	sinceLastAttemptSQL = `SELECT extract(epoch FROM now() - max(started_at)) FROM sync_run`
 
+	// lastCompletedSQL is the monthly schedule's gate (#233): the server's
+	// instant, and the completion of the latest run recorded `ok`. Only `ok`,
+	// because a run of any other outcome has not completed and is retried
+	// rather than counted (`DECISIONS.md § RD-044`). The value is a literal and
+	// not a parameter so the predicate is the partial index's own, which
+	// `sync_run_completed_at_ok` needs to serve it as it serves the currency
+	// read. Both instants are the server's, for the reason beginRunSQL gives,
+	// and no `ok` row yet gives one row carrying NULL.
+	lastCompletedSQL = `SELECT now(), max(completed_at) FROM sync_run WHERE outcome = 'ok'`
+
 	// serverNowSQL reads the instant the merge stamps and the run records.
 	//
 	// IT IS WHEN THE MERGE BEGAN AND NOT WHEN IT COMMITTED. now() is
@@ -349,6 +365,25 @@ func (s *Store) SinceLastAttempt(ctx context.Context) (time.Duration, bool, erro
 	}
 
 	return time.Duration(*seconds * float64(time.Second)), true, nil
+}
+
+// LastCompleted returns the server's instant and the completion of the latest
+// run recorded `ok`, which is zero when there is none.
+func (s *Store) LastCompleted(ctx context.Context) (time.Time, time.Time, error) {
+	var (
+		now         time.Time
+		completedAt *time.Time
+	)
+
+	if err := s.pool.QueryRow(ctx, lastCompletedSQL).Scan(&now, &completedAt); err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("reading when the last sync run completed: %w", err)
+	}
+
+	if completedAt == nil {
+		return now.UTC(), time.Time{}, nil
+	}
+
+	return now.UTC(), completedAt.UTC(), nil
 }
 
 // BeginRun writes the first of the run's two rows-worth of bookkeeping, dated by

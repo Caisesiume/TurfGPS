@@ -12,15 +12,16 @@ import (
 )
 
 // Tests over the one mapping in this file that a compiler cannot check:
-// newZoneSyncScheduler copying five fields out of `internal/config` into
+// newZoneSyncScheduler copying seven fields out of `internal/config` into
 // `zonesync.Config`.
 //
 // ---------------------------------------------------------------------------
 // WHY A MAPPING NEEDS A TEST AT ALL. Read before editing.
 //
-// The five lines are `Interval`, `FetchTimeout`, `DatabaseTimeout`,
+// The lines are `RetryInterval`, `FetchTimeout`, `DatabaseTimeout`,
 // `MergeTimeout` and `MinZoneRatio`, each assigned from the field of the same
-// name. Four of the five are `time.Duration`. Cross any two of those four and
+// name, and the monthly schedule built from `MonthlyHour`, `MonthlyMinute` and
+// `TimeZone` (#233). Four are `time.Duration`. Cross any two of those four and
 // every type still checks, every existing test still passes, and the service
 // runs each operation on another one's budget — the merge on the short one, or
 // a run that gives up on the endpoint after the interval it was supposed to
@@ -39,9 +40,10 @@ import (
 // checks the three budgets in a fixed order and names each one in the error it
 // returns, with a comment at that loop saying it is ordered so that the same
 // misconfiguration always names the same field, and NewScheduler names the
-// interval. So the mapping is read backwards. Make exactly one field
-// unacceptable, and the name in the refusal says which field the value
-// actually reached. Cross two of them and the refusal names the other one.
+// schedule's fields and the retry interval. So the mapping is read backwards.
+// Make exactly one field unacceptable, and the name in the refusal says which
+// field the value actually reached. Cross two of them and the refusal names the
+// other one.
 //
 // This binds the test to `internal/zonesync`'s refusal wording, which is a real
 // cost and is the narrower one. The alternative was an exported accessor on
@@ -77,7 +79,10 @@ func wireable() config.ZoneSync {
 	return config.ZoneSync{
 		DatabaseURL:      "postgres://localhost/turfgps",
 		AllZonesURL:      "https://example.test/" + turf.APIVersion + "/zones/all",
-		Interval:         11 * time.Minute,
+		MonthlyHour:      7,
+		MonthlyMinute:    5, // a valid hour too, so a crossed pair still builds
+		TimeZone:         time.UTC,
+		RetryInterval:    11 * time.Minute,
 		FetchTimeout:     13 * time.Second,
 		DatabaseTimeout:  17 * time.Second,
 		MergeTimeout:     19 * time.Second,
@@ -123,10 +128,32 @@ func TestTheSchedulerIsWiredFromTheConfigurationFieldByField(t *testing.T) {
 		alsoNamed []string
 	}{
 		{
-			field:     "Interval",
-			spoil:     func(c *config.ZoneSync) { c.Interval = 0 },
-			refusal:   "the refresh interval is not positive",
-			alsoNamed: []string{"timeout", "ratio"},
+			field:     "RetryInterval",
+			spoil:     func(c *config.ZoneSync) { c.RetryInterval = 0 },
+			refusal:   "the retry interval is not positive",
+			alsoNamed: []string{"timeout", "ratio", "monthly"},
+		},
+		{
+			field:     "TimeZone",
+			spoil:     func(c *config.ZoneSync) { c.TimeZone = nil },
+			refusal:   "the monthly schedule has no time zone",
+			alsoNamed: []string{"hour", "minute", "interval"},
+		},
+		{
+			// A crossed hour and minute is caught here as well as by the
+			// minute's own row: 24 is a minute the schedule accepts and the
+			// minute wireable sets is an hour it accepts, so a crossed mapping
+			// builds the scheduler and fails the first check below.
+			field:     "MonthlyHour",
+			spoil:     func(c *config.ZoneSync) { c.MonthlyHour = 24 },
+			refusal:   "the monthly schedule's hour",
+			alsoNamed: []string{"minute", "interval"},
+		},
+		{
+			field:     "MonthlyMinute",
+			spoil:     func(c *config.ZoneSync) { c.MonthlyMinute = 60 },
+			refusal:   "the monthly schedule's minute",
+			alsoNamed: []string{"hour", "interval"},
 		},
 		{
 			field:     "FetchTimeout",

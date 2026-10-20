@@ -9,18 +9,24 @@ import (
 )
 
 // Config is everything a Scheduler needs. Every field is required; there are no
-// defaults here, because the two values that would most invite one — the
-// interval and the endpoint — have their homes outside this module and reach it
-// through `internal/config`.
+// defaults here, because the values that would most invite one — the monthly
+// instant, the all-zones limit and the endpoint — have their homes outside this
+// module and reach it through `internal/config`.
 type Config struct {
 	Fetch  FetchFunc
 	Store  Store
 	Locker Locker
 	Logger *slog.Logger
 
-	// Interval is how long must pass between one attempt and the next. Its home
-	// is `Architecture.md § Retrieving zones`.
-	Interval time.Duration
+	// Schedule is when the month's refresh falls due (#233).
+	Schedule Monthly
+
+	// RetryInterval is how long must pass between one attempt and the next,
+	// counted from the recorded start of the last. It paces the retry of a
+	// month's refresh that did not complete, and it is the all-zones limit of
+	// `NFR-001` as `config.ShortestInterval` derives it rather than a figure of
+	// its own (`DECISIONS.md § RD-044`).
+	RetryInterval time.Duration
 
 	FetchTimeout    time.Duration
 	DatabaseTimeout time.Duration
@@ -45,7 +51,8 @@ type Scheduler struct {
 	store    Store
 	locker   Locker
 	log      *slog.Logger
-	interval time.Duration
+	schedule Monthly
+	retry    time.Duration
 
 	databaseTimeout time.Duration
 
@@ -67,8 +74,12 @@ func NewScheduler(cfg Config) (*Scheduler, error) {
 		return nil, errors.New("no locker")
 	}
 
-	if cfg.Interval <= 0 {
-		return nil, errors.New("the refresh interval is not positive")
+	if err := cfg.Schedule.validate(); err != nil {
+		return nil, err
+	}
+
+	if cfg.RetryInterval <= 0 {
+		return nil, errors.New("the retry interval is not positive")
 	}
 
 	return &Scheduler{
@@ -76,7 +87,8 @@ func NewScheduler(cfg Config) (*Scheduler, error) {
 		store:           cfg.Store,
 		locker:          cfg.Locker,
 		log:             cfg.logger(),
-		interval:        cfg.Interval,
+		schedule:        cfg.Schedule,
+		retry:           cfg.RetryInterval,
 		databaseTimeout: cfg.DatabaseTimeout,
 		now:             time.Now,
 		sleep:           sleep,
@@ -87,7 +99,7 @@ func NewScheduler(cfg Config) (*Scheduler, error) {
 // returns nil.
 //
 // IT NEVER RETURNS ON A FAILURE. A store that is down, an endpoint that refuses,
-// a response that is refused by the assertions — each of those loses one
+// a response that is refused by the assertions — each of those costs one retry
 // interval of freshness and nothing else, and a loop that exited on any of them
 // would turn a transient fault into a copy that is never refreshed again until
 // somebody restarts the process. Nothing on the request path waits on this
@@ -122,33 +134,33 @@ func (s *Scheduler) Run(ctx context.Context) error {
 
 // untilDue is how long is left before the next attempt is permitted.
 //
-// THE GATE IS THE RECORDED LAST ATTEMPT, not the process's uptime, which is what
-// makes the endpoint's allowance survive a restart: a service that starts a
-// second after a run finished waits out the rest of the interval rather than
-// fetching because its own timer is new. It is the last ATTEMPT rather than the
-// last success because the endpoint meters requests, so a failed run spends the
-// allowance exactly as a successful one does.
+// AN ATTEMPT IS DUE WHEN THE MONTH'S REFRESH IS NOT DONE AND `NFR-001` PERMITS
+// ONE (`DECISIONS.md § RD-044`). The month's refresh is done when a run recorded
+// `ok` completed at or after the most recent monthly instant; until then the
+// attempts are paced by the retry interval, counted from the last recorded
+// attempt of any outcome, because the endpoint meters requests and a failed run
+// spends the allowance exactly as a successful one does. Once it is done,
+// nothing is due before the next instant.
 //
-// A store it cannot read yields a whole interval rather than an error. There is
-// no answer that both refreshes promptly and cannot exceed the limit, and of the
-// two the one that costs freshness is the one whose damage does not outlive it.
+// BOTH GATES ARE THE STORE'S RECORD, not the process's uptime, which is what
+// makes a restart neither skip nor double the month's run: a process that starts
+// after the month's refresh completed waits for the next instant, and one that
+// starts after an instant it was down through finds no completion since it and
+// runs.
+//
+// A store it cannot read yields a whole retry interval rather than an error.
+// There is no answer that both refreshes promptly and cannot exceed the limit,
+// and of the two the one that costs freshness is the one whose damage does not
+// outlive it.
 func (s *Scheduler) untilDue(ctx context.Context, lastLocal time.Time) time.Duration {
 	readCtx, cancel := context.WithTimeout(ctx, s.databaseTimeout)
 	defer cancel()
 
-	since, ever, err := s.store.SinceLastAttempt(readCtx)
+	wait, err := s.recordedWait(readCtx)
 	if err != nil {
-		s.log.Error("the zone sync could not read when it last ran, so it is waiting out a whole interval", "error", err)
+		s.log.Error("the zone sync could not read its record of past runs, so it is waiting out a whole retry interval", "error", err)
 
-		return s.interval
-	}
-
-	var wait time.Duration
-
-	// The recorded gate is the server's elapsed time, already subtracted there,
-	// so nothing in this process is on either side of it.
-	if ever {
-		wait = s.interval - since
+		return s.retry
 	}
 
 	// The local fallback is the other way round, and stays that way: both of its
@@ -156,12 +168,39 @@ func (s *Scheduler) untilDue(ctx context.Context, lastLocal time.Time) time.Dura
 	// whatever it reads, and it is only ever asked about this process's own last
 	// attempt.
 	if !lastLocal.IsZero() {
-		if local := s.interval - s.now().Sub(lastLocal); local > wait {
+		if local := s.retry - s.now().Sub(lastLocal); local > wait {
 			wait = local
 		}
 	}
 
 	return wait
+}
+
+// recordedWait is the wait the store's record decides, every instant in it read
+// from the store.
+func (s *Scheduler) recordedWait(ctx context.Context) (time.Duration, error) {
+	now, completedAt, err := s.store.LastCompleted(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	if !completedAt.IsZero() && !completedAt.Before(s.schedule.latest(now)) {
+		next := s.schedule.next(now)
+
+		s.log.Info("the month's all-zones refresh has completed, so none is due before the next monthly instant",
+			"completed_at", completedAt, "next", next)
+
+		return next.Sub(now), nil
+	}
+
+	// The recorded gate is the server's elapsed time, already subtracted there,
+	// so nothing in this process is on either side of it.
+	since, ever, err := s.store.SinceLastAttempt(ctx)
+	if err != nil || !ever {
+		return 0, err
+	}
+
+	return s.retry - since, nil
 }
 
 // attempt takes the lock and, if it is still due under it, performs one run.

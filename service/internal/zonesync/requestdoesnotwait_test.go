@@ -102,9 +102,9 @@ import (
 // completes in microseconds when it completes at all, so reaching it means the
 // step did not happen rather than that the host was slow.
 //
-// IT IS NOT A SCHEDULE AND IT IS NOT THE REFRESH INTERVAL, whose one home is
+// IT IS NOT A SCHEDULE AND IT IS NOT THE ALL-ZONES INTERVAL, whose one home is
 // `Architecture.md § Retrieving zones`, for the reason `scheduler_test.go`
-// gives at testInterval.
+// gives at testRetryInterval.
 const harnessBudget = 10 * time.Second
 
 // mergeHeldStore is a store whose merge stops and waits until the test releases
@@ -175,7 +175,8 @@ func TestARequestIsAnsweredWhileARefreshIsHeldInItsMerge(t *testing.T) {
 		Fetch:           fetch.fetch,
 		Store:           store,
 		Locker:          &fakeLocker{},
-		Interval:        testInterval,
+		Schedule:        testSchedule,
+		RetryInterval:   testRetryInterval,
 		FetchTimeout:    time.Second,
 		DatabaseTimeout: time.Second,
 		MergeTimeout:    time.Second,

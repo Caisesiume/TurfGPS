@@ -72,9 +72,10 @@ const (
 	// The cost is deliberate and it falls on the run record rather than on a
 	// request: a run still in flight when this expires is left at `running`,
 	// which `Architecture.md § The sync write path` already gives a meaning to,
-	// and the next attempt waits out the interval on it rather than fetching. A
-	// loop between runs — the ordinary case, every minute of the interval bar
-	// the seconds a run takes — stops at once and never spends this at all.
+	// and the next attempt waits out the retry interval on it rather than
+	// fetching. A loop between runs — the ordinary case, every minute of the
+	// month bar the seconds a run takes — stops at once and never spends this at
+	// all.
 	syncStopTimeout = 3 * time.Second
 
 	// readHeaderTimeout bounds how long a client may take to send its request
@@ -288,7 +289,9 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 		}
 	}()
 
-	slog.Info("the zone sync is running", "interval", cfg.Interval)
+	slog.Info("the zone sync is running", "due", "the first Sunday of each month",
+		"at", fmt.Sprintf("%02d:%02d", cfg.MonthlyHour, cfg.MonthlyMinute), "time_zone", cfg.TimeZone.String(),
+		"retry_interval", cfg.RetryInterval)
 
 	return func() bool {
 		select {
@@ -304,7 +307,7 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 			// lease.
 			slog.Error("the zone sync did not stop within its budget, so this process is leaving without it",
 				"budget", syncStopTimeout,
-				"consequence", "a run in flight is left at running, and the next attempt waits out the interval on it rather than fetching")
+				"consequence", "a run in flight is left at running, and the next attempt waits out the retry interval on it rather than fetching")
 
 			// False on this branch, and it is a statement about what was
 			// observed rather than a guess: the sync has not stopped, so it
@@ -338,7 +341,8 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 		Store:           store,
 		Locker:          store,
 		Logger:          slog.Default().With("component", "zone_sync"),
-		Interval:        cfg.Interval,
+		Schedule:        zonesync.Monthly{Hour: cfg.MonthlyHour, Minute: cfg.MonthlyMinute, Location: cfg.TimeZone},
+		RetryInterval:   cfg.RetryInterval,
 		FetchTimeout:    cfg.FetchTimeout,
 		DatabaseTimeout: cfg.DatabaseTimeout,
 		MergeTimeout:    cfg.MergeTimeout,
