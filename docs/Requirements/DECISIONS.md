@@ -1772,8 +1772,10 @@ Interpretation: **An item is unstorable when its zone lacks a field the zone
                 assertions under `Architecture.md § The sync write path`
                 refuse** — a coordinate out of range, or a `dateCreated` later
                 than the run's start. An item lacking only `type`,
-                `region.country` or `region.area` is ordinary, per FR-036, and
-                is stored. The whole-response assertions, the row-count floor
+                `region.country` or `region.area` is stored:
+                `Architecture.md § The zone table` holds the columns they fill
+                — `type_id`, `region_country`, `area_id`, `area_name` —
+                nullable. The whole-response assertions, the row-count floor
                 among them, are the all-zones path's and do not apply to a
                 feed batch. A batch naming one id twice stores it once, from
                 the item with the later feed time.
@@ -1782,7 +1784,9 @@ Rung:           2 — architecture constraints, decisive.
                 non-nullable and `Architecture.md § The sync write path` fixes
                 the per-row assertions. Rung 5 agrees: the all-zones mapping
                 in `service/internal/zonesync/ingest.go` requires the same
-                set.
+                set. The later-item rule rests on rung 4: applied in feed
+                order through FR-121's merge, the later item's values are the
+                ones the row keeps.
 Affects:        FR-122; #232.
 ```
 
