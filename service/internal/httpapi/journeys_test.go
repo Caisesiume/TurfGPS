@@ -105,6 +105,14 @@ func TestAPlanningRequestThatCannotBePlannedIsRefused(t *testing.T) {
 		{name: "a field this shape cannot express", body: `{"origin":{"latitude":59.3,"longitude":18.0},"destination":{"latitude":57.7,"longitude":11.9},"via":[]}`, want: http.StatusBadRequest},
 		{name: "two requests in one body", body: valid + valid, want: http.StatusBadRequest},
 		{name: "a location that is not a coordinate", body: `{"origin":{"latitude":91,"longitude":18.0},"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
+		// An absent or null axis would decode as 0 and plan from a coordinate
+		// nobody entered.
+		{name: "an origin with no latitude", body: `{"origin":{"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
+		{name: "an origin with no longitude", body: `{"origin":{"latitude":59.3293},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
+		{name: "a destination with no latitude", body: `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"longitude":11.9746}}`, want: http.StatusBadRequest},
+		{name: "a destination with no longitude", body: `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"latitude":57.7089}}`, want: http.StatusBadRequest},
+		{name: "a null latitude", body: `{"origin":{"latitude":null,"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
+		{name: "an empty location", body: `{"origin":{},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
 		{name: "a body over the bound", body: `{"origin":` + strings.Repeat(" ", maxJourneyRequestBytes) + `null}`, want: http.StatusRequestEntityTooLarge},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

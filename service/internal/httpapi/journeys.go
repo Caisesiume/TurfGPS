@@ -33,8 +33,26 @@ type wirePoint struct {
 type journeyRequest struct {
 	// Pointers, so that an absent location is told apart from the coordinate
 	// (0, 0), which is a real place in the Gulf of Guinea.
-	Origin      *wirePoint `json:"origin"`
-	Destination *wirePoint `json:"destination"`
+	Origin      *wireLocation `json:"origin"`
+	Destination *wireLocation `json:"destination"`
+}
+
+// wireLocation is a location as a request names it. Its axes are pointers for
+// the same reason: an absent or null latitude or longitude would otherwise
+// decode as 0 and be planned from, a coordinate nobody entered.
+type wireLocation struct {
+	Latitude  *float64 `json:"latitude"`
+	Longitude *float64 `json:"longitude"`
+}
+
+// point returns the location as a planner point, and false when it lacks an
+// axis.
+func (l *wireLocation) point() (planner.Point, bool) {
+	if l.Latitude == nil || l.Longitude == nil {
+		return planner.Point{}, false
+	}
+
+	return planner.Point{Latitude: *l.Latitude, Longitude: *l.Longitude}, true
 }
 
 type journeyResponse struct {
@@ -123,10 +141,16 @@ func decodeJourneyRequest(w http.ResponseWriter, r *http.Request) (planner.Reque
 		return planner.Request{}, false
 	}
 
-	return planner.Request{
-		Origin:      planner.Point(*body.Origin),
-		Destination: planner.Point(*body.Destination),
-	}, true
+	origin, hasOrigin := body.Origin.point()
+	destination, hasDestination := body.Destination.point()
+
+	if !hasOrigin || !hasDestination {
+		http.Error(w, "a location names a latitude and a longitude", http.StatusBadRequest)
+
+		return planner.Request{}, false
+	}
+
+	return planner.Request{Origin: origin, Destination: destination}, true
 }
 
 func encodeJourney(j planner.Journey) journeyResponse {
