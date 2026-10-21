@@ -25,6 +25,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"math"
 	"net/http"
 	"os"
 	"slices"
@@ -98,17 +99,7 @@ func TestACorridorResolvesFromTheLocalCopyWithoutCallingTurf(t *testing.T) {
 		t.Fatalf("recording a completed run: %v", err)
 	}
 
-	for _, z := range []corridor.Zone{onRoute, nearRoute, offRoute, onSwappedRoute} {
-		if _, err := pool.Exec(ctx, `
-			INSERT INTO zone (id, name, latitude, longitude, date_created, total_takeovers,
-			                  takeover_points, points_per_hour, type_id, region_id, region_name,
-			                  first_seen_at, last_changed_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 141, 'Stockholm', now(), now())`,
-			z.ID, z.Name, z.Latitude, z.Longitude, z.DateCreated, z.TotalTakeovers,
-			z.TakeoverPoints, z.PointsPerHour, z.TypeID); err != nil {
-			t.Fatalf("loading zone %d: %v", z.ID, err)
-		}
-	}
+	loadZones(t, pool, onRoute, nearRoute, offRoute, onSwappedRoute)
 
 	currency, err := reader.Currency(ctx)
 	if err != nil || !currency.EverSucceeded {
@@ -146,6 +137,63 @@ func TestACorridorResolvesFromTheLocalCopyWithoutCallingTurf(t *testing.T) {
 	}
 
 	assertZones(t, "at twice the probe half-width", wider, onRoute, nearRoute, offRoute)
+}
+
+// TestACorridorReturnsBothZonesOfAClosePair is `FR-032` (#30) AC2 at the stage
+// that indexes and selects zones: `zone_geom_gist` and Q1 return a corridor
+// covering two zones closer together than the placement guideline of
+// `Architecture.md § Distance between zones` with both in it, each at its own
+// coordinate. The pairs carry no figure for the guideline, and need none: the
+// first shares one coordinate and the second is one float64 step apart in
+// latitude, closer than a floor of any size.
+func TestACorridorReturnsBothZonesOfAClosePair(t *testing.T) {
+	pool := openScratch(t)
+
+	reader, err := NewReader(pool)
+	if err != nil {
+		t.Fatalf("NewReader: %v", err)
+	}
+
+	const stepped = 59.3301
+
+	closeZone := func(id int32, lat, lon float64) corridor.Zone {
+		return corridor.Zone{
+			ID: id, Name: "close", Latitude: lat, Longitude: lon,
+			DateCreated:    time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC),
+			TotalTakeovers: 3, TakeoverPoints: 120, PointsPerHour: 2,
+		}
+	}
+
+	pairs := []corridor.Zone{
+		closeZone(9_000_101, 59.33, 18.04), closeZone(9_000_102, 59.33, 18.04),
+		closeZone(9_000_103, stepped, 18.08), closeZone(9_000_104, math.Nextafter(stepped, 90), 18.08),
+	}
+
+	loadZones(t, pool, pairs...)
+
+	got, err := corridor.Resolve(t.Context(), reader, route, probeHalfWidth)
+	if err != nil {
+		t.Fatalf("resolving the corridor: %v", err)
+	}
+
+	assertZones(t, "over two close pairs — FR-032 forbids assuming any minimum distance between two zones —", got, pairs...)
+}
+
+// loadZones writes zones to the scratch copy directly, as rows it holds.
+func loadZones(t *testing.T, pool *pgxpool.Pool, zones ...corridor.Zone) {
+	t.Helper()
+
+	for _, z := range zones {
+		if _, err := pool.Exec(t.Context(), `
+			INSERT INTO zone (id, name, latitude, longitude, date_created, total_takeovers,
+			                  takeover_points, points_per_hour, type_id, region_id, region_name,
+			                  first_seen_at, last_changed_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 141, 'Stockholm', now(), now())`,
+			z.ID, z.Name, z.Latitude, z.Longitude, z.DateCreated, z.TotalTakeovers,
+			z.TakeoverPoints, z.PointsPerHour, z.TypeID); err != nil {
+			t.Fatalf("loading zone %d: %v", z.ID, err)
+		}
+	}
 }
 
 // assertZones compares by every field, so a column scanned into the wrong field

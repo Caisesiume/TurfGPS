@@ -1,6 +1,7 @@
 package corridor
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"math"
@@ -101,5 +102,41 @@ func TestResolveRefusesNoRepository(t *testing.T) {
 
 	if _, err := Resolve(t.Context(), nil, stockholm, 1000); err == nil {
 		t.Error("Resolve accepted a nil repository, want a refusal")
+	}
+}
+
+// TestResolveReturnsBothZonesOfAClosePair is `FR-032` (#30) AC2 at the stage
+// that selects a corridor's zones: two zones closer together than the
+// placement guideline of `Architecture.md § Distance between zones` come back
+// as two, each at its own coordinate. The pairs carry no figure for the
+// guideline, and need none: the first shares one coordinate and the second is
+// one float64 step apart, which is closer than a floor of any size. What the
+// corridor query itself returns for such a pair is `internal/zonestore`'s
+// corridor_postgis_test.go.
+func TestResolveReturnsBothZonesOfAClosePair(t *testing.T) {
+	t.Parallel()
+
+	const stepped = 59.3301
+
+	want := []Zone{
+		{ID: 7001, Latitude: 59.3293, Longitude: 18.0686},
+		{ID: 7002, Latitude: 59.3293, Longitude: 18.0686},
+		{ID: 7003, Latitude: stepped, Longitude: 18.0750},
+		{ID: 7004, Latitude: math.Nextafter(stepped, 90), Longitude: 18.0750},
+	}
+
+	got, err := Resolve(t.Context(), &recordingRepository{zones: slices.Clone(want)}, stockholm, 1000)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	got = slices.Clone(got)
+	slices.SortFunc(got, func(a, b Zone) int { return cmp.Compare(a.ID, b.ID) })
+
+	if !slices.EqualFunc(got, want, func(a, b Zone) bool {
+		return a.ID == b.ID && a.Latitude == b.Latitude && a.Longitude == b.Longitude
+	}) {
+		t.Errorf("Resolve returned %+v for a corridor holding two close pairs, want all four zones at their own coordinates %+v — FR-032 forbids assuming any minimum distance between two zones",
+			got, want)
 	}
 }

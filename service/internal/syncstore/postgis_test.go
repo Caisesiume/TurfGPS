@@ -3,7 +3,9 @@ package syncstore
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -131,6 +133,14 @@ func refresh(t *testing.T, store *Store, zones ...fixtureZone) zonesync.Merged {
 	for i, z := range zones {
 		records[i] = z.record()
 	}
+
+	return refreshRecords(t, store, records...)
+}
+
+// refreshRecords is refresh over records the case rendered itself, for a case
+// whose zones differ in a field fixtureZone fixes.
+func refreshRecords(t *testing.T, store *Store, records ...string) zonesync.Merged {
+	t.Helper()
 
 	parsed, err := zonesync.ParseAllZones([]byte("[" + strings.Join(records, ",") + "]"))
 	if err != nil {
@@ -269,6 +279,140 @@ func TestTheSyncWritePathAgainstAMigratedCopy(t *testing.T) {
 			}
 		})
 	}
+}
+
+// closeZone is one zone of a close pair: an id and a coordinate.
+type closeZone struct {
+	id       int32
+	lat, lon float64
+}
+
+// TestAClosePairIsStoredAsTwoZones is `FR-032` (#30) AC1, the store's half: a
+// zone set holding two zones closer together than the placement guideline of
+// `Architecture.md § Distance between zones` leaves a row for each, at its own
+// coordinate, whether a refresh or the zone feed writes it. The pairs are
+// those of zonesync's closepair_test.go and carry no figure for the guideline:
+// the first shares one coordinate and the second is one float64 step apart,
+// closer than a floor of any size.
+func TestAClosePairIsStoredAsTwoZones(t *testing.T) {
+	pool, store := feedCopy(t)
+
+	const stepped = 59.3301
+
+	pairs := [][2]closeZone{
+		{{id: 7001, lat: 59.3293, lon: 18.0686}, {id: 7002, lat: 59.3293, lon: 18.0686}},
+		{{id: 7003, lat: stepped, lon: 18.0750}, {id: 7004, lat: math.Nextafter(stepped, 90), lon: 18.0750}},
+	}
+
+	// Each coordinate as the shortest decimal that parses back to the same
+	// float64, so the second pair's step survives the round trip.
+	records := make([]string, 0, 2*len(pairs))
+
+	for _, pair := range pairs {
+		for _, z := range pair {
+			records = append(records, fmt.Sprintf(`{"id":%d,"name":"close %d","latitude":%s,"longitude":%s,`+
+				`"dateCreated":"2020-01-02T03:04:05Z","totalTakeovers":3,"takeoverPoints":120,`+
+				`"pointsPerHour":2,"region":{"id":141,"name":"Stockholm"}}`,
+				z.id, z.id, strconv.FormatFloat(z.lat, 'f', -1, 64), strconv.FormatFloat(z.lon, 'f', -1, 64)))
+		}
+	}
+
+	stored := func(t *testing.T, writer string) {
+		t.Helper()
+
+		var held int
+
+		if err := pool.QueryRow(t.Context(), `SELECT count(*) FROM zone`).Scan(&held); err != nil {
+			t.Fatalf("counting the zones held: %v", err)
+		}
+
+		if held != len(records) {
+			t.Errorf("%s of %d zones in two close pairs left %d held", writer, len(records), held)
+		}
+
+		for _, pair := range pairs {
+			for _, want := range pair {
+				switch z, ok := storedZone(t, pool, want.id); {
+				case !ok:
+					t.Errorf("%s left no row for zone %d of the close pair %d/%d — FR-032 forbids assuming any minimum distance between two zones",
+						writer, want.id, pair[0].id, pair[1].id)
+				case z.Latitude != want.lat || z.Longitude != want.lon:
+					t.Errorf("%s stored zone %d of the close pair %d/%d at (%v, %v), want its own (%v, %v) — the pair was merged",
+						writer, want.id, pair[0].id, pair[1].id, z.Latitude, z.Longitude, want.lat, want.lon)
+				}
+			}
+		}
+	}
+
+	t.Run("by a refresh", func(t *testing.T) {
+		emptiedAfter(t, pool)
+
+		if merged := refreshRecords(t, store, records...); merged.Inserted != len(records) {
+			t.Errorf("the merge reports %d inserted for %d zones new to the copy", merged.Inserted, len(records))
+		}
+
+		stored(t, "a refresh")
+	})
+
+	t.Run("by the zone feed", func(t *testing.T) {
+		feedEmptiedAfter(t, pool)
+
+		items := make([]string, len(records))
+		for i, r := range records {
+			items[i] = `{"type":"zone","time":"2026-10-19T21:46:07+0000","zone":` + r + `}`
+		}
+
+		if applied := poll(t, store, items...); applied.Inserted != len(items) {
+			t.Errorf("the feed write reports %d inserted for %d zones new to the copy", applied.Inserted, len(items))
+		}
+
+		stored(t, "a feed batch")
+	})
+}
+
+// TestATakeoverCountIsStoredWholeWithoutOwnershipFields is `FR-031` (#31) at
+// the store: a zone reporting takeovers and neither `dateLastTaken` nor
+// `currentOwner` is held with that count, by a refresh and by a feed batch.
+// No signal derived from takeover history exists yet, so this pins the input
+// one will read and not the criteria; zonesync's takeoverhistory_test.go says
+// why, and holds each absence alone at the mapping.
+func TestATakeoverCountIsStoredWholeWithoutOwnershipFields(t *testing.T) {
+	pool, store := feedCopy(t)
+
+	const (
+		id        = 7101
+		takeovers = 318
+	)
+
+	record := fmt.Sprintf(`{"id":%d,"name":"Held before","latitude":59.3293,"longitude":18.0686,`+
+		`"dateCreated":"2016-05-04T03:02:01Z","totalTakeovers":%d,"takeoverPoints":95,"pointsPerHour":1,`+
+		`"region":{"id":141,"name":"Stockholm"}}`, id, takeovers)
+
+	stored := func(t *testing.T, writer string) {
+		t.Helper()
+
+		switch z, ok := storedZone(t, pool, id); {
+		case !ok:
+			t.Errorf("%s left no row for a zone reporting %d takeovers and no ownership field", writer, takeovers)
+		case z.TotalTakeovers != takeovers:
+			t.Errorf("%s stored total_takeovers %d for a zone reporting %d and no ownership field — the absence was read as a zone never taken, which FR-031 forbids",
+				writer, z.TotalTakeovers, takeovers)
+		}
+	}
+
+	t.Run("by a refresh", func(t *testing.T) {
+		emptiedAfter(t, pool)
+
+		refreshRecords(t, store, record)
+		stored(t, "a refresh")
+	})
+
+	t.Run("by the zone feed", func(t *testing.T) {
+		feedEmptiedAfter(t, pool)
+
+		poll(t, store, `{"type":"zone","time":"2026-10-19T21:46:07+0000","zone":`+record+`}`)
+		stored(t, "a feed batch")
+	})
 }
 
 // TestTheScheduleGatesReadWhatTheRunRecordsWrote sends the two gates the
