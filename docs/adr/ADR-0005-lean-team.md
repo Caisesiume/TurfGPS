@@ -2,7 +2,7 @@
 
 **Status:** accepted — 2026-10-08, by the Owner on #210; in force from the merge of the PR that adds it.
 **Source:** #210 — the issue body, the decision records of design rounds 1 and 2, the research note, and design spec v1 (`#210#issuecomment-6064312888`). Where this record and the spec differ, the spec is the Owner's and this record is the defect.
-**Relation:** supersedes the process parts of ADR-0001, ADR-0002, ADR-0003 and the four Owner directives, as `§ What this supersedes` lists. Keeps ADR-0004 whole. Every superseded record stays in place as history.
+**Relation:** supersedes the process parts of ADR-0001, ADR-0002, ADR-0003 and the four Owner directives, as `§ What this supersedes` lists. Keeps ADR-0004 whole. Every superseded record stays in place as history. Amended by ADR-0007 (#229): the lead merges, through `scripts/team/merge.sh`.
 
 ## Context
 
