@@ -36,14 +36,18 @@ var (
 // (`DEPLOYMENT.md § Where the deployment configuration lives`) and a preflight
 // carries the same target as the call it precedes, so the refusals below are
 // answered without a word to the log rather than reported in one.
-func NewHandler(allowedOrigins []string) http.Handler {
+//
+// opts are NewMux's. `POST /journeys` is not on the grant lists above because
+// no client call makes it yet; the call that does adds POST and
+// `Content-Type` to them in the same change, as those lists require.
+func NewHandler(allowedOrigins []string, opts ...Option) http.Handler {
 	origins := make(map[string]struct{}, len(allowedOrigins))
 
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
 
-	return &cors{next: NewMux(), origins: origins}
+	return &cors{next: NewMux(opts...), origins: origins}
 }
 
 type cors struct {
