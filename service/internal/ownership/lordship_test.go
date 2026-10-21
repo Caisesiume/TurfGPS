@@ -42,3 +42,35 @@ func TestARegionResponseItCannotScanIsRefused(t *testing.T) {
 		}
 	}
 }
+
+// TestANonPositiveIDIsNeverCompared is #234 S1: a user id of 0 and a lord id
+// of 0 would compare equal and resolve held. Each side is refused on its own.
+func TestANonPositiveIDIsNeverCompared(t *testing.T) {
+	t.Parallel()
+
+	for name, c := range map[string]struct {
+		body string
+		user int64
+	}{
+		"user 0 against a lord 0":    {`[{"id":1,"regionLord":{"name":"a","id":0}}]`, 0},
+		"user 0 against a real lord": {`[{"id":1,"regionLord":{"name":"a","id":7}}]`, 0},
+		"a negative user":            {`[{"id":1,"regionLord":{"name":"a","id":7}}]`, -7},
+		"a lord 0":                   {`[{"id":1,"regionLord":{"name":"a","id":0}},{"id":2,"regionLord":{"name":"b","id":7}}]`, 7},
+		"a negative lord":            {`[{"id":1,"regionLord":{"name":"a","id":-7}},{"id":2,"regionLord":{"name":"b","id":7}}]`, 7},
+	} {
+		if held, err := RegionLord(t.Context(), regionsOnce(c.body), c.user); err == nil {
+			t.Errorf("%s: resolved held=%v without error, want the id refused", name, held)
+		}
+	}
+}
+
+// TestARegionResponseWithNoLordAnywhereIsReported is #234 N2: a non-empty
+// response in which no region carries a lord is an error, not "not held".
+func TestARegionResponseWithNoLordAnywhereIsReported(t *testing.T) {
+	t.Parallel()
+
+	held, err := RegionLord(t.Context(), regionsOnce(`[{"id":1},{"id":2,"regionLord":null}]`), 7)
+	if err == nil {
+		t.Errorf("a response naming no lord resolved held=%v with no error, want it reported", held)
+	}
+}

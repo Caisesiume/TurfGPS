@@ -75,9 +75,10 @@ add $((scripts + ci))        scripts 'correctness, supply chain'
 # The homes where safety rules are written, the two files that decide how they
 # are reviewed, and the code that implements one: service/internal/config/ is
 # the registry of the constants FR-091 refuses to run without, where a default
-# for one of them would be authored (#212). Pinned by
-# scripts/loop/tests/diff-domains-safety-floor.sh.
-candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+)$' 2>/dev/null)"
+# for one of them would be authored (#212); and service/internal/ownership/
+# decides held zones and region lordship, which feed takeover time and so the
+# ceiling (#234). Pinned by scripts/loop/tests/diff-domains-safety-floor.sh.
+candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+)$' 2>/dev/null)"
 
 printf 'total_files: %s\n' "$total"
 printf 'domains: {go: %s, frontend: %s, docs: %s, agent_system: %s, scripts: %s, schema: %s, ci: %s, data: %s, other: %s}\n' \
