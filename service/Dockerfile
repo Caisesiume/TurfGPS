@@ -39,7 +39,12 @@
 # mismatch above is exactly what that produces. The tag is kept beside the
 # digest because it is the readable half, but the digest is what resolves. When
 # either FROM is re-pinned, the other is checked for the same Debian release.
-FROM golang:1.26-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS build
+#
+# Go 1.26.10 — the multi-arch index of golang:1.26.10-bookworm, whose image
+# config carries GOLANG_VERSION=1.26.10 (#122). It moves with the `go` line of
+# go.mod: the image sets GOTOOLCHAIN=local, so a builder older than that line
+# refuses to build rather than fetching a newer toolchain.
+FROM golang:1.26.10-bookworm@sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af AS build
 
 WORKDIR /src
 
