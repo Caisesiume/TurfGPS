@@ -29,7 +29,8 @@
 // leaves stored — a held id's revised date_created and a new id's (#38), a
 // zone set some of whose records carry no type (#39), and two zones closer
 // together than any separation could be assumed, held as two by a refresh and
-// by a feed batch alike (#30) — and nothing about
+// by a feed batch alike (#30), and a zone's takeover count held whole where it
+// carries no ownership field, by either writer (#31) — and nothing about
 // isolation, the advisory lock, or what a concurrent writer would do to
 // Merge's counts.
 //

@@ -370,6 +370,51 @@ func TestAClosePairIsStoredAsTwoZones(t *testing.T) {
 	})
 }
 
+// TestATakeoverCountIsStoredWholeWithoutOwnershipFields is `FR-031` (#31) at
+// the store: a zone reporting takeovers and neither `dateLastTaken` nor
+// `currentOwner` is held with that count, by a refresh and by a feed batch.
+// No signal derived from takeover history exists yet, so this pins the input
+// one will read and not the criteria; zonesync's takeoverhistory_test.go says
+// why, and holds each absence alone at the mapping.
+func TestATakeoverCountIsStoredWholeWithoutOwnershipFields(t *testing.T) {
+	pool, store := feedCopy(t)
+
+	const (
+		id        = 7101
+		takeovers = 318
+	)
+
+	record := fmt.Sprintf(`{"id":%d,"name":"Held before","latitude":59.3293,"longitude":18.0686,`+
+		`"dateCreated":"2016-05-04T03:02:01Z","totalTakeovers":%d,"takeoverPoints":95,"pointsPerHour":1,`+
+		`"region":{"id":141,"name":"Stockholm"}}`, id, takeovers)
+
+	stored := func(t *testing.T, writer string) {
+		t.Helper()
+
+		switch z, ok := storedZone(t, pool, id); {
+		case !ok:
+			t.Errorf("%s left no row for a zone reporting %d takeovers and no ownership field", writer, takeovers)
+		case z.TotalTakeovers != takeovers:
+			t.Errorf("%s stored total_takeovers %d for a zone reporting %d and no ownership field — the absence was read as a zone never taken, which FR-031 forbids",
+				writer, z.TotalTakeovers, takeovers)
+		}
+	}
+
+	t.Run("by a refresh", func(t *testing.T) {
+		emptiedAfter(t, pool)
+
+		refreshRecords(t, store, record)
+		stored(t, "a refresh")
+	})
+
+	t.Run("by the zone feed", func(t *testing.T) {
+		feedEmptiedAfter(t, pool)
+
+		poll(t, store, `{"type":"zone","time":"2026-10-19T21:46:07+0000","zone":`+record+`}`)
+		stored(t, "a feed batch")
+	})
+}
+
 // TestTheScheduleGatesReadWhatTheRunRecordsWrote sends the two gates the
 // scheduler reads, and the two writes that move them, to PostgreSQL (#233).
 //
