@@ -9,8 +9,8 @@ repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
 **Accurate as of 20 October 2026**, against the tree that lands the scheduled
-zone sync, corridor resolution against the local copy, and the review
-session's ownership decisions. It is maintained by the work that changes the structure: a PR that
+zone sync, corridor resolution against the local copy, the review
+session's ownership decisions, and the zone feed (#232). It is maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
 from disk is worse than no map, because the reader who trusts it opens the
@@ -38,8 +38,10 @@ repository — `.gitignore` covers it.
 ## The Go module
 
 Everything under `service/` is one module. `cmd/turfgps` is the executable and
-the composition root: it reads configuration, opens the connection pool, starts
-the HTTP server and the sync worker, and drains what is in flight on a signal.
+the composition root: it reads configuration, opens a connection pool for each
+background job configured, starts the HTTP server, the sync worker and the zone
+feed's poller (`cmd/turfgps/zonefeed.go`), and drains what is in flight on a
+signal.
 The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 (#125).
 
@@ -49,9 +51,9 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224) |
 | `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
-| `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters`: `Client` for the sync's all-zones fetch, `SessionClient` for a review session's player-data and region requests, both drawing on the process's one request budget |
-| `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where the connection pool is opened |
-| `internal/zonesync` | the scheduled worker that refreshes the local copy, and the ports it declares |
+| `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters`: `Client` for the sync's all-zones fetch, `SessionClient` for a review session's player-data and region requests, `FeedClient` for the zone feed (#232), all drawing on the process's one request budget |
+| `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where each connection pool is opened |
+| `internal/zonesync` | the scheduled workers that write the local copy — the full refresh, and the zone feed's poller with its per-item ingest decision (`feed.go`, #232) — and the ports they declare |
 | `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
 
 Four constraints across that set are not visible from the package names.
@@ -61,11 +63,14 @@ all-zones endpoint** — the monthly instant's time of day and time zone (#233),
 and the endpoint. They arrive from the environment or the sync does not run, so
 that this module is a second home for none of them; their home is
 `Architecture.md § Retrieving zones`. `internal/turf` writes no API path for
-the same reason, and takes the endpoint as a resolved URL.
+the same reason, and takes the endpoint as a resolved URL. The zone feed's
+interval and endpoint are held the same way, in a configuration block of their
+own (`internal/config/zonefeed.go`), with the same home.
 
 **`internal/zonesync` exports no way to run a single refresh.** The only
-exported entry that can reach the endpoint is the scheduler's loop, which the
-process owns for its whole life, so there is nothing for a handler to call.
+exported entries that can reach an endpoint are the two loops — the
+scheduler's and the zone feed's — which the process owns for its whole life,
+so there is nothing for a handler to call.
 
 **No package may reach `internal/zonesync` transitively except the composition
 root and `internal/syncstore`**, which is exempt because it implements the
@@ -103,20 +108,22 @@ checks.
 `internal/syncstore` writes, imports `internal/zonesync` for its port
 types, and no handler could usefully import it.
 
-**One pool is opened, and the package that opens it does not hold it.**
-`internal/zonestore` carries the constructor that opens it and pins the settings
-the service holds it to; the composition root holds the only reference, and
-closes it on every path but one. Which settings, and why each is pinned, is on
-those constants in `service/internal/zonestore/zonestore.go` and is not repeated
-here.
+**A pool is opened per background job, and the package that opens them does not
+hold them.** The sync and the zone feed each get one, so neither job's wiring
+depends on the other's being configured. `internal/zonestore` carries the
+constructor that opens each and pins the settings the service holds it to; the
+composition root holds the only references, and closes each on every path but
+one. Which settings, and why each is pinned, is on those constants in
+`service/internal/zonestore/zonestore.go` and is not repeated here.
 
 **The exception is the stop-timeout branch**, where `service/cmd/turfgps/main.go`
 returns without closing — deliberately, to avoid blocking on the one connection
-that has not come back. It is not a leak to be tidied up; the reason in full is
+that has not come back, and `zonefeed.go`'s supervision of the feed does the
+same. It is not a leak to be tidied up; the reason in full is
 on that branch, and what it leaves behind for an operator reading `sync_run` is
 `Architecture.md § The sync write path`.
 
-**Today that pool reaches one half.** The root hands it to `internal/syncstore`
+**Today those pools reach one half.** The root hands each to `internal/syncstore`
 and to nothing else: `zonestore.NewReader`, `Reader.Currency`,
 `Reader.ZonesInCorridor` and `corridor.Resolve` are written and have **no
 callers** outside their tests, and `internal/httpapi` imports neither store, so
@@ -131,7 +138,8 @@ topology, and this file states it as owed.
 there rather than inside the module is the opening of `migrations/README.md`,
 which is the directory's front door and carries the rest of what a reader
 needs: the file convention, `migrations/README.md § Applying one`, the ingest
-field mapping the sync writes against, and what the worker owes the run record.
+field mapping the sync writes against, what the worker owes the run record, and
+the zone feed's own state (`0002_zone_feed.sql`).
 
 The schema and the write path themselves are `Architecture.md § The schema` and
 `Architecture.md § The sync write path`. Neither this file nor

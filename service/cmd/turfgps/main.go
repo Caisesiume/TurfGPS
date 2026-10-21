@@ -124,6 +124,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Read before anything starts, unlike the sync's configuration, which
+	// startZoneSync reads: a feed configured wrongly then exits here, with no
+	// listener and no sync running to be stopped on the way out (#238).
+	feed, err := loadZoneFeed(os.LookupEnv)
+	if err != nil {
+		slog.Error("the zone feed's configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		slog.Error("cannot listen", "addr", addr, "error", err)
@@ -133,6 +142,12 @@ func main() {
 	stopSync, err := startZoneSync(ctx, stop)
 	if err != nil {
 		slog.Error("the zone sync is configured and could not start", "error", err)
+		os.Exit(1)
+	}
+
+	stopFeed, err := startZoneFeed(ctx, stop, feed)
+	if err != nil {
+		slog.Error("the zone feed is configured and could not start", "error", err)
 		os.Exit(1)
 	}
 
@@ -150,7 +165,17 @@ func main() {
 
 	// Called explicitly rather than deferred: the exit below skips defers, and
 	// the whole purpose of this call is to let the sync's own shutdown finish.
+	//
+	// The feed's stop is waited on at the same time rather than after it. Both
+	// loops watch the context just cancelled, and what the runtime allows the
+	// process to disappear in is spent by the sum of what is waited in
+	// sequence — syncStopTimeout says so — so a second wait in turn would
+	// spend a second budget the grace period does not have.
+	feedDone := make(chan bool, 1)
+	go func() { feedDone <- stopFeed() }()
+
 	syncDied := stopSync()
+	feedDied := <-feedDone
 
 	if serveErr != nil {
 		slog.Error("service stopped", "error", serveErr)
@@ -166,6 +191,11 @@ func main() {
 	// makes something act on it.
 	if syncDied {
 		slog.Error("this process is exiting nonzero because its zone sync is gone, so that a supervisor replaces it")
+		os.Exit(1)
+	}
+
+	if feedDied {
+		slog.Error("this process is exiting nonzero because its zone feed is gone, so that a supervisor replaces it")
 		os.Exit(1)
 	}
 }

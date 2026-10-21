@@ -277,7 +277,7 @@ func TestEveryFieldOfAZoneReachesAColumn(t *testing.T) {
 func TestTheMergeStatementIsExactlyAsPinned(t *testing.T) {
 	t.Parallel()
 
-	got := buildMergeSQL()
+	got := buildMergeSQL(stagingTable)
 	if got == wantMergeSQL {
 		return
 	}
@@ -394,3 +394,48 @@ WHERE  zone.name            IS DISTINCT FROM excluded.name
    OR  zone.region_country  IS DISTINCT FROM excluded.region_country
    OR  zone.area_id         IS DISTINCT FROM excluded.area_id
    OR  zone.area_name       IS DISTINCT FROM excluded.area_name`
+
+// TestTheFeedInsertsThroughTheSameStatementAndNeverUpdates: the zone feed
+// (#232) writes `zone` through mergeSQL's own INSERT … SELECT, reading from its
+// own staging table — the same column binding — and ends where mergeSQL's
+// conflict clause begins with one that does nothing: a held id is left as the
+// copy holds it, because a feed item is a creation snapshot (#238, S1).
+func TestTheFeedInsertsThroughTheSameStatementAndNeverUpdates(t *testing.T) {
+	t.Parallel()
+
+	feed, full := strings.Split(feedInsertSQL, "\n"), strings.Split(mergeSQL, "\n")
+
+	from := indexOf(full, "FROM   "+stagingTable+" i")
+	if from < 0 || len(feed) < from+1 {
+		t.Fatalf("the full refresh's merge has no FROM line, or the feed's statement is shorter than the INSERT … SELECT:\n%s", feedInsertSQL)
+	}
+
+	var differing []string
+
+	for i := 0; i <= from; i++ {
+		if feed[i] != full[i] {
+			differing = append(differing, fmt.Sprintf("line %d: %q against %q", i+1, feed[i], full[i]))
+		}
+	}
+
+	want := fmt.Sprintf("line %d: %q against %q", from+1, "FROM   "+feedStagingTable+" i", "FROM   "+stagingTable+" i")
+
+	if len(differing) != 1 || differing[0] != want {
+		t.Errorf("the feed's INSERT … SELECT differs from the full refresh's at %v, want only %s", differing, want)
+	}
+
+	if tail := feed[from+1:]; !reflect.DeepEqual(tail, []string{"ON CONFLICT (" + zoneKeyColumn + ") DO NOTHING"}) {
+		t.Errorf("after its FROM line the feed's statement reads %q, want only %q — a feed item would otherwise rewrite a zone the copy holds",
+			tail, "ON CONFLICT ("+zoneKeyColumn+") DO NOTHING")
+	}
+}
+
+func indexOf(lines []string, line string) int {
+	for i, l := range lines {
+		if l == line {
+			return i
+		}
+	}
+
+	return -2
+}
