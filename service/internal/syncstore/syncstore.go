@@ -26,8 +26,10 @@
 // names it in the variable that test reads, and fails if the test skips.
 // Everywhere else the test skips, so a green `go test ./...` on a host without
 // a database says nothing about them. What it measures is what a refresh
-// leaves stored — a held id's revised date_created and a new id's (#38), and a
-// zone set some of whose records carry no type (#39) — and nothing about
+// leaves stored — a held id's revised date_created and a new id's (#38), a
+// zone set some of whose records carry no type (#39), and two zones closer
+// together than any separation could be assumed, held as two by a refresh and
+// by a feed batch alike (#30) — and nothing about
 // isolation, the advisory lock, or what a concurrent writer would do to
 // Merge's counts.
 //
