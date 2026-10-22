@@ -2257,3 +2257,65 @@ Affects:        FR-125: statement, `Verification`, criteria (the second
                 renumbered), its notes, and the reason on its soft edge to
                 #250.
 ```
+
+## RD-056 — May a driving leg enter a private or access-restricted way to reach an intermediate destination?
+
+```
+Date:           2026-10-22
+Decided-by:     the Owner, answering `@engineering-lead`'s question on
+                RD-055's narrow reading in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6337282133,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere.
+Question:       RD-055 let a driving leg enter a way marked private or
+                access-restricted, or pass a barrier so marked, only to reach
+                the journey's origin or its destination, and on the ladder
+                held an intermediate destination outside that exception. May a
+                leg reaching or leaving an intermediate destination the user
+                entered run along such ways and pass such barriers on the same
+                terms?
+Interpretation: **Yes: every location the user entered — the journey's origin,
+                its destination and each intermediate destination, together
+                its required locations — may be reached over such ways and
+                barriers; a stop the system chose and transit stay strictly
+                excluded.** The ruling, verbatim: "**any location the user
+                entered** (origin, destination, or an intermediate
+                destination, #2) may be reached over a private or
+                access-restricted way, because the user has a reason to be
+                there. System-chosen stops (e.g. Turf zones) and transit stay
+                strictly excluded." RD-055's run is kept and applied at every
+                required location: a leg may run along such ways, and pass
+                such barriers, only in a run of them broken by no way not so
+                marked with which it leaves a required location or ends at
+                one, and every other such way or barrier on a leg is in
+                transit. An intermediate destination is left as well as
+                reached, since the car driven to it drives on from it, so both
+                legs meeting there take the run; a journey may therefore cross
+                such an area over two legs meeting at an intermediate
+                destination inside it, which the ruling accepts because the
+                user has a reason to be there. **A stopping position is still
+                reached and left along no such way**, as RD-052 had it; where
+                one can be reached only through such an area, a leg ending
+                short of it and no leg at all both honour FR-125, how far
+                short being #250's. This supersedes RD-055's holding that an
+                intermediate destination is outside the exception, with the
+                rung-1 and rung-7 reasoning behind that holding; RD-055 stands
+                for the origin, the destination and the run, and RD-052 for a
+                stopping position.
+Rung:           n/a — Owner ruling, asked by the lead on RD-055, whose
+                exclusion of an intermediate destination rested on rung 1
+                (`SPECIFICATION.md § Primary use case` names the destination
+                apart from the intermediate destinations) and on rung 7. The
+                ruling's own list names the intermediate destination, and the
+                same section names the three together as the journey's
+                required locations, which is the term FR-125 now uses for
+                them. That an intermediate destination is left as well as
+                reached rests on rung 1: the same section has the journey
+                visit its required locations in order, so it goes on from
+                every one of them but the destination.
+Affects:        FR-125: statement, `Verification`, second and third criteria,
+                `Risk` and `Rationale`; RD-055, superseded for an intermediate
+                destination; #248's narrative, its definition of in transit,
+                AC4 and AC5, its notes, and the reason on its soft edge to
+                #250.
+```

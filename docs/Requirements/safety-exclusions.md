@@ -814,8 +814,7 @@ Statement:    The system shall produce no driving leg that runs along a way,
               or passes a barrier, that the map data marks as private or
               access-restricted, other than in a run of such ways and
               barriers, broken by no way not so marked, with which the leg
-              leaves the journey's origin or ends at the journey's
-              destination.
+              leaves one of the journey's required locations or ends at one.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -823,11 +822,11 @@ Verification: test — against routing data built from a test extract holding
               such ways and barriers, a leg between ways not so marked whose
               quickest drivable connection runs along a marked way or through
               a marked barrier is produced on a connection avoiding it, a leg
-              from the journey's origin or to its destination on a marked way
-              is produced to that location, a leg to a stopping position or an
-              intermediate destination beside a marked way runs along none,
-              and where every drivable connection between two points on ways
-              not so marked is marked no leg is produced along one
+              from or to a required location of the journey on a marked way is
+              produced with that location as its end, a leg to a stopping
+              position beside a marked way runs along none, and where every
+              drivable connection between two points on ways not so marked is
+              marked no leg is produced along one
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -835,17 +834,18 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               avoiding every such way and barrier exists, when the leg is
               produced, then it runs along no such way and passes no such
               barrier
-              given the journey's origin or its destination lying on a way so
+              given a required location of the journey — its origin, its
+              destination or an intermediate destination — lying on a way so
               marked, a car reaching that location only along such ways, when
-              the leg leaving that origin or reaching that destination is
-              produced, then the leg is produced to that location, running
-              along such ways and passing such barriers only in the run,
-              broken by no way not so marked, that adjoins that location
-              given a driving leg one end of which is a stopping position or
-              an intermediate destination lying nearer a way so marked than
-              any way not so marked, and the other end of which lies on a way
-              not so marked, when the leg is produced, then it runs along no
-              such way and passes no such barrier
+              a leg leaving or reaching that location is produced, then the
+              leg starts or ends at that location, running along such ways and
+              passing such barriers only in the run, broken by no way not so
+              marked, that adjoins that location
+              given a driving leg one end of which is a stopping position
+              lying nearer a way so marked than any way not so marked, and the
+              other end of which lies on a way not so marked, when the leg is
+              produced, then it runs along no such way and passes no such
+              barrier
               given two points on ways not so marked, every drivable
               connection between which runs along such a way or passes such a
               barrier, when the journey is planned, then no driving leg is
@@ -864,9 +864,9 @@ Risk:         A routing engine that prices a private road as a cost rather
               and the leg comes back as one a car can drive, so FR-006's check
               passes. The driver is sent through a gate they have no right to
               open, and nothing in the result says so. Read wider than the
-              journey's own origin and destination, the exception lets a stop
-              placed on such a way draw one leg into the area and the next out
-              of it, so that the journey crosses the area.
+              journey's required locations, the exception lets a stop the
+              system chose on such a way draw one leg into the area and the
+              next out of it, so that the journey crosses the area.
 Rationale:    The cited section makes this a hard rule: no route may be
               constructed through an area the map data marks private or
               access-restricted. FR-075 keeps the walking access path off a
@@ -883,24 +883,27 @@ Rationale:    The cited section makes this a hard rule: no route may be
               (`SPECIFICATION.md § What establishes a stopping position`), so
               this record excludes no stop and no location a journey names; it
               binds what a leg travels along. Its one exception is the Owner's
-              (`DECISIONS.md § RD-055`, superseding `RD-052` there): a leg may
-              enter such an area only to reach the origin or the destination
-              the user entered, never in transit and never at a stop the
-              system chose, so a home on a private road is planned to the
-              door, which the second criterion tests. The run is broken by no
-              way not so marked because a marked stretch with such a way on
-              each side of it cannot be told from a shortcut through the area
-              by the ways and barriers the leg runs along. A stopping position
-              is outside the exception on the ruling's own words, and an
-              intermediate destination on the ladder, since a journey that
-              continues from a point inside such an area crosses it over two
-              legs; the third criterion tests both. Where either can be
-              reached only through such an area, a leg ending short of it and
-              no leg at all both honour this record, and how far a leg's end
-              may lie from its location is a tolerance no document gives. The
-              fourth criterion keeps the exclusion hard: where nothing avoids
-              the area the answer is no leg through it, never the least-bad
-              crossing. No mechanism is named, and a penalty is not an
-              exclusion.
+              (`DECISIONS.md § RD-055`, widened by `DECISIONS.md § RD-056`,
+              the two superseding `RD-052` there): a leg may enter such an
+              area only to reach a location the user entered, one of the
+              journey's required locations
+              (`SPECIFICATION.md § Primary use case`), never in transit and
+              never at a stop the system chose, so a home on a private road is
+              planned to the door, which the second criterion tests. The run
+              is broken by no way not so marked because a marked stretch with
+              such a way on each side of it cannot be told from a shortcut
+              through the area by the ways and barriers the leg runs along. A
+              stopping position is outside the exception on the ruling's own
+              words: a journey continuing from a point inside such an area
+              crosses it over two legs, which the user may choose by entering
+              a location there and the system never may by placing a stop
+              there; the third criterion tests it. Where a stopping position
+              can be reached only through such an area, a leg ending short of
+              it and no leg at all both honour this record, and how far a
+              leg's end may lie from its location is a tolerance no document
+              gives. The fourth criterion keeps the exclusion hard: where
+              nothing avoids the area the answer is no leg through it, never
+              the least-bad crossing. No mechanism is named, and a penalty is
+              not an exclusion.
 Resolved-by:  #248
 ```
