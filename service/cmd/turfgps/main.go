@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -20,8 +21,10 @@ import (
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
+	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 	"github.com/Caisesiume/TurfGPS/service/internal/syncstore"
 	"github.com/Caisesiume/TurfGPS/service/internal/turf"
+	"github.com/Caisesiume/TurfGPS/service/internal/valhalla"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonestore"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
 )
@@ -112,7 +115,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	handler, err := newHandler(os.LookupEnv)
+	plans, err := newPlanner(os.LookupEnv)
+	if err != nil {
+		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	handler, err := newHandler(os.LookupEnv, httpapi.WithPlanner(plans))
 	if err != nil {
 		slog.Error("the cross-origin configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
@@ -390,7 +399,10 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 // is the seam `FR-022` AC2 is checked over, and a mux built inline here would
 // put every future handler inside the one package the invariant has to permit
 // to reach the sync worker.
-func newHandler(lookup config.LookupFunc) (http.Handler, error) {
+//
+// opts reach the request surface unchanged; main passes the planner
+// newPlanner built.
+func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler, error) {
 	origins, err := config.LoadAllowedOrigins(lookup)
 	if err != nil {
 		return nil, err
@@ -401,7 +413,50 @@ func newHandler(lookup config.LookupFunc) (http.Handler, error) {
 			"configure", config.EnvCORSAllowedOrigins)
 	}
 
-	return httpapi.NewHandler(origins), nil
+	return httpapi.NewHandler(origins, opts...), nil
+}
+
+// newPlanner returns the journey planner, routing every leg through the
+// Valhalla instance config.EnvValhallaURL names (#6) — the one place the
+// adapter is joined to the port `internal/planner` declares.
+//
+// With no engine configured it returns nil and no error: the service starts,
+// and `POST /journeys` answers 503, as `NFR-003` measures an image carrying
+// nothing else. A configuration that is present and malformed is refused, so
+// main stops before anything listens. Nor does it ask the engine whether it is
+// up, for the reason startZoneSync does not ask the store: an engine that is
+// down fails the journeys asked of it, with a 502, and not the start.
+func newPlanner(lookup config.LookupFunc) (*planner.Planner, error) {
+	cfg, err := config.LoadValhalla(lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg == nil {
+		slog.Info("no routing engine is configured, so journey planning answers 503",
+			"configure", config.EnvValhallaURL)
+
+		return nil, nil
+	}
+
+	routing, err := valhalla.New(cfg.URL, cfg.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	plans, err := planner.New(routing)
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := url.Parse(cfg.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Info("journeys are routed for a car through Valhalla", "url", engine.Redacted(), "timeout", cfg.Timeout)
+
+	return plans, nil
 }
 
 // listenAddr is the address main binds: the one config.EnvListenAddr names, or

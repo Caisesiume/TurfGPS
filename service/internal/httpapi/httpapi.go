@@ -47,9 +47,10 @@ type options struct {
 	planner *planner.Planner
 }
 
-// WithPlanner has `POST /journeys` plan through p. Without it that route
-// answers 503: no routing adapter is registered yet (#6), and a route that is
-// served and says so is easier to find than one that is missing.
+// WithPlanner has `POST /journeys` plan through p. Without it, or with a nil
+// p, that route answers 503: the composition root registers a planner only
+// when a routing engine is configured (#6), and a route that is served and
+// says so is easier to find than one that is missing.
 func WithPlanner(p *planner.Planner) Option {
 	return func(o *options) { o.planner = p }
 }
