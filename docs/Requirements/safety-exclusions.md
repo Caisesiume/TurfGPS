@@ -806,3 +806,104 @@ Rationale:    The cited section records these constants as required for the
               exists.
 Resolved-by:  —
 ```
+
+## FR-125 — Route no driving leg through a private or access-restricted way or barrier
+
+```
+Statement:    The system shall produce no driving leg that runs along a way,
+              or passes a barrier, that the map data marks as private or
+              access-restricted, other than in a run of such ways and
+              barriers, broken by no way not so marked, with which the leg
+              leaves one of the journey's required locations or ends at one.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract holding
+              such ways and barriers, a leg between ways not so marked whose
+              quickest drivable connection runs along a marked way or through
+              a marked barrier is produced on a connection avoiding it, a leg
+              from or to a required location of the journey on a marked way is
+              produced with that location as its end, a leg to a stopping
+              position beside a marked way runs along none, and where every
+              drivable connection between two points on ways not so marked is
+              marked no leg is produced along one
+Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, that the map data marks as private or
+              access-restricted, and between whose ends a drivable connection
+              avoiding every such way and barrier exists, when the leg is
+              produced, then it runs along no such way and passes no such
+              barrier
+              given a required location of the journey — its origin, its
+              destination or an intermediate destination — lying on a way so
+              marked, a car reaching that location only along such ways, when
+              a leg leaving or reaching that location is produced, then the
+              leg starts or ends at that location, running along such ways and
+              passing such barriers only in the run, broken by no way not so
+              marked, that adjoins that location
+              given a driving leg one end of which is a stopping position
+              lying nearer a way so marked than any way not so marked, and the
+              other end of which lies on a way not so marked, when the leg is
+              produced, then it runs along no such way and passes no such
+              barrier
+              given two points on ways not so marked, every drivable
+              connection between which runs along such a way or passes such a
+              barrier, when the journey is planned, then no driving leg is
+              produced that runs along such a way or passes such a barrier
+Status:       to-build
+Depends-on:   FR-006
+Volatility:   open-question — which tag values spell private and
+              access-restricted is owed with the OSM-derived feature tables
+              that `Architecture.md § Still owed by this document` records as
+              undesigned; the floor of markings this record must exclude is
+              `DECISIONS.md § RD-053`'s, and a spelling found wrong is
+              corrected without narrowing it
+Risk:         A routing engine that prices a private road as a cost rather
+              than a prohibition takes the shortcut through a gated estate or
+              along a residents' road exactly where it saves the most time,
+              and the leg comes back as one a car can drive, so FR-006's check
+              passes. The driver is sent through a gate they have no right to
+              open, and nothing in the result says so. Read wider than the
+              journey's required locations, the exception lets a stop the
+              system chose on such a way draw one leg into the area and the
+              next out of it, so that the journey crosses the area.
+Rationale:    The cited section makes this a hard rule: no route may be
+              constructed through an area the map data marks private or
+              access-restricted. FR-075 keeps the walking access path off a
+              way so marked and reads the member as binding the area rather
+              than the way; this record keeps that reading and takes the
+              area's marking from what a driving leg is made of, the ways it
+              runs along and the barriers across them. An area marked only by
+              an enclosing area feature is not reached here and is recorded as
+              owed (`DECISIONS.md § RD-054`). Way and barrier stay one record
+              because a gate and the road behind it mark one area, and a
+              record for either alone leaves the other as the way round it.
+              The member's antecedent is a route through an area and never a
+              stop at a position inside one
+              (`SPECIFICATION.md § What establishes a stopping position`), so
+              this record excludes no stop and no location a journey names; it
+              binds what a leg travels along. Its one exception is the Owner's
+              (`DECISIONS.md § RD-055`, widened by `DECISIONS.md § RD-056`,
+              the two superseding `RD-052` there): a leg may enter such an
+              area only to reach a location the user entered, one of the
+              journey's required locations
+              (`SPECIFICATION.md § Primary use case`), never in transit and
+              never at a stop the system chose, so a home on a private road is
+              planned to the door, which the second criterion tests. The run
+              is broken by no way not so marked because a marked stretch with
+              such a way on each side of it cannot be told from a shortcut
+              through the area by the ways and barriers the leg runs along. A
+              stopping position is outside the exception on the ruling's own
+              words: a journey continuing from a point inside such an area
+              crosses it over two legs, which the user may choose by entering
+              a location there and the system never may by placing a stop
+              there; the third criterion tests it. Where a stopping position
+              can be reached only through such an area, a leg ending short of
+              it and no leg at all both honour this record, and how far a
+              leg's end may lie from its location is a tolerance no document
+              gives. The fourth criterion keeps the exclusion hard: where
+              nothing avoids the area the answer is no leg through it, never
+              the least-bad crossing. No mechanism is named, and a penalty is
+              not an exclusion.
+Resolved-by:  #248
+```
