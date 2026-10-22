@@ -11,11 +11,12 @@
 // trigger removes is this one, and it is removed in good faith by someone who
 // never reads the record.
 //
-// The difficulty is that AC2 is satisfiable by absence. There is no plan handler
-// yet, so a test asserting that the plan handler issues no all-zones request
-// reports green while measuring nothing, and keeps reporting green on the day
-// the handler lands wired the wrong way. The guard is therefore structural and
-// it fails closed:
+// The difficulty is that AC2 is satisfiable by absence. A test asserting that
+// the plan handler issues no all-zones request measures only the handler it
+// runs — today `POST /journeys` (#1), behind a fake routing provider and with
+// no zone selection yet — and keeps reporting green on the day the handler
+// acquires a dependency wired the wrong way. The guard is therefore structural
+// and it fails closed:
 //
 //   - The invariant is that no package in this module may reach
 //     `internal/zonesync` transitively except the composition root and
@@ -33,7 +34,25 @@
 // `internal/zonesync/offrequestpath_test.go`.
 package httpapi
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/Caisesiume/TurfGPS/service/internal/planner"
+)
+
+// Option supplies the request surface with something a handler needs.
+type Option func(*options)
+
+type options struct {
+	planner *planner.Planner
+}
+
+// WithPlanner has `POST /journeys` plan through p. Without it that route
+// answers 503: no routing adapter is registered yet (#6), and a route that is
+// served and says so is easier to find than one that is missing.
+func WithPlanner(p *planner.Planner) Option {
+	return func(o *options) { o.planner = p }
+}
 
 // NewMux returns the service's request surface.
 //
@@ -41,10 +60,16 @@ import "net/http"
 // may read of the sync's work is the currency `zonestore` records — a read of
 // `sync_run`, which is what the system observed — and never the worker that
 // produces it.
-func NewMux() *http.ServeMux {
+func NewMux(opts ...Option) *http.ServeMux {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", root)
+	mux.HandleFunc("POST /journeys", planJourney(o.planner))
 
 	return mux
 }

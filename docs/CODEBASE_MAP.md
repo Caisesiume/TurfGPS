@@ -8,9 +8,10 @@ path, the ports, the refresh schedule and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
-**Accurate as of 20 October 2026**, against the tree that lands the scheduled
+**Accurate as of 22 October 2026**, against the tree that lands the scheduled
 zone sync, corridor resolution against the local copy, the review
-session's ownership decisions, and the zone feed (#232). It is maintained by the work that changes the structure: a PR that
+session's ownership decisions, the zone feed (#232), and the planning entry
+point (#1). It is maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
 from disk is worse than no map, because the reader who trusts it opens the
@@ -49,7 +50,8 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 |---|---|
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
-| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224) |
+| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, and answers 503 until a routing adapter is registered (#6) |
+| `internal/planner` | plans a journey from an origin to a destination through the `RoutingProvider` port it declares, never a concrete provider (#1) |
 | `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters`: `Client` for the sync's all-zones fetch, `SessionClient` for a review session's player-data and region requests, `FeedClient` for the zone feed (#232), all drawing on the process's one request budget |
 | `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where each connection pool is opened |
