@@ -30,6 +30,12 @@ func postJourney(t *testing.T, handler http.Handler) *httptest.ResponseRecorder 
 	return rec
 }
 
+// heldZoneCopy reports a zone copy held, so a plan reaches its routing: the
+// copy a test injects where main passes unwiredZoneCopy.
+type heldZoneCopy struct{}
+
+func (heldZoneCopy) Held(context.Context) (bool, error) { return true, nil }
+
 func lookupOnly(vars map[string]string) config.LookupFunc {
 	return func(name string) (string, bool) {
 		v, ok := vars[name]
@@ -46,7 +52,7 @@ func TestStartupRefusesAMalformedRoutingEngineURL(t *testing.T) {
 	t.Parallel()
 
 	for _, raw := range []string{"127.0.0.1:8002", "tcp://127.0.0.1:8002", "http://127.0.0.1:8002/?json="} {
-		plans, err := newPlanner(lookupOnly(map[string]string{config.EnvValhallaURL: raw}))
+		plans, err := newPlanner(lookupOnly(map[string]string{config.EnvValhallaURL: raw}), heldZoneCopy{})
 		if err == nil {
 			t.Errorf("newPlanner accepted %s=%q, want a refusal", config.EnvValhallaURL, raw)
 
@@ -68,7 +74,7 @@ func TestStartupRefusesAMalformedRoutingEngineURL(t *testing.T) {
 func TestWithoutARoutingEngineJourneysAnswer503(t *testing.T) {
 	t.Parallel()
 
-	plans, err := newPlanner(lookupOnly(nil))
+	plans, err := newPlanner(lookupOnly(nil), heldZoneCopy{})
 	if err != nil || plans != nil {
 		t.Fatalf("with no engine configured newPlanner gave %v, %v; want no planner and no error", plans, err)
 	}
@@ -87,7 +93,8 @@ func TestWithoutARoutingEngineJourneysAnswer503(t *testing.T) {
 // the served route: with an engine configured, `POST /journeys` stops
 // answering 503, and the leg it returns was asked of that engine with the car
 // costing — the adapter, not a fake planner, is what the composition root
-// registered.
+// registered. The zone copy is injected held, as main's is not until #249, so
+// that the plan reaches the engine.
 func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 	t.Parallel()
 
@@ -117,7 +124,7 @@ func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 
 	lookup := lookupOnly(map[string]string{config.EnvValhallaURL: engine.URL})
 
-	plans, err := newPlanner(lookup)
+	plans, err := newPlanner(lookup, heldZoneCopy{})
 	if err != nil || plans == nil {
 		t.Fatalf("newPlanner with %s=%q gave %v, %v; want a planner", config.EnvValhallaURL, engine.URL, plans, err)
 	}
@@ -190,7 +197,7 @@ func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
 
 	routing := &deadlineRouting{}
 
-	plans, err := planner.New(routing)
+	plans, err := planner.New(routing, heldZoneCopy{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -221,5 +228,51 @@ func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
 
 	if got := routing.deadlines[0]; got.Before(before.Add(planTimeout)) || got.After(after.Add(planTimeout)) {
 		t.Errorf("the leg's deadline is %v after the request, want planTimeout (%v)", got.Sub(before), planTimeout)
+	}
+}
+
+// TestTheServedPlannerFailsClosedUntilTheZoneStoreIsWired (#6, the lead's
+// ruling on #246): with an engine configured, the copy main plans from refuses
+// every plan with 503 and the store's message, and no leg is asked of the
+// engine — until #249 gives the request surface a pool on the zone store.
+func TestTheServedPlannerFailsClosedUntilTheZoneStoreIsWired(t *testing.T) {
+	t.Parallel()
+
+	var (
+		mu    sync.Mutex
+		asked int
+	)
+
+	engine := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		asked++
+		mu.Unlock()
+
+		http.Error(w, "not expected", http.StatusInternalServerError)
+	}))
+	t.Cleanup(engine.Close)
+
+	lookup := lookupOnly(map[string]string{config.EnvValhallaURL: engine.URL})
+
+	plans, err := newPlanner(lookup, unwiredZoneCopy{})
+	if err != nil || plans == nil {
+		t.Fatalf("newPlanner with %s=%q gave %v, %v; want a planner", config.EnvValhallaURL, engine.URL, plans, err)
+	}
+
+	handler, err := newHandler(lookup, httpapi.WithPlanner(plans))
+	if err != nil {
+		t.Fatalf("newHandler: %v", err)
+	}
+
+	rec := postJourney(t, handler)
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "could not be read") {
+		t.Errorf("POST /journeys answered %d %q, want 503 saying the zone copy could not be read", rec.Code, rec.Body)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if asked != 0 {
+		t.Errorf("the engine was asked %d times, want none before the zone copy is read", asked)
 	}
 }

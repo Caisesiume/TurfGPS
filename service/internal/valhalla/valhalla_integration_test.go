@@ -215,7 +215,7 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 	rec := &recordingTransport{next: http.DefaultTransport}
 	c.http.Transport = rec
 
-	p, err := planner.New(c)
+	p, err := planner.New(c, heldCopy{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}

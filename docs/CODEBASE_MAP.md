@@ -43,7 +43,9 @@ repository — `.gitignore` covers it.
 Everything under `service/` is one module. `cmd/turfgps` is the executable and
 the composition root: it reads configuration, opens a connection pool for each
 background job configured, registers the routing adapter when a routing
-engine is configured (#6), starts the HTTP server, the sync worker and the zone
+engine is configured (#6) — gating every plan on a zone copy that fails closed
+until the request surface has a pool on the store (#249) — starts the HTTP
+server, the sync worker and the zone
 feed's poller (`cmd/turfgps/zonefeed.go`), and drains what is in flight on a
 signal.
 The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
@@ -53,7 +55,7 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 |---|---|
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
-| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, answers 503 when no routing engine is configured, and 504 when a plan outlives the deadline the composition root sets below the server's write timeout (#6) |
+| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, answers 503 when no routing engine is configured or the zone copy cannot be read — every plan, until #249 — and 504 when a plan outlives the deadline the composition root sets below the server's write timeout (#6) |
 | `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1); the port's contract is a route a car can drive, not yet kept off private and access-restricted ways (#6); it plans from whatever local zone copy is held and refuses only where none is, through the `ZoneCopy` port it declares (#33) |
 | `internal/valhalla` | the Valhalla adapter behind `internal/planner`'s port, routing every leg for a car (#6); its integration tests run under the `valhalla` build tag against an engine CI builds from the OpenStreetMap extract in `testdata/`, which is ODbL-licensed data and not code — its README says so, and how to regenerate it |
 | `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
@@ -134,7 +136,8 @@ on that branch, and what it leaves behind for an operator reading `sync_run` is
 and to nothing else: `zonestore.NewReader`, `Reader.Currency`, `Reader.Held`,
 `Reader.ZonesInCorridor` and `corridor.Resolve` are written and have **no
 callers** outside their tests, and `internal/httpapi` imports neither store, so
-the read half is built and unreached. One pool serving both is what the split is *for* —
+the read half is built and unreached; the planner the root builds is gated on
+`unwiredZoneCopy`, which refuses every plan in `Reader.Held`'s place (#6, #249). One pool serving both is what the split is *for* —
 the handler that eventually reads the currency takes the same reference rather
 than opening a second pool — but that is owed work rather than the built
 topology, and this file states it as owed.

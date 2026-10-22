@@ -131,7 +131,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	plans, err := newPlanner(os.LookupEnv)
+	plans, err := newPlanner(os.LookupEnv, unwiredZoneCopy{})
 	if err != nil {
 		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
@@ -444,7 +444,12 @@ func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler,
 // main stops before anything listens. Nor does it ask the engine whether it is
 // up, for the reason startZoneSync does not ask the store: an engine that is
 // down fails the journeys asked of it, with a 502, and not the start.
-func newPlanner(lookup config.LookupFunc) (*planner.Planner, error) {
+//
+// zones is the copy every plan is gated on (#33). main passes unwiredZoneCopy,
+// so a configured engine is reached by no plan until the request surface has a
+// pool on the zone store (#249); a test that exercises routing passes a held
+// copy instead.
+func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy) (*planner.Planner, error) {
 	cfg, err := config.LoadValhalla(lookup)
 	if err != nil {
 		return nil, err
@@ -462,7 +467,7 @@ func newPlanner(lookup config.LookupFunc) (*planner.Planner, error) {
 		return nil, err
 	}
 
-	plans, err := planner.New(routing)
+	plans, err := planner.New(routing, zones)
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +481,21 @@ func newPlanner(lookup config.LookupFunc) (*planner.Planner, error) {
 
 	return plans, nil
 }
+
+// errZoneStoreUnwired is what unwiredZoneCopy reports in place of an answer.
+var errZoneStoreUnwired = errors.New("the request surface holds no pool on the zone store yet (#249)")
+
+// unwiredZoneCopy is the ZoneCopy main plans from until the request surface is
+// given a pool on the zone store, which is #249's to wire: `internal/zonestore`
+// implements the port, and no pool reaches a handler yet.
+//
+// IT FAILS CLOSED. Held reports that it could not read, never a copy held and
+// never none, so every plan is refused with 503 before a leg is routed. A copy
+// reported held would plan over zones nobody read; one reported absent would
+// answer `FR-033`'s refusal for a store that may be full.
+type unwiredZoneCopy struct{}
+
+func (unwiredZoneCopy) Held(context.Context) (bool, error) { return false, errZoneStoreUnwired }
 
 // listenAddr is the address main binds: the one config.EnvListenAddr names, or
 // defaultAddr when it names none (#125). It is the call main makes and the one

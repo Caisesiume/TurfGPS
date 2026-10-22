@@ -22,6 +22,12 @@ import (
 // itself answers this way, and keeps a car off a pedestrian street, is the
 // integration test's to show, against a real instance: `valhalla_integration_test.go`.
 
+// heldCopy reports a zone copy held, so that a plan reaches this adapter: the
+// planner gates every plan on one (#33), and these tests are about routing.
+type heldCopy struct{}
+
+func (heldCopy) Held(context.Context) (bool, error) { return true, nil }
+
 // encodeShape is decodeShape's inverse, for building answers.
 func encodeShape(points []planner.Point) string {
 	var (
@@ -152,7 +158,7 @@ func TestEveryLegIsRequestedForACar(t *testing.T) {
 
 	engine, c := startEngine(t, straightByCar)
 
-	p, err := planner.New(c)
+	p, err := planner.New(c, heldCopy{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
