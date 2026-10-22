@@ -2061,3 +2061,132 @@ Affects:        FR-034: title, statement, `Verification`, criteria,
                 `Volatility` and `Risk`, so a marking on the full-sync bound
                 alone survives storage; #35's acceptance criteria.
 ```
+
+## RD-051 — Is the private-and-access-restricted exclusion filed now, for driving legs?
+
+```
+Date:           2026-10-22
+Decided-by:     the Owner, choosing option (a) of
+                https://github.com/Caisesiume/TurfGPS/pull/246#issuecomment-6335566411
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/246#issuecomment-6335709945,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with one edge the ruling leaves open decided
+                on the ladder below.
+Question:       The safety sentinel's verdict on #246
+                (`#issuecomment-6335556064`, S1 and S2) found that the routing
+                adapter admits ways and barriers the map data marks private or
+                access-restricted, and that no record carries the member of
+                `SPECIFICATION.md § Enforceable exclusions` forbidding it:
+                `README.md` lists it as owed, and RD-005 deferred it to be
+                decided together with the restricted-feature rule. Is it filed
+                now, and does RD-005's pairing hold it back?
+Interpretation: **Filed now, as FR-125, for driving legs, with its story #248
+                at the top priority; every story that lets a client call
+                `POST /journeys` is blocked by #248.** RD-005's *together or
+                not at all* is superseded for this member: the section that
+                sets the two side by side draws their boundary itself, this
+                member's antecedent being a route passing through an area and
+                never a stop at a position inside one, so FR-125 excludes no
+                stop and decides nothing about a restricted stopping feature.
+                The restricted-feature rule stays owed where RD-005 put it,
+                covered meanwhile by reference through FR-092.
+Rung:           n/a for the filing — Owner ruling, escalated because it
+                answered a safety sentinel block. The edge rests on rung 1:
+                `SPECIFICATION.md § What establishes a stopping position`
+                states the boundary in its own words, "Its antecedent is a
+                route passing through an area, not a stop at a position inside
+                one".
+Affects:        FR-125, new; RD-005, its pairing superseded for this member;
+                the batch-5 debt list in `README.md`; #248, and #25's
+                dependencies.
+```
+
+## RD-052 — Does FR-125 reach the stretch of a leg at its own start or end?
+
+```
+Date:           2026-10-22
+Question:       A leg's start or end may lie on, or nearest to, a way marked
+                private or access-restricted: a home on a private road, a
+                user-chosen stop in a customers-only car park, an intermediate
+                destination the routing engine places on a private road beside
+                a public one. Is the stretch of the leg reaching that point
+                bound by the exclusion, or is entering the marked area to
+                reach the leg's own end not passage through it?
+Interpretation: **Bound. No driving leg runs along a marked way or passes a
+                marked barrier, its first and last stretch included.** The
+                location itself is not excluded — FR-125 excludes no stop and
+                no location a journey names — so a journey to it is still
+                planned. Whether a leg whose end can be reached only through
+                such an area ends short of it or is not produced is left open,
+                both honouring the rule, and how far a leg's end may lie from
+                its location is a tolerance no document gives, owed to #250
+                from #246's critic finding N1 (`#issuecomment-6335653959`).
+Rung:           7 — most conservative reasonable interpretation. Rung 1 states
+                the member with no exception for a route's ends, and its
+                sentence on a stop inside an area keeps the stop from being
+                excluded, which FR-125 honours, without licensing a route into
+                the area. A reading that lets a leg enter a marked area to
+                reach its own end is the sentinel's second scenario on #246 —
+                an intermediate destination placed on a private road — and
+                would let a journey cross an area over two legs meeting at a
+                point inside it.
+Affects:        FR-125: second criterion and `Rationale`; #248's AC4 and AC5,
+                and its soft edge to #250.
+```
+
+## RD-053 — Which markings are private or access-restricted for a driving leg?
+
+```
+Date:           2026-10-22
+Question:       `SPECIFICATION.md § Enforceable exclusions` names the class —
+                areas the map data marks as private or access-restricted — and
+                no document spells it in the data. Which markings must
+                FR-125's story exclude?
+Interpretation: **Every marking that admits a car only for a class of user
+                rather than the public, with a floor.** The floor is the set
+                the safety sentinel's verdict on #246 (S1) found the routing
+                engine admitting: ways tagged `private`, `destination`,
+                `customers`, `delivery`, `permit`, `residents` or
+                `restricted`, and gates and bollards tagged `private`. The full spelling —
+                which keys govern a car, and which further values belong — is
+                owed with the OSM-derived feature tables, and a spelling found
+                wrong is corrected without narrowing the set. A marking that
+                bars a car outright is FR-006's.
+Rung:           1 — explicit specification, by the section's own pattern:
+                `SPECIFICATION.md § The class limb does not rest on the speed limb`
+                decides classes, defers their spellings to the feature tables,
+                and rules that a spelling found wrong is corrected and the set
+                never narrowed. Rung 7 keeps `destination` inside the floor:
+                the verdict's source citations show the engine itself flagging
+                the first six values of the floor's way list destination-only,
+                a restriction on access by its own name, and `restricted`
+                names one outright.
+Affects:        FR-125: `Volatility`; #248's AC2.
+```
+
+## RD-054 — Does FR-125 reach an area marked only by an enclosing area feature?
+
+```
+Date:           2026-10-22
+Question:       The map data can mark an area private or access-restricted on
+                its ways, on a barrier at its entrance, or only on a feature
+                enclosing it — a car park or compound drawn as an area whose
+                own ways carry no marking. FR-125 reads the first two. Does it
+                owe the third?
+Interpretation: **Not FR-125; owed.** FR-125 reads the marking from the ways a
+                leg runs along and the barriers across them. An area marked
+                only by an enclosing area feature is recorded as owed in the
+                batch-5 debt list in `README.md`, for a driving leg and a
+                walking access path alike, its home the OSM-derived feature
+                tables that `Architecture.md § Still owed by this document`
+                records as undesigned: `Architecture.md § D4` places parking
+                areas and access restrictions among the attributes routing
+                engines do not expose, so those tables are the only surface
+                that would hold such a feature.
+Rung:           6 — established repository conventions: an obligation whose
+                data surface does not yet exist is recorded as a debt with its
+                home named rather than authored against nothing, as RD-005
+                did.
+Affects:        FR-125: `Rationale`; the batch-5 debt list in `README.md`.
+```
