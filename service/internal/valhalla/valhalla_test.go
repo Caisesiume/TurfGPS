@@ -146,8 +146,7 @@ func straightByCar(req map[string]any) (int, string) {
 // TestEveryLegIsRequestedForACar is `FR-006` AC1 at the request: every leg of
 // every journey planned through this adapter, intermediate destinations
 // included, is asked of the engine once, between the leg's two locations in
-// order, with the `auto` costing and no costing option — so no access rule of
-// that costing is relaxed for any leg.
+// order, with the `auto` costing and no costing option.
 func TestEveryLegIsRequestedForACar(t *testing.T) {
 	t.Parallel()
 

@@ -6,15 +6,28 @@
 // EVERY ROUTE IT RETURNS IS ONE A CAR CAN DRIVE — `FR-006`, as the port's
 // contract states it. Two things hold that, and neither alone would:
 //
-//   - The request names the `auto` costing and sets no costing option, so
-//     none of the access rules that costing obeys is relaxed. One option would
-//     undo the requirement on its own: `ignore_access` sends a car down a
-//     pedestrian street, which is the red run the integration test in this
-//     package was proved against.
+//   - The request names the `auto` costing and sets no costing option. One
+//     option would undo the requirement on its own: `ignore_access` sends a car
+//     down a pedestrian street, which is the red run the integration test in
+//     this package was proved against.
 //   - The answer is checked rather than trusted. Every maneuver of the leg must
 //     report the travel mode `drive` and the travel type `car`; a leg that
 //     reports any other is refused, so a leg the engine itself says was not
 //     driven is never offered as a driving leg.
+//
+// PRIVATE AND ACCESS-RESTRICTED WAYS ARE NOT YET EXCLUDED, and a route this
+// returns may run along one. `SPECIFICATION.md § Enforceable exclusions`
+// forbids constructing a route through an area the map data marks as private
+// or access-restricted, and the `auto` costing does not enforce it. At 3.9.1,
+// as the safety review of #246 read `lua/graph.lua` and
+// `src/mjolnir/pbfgraphparser.cc`, it admits a way tagged `access=private`,
+// `destination`, `customers`, `delivery`, `permit` or `residents` as
+// destination-only at a penalty, passes a private gate or bollard at a
+// penalty, and treats `access=restricted` as open. A route that saves more
+// than the penalty takes such a way, and a location snapped onto one starts or
+// ends the leg on it. The exclusion is a story of its own, owed against this
+// adapter ("exclude private and access-restricted ways from driving legs"),
+// and no client may call `POST /journeys` before it lands.
 //
 // THE FIELDS ARE VALHALLA'S DOCUMENTED ONES, at the version CI runs (3.9.1),
 // and none is assumed. Each is in the route API reference,

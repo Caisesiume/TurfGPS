@@ -126,6 +126,15 @@ type Leg struct {
 // the openrouteservice one of `Architecture.md § D3` included. The
 // park-and-walk leg `FR-006` excepts is a later story's, and it arrives as a
 // method of its own rather than as a mode this one may switch to.
+//
+// THE CONTRACT DOES NOT YET EXCLUDE PRIVATE AND ACCESS-RESTRICTED WAYS. A
+// route a car can drive, below, is a route travelled by car and no more: it is
+// not yet one kept off the ways the map data marks as private or
+// access-restricted, which `SPECIFICATION.md § Enforceable exclusions` forbids
+// a route to be constructed through. The Valhalla adapter admits such ways at a
+// penalty, and its package doc says which. The exclusion is a story of its own
+// ("exclude private and access-restricted ways from driving legs"), and no
+// client may call `POST /journeys` before it lands.
 type RoutingProvider interface {
 	// Route returns the geometry of a route a car can drive from one location
 	// to another, at least one vertex long.
