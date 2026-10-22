@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -8,9 +9,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
+	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 )
 
 const journeyBody = `{"origin":{"latitude":57.7036,"longitude":11.9611},"destination":{"latitude":57.7052,"longitude":11.9714}}`
@@ -151,5 +154,72 @@ func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 
 	if len(costing) != 1 || costing[0] != "auto" || paths[0] != "/route" {
 		t.Errorf("the engine was asked %v at %v, want the auto costing once at /route", costing, paths)
+	}
+}
+
+// deadlineRouting answers every leg at once, recording the deadline it was
+// asked under and whether it had one.
+type deadlineRouting struct {
+	mu        sync.Mutex
+	deadlines []time.Time
+	bounded   []bool
+}
+
+func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Point, error) {
+	deadline, ok := ctx.Deadline()
+
+	d.mu.Lock()
+	d.deadlines = append(d.deadlines, deadline)
+	d.bounded = append(d.bounded, ok)
+	d.mu.Unlock()
+
+	return []planner.Point{from}, nil
+}
+
+// TestEveryPlanIsBoundedBelowTheWriteTimeout (#6): the request surface the
+// composition root builds plans every journey under planTimeout, measured from
+// the handler's start, and planTimeout leaves the server's write budget room to
+// write the refusal. Without it a plan routed one leg at a time outlasts
+// writeTimeout and the client is cut off with nothing written.
+func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
+	t.Parallel()
+
+	if planTimeout <= 0 || planTimeout >= writeTimeout {
+		t.Fatalf("planTimeout is %v and writeTimeout %v, want a positive plan deadline below the write budget", planTimeout, writeTimeout)
+	}
+
+	routing := &deadlineRouting{}
+
+	plans, err := planner.New(routing)
+	if err != nil {
+		t.Fatalf("planner.New: %v", err)
+	}
+
+	handler, err := newHandler(lookupOnly(nil), httpapi.WithPlanner(plans))
+	if err != nil {
+		t.Fatalf("newHandler: %v", err)
+	}
+
+	before := time.Now()
+
+	if rec := postJourney(t, handler); rec.Code != http.StatusOK {
+		t.Fatalf("POST /journeys answered %d: %s", rec.Code, rec.Body)
+	}
+
+	after := time.Now()
+
+	routing.mu.Lock()
+	defer routing.mu.Unlock()
+
+	if len(routing.bounded) != 1 {
+		t.Fatalf("%d legs were routed, want the one the request names", len(routing.bounded))
+	}
+
+	if !routing.bounded[0] {
+		t.Fatalf("the leg was routed with no deadline, want one planTimeout (%v) after the handler's start", planTimeout)
+	}
+
+	if got := routing.deadlines[0]; got.Before(before.Add(planTimeout)) || got.After(after.Add(planTimeout)) {
+		t.Errorf("the leg's deadline is %v after the request, want planTimeout (%v)", got.Sub(before), planTimeout)
 	}
 }

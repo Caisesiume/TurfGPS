@@ -1,10 +1,12 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 )
@@ -75,6 +77,11 @@ type wireLeg struct {
 	Shape []wirePoint `json:"shape"`
 }
 
+// errPlanTimedOut is the cause a plan's own deadline is given, so that the
+// refusal it earns is told apart from a routing call that timed out on its own
+// account or a client that went away.
+var errPlanTimedOut = errors.New("the plan outlived its deadline")
+
 // planJourney answers `POST /journeys`: it plans the journey the request names
 // and returns it.
 //
@@ -82,7 +89,12 @@ type wireLeg struct {
 // request carries the user's origin, which is frequently their home
 // (`Architecture.md § Personal data`), and a routing error may quote it. Each
 // failure is answered with a status and a fixed message, never the error.
-func planJourney(plans *planner.Planner) http.HandlerFunc {
+//
+// A positive timeout bounds the whole of it, as WithPlanTimeout describes. The
+// deadline is taken before the body is read, not after: the server's write
+// budget is already running by then, and a deadline started after a slow body
+// would be measured from a later instant than the budget it protects.
+func planJourney(plans *planner.Planner, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if plans == nil {
 			http.Error(w, "journey planning is unavailable: no routing provider is configured", http.StatusServiceUnavailable)
@@ -90,12 +102,21 @@ func planJourney(plans *planner.Planner) http.HandlerFunc {
 			return
 		}
 
+		ctx := r.Context()
+
+		if timeout > 0 {
+			var cancel context.CancelFunc
+
+			ctx, cancel = context.WithTimeoutCause(ctx, timeout, errPlanTimedOut)
+			defer cancel()
+		}
+
 		req, ok := decodeJourneyRequest(w, r)
 		if !ok {
 			return
 		}
 
-		journey, err := plans.Plan(r.Context(), req)
+		journey, err := plans.Plan(ctx, req)
 
 		switch {
 		case errors.Is(err, planner.ErrNotACoordinate):
@@ -111,6 +132,10 @@ func planJourney(plans *planner.Planner) http.HandlerFunc {
 			return
 		case errors.Is(err, planner.ErrZoneCopyUnreadable):
 			http.Error(w, "no journey is planned: the local copy of the zone set could not be read", http.StatusServiceUnavailable)
+
+			return
+		case err != nil && errors.Is(context.Cause(ctx), errPlanTimedOut):
+			http.Error(w, "the journey could not be routed within the time a plan is allowed", http.StatusGatewayTimeout)
 
 			return
 		case err != nil:

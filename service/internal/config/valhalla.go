@@ -29,8 +29,13 @@ const (
 
 // defaultValhallaTimeout bounds one route request end to end. It is this
 // service's operational choice, not a measurement: it exists to make a call to
-// an engine that has stopped answering finite, well inside the request
-// surface's own write budget, and it restates no figure from any document.
+// an engine that has stopped answering finite, and it restates no figure from
+// any document.
+//
+// IT BOUNDS A CALL, NOT A PLAN. A journey's legs are routed one after another,
+// one call each, so no per-call figure keeps a plan inside the request
+// surface's write budget; the plan's own deadline does that (`cmd/turfgps`,
+// planTimeout), and it cuts short a call still running when it expires.
 const defaultValhallaTimeout = 10 * time.Second
 
 // Valhalla is the configuration the routing adapter needs.

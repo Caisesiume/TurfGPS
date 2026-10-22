@@ -36,6 +36,7 @@ package httpapi
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 )
@@ -44,7 +45,8 @@ import (
 type Option func(*options)
 
 type options struct {
-	planner *planner.Planner
+	planner     *planner.Planner
+	planTimeout time.Duration
 }
 
 // WithPlanner has `POST /journeys` plan through p. Without it, or with a nil
@@ -53,6 +55,21 @@ type options struct {
 // says so is easier to find than one that is missing.
 func WithPlanner(p *planner.Planner) Option {
 	return func(o *options) { o.planner = p }
+}
+
+// WithPlanTimeout bounds each `POST /journeys` by d, measured from the moment
+// its handler is entered: the request body's read and every leg of the plan
+// fall inside it, and a plan still routing when it expires is stopped and
+// answered with 504. Without it, or with d not positive, a plan is bounded by
+// nothing but the request's own context.
+//
+// The bound is there for the server's write budget, which Go arms as the
+// handler is entered and which a plan routed one leg at a time can otherwise
+// outlast with no answer written at all (#6). The composition root sets it
+// below that budget, so the refusal is written while the connection can still
+// carry it.
+func WithPlanTimeout(d time.Duration) Option {
+	return func(o *options) { o.planTimeout = d }
 }
 
 // NewMux returns the service's request surface.
@@ -70,7 +87,7 @@ func NewMux(opts ...Option) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", root)
-	mux.HandleFunc("POST /journeys", planJourney(o.planner))
+	mux.HandleFunc("POST /journeys", planJourney(o.planner, o.planTimeout))
 
 	return mux
 }

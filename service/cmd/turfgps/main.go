@@ -103,6 +103,22 @@ const (
 	// to stop is severed well before this bound.
 	writeTimeout = 60 * time.Second
 
+	// planTimeout bounds one `POST /journeys` from its handler's start to its
+	// answer (#6). Go arms writeTimeout above as that handler is entered, and a
+	// plan routes its legs one after another, each allowed the routing
+	// engine's own timeout — so a journey naming enough intermediate
+	// destinations would otherwise outlast the budget and lose its connection
+	// with nothing written. Bounded below it, such a plan is stopped and
+	// refused with 504 while the connection can still carry the refusal. It
+	// caps time and not length: a plan that finishes inside it is answered
+	// however many intermediate destinations it names.
+	planTimeout = writeTimeout - planAnswerReserve
+
+	// planAnswerReserve is what writeTimeout keeps back from a plan for writing
+	// its answer. It is this service's operational choice, not a measurement,
+	// and it restates no figure from any document.
+	planAnswerReserve = 10 * time.Second
+
 	// idleTimeout bounds how long a kept-alive connection may wait between
 	// requests. Go falls back on readTimeout when this is unset, which is the
 	// wrong budget for it: a connection waiting to be reused is not a slow
@@ -401,7 +417,9 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 // to reach the sync worker.
 //
 // opts reach the request surface unchanged; main passes the planner
-// newPlanner built.
+// newPlanner built. Every plan the surface serves is bounded by planTimeout,
+// which is set here rather than by main so that no handler this builds plans
+// without it.
 func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler, error) {
 	origins, err := config.LoadAllowedOrigins(lookup)
 	if err != nil {
@@ -413,7 +431,7 @@ func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler,
 			"configure", config.EnvCORSAllowedOrigins)
 	}
 
-	return httpapi.NewHandler(origins, opts...), nil
+	return httpapi.NewHandler(origins, append([]httpapi.Option{httpapi.WithPlanTimeout(planTimeout)}, opts...)...), nil
 }
 
 // newPlanner returns the journey planner, routing every leg through the
