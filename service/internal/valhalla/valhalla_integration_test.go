@@ -200,10 +200,10 @@ func TestACarLegIsNeverRoutedAlongAPedestrianStreet(t *testing.T) {
 }
 
 // TestEveryLegOfAJourneyIsRoutedForACar is `FR-006` AC1 through the planner:
-// a journey planned through this adapter against the engine has legs, and
-// each one is the engine's car route — every request named the `auto`
-// costing, and every maneuver of every answer reported `drive`/`car`, which
-// the adapter refuses a leg without.
+// every leg of a journey planned through this adapter against the engine,
+// intermediate destinations included, is the engine's car route — every
+// request named the `auto` costing, and every maneuver of every answer
+// reported `drive`/`car`, which the adapter refuses a leg without.
 func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 	base := engineUnderTest(t)
 
@@ -220,9 +220,11 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 		t.Fatalf("planner.New: %v", err)
 	}
 
+	// Three legs in all: one journey of one leg, and one of two through an
+	// intermediate destination (#2).
 	for _, req := range []planner.Request{
 		{Origin: westEnd, Destination: eastEnd},
-		{Origin: eastEnd, Destination: westEnd},
+		{Origin: eastEnd, Intermediates: []planner.Point{westEnd}, Destination: eastEnd},
 	} {
 		journey, err := p.Plan(t.Context(), req)
 		if err != nil {
@@ -240,8 +242,8 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 		}
 	}
 
-	if len(rec.answers) != 2 {
-		t.Fatalf("the engine was asked %d times for two one-leg journeys, want 2", len(rec.answers))
+	if len(rec.answers) != 3 {
+		t.Fatalf("the engine was asked %d times for three legs, want once a leg", len(rec.answers))
 	}
 
 	for i, a := range rec.answers {

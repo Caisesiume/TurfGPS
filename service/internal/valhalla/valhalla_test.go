@@ -143,10 +143,11 @@ func straightByCar(req map[string]any) (int, string) {
 	return http.StatusOK, answer(leg{Shape: encodeShape(shape), Maneuvers: []maneuver{byCar, byCar}})
 }
 
-// TestEveryLegIsRequestedForACar is `FR-006` AC1 at the request: every leg a
-// journey plans through this adapter is asked of the engine with the `auto`
-// costing, between the leg's two locations in order, and with no costing
-// option — so no access rule of that costing is relaxed for any leg.
+// TestEveryLegIsRequestedForACar is `FR-006` AC1 at the request: every leg of
+// every journey planned through this adapter, intermediate destinations
+// included, is asked of the engine once, between the leg's two locations in
+// order, with the `auto` costing and no costing option — so no access rule of
+// that costing is relaxed for any leg.
 func TestEveryLegIsRequestedForACar(t *testing.T) {
 	t.Parallel()
 
@@ -158,11 +159,18 @@ func TestEveryLegIsRequestedForACar(t *testing.T) {
 	}
 
 	r := rand.New(rand.NewPCG(6, 6))
+	point := func() planner.Point {
+		return planner.Point{Latitude: r.Float64()*180 - 90, Longitude: r.Float64()*360 - 180}
+	}
+
+	// Journeys of one to four legs: intermediate destinations (#2) are what
+	// give a journey more than one, and every one of them is a driving leg.
+	var legs [][2]planner.Point
 
 	for range 20 {
-		req := planner.Request{
-			Origin:      planner.Point{Latitude: r.Float64()*180 - 90, Longitude: r.Float64()*360 - 180},
-			Destination: planner.Point{Latitude: r.Float64()*180 - 90, Longitude: r.Float64()*360 - 180},
+		req := planner.Request{Origin: point(), Destination: point()}
+		for range r.IntN(4) {
+			req.Intermediates = append(req.Intermediates, point())
 		}
 
 		journey, err := p.Plan(t.Context(), req)
@@ -170,16 +178,34 @@ func TestEveryLegIsRequestedForACar(t *testing.T) {
 			t.Fatalf("Plan(%+v): %v", req, err)
 		}
 
-		if len(journey.Legs) == 0 {
-			t.Fatalf("Plan(%+v) returned no legs", req)
+		if len(journey.Legs) != len(req.Intermediates)+1 {
+			t.Fatalf("Plan(%+v) returned %d legs, want %d", req, len(journey.Legs), len(req.Intermediates)+1)
+		}
+
+		for i := range journey.Legs {
+			legs = append(legs, [2]planner.Point{journey.Locations[i], journey.Locations[i+1]})
 		}
 	}
 
 	engine.mu.Lock()
 	defer engine.mu.Unlock()
 
-	if len(engine.asked) != 20 {
-		t.Fatalf("the engine was asked %d times for 20 one-leg journeys, want 20", len(engine.asked))
+	if len(engine.asked) != len(legs) {
+		t.Fatalf("the engine was asked %d times for %d legs, want once a leg", len(engine.asked), len(legs))
+	}
+
+	for i, got := range engine.asked {
+		locs, _ := got.Body["locations"].([]any)
+		if len(locs) != 2 {
+			t.Fatalf("request %d named %d locations, want the leg's 2", i, len(locs))
+		}
+
+		for j, want := range legs[i] {
+			m, _ := locs[j].(map[string]any)
+			if m["lat"] != want.Latitude || m["lon"] != want.Longitude {
+				t.Errorf("request %d location %d was %v, want leg %d's %v", i, j, m, i, want)
+			}
+		}
 	}
 
 	for i, got := range engine.asked {
