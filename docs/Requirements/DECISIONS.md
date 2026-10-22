@@ -2190,3 +2190,70 @@ Rung:           6 — established repository conventions: an obligation whose
                 did.
 Affects:        FR-125: `Rationale`; the batch-5 debt list in `README.md`.
 ```
+
+## RD-055 — May a driving leg enter a private or access-restricted way to reach the journey's own ends?
+
+```
+Date:           2026-10-22
+Decided-by:     the Owner, answering `@engineering-lead`'s question on RD-052
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6337037750,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with two edges the ruling leaves open decided
+                on the ladder below.
+Question:       RD-052 bound a leg's first and last stretch like the rest of
+                it, so no leg ran along a way the map data marks private or
+                access-restricted even to reach a home on a private road. May
+                a driving leg enter such a way, or pass such a barrier, to
+                reach a location the journey names, and which?
+Interpretation: **Only to reach the origin or the destination the user
+                entered; never in transit, and never at a stop the system
+                chose.** The ruling, verbatim: "a driving leg **may enter a
+                private or access-restricted way only to reach the origin or
+                destination the user entered**. 'No route *through*' then
+                means never in transit, and never at a stop the system chose
+                (e.g. a Turf zone stop). A home on a private road is planned
+                to the door." Read on the ladder, a leg may run along such
+                ways, and pass such barriers, only in a run of them broken by
+                no way not so marked with which it leaves the journey's origin
+                or ends at the journey's destination; every other such way or
+                barrier on a leg is in transit. So a barrier so marked with a
+                way not so marked between it and the destination is in
+                transit, and a leg to a home behind a gate marked private,
+                along a driveway the map data does not mark, does not pass the
+                gate. **The run is allowed at no other end: a stopping
+                position is reached and left along no such way**, as RD-052
+                had it, **and so is an intermediate destination**, which is
+                outside the exception. Where either can be reached only
+                through such an area, a leg ending short of it and no leg at
+                all both honour FR-125, how far short being #250's, as RD-052
+                left it. This supersedes RD-052 for the journey's origin and
+                destination; RD-052 stands for every other end of a leg and
+                stays as provenance.
+Rung:           n/a for the exception — Owner ruling, asked by the lead on
+                RD-052, which rested on rung 7 alone. The intermediate
+                destination rests on rung 1:
+                `SPECIFICATION.md § Primary use case` names the destination
+                apart from the intermediate destinations, which with the
+                origin and destination form the journey's required locations,
+                so the ruling's "the origin or destination" does not name
+                them. Rung 7 agrees: an intermediate destination is the one
+                location a journey both reaches and leaves, so an exception
+                there lets a journey cross a marked area over two legs meeting
+                inside it — the sentinel's scenario on #246, an intermediate
+                destination snapped onto a private road
+                (`#issuecomment-6335556064`, S1). The run rests on rung 7:
+                broken by no way not so marked, it is the narrowest reading of
+                "to reach" that still plans a home on a private road to the
+                door, since a marked stretch with such a way on each side of
+                it cannot be told from a shortcut through the area by the ways
+                and barriers the leg runs along.
+Affects:        FR-125: statement, `Verification`, criteria (the second
+                rewritten for the journey's own origin and destination, a
+                third added for a stopping position and an intermediate
+                destination), `Risk` and `Rationale`; RD-052, superseded for
+                the journey's origin and destination; #248's narrative, AC1
+                and AC3 (in transit), AC4 and AC5 (rewritten), AC6 (AC5
+                renumbered), its notes, and the reason on its soft edge to
+                #250.
+```
