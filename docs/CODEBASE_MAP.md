@@ -10,8 +10,9 @@ which question is `docs/README.md § The documents`, and is not restated either.
 
 **Accurate as of 22 October 2026**, against the tree that lands the scheduled
 zone sync, corridor resolution against the local copy, the review
-session's ownership decisions, the zone feed (#232), and the planning entry
-point (#1). It is maintained by the work that changes the structure: a PR that
+session's ownership decisions, the zone feed (#232), the planning entry
+point (#1), and the planning gate on the local zone copy (#33). It is
+maintained by the work that changes the structure: a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
 file in the same diff, per `codebase-map § When code arrives`. A map drifted
 from disk is worse than no map, because the reader who trusts it opens the
@@ -51,10 +52,10 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 | `internal/config` | reads the runtime configuration from the process environment |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, and answers 503 until a routing adapter is registered (#6) |
-| `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1) |
+| `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1); it plans from whatever local zone copy is held and refuses only where none is, through the `ZoneCopy` port it declares (#33) |
 | `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
 | `internal/turf` | the adapter for the Turf API, behind the `TurfClient` port of `Architecture.md § Ports and adapters`: `Client` for the sync's all-zones fetch, `SessionClient` for a review session's player-data and region requests, `FeedClient` for the zone feed (#232), all drawing on the process's one request budget |
-| `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port — and where each connection pool is opened |
+| `internal/zonestore` | the read side of the synced zone store — the adapter behind `internal/corridor`'s port and `internal/planner`'s `ZoneCopy` (#33) — and where each connection pool is opened |
 | `internal/zonesync` | the scheduled workers that write the local copy — the full refresh, and the zone feed's poller with its per-item ingest decision (`feed.go`, #232) — and the ports they declare |
 | `internal/syncstore` | the PostGIS adapter behind those ports — the write side |
 
@@ -103,7 +104,8 @@ of every handler that ever reads a zone. The argument in full is on
 constrains, and this file does not repeat it.
 
 The boundary itself: `internal/zonestore` answers questions — it opens the pool,
-reports how current the local copy is, and resolves a corridor's zones from it —
+reports how current the local copy is and whether one is held at all, and
+resolves a corridor's zones from it —
 and a handler may import it. Neither it nor `internal/corridor` may reach
 `internal/turf` or `net/http`, which `service/internal/corridor/noturf_test.go`
 checks.
@@ -126,7 +128,7 @@ on that branch, and what it leaves behind for an operator reading `sync_run` is
 `Architecture.md § The sync write path`.
 
 **Today those pools reach one half.** The root hands each to `internal/syncstore`
-and to nothing else: `zonestore.NewReader`, `Reader.Currency`,
+and to nothing else: `zonestore.NewReader`, `Reader.Currency`, `Reader.Held`,
 `Reader.ZonesInCorridor` and `corridor.Resolve` are written and have **no
 callers** outside their tests, and `internal/httpapi` imports neither store, so
 the read half is built and unreached. One pool serving both is what the split is *for* —

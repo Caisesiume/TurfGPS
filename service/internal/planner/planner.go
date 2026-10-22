@@ -25,6 +25,17 @@
 // required location and the next, in the order entered, and nothing here
 // compares orders.
 //
+// A JOURNEY IS PLANNED FROM WHATEVER LOCAL ZONE COPY IS HELD, AND REFUSED ONLY
+// WHERE NONE IS (#33). `FR-024` and `FR-033` are one gate reading one input,
+// and that input is ZoneCopy.Held: whether the system holds a local synced copy
+// of the zone set at all. A copy mid-refresh, a copy as old as the staleness
+// bound of `Architecture.md § Retrieving zones`, and a copy older than it, or
+// with no refresh on record, are all held, so all are planned from. The gate
+// never reads the copy's age, because the only answer age may change is what a
+// result says about itself, never whether it is produced: `FR-033`'s
+// `Rationale` warns that a gate refusing more often than absence requires
+// fails the half that keeps the product working.
+//
 // What this package does not do yet, and where each lands:
 //
 //   - Refusing a request with no destination (`FR-005`, #4). Request has no way
@@ -32,6 +43,9 @@
 //   - Refusing a return to the origin that names no distinct intermediate
 //     destination (#5).
 //   - Zone selection, scoring, and the time budget, which later stories own.
+//   - Recording on a result that it was built from a copy stale beyond a bound
+//     (`FR-034`, #35). That marking reads the copy's age beside the gate in
+//     Plan, never inside it: a stale copy is marked and still planned from.
 package planner
 
 import (
@@ -44,6 +58,18 @@ import (
 // not a coordinate, so a caller can tell a request it must refuse from a
 // routing failure.
 var ErrNotACoordinate = errors.New("not a coordinate")
+
+// ErrNoZoneCopy is the error Plan returns when the system holds no local copy
+// of the zone set: `FR-033`'s one ground for planning no journey for lack of
+// zone data. How the refusal is shown to a user is not decided anywhere yet.
+var ErrNoZoneCopy = errors.New("no local copy of the zone set is held")
+
+// ErrZoneCopyUnreadable is the error Plan wraps when whether a copy is held
+// could not be read. It is not ErrNoZoneCopy, and must never be answered as
+// it: a store that cannot be reached has not been shown to hold nothing, and
+// reporting it as empty is the misreading `internal/zonestore`'s package doc
+// warns of.
+var ErrZoneCopyUnreadable = errors.New("whether a local copy of the zone set is held could not be read")
 
 // Point is a location on the Earth's surface in WGS 84 degrees.
 //
@@ -99,18 +125,39 @@ type RoutingProvider interface {
 	Route(ctx context.Context, from, to Point) ([]Point, error)
 }
 
-// Planner plans journeys through a RoutingProvider.
-type Planner struct {
-	routing RoutingProvider
+// ZoneCopy is what planning reads of the local synced copy of the zone set
+// before it plans: whether one is held at all (#33).
+//
+// It is declared here, by its consumer, as RoutingProvider is, so the gate is
+// tested against a fake and the store behind it is substitutable.
+type ZoneCopy interface {
+	// Held reports whether the system holds a local copy of the zone set: at
+	// least one zone, whatever its age, and whether or not a refresh of it is
+	// running. A copy whose first fill has not committed is not held yet.
+	Held(ctx context.Context) (bool, error)
 }
 
-// New returns a Planner that routes through routing.
-func New(routing RoutingProvider) (*Planner, error) {
+// Planner plans journeys through a RoutingProvider, from the zone copy a
+// ZoneCopy reports.
+type Planner struct {
+	routing RoutingProvider
+	zones   ZoneCopy
+}
+
+// New returns a Planner that routes through routing and plans only while zones
+// reports a copy held. Both are required: a planner that could not ask whether
+// a copy is held would have to guess, and either guess fails one branch of
+// `FR-033`.
+func New(routing RoutingProvider, zones ZoneCopy) (*Planner, error) {
 	if routing == nil {
 		return nil, errors.New("no routing provider")
 	}
 
-	return &Planner{routing: routing}, nil
+	if zones == nil {
+		return nil, errors.New("no zone copy to plan from")
+	}
+
+	return &Planner{routing: routing, zones: zones}, nil
 }
 
 // Plan plans the journey req names. Every journey it returns begins at
@@ -118,7 +165,8 @@ func New(routing RoutingProvider) (*Planner, error) {
 // and ends at req.Destination.
 //
 // A location that is not a coordinate is refused before the provider is asked,
-// with an error wrapping ErrNotACoordinate.
+// with an error wrapping ErrNotACoordinate. Where no zone copy is held, no
+// journey is planned and the error is ErrNoZoneCopy; see requireZoneCopy.
 func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 	locations := make([]Point, 0, len(req.Intermediates)+2)
 	locations = append(locations, req.Origin)
@@ -129,6 +177,10 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 		if !within(loc.Latitude, -90, 90) || !within(loc.Longitude, -180, 180) {
 			return Journey{}, fmt.Errorf("location %d of the request: %w", i, ErrNotACoordinate)
 		}
+	}
+
+	if err := p.requireZoneCopy(ctx); err != nil {
+		return Journey{}, err
 	}
 
 	legs := make([]Leg, 0, len(locations)-1)
@@ -147,6 +199,28 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 	}
 
 	return Journey{Locations: locations, Legs: legs}, nil
+}
+
+// requireZoneCopy is the gate in front of planning, both of its branches in
+// one guard (#33): it returns nil wherever a copy is held, and ErrNoZoneCopy
+// only where none is.
+//
+// IT READS PRESENCE AND NOTHING ELSE. A refresh in progress, the age of the
+// last refresh, and a refresh never recorded are not its input, so none of
+// them can become a refusal here (`FR-024`, and `FR-033`'s first criterion).
+// Whatever is later done with the copy's age — marking a result (#35) — is
+// done beside this call and never as a third branch of it.
+func (p *Planner) requireZoneCopy(ctx context.Context) error {
+	held, err := p.zones.Held(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrZoneCopyUnreadable, err)
+	}
+
+	if !held {
+		return ErrNoZoneCopy
+	}
+
+	return nil
 }
 
 // within reports whether v lies in [lo, hi]. NaN fails both comparisons, so it

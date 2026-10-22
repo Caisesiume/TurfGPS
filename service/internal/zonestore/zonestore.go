@@ -18,8 +18,9 @@
 // `corridor_postgis_test.go` is built only under the `postgis` tag, by CI's
 // `migrations` job, against a scratch database that job has just migrated. It
 // opens a pool through Open, reads Currency over a completed run, and resolves
-// a corridor through ZonesInCorridor — and that is the whole of what this
-// package has sent to a PostgreSQL server. The default suite builds
+// a corridor through ZonesInCorridor; `held_postgis_test.go`, built the same
+// way, reads Held across the copy's states (#33) — and that is the whole of
+// what this package has sent to a PostgreSQL server. The default suite builds
 // `corridor_test.go` alone, which sends nothing. `internal/syncstore` carries
 // the argument for why a fake over `pgxpool` is refused rather than owed; this
 // comment does not restate it.

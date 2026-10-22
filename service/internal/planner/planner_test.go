@@ -110,7 +110,7 @@ func TestEveryJourneyBeginsAtTheOriginAndEndsAtTheDestination(t *testing.T) {
 	for c := range cases {
 		routing := randomShapes(r)
 
-		p, err := New(routing)
+		p, err := New(routing, copyHeld)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -175,7 +175,7 @@ func TestEveryJourneyPassesThroughItsIntermediateDestinationsInTheEnteredOrder(t
 	for c := range cases {
 		routing := randomShapes(r)
 
-		p, err := New(routing)
+		p, err := New(routing, copyHeld)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -256,7 +256,7 @@ func TestAFasterOrderDoesNotOverrideTheEnteredOrder(t *testing.T) {
 
 	routing := &fakeRouting{shape: func(from, to Point) []Point { return []Point{from, to} }}
 
-	p, err := New(routing)
+	p, err := New(routing, copyHeld)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestAPlanThatCannotBeRoutedIsRefused(t *testing.T) {
 				routing = &fakeRouting{shape: func(from, to Point) []Point { return []Point{from, to} }}
 			}
 
-			p, err := New(routing)
+			p, err := New(routing, copyHeld)
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}
@@ -355,7 +355,7 @@ func TestAPlanThatCannotBeRoutedIsRefused(t *testing.T) {
 func TestNewRefusesNoProvider(t *testing.T) {
 	t.Parallel()
 
-	if _, err := New(nil); err == nil {
-		t.Error("New(nil) returned no error, want a refusal")
+	if _, err := New(nil, copyHeld); err == nil {
+		t.Error("New(nil, copyHeld) returned no error, want a refusal")
 	}
 }
