@@ -12,17 +12,21 @@ import (
 // THE WIRE SHAPE BELOW IS PROVISIONAL (#1). No document defines the journey
 // API's route or payload: `Architecture.md § The call budget` draws the request
 // as origin, destination and budget and fixes no form. This is the smallest
-// shape `FR-001` AC1 needs — two locations in, the journey out — and the
+// shape `FR-001` and `FR-002` need — an origin, a destination and an optional
+// ordered list of intermediate destinations in (#2), the journey out — and the
 // story that designs the API replaces it rather than extends it.
 //
 // Locations are coordinates. Search, pins and zone names (`DESIGN.md
 // § Locations`) resolve to one before planning, through the `Geocoder` port,
 // which is not built.
 
-// maxJourneyRequestBytes bounds a planning request's body. The payload is two
-// coordinates, a few hundred bytes; the bound only stops a client holding a
-// handler on an arbitrarily long body, so it is set well above the payload and
-// carries no meaning beyond that.
+// maxJourneyRequestBytes bounds a planning request's body. The payload is a
+// coordinate per required location, a few hundred bytes for the journeys
+// `SPECIFICATION.md § Primary use case` describes; the bound only stops a client
+// holding a handler on an arbitrarily long body, so it is set well above the
+// payload — it admits hundreds of intermediate destinations — and
+// carries no meaning beyond that. No document caps how many intermediate
+// destinations a journey may name, and this is not that cap.
 const maxJourneyRequestBytes = 16 << 10
 
 type wirePoint struct {
@@ -33,7 +37,14 @@ type wirePoint struct {
 type journeyRequest struct {
 	// Pointers, so that an absent location is told apart from the coordinate
 	// (0, 0), which is a real place in the Gulf of Guinea.
-	Origin      *wireLocation `json:"origin"`
+	Origin *wireLocation `json:"origin"`
+
+	// Intermediates are the intermediate destinations in the order the user
+	// entered them, which is the order they are visited in (`FR-003`). Absent,
+	// null and empty all name none. A null element decodes with neither axis,
+	// so it is refused like any location missing one.
+	Intermediates []wireLocation `json:"intermediates"`
+
 	Destination *wireLocation `json:"destination"`
 }
 
@@ -103,13 +114,13 @@ func planJourney(plans *planner.Planner) http.HandlerFunc {
 }
 
 // decodeJourneyRequest reads the request body, answering the request itself and
-// returning false when the body does not name exactly an origin and a
-// destination.
+// returning false when the body does not name an origin and a destination, or
+// names a location without both of its axes.
 //
 // An unknown field is refused rather than ignored. A client that sends one is
-// asking for something this shape cannot express — intermediate destinations,
-// say — and planning the journey without it would answer a question it did not
-// ask.
+// asking for something this shape cannot express — or naming intermediate
+// destinations under another name — and planning the journey without it would
+// answer a question it did not ask.
 func decodeJourneyRequest(w http.ResponseWriter, r *http.Request) (planner.Request, bool) {
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJourneyRequestBytes))
 	dec.DisallowUnknownFields()
@@ -143,14 +154,23 @@ func decodeJourneyRequest(w http.ResponseWriter, r *http.Request) (planner.Reque
 
 	origin, hasOrigin := body.Origin.point()
 	destination, hasDestination := body.Destination.point()
+	intermediates := make([]planner.Point, len(body.Intermediates))
+	hasIntermediates := true
 
-	if !hasOrigin || !hasDestination {
+	for i := range body.Intermediates {
+		var ok bool
+
+		intermediates[i], ok = body.Intermediates[i].point()
+		hasIntermediates = hasIntermediates && ok
+	}
+
+	if !hasOrigin || !hasDestination || !hasIntermediates {
 		http.Error(w, "a location names a latitude and a longitude", http.StatusBadRequest)
 
 		return planner.Request{}, false
 	}
 
-	return planner.Request{Origin: origin, Destination: destination}, true
+	return planner.Request{Origin: origin, Intermediates: intermediates, Destination: destination}, true
 }
 
 func encodeJourney(j planner.Journey) journeyResponse {
