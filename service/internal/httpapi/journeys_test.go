@@ -41,15 +41,65 @@ func postJourney(t *testing.T, body string, opts ...Option) *httptest.ResponseRe
 	return rec
 }
 
+// zoneCopy is a planner.ZoneCopy reporting a copy held or not, or failing with
+// err.
+type zoneCopy struct {
+	held bool
+	err  error
+}
+
+func (z zoneCopy) Held(context.Context) (bool, error) { return z.held, z.err }
+
+// withFakePlanner plans through routing from a zone copy that is held, which is
+// every copy but none (#33).
 func withFakePlanner(t *testing.T, routing planner.RoutingProvider) Option {
 	t.Helper()
 
-	p, err := planner.New(routing)
+	return withPlannerOver(t, routing, zoneCopy{held: true})
+}
+
+func withPlannerOver(t *testing.T, routing planner.RoutingProvider, zones planner.ZoneCopy) Option {
+	t.Helper()
+
+	p, err := planner.New(routing, zones)
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
 
 	return WithPlanner(p)
+}
+
+// TestNoJourneyIsPlannedWhereNoZoneCopyIsHeld is #33 AC4 (`FR-033`) through
+// the request surface: with no local copy of the zone set, `POST /journeys`
+// returns no journey and says why. An unreadable store is refused too, and
+// says that instead, so it is never reported as an empty one.
+func TestNoJourneyIsPlannedWhereNoZoneCopyIsHeld(t *testing.T) {
+	t.Parallel()
+
+	const valid = `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`
+
+	for _, tc := range []struct {
+		name  string
+		zones zoneCopy
+		want  string
+	}{
+		{name: "no copy held", zones: zoneCopy{held: false}, want: "holds no local copy of the zone set"},
+		{name: "a store that cannot be read", zones: zoneCopy{err: errors.New("store unreachable")}, want: "could not be read"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := postJourney(t, valid, withPlannerOver(t, straightRouting{}, tc.zones))
+
+			if rec.Code != http.StatusServiceUnavailable {
+				t.Errorf("status = %d, want %d; body %q", rec.Code, http.StatusServiceUnavailable, rec.Body.String())
+			}
+
+			if body := rec.Body.String(); strings.Contains(body, `"locations"`) || !strings.Contains(body, tc.want) {
+				t.Errorf("body %q, want no journey and a message saying it %s", body, tc.want)
+			}
+		})
+	}
 }
 
 // TestAPlanningRequestReturnsAJourneyFromTheOriginToTheDestination is `FR-001`

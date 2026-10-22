@@ -102,6 +102,17 @@ func planJourney(plans *planner.Planner) http.HandlerFunc {
 			http.Error(w, "a location is not a coordinate", http.StatusBadRequest)
 
 			return
+		// `FR-033`'s refusal (#33), answered as unavailability: the request is
+		// sound and the service holds no zone data to plan it from. What a user
+		// is shown of it has no source yet; this message is the wire's.
+		case errors.Is(err, planner.ErrNoZoneCopy):
+			http.Error(w, "no journey is planned: the service holds no local copy of the zone set", http.StatusServiceUnavailable)
+
+			return
+		case errors.Is(err, planner.ErrZoneCopyUnreadable):
+			http.Error(w, "no journey is planned: the local copy of the zone set could not be read", http.StatusServiceUnavailable)
+
+			return
 		case err != nil:
 			http.Error(w, "the journey could not be routed", http.StatusBadGateway)
 
