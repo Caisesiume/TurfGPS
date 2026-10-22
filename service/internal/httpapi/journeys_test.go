@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -85,6 +86,63 @@ func TestAPlanningRequestReturnsAJourneyFromTheOriginToTheDestination(t *testing
 	}
 }
 
+// TestAPlanningRequestReturnsItsIntermediateDestinationsInTheEnteredOrder is #2
+// AC1, AC2 and AC4 through the request surface: the journey `POST /journeys`
+// returns passes through the intermediate destinations the request names, in
+// the order it names them — here an order that doubles back, Stockholm to Malmö
+// and back north to Jönköping — and still begins at the origin and ends at the
+// destination. A request naming none, by omitting the field, sending null or
+// sending an empty list, is the two-location journey of #1.
+func TestAPlanningRequestReturnsItsIntermediateDestinationsInTheEnteredOrder(t *testing.T) {
+	t.Parallel()
+
+	const (
+		stockholm = `{"latitude":59.3293,"longitude":18.0686}`
+		malmo     = `{"latitude":55.605,"longitude":13.0038}`
+		jonkoping = `{"latitude":57.7826,"longitude":14.1618}`
+		goteborg  = `{"latitude":57.7089,"longitude":11.9746}`
+	)
+
+	origin, destination := wirePoint{59.3293, 18.0686}, wirePoint{57.7089, 11.9746}
+
+	for _, tc := range []struct {
+		name          string
+		intermediates string
+		want          []wirePoint
+	}{
+		{name: "two intermediate destinations", intermediates: `,"intermediates":[` + malmo + `,` + jonkoping + `]`, want: []wirePoint{origin, {55.605, 13.0038}, {57.7826, 14.1618}, destination}},
+		{name: "the same two entered the other way round", intermediates: `,"intermediates":[` + jonkoping + `,` + malmo + `]`, want: []wirePoint{origin, {57.7826, 14.1618}, {55.605, 13.0038}, destination}},
+		{name: "no intermediates field", want: []wirePoint{origin, destination}},
+		{name: "null intermediates", intermediates: `,"intermediates":null`, want: []wirePoint{origin, destination}},
+		{name: "an empty list of intermediates", intermediates: `,"intermediates":[]`, want: []wirePoint{origin, destination}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := postJourney(t,
+				`{"origin":`+stockholm+tc.intermediates+`,"destination":`+goteborg+`}`,
+				withFakePlanner(t, straightRouting{}))
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d; body %q", rec.Code, http.StatusOK, rec.Body.String())
+			}
+
+			var got journeyResponse
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatalf("the body is not a journey: %v; body %q", err, rec.Body.String())
+			}
+
+			if !slices.Equal(got.Locations, tc.want) {
+				t.Errorf("locations = %+v, want the required locations in the entered order %+v", got.Locations, tc.want)
+			}
+
+			if len(got.Legs) != len(tc.want)-1 {
+				t.Errorf("%d legs, want one per consecutive pair of the %d required locations", len(got.Legs), len(tc.want))
+			}
+		})
+	}
+}
+
 func TestAPlanningRequestThatCannotBePlannedIsRefused(t *testing.T) {
 	t.Parallel()
 
@@ -113,6 +171,11 @@ func TestAPlanningRequestThatCannotBePlannedIsRefused(t *testing.T) {
 		{name: "a destination with no longitude", body: `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"latitude":57.7089}}`, want: http.StatusBadRequest},
 		{name: "a null latitude", body: `{"origin":{"latitude":null,"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
 		{name: "an empty location", body: `{"origin":{},"destination":{"latitude":57.7089,"longitude":11.9746}}`, want: http.StatusBadRequest},
+		{name: "an intermediate destination with no latitude", body: `{"origin":{"latitude":59.3,"longitude":18.0},"intermediates":[{"longitude":13.0}],"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
+		{name: "an intermediate destination with no longitude", body: `{"origin":{"latitude":59.3,"longitude":18.0},"intermediates":[{"latitude":55.6,"longitude":13.0},{"latitude":57.8}],"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
+		{name: "a null intermediate destination", body: `{"origin":{"latitude":59.3,"longitude":18.0},"intermediates":[null],"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
+		{name: "an intermediate destination that is not a coordinate", body: `{"origin":{"latitude":59.3,"longitude":18.0},"intermediates":[{"latitude":55.6,"longitude":181}],"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
+		{name: "intermediates that are not a list", body: `{"origin":{"latitude":59.3,"longitude":18.0},"intermediates":{"latitude":55.6,"longitude":13.0},"destination":{"latitude":57.7,"longitude":11.9}}`, want: http.StatusBadRequest},
 		{name: "a body over the bound", body: `{"origin":` + strings.Repeat(" ", maxJourneyRequestBytes) + `null}`, want: http.StatusRequestEntityTooLarge},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
