@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -20,8 +21,10 @@ import (
 
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
+	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 	"github.com/Caisesiume/TurfGPS/service/internal/syncstore"
 	"github.com/Caisesiume/TurfGPS/service/internal/turf"
+	"github.com/Caisesiume/TurfGPS/service/internal/valhalla"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonestore"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
 )
@@ -100,6 +103,22 @@ const (
 	// to stop is severed well before this bound.
 	writeTimeout = 60 * time.Second
 
+	// planTimeout bounds one `POST /journeys` from its handler's start to its
+	// answer (#6). Go arms writeTimeout above as that handler is entered, and a
+	// plan routes its legs one after another, each allowed the routing
+	// engine's own timeout — so a journey naming enough intermediate
+	// destinations would otherwise outlast the budget and lose its connection
+	// with nothing written. Bounded below it, such a plan is stopped and
+	// refused with 504 while the connection can still carry the refusal. It
+	// caps time and not length: a plan that finishes inside it is answered
+	// however many intermediate destinations it names.
+	planTimeout = writeTimeout - planAnswerReserve
+
+	// planAnswerReserve is what writeTimeout keeps back from a plan for writing
+	// its answer. It is this service's operational choice, not a measurement,
+	// and it restates no figure from any document.
+	planAnswerReserve = 10 * time.Second
+
 	// idleTimeout bounds how long a kept-alive connection may wait between
 	// requests. Go falls back on readTimeout when this is unset, which is the
 	// wrong budget for it: a connection waiting to be reused is not a slow
@@ -112,7 +131,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	handler, err := newHandler(os.LookupEnv)
+	plans, err := newPlanner(os.LookupEnv, unwiredZoneCopy{})
+	if err != nil {
+		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	handler, err := newHandler(os.LookupEnv, httpapi.WithPlanner(plans))
 	if err != nil {
 		slog.Error("the cross-origin configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
@@ -390,7 +415,12 @@ func newZoneSyncScheduler(cfg *config.ZoneSync, pool *pgxpool.Pool) (*zonesync.S
 // is the seam `FR-022` AC2 is checked over, and a mux built inline here would
 // put every future handler inside the one package the invariant has to permit
 // to reach the sync worker.
-func newHandler(lookup config.LookupFunc) (http.Handler, error) {
+//
+// opts reach the request surface unchanged; main passes the planner
+// newPlanner built. Every plan the surface serves is bounded by planTimeout,
+// which is set here rather than by main so that no handler this builds plans
+// without it.
+func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler, error) {
 	origins, err := config.LoadAllowedOrigins(lookup)
 	if err != nil {
 		return nil, err
@@ -401,8 +431,71 @@ func newHandler(lookup config.LookupFunc) (http.Handler, error) {
 			"configure", config.EnvCORSAllowedOrigins)
 	}
 
-	return httpapi.NewHandler(origins), nil
+	return httpapi.NewHandler(origins, append([]httpapi.Option{httpapi.WithPlanTimeout(planTimeout)}, opts...)...), nil
 }
+
+// newPlanner returns the journey planner, routing every leg through the
+// Valhalla instance config.EnvValhallaURL names (#6) — the one place the
+// adapter is joined to the port `internal/planner` declares.
+//
+// With no engine configured it returns nil and no error: the service starts,
+// and `POST /journeys` answers 503, as `NFR-003` measures an image carrying
+// nothing else. A configuration that is present and malformed is refused, so
+// main stops before anything listens. Nor does it ask the engine whether it is
+// up, for the reason startZoneSync does not ask the store: an engine that is
+// down fails the journeys asked of it, with a 502, and not the start.
+//
+// zones is the copy every plan is gated on (#33). main passes unwiredZoneCopy,
+// so a configured engine is reached by no plan until the request surface has a
+// pool on the zone store (#249); a test that exercises routing passes a held
+// copy instead.
+func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy) (*planner.Planner, error) {
+	cfg, err := config.LoadValhalla(lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg == nil {
+		slog.Info("no routing engine is configured, so journey planning answers 503",
+			"configure", config.EnvValhallaURL)
+
+		return nil, nil
+	}
+
+	routing, err := valhalla.New(cfg.URL, cfg.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	plans, err := planner.New(routing, zones)
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := url.Parse(cfg.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Info("journeys are routed for a car through Valhalla", "url", engine.Redacted(), "timeout", cfg.Timeout)
+
+	return plans, nil
+}
+
+// errZoneStoreUnwired is what unwiredZoneCopy reports in place of an answer.
+var errZoneStoreUnwired = errors.New("the request surface holds no pool on the zone store yet (#249)")
+
+// unwiredZoneCopy is the ZoneCopy main plans from until the request surface is
+// given a pool on the zone store, which is #249's to wire: `internal/zonestore`
+// implements the port, and no pool reaches a handler yet.
+//
+// IT FAILS CLOSED. Held reports that it could not read, never a copy held and
+// never none, so every plan is refused with 503 before a leg is routed. A copy
+// reported held would plan over zones nobody read; one reported absent would
+// answer `FR-033`'s refusal for a store that may be full.
+type unwiredZoneCopy struct{}
+
+func (unwiredZoneCopy) Held(context.Context) (bool, error) { return false, errZoneStoreUnwired }
 
 // listenAddr is the address main binds: the one config.EnvListenAddr names, or
 // defaultAddr when it names none (#125). It is the call main makes and the one

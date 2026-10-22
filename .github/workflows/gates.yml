@@ -32,11 +32,24 @@
 # discarded with it; nothing durable is provisioned and nothing touches
 # `deploy/`.
 #
+# The `valhalla` job (#6) runs the Valhalla adapter's integration tests against
+# a real Valhalla — the Owner's decision on #6 (`#issuecomment-6334699894`), so
+# that a wrong assumption about the engine surfaces here and not on the server.
+# It builds tiles from the OpenStreetMap extract committed under
+# `service/internal/valhalla/testdata/` (whose README says what it holds and
+# how to regenerate it), serves them on loopback, and runs
+# `internal/valhalla`'s tests under the `valhalla` tag with the race detector.
+# A skip in that run is red, as in the schema step above. It runs on every push
+# to main, and on a pull request whose diff touches routing — the adapter, the
+# planner's port, the routing configuration, the composition root, the
+# module's dependencies, or this file; on any other it does nothing and says so.
+#
 # Supply chain: every action is pinned to a full commit SHA, and the PostGIS
-# image to a digest, with its version beside it; each job may read the
-# repository and nothing else; no secret is used — the database password is the
-# throwaway container's own, set here. Making `gates` and `migrations` required
-# status checks is branch protection, which the Owner sets.
+# and Valhalla images to a digest, with each version beside it; each job may
+# read the repository and nothing else; no secret is used — the database
+# password is the throwaway container's own, set here. Making `gates` and
+# `migrations` required status checks is branch protection, which the Owner
+# sets.
 name: gates
 
 on:
@@ -247,3 +260,102 @@ jobs:
               echo "::endgroup::"
             done
           done
+
+  valhalla:
+    name: valhalla
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Valhalla 3.9.1's multi-arch index. The adapter cites this version's
+      # route API reference for every field it sends and reads.
+      VALHALLA_IMAGE: ghcr.io/valhalla/valhalla@sha256:4fd114eb1d26b8fc2f43bcb3df234c1b63a0bf13c277405e5943d5361dc575de # 3.9.1
+      EXTRACT: service/internal/valhalla/testdata/goteborg-inom-vallgraven.osm.pbf
+    steps:
+      # Two commits deep: on a pull request the checkout is GitHub's merge
+      # commit, whose first parent is main as the head was merged into it, so
+      # the diff between them is exactly what the pull request changes.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      # Whether this run owes the engine. A diff that cannot be read is red,
+      # never a reason to skip.
+      - name: does the change touch routing?
+        id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "routing=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only HEAD^1 HEAD)" || { echo '::error::cannot read the pull request diff against its base'; exit 1; }
+          if printf '%s\n' "$changed" | grep -qE '^(service/internal/(valhalla|planner)/|service/internal/config/valhalla|service/cmd/turfgps/|service/go\.(mod|sum)$|\.github/workflows/gates\.yml$)'; then
+            echo "routing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "routing=false" >> "$GITHUB_OUTPUT"
+            echo '::notice title=valhalla::this change touches no routing path — no engine built, no integration test run'
+          fi
+
+      # Tiles from the extract, in a scratch directory the containers mount.
+      # Built without an admin or time-zone database, which the extract's
+      # README says why.
+      - name: Valhalla — build tiles from the extract
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          data="$RUNNER_TEMP/valhalla"
+          mkdir -p "$data"
+          cp "$EXTRACT" "$data/extract.osm.pbf"
+          start=$SECONDS
+          docker pull --quiet "$VALHALLA_IMAGE"
+          pulled=$((SECONDS - start))
+          start=$SECONDS
+          docker run --rm -v "$data:/data" "$VALHALLA_IMAGE" sh -c '
+            valhalla_build_config --mjolnir-tile-dir /data/tiles --mjolnir-tile-extract /data/tiles.tar \
+              --mjolnir-traffic-extract "" --mjolnir-admin /data/admins.sqlite --mjolnir-timezone /data/tz.sqlite \
+              > /data/valhalla.json &&
+            valhalla_build_tiles -c /data/valhalla.json /data/extract.osm.pbf'
+          built=$((SECONDS - start))
+          echo "image pulled in ${pulled}s, tiles built in ${built}s"
+          echo "Valhalla: image pulled in ${pulled}s, tiles built in ${built}s" >> "$GITHUB_STEP_SUMMARY"
+
+      # Bound to the runner's loopback only, and ready when /status answers.
+      - name: Valhalla — serve
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          docker run -d --name valhalla -p 127.0.0.1:8002:8002 -v "$RUNNER_TEMP/valhalla:/data" \
+            "$VALHALLA_IMAGE" valhalla_service /data/valhalla.json 1
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8002/status; then echo; exit 0; fi
+            sleep 1
+          done
+          echo '::error::Valhalla did not answer /status within 60 s'
+          docker logs valhalla
+          exit 1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.scope.outputs.routing == 'true'
+        with:
+          go-version-file: service/go.mod
+          cache-dependency-path: |
+            service/go.mod
+            service/go.sum
+
+      # go test's exit status is the step's (the job's shell runs with
+      # pipefail). The tagged file fails rather than skips without an engine,
+      # and a skip anywhere in the run is red too.
+      - name: Go tests against Valhalla
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          cd service
+          go vet -tags valhalla ./internal/valhalla
+          log="$RUNNER_TEMP/valhalla-tests.log"
+          TURFGPS_TEST_VALHALLA_URL=http://127.0.0.1:8002 \
+            go test -tags valhalla -race -count=1 -v ./internal/valhalla 2>&1 | tee "$log"
+          if grep -q -- '--- SKIP' "$log"; then echo '::error::a test skipped against Valhalla, so it measured nothing'; exit 1; fi
+
+      - name: Valhalla logs
+        if: always() && steps.scope.outputs.routing == 'true'
+        run: docker logs valhalla 2>&1 || true

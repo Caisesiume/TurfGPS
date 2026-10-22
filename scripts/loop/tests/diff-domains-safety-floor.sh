@@ -55,6 +55,19 @@ run service/internal/ownershipx/held.go service/internal/ownership \
 check "ownership near misses are not safety paths" \
   'safety_path_candidates: []'
 
+# service/internal/valhalla/ is the routing adapter: its request decides whether
+# a car is kept off ways the map data closes to it (#6).
+run service/internal/valhalla/valhalla.go service/internal/valhalla/testdata/README.md \
+    service/internal/planner/planner.go
+check "internal/valhalla/ is a safety path" \
+  'safety_path_candidates: [service/internal/valhalla/valhalla.go, service/internal/valhalla/testdata/README.md]'
+
+# Near misses on either side of the valhalla anchors.
+run service/internal/valhallax/valhalla.go service/internal/valhalla \
+    xservice/internal/valhalla/valhalla.go service/internal/routing/valhalla/x.go
+check "valhalla near misses are not safety paths" \
+  'safety_path_candidates: []'
+
 # The six entries the floor already held still match, in input order.
 run docs/CalculationSpecification.md docs/SPECIFICATION.md \
     docs/Requirements/safety-exclusions.md docs/Requirements/access-classification.md \
