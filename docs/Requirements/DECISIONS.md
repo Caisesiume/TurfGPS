@@ -2538,3 +2538,76 @@ Affects:        FR-128, new; FR-125's `Rationale`; RD-054, superseded for a
                 driving leg; the batch-5 debt list in `README.md`; #253, new;
                 #25's dependencies.
 ```
+
+## RD-061 — Is a stop the user chose a location the user entered, reached only through FR-126's run?
+
+```
+Date:           2026-11-05
+Decided-by:     the Owner, choosing option (a) of `@engineering-lead`'s
+                question in `#issuecomment-6656877120`, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6656904840,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with two edges the ruling leaves open decided
+                on the ladder below.
+Question:       Is a stop the user chose a "location the user entered"
+                (RD-056), reached only through FR-126's bounded run? At the
+                analyst's cycle-2 head of PR #251, FR-125's second criterion,
+                FR-127's first and FR-128's third refused every leg into a
+                stopping position a car reaches only along ways, or past
+                barriers, the map data marks private or access-restricted,
+                whoever chose it, on RD-052 as RD-056 and RD-058 left it
+                standing;
+                `SPECIFICATION.md § What establishes a stopping position` lets
+                the user place a stop where the feature records a restriction,
+                and says "A customers-only car park where the driver actually
+                is a customer stays reachable".
+Interpretation: **Yes. A stopping position the user chose counts as a location
+                the user entered, beside the journey's origin, destination and
+                intermediate destinations, and a leg reaches or leaves it
+                along such ways, and past such barriers, only in FR-126's run;
+                a stopping position the system chose stays strictly
+                excluded.** The ruling, verbatim: "A stop the user chose
+                counts as a location the user entered (RD-056). A leg reaches
+                it only through FR-126's bounded run: the least marked travel
+                that joins it to the first unmarked way, and never in transit.
+                This is how
+                `SPECIFICATION.md § What establishes a stopping position`
+                already reads ("stays reachable"). Stops the system chose stay
+                strictly excluded." Two edges are read on the ladder. First,
+                the run's bound that it ends at no stopping position reads as
+                no stopping position the system chose, since a run that
+                reaches a stop the user chose ends there as that location's
+                own. Second, a stop the user chose on a way not so marked has
+                an empty run, as RD-057 holds for a home behind a gate marked
+                private on an unmarked driveway: a marking between it and the
+                ways a car reaches it from is in transit, and a leg ending
+                short of it across that marking leaves it served by no leg,
+                under RD-058. This supersedes RD-052, and RD-056 and RD-058
+                where they hold a stopping position outside the exception
+                whoever chose it, for a stopping position the user chose;
+                RD-052 stands for one the system chose, and RD-058 for the gap
+                short of every stopping position.
+Rung:           n/a for the ruling — Owner ruling, escalated because it
+                changes a safety rule: rung 1,
+                `SPECIFICATION.md § What establishes a stopping position`,
+                reads "stays reachable" for a stop the user places where a
+                restriction is recorded, against the strict holding of RD-052,
+                which rested on rung 7. The first edge rests on rung 4,
+                existing requirements: RD-057's bound answered the sentinel's
+                scenario on PR #251, a leg from a location the user entered to
+                a stop the system chose on its run (S1,
+                `#issuecomment-6337556214`), and FR-126's `Risk` names that
+                stop. The second rests on rung 4 as well: FR-126's run as
+                RD-057 fixes it is empty for a location on a way not so
+                marked, and FR-127's statement binds a leg ending short of
+                every stopping position; rung 7 agrees, the case being the one
+                the Owner accepted for a home.
+Affects:        FR-125: statement, `Verification`, second criterion and
+                `Rationale`; FR-126: statement, `Verification`, criteria and
+                `Rationale`; FR-127: `Verification`, first criterion, a third
+                criterion added, `Depends-on` and `Rationale`; FR-128:
+                `Verification`, second and third criteria and `Rationale`;
+                RD-052, RD-056 and RD-058, superseded for a stop the user
+                chose; #248's narrative, definitions, AC4, AC5, AC7, AC8, AC11
+                (new) and notes; #253's AC3, AC4 and notes.
+```
