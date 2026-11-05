@@ -77,8 +77,10 @@ add $((scripts + ci))        scripts 'correctness, supply chain'
 # the registry of the constants FR-091 refuses to run without, where a default
 # for one of them would be authored (#212); and service/internal/ownership/
 # decides held zones and region lordship, which feed takeover time and so the
-# ceiling (#234). Pinned by scripts/loop/tests/diff-domains-safety-floor.sh.
-candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+)$' 2>/dev/null)"
+# ceiling (#234); and service/internal/valhalla/ is the routing adapter, whose
+# request decides whether a car is kept off ways the map data closes to it — a
+# routing exclusion (#6). Pinned by scripts/loop/tests/diff-domains-safety-floor.sh.
+candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+)$' 2>/dev/null)"
 
 printf 'total_files: %s\n' "$total"
 printf 'domains: {go: %s, frontend: %s, docs: %s, agent_system: %s, scripts: %s, schema: %s, ci: %s, data: %s, other: %s}\n' \

@@ -117,11 +117,27 @@ type Leg struct {
 //
 // It is declared here, by its consumer, as `internal/corridor` declares its
 // half of `ZoneRepository`, so the adapter is substitutable and this package
-// depends on no provider. Which travel mode a route is computed for is
-// `FR-006`'s and is not decided here.
+// depends on no provider.
+//
+// THE TRAVEL MODE IS PART OF THE CONTRACT, NOT THE ADAPTER'S CHOICE. Every leg
+// a journey has today is driven (`FR-006`), so Route answers for a car: an
+// adapter that cannot obtain a route a car can drive returns an error, never a
+// route by another mode. Stating it here is what binds every adapter to it,
+// the openrouteservice one of `Architecture.md § D3` included. The
+// park-and-walk leg `FR-006` excepts is a later story's, and it arrives as a
+// method of its own rather than as a mode this one may switch to.
+//
+// THE CONTRACT DOES NOT YET EXCLUDE PRIVATE AND ACCESS-RESTRICTED WAYS. A
+// route a car can drive, below, is a route travelled by car and no more: it is
+// not yet one kept off the ways the map data marks as private or
+// access-restricted, which `SPECIFICATION.md § Enforceable exclusions` forbids
+// a route to be constructed through. The Valhalla adapter admits such ways at a
+// penalty, and its package doc says which. The exclusion is a story of its own
+// ("exclude private and access-restricted ways from driving legs"), and no
+// client may call `POST /journeys` before it lands.
 type RoutingProvider interface {
-	// Route returns the geometry of a route from one location to another, at
-	// least one vertex long.
+	// Route returns the geometry of a route a car can drive from one location
+	// to another, at least one vertex long.
 	Route(ctx context.Context, from, to Point) ([]Point, error)
 }
 

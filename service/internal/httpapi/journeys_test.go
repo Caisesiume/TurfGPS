@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 )
@@ -251,4 +255,124 @@ func TestAPlanningRequestThatCannotBePlannedIsRefused(t *testing.T) {
 			}
 		})
 	}
+}
+
+// stalledRouting answers no leg until the context it is asked under ends, and
+// counts the legs it is asked for. Its own bound, far past any plan deadline a
+// test sets, only keeps a plan with no deadline from hanging the test.
+type stalledRouting struct{ calls *atomic.Int64 }
+
+var errStalledPastItsBound = errors.New("no deadline ended the leg, so the fake's own bound did")
+
+func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planner.Point, error) {
+	s.calls.Add(1)
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(2 * time.Second):
+		return nil, errStalledPastItsBound
+	}
+}
+
+// ownTimeoutRouting fails every leg as a routing call that timed out on its own
+// account does, before any plan deadline.
+type ownTimeoutRouting struct{}
+
+func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Point, error) {
+	return nil, fmt.Errorf("asking the routing engine: %w", context.DeadlineExceeded)
+}
+
+// expiredRouting answers a leg at once, unless the context it is asked under
+// has already ended.
+type expiredRouting struct{}
+
+func (expiredRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Point, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	return []planner.Point{from}, nil
+}
+
+// slowBody delivers its JSON only after a delay, as a client trickling its
+// request does.
+type slowBody struct {
+	delay time.Duration
+	r     io.Reader
+}
+
+func (b *slowBody) Read(p []byte) (int, error) {
+	if b.delay > 0 {
+		time.Sleep(b.delay)
+		b.delay = 0
+	}
+
+	return b.r.Read(p)
+}
+
+// TestAPlanThatOutlivesItsDeadlineIsRefused (#6): a plan still routing when
+// its deadline expires is stopped there and answered with 504, rather than
+// holding the handler past the server's write budget with nothing written.
+// The deadline is the plan's own: a routing call that times out on its own
+// account is still a routing failure, 502, and the deadline is measured from
+// the handler's start, so a body that takes the whole of it leaves no time to
+// plan in.
+func TestAPlanThatOutlivesItsDeadlineIsRefused(t *testing.T) {
+	t.Parallel()
+
+	const (
+		deadline = 100 * time.Millisecond
+		body     = `{"origin":{"latitude":57.70,"longitude":11.96},` +
+			`"intermediates":[{"latitude":57.71,"longitude":11.97},{"latitude":57.72,"longitude":11.98},{"latitude":57.73,"longitude":11.99}],` +
+			`"destination":{"latitude":57.74,"longitude":12.00}}`
+	)
+
+	t.Run("a plan routing past its deadline", func(t *testing.T) {
+		t.Parallel()
+
+		var calls atomic.Int64
+
+		start := time.Now()
+		rec := postJourney(t, body, withFakePlanner(t, stalledRouting{calls: &calls}), WithPlanTimeout(deadline))
+		elapsed := time.Since(start)
+
+		if rec.Code != http.StatusGatewayTimeout {
+			t.Errorf("status = %d after %v, want %d; body %q", rec.Code, elapsed, http.StatusGatewayTimeout, rec.Body.String())
+		}
+
+		if elapsed > time.Second {
+			t.Errorf("the refusal came %v after the request, want it at the %v deadline", elapsed, deadline)
+		}
+
+		if n := calls.Load(); n != 1 {
+			t.Errorf("%d legs were asked for, want the plan stopped at the first, which the deadline cut short", n)
+		}
+	})
+
+	t.Run("a routing call that timed out on its own account", func(t *testing.T) {
+		t.Parallel()
+
+		rec := postJourney(t, body, withFakePlanner(t, ownTimeoutRouting{}), WithPlanTimeout(time.Minute))
+
+		if rec.Code != http.StatusBadGateway {
+			t.Errorf("status = %d, want %d: the plan's deadline had not expired; body %q", rec.Code, http.StatusBadGateway, rec.Body.String())
+		}
+	})
+
+	t.Run("a body that takes the whole deadline", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/journeys",
+			&slowBody{delay: 2 * deadline, r: strings.NewReader(body)})
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		NewHandler(nil, withFakePlanner(t, expiredRouting{}), WithPlanTimeout(deadline)).ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusGatewayTimeout {
+			t.Errorf("status = %d, want %d: the deadline runs from the handler's start, before the body is read; body %q",
+				rec.Code, http.StatusGatewayTimeout, rec.Body.String())
+		}
+	})
 }
