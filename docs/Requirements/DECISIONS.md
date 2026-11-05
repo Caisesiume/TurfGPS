@@ -2319,3 +2319,222 @@ Affects:        FR-125: statement, `Verification`, second and third criteria,
                 AC4 and AC5, its notes, and the reason on its soft edge to
                 #250.
 ```
+
+## RD-057 — How far along private or access-restricted ways may a leg run to reach a location the user entered?
+
+```
+Date:           2026-11-05
+Decided-by:     the Owner, taking `@engineering-lead`'s recommendation on S1
+                of the safety sentinel's verdict on PR #251
+                (`#issuecomment-6337556214`), asked in
+                `#issuecomment-6337566377`, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6656403191,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with two edges the ruling leaves open decided
+                on the ladder below.
+Question:       RD-055 and RD-056 let a driving leg run along ways the map
+                data marks private or access-restricted, and pass barriers so
+                marked, in a run of them broken by no way not so marked with
+                which it leaves one of the journey's required locations or
+                ends at one. The sentinel found the run unbounded: a home on a
+                private road whose marked network continues through an estate
+                to a second public road is left by the far side when that is
+                quicker, and a leg from that home to a stopping position on
+                the same run is a leg along marked ways that nothing tests.
+                How far may the run go?
+Interpretation: **The run joins the location to the first way not so marked,
+                never ends at a stopping position, and carries no more marked
+                travel than the least that joins the two.** The ruling,
+                verbatim: "the run joins the location to the first way not so
+                marked, never ends at a stopping position, and carries no more
+                marked travel than the least that joins the two. One criterion
+                for each". FR-126 carries the run, each bound one criterion,
+                and FR-125 refers its exception to FR-126. Read on the ladder,
+                the first way not so marked is the one the least marked travel
+                from the location reaches, and that travel is measured as
+                length along such ways and past such barriers; where several
+                runs tie at the least, any of them is admitted. In the same
+                comment the Owner accepted, as N1 of the same verdict, that a
+                home behind a gate marked private, on a driveway the map data
+                does not mark, is not planned to the door: the location lies
+                on a way not so marked, so its run is empty and the gate is in
+                transit, as RD-055 had it. This supersedes the run of RD-055
+                and RD-056, "broken by no way not so marked", and RD-056's
+                holding that a journey may cross such an area over two legs
+                meeting at an intermediate destination inside it, each of
+                those legs now taking the least run. RD-056 stands for which
+                locations take a run, and RD-052 for a stopping position, as
+                RD-058 amends it.
+Rung:           n/a for the bound — Owner ruling, asked by the lead on the
+                sentinel's S1, the run it replaces having rested on rung 7.
+                Both edges rest on rung 7, most conservative reasonable
+                interpretation. Read as the first way not so marked along
+                whichever run the leg happens to take, the third bound
+                measures each run against itself and the far exit of the
+                sentinel's scenario passes it; read as the one the least
+                marked travel reaches, the far exit fails, which is the
+                scenario the ruling adopts the remedy against. Length is the
+                measure a fast road through the area cannot shorten, so a
+                longer run is never the least because it is quicker.
+Affects:        FR-125: statement, `Verification`, criteria, `Depends-on`,
+                `Risk` and `Rationale`; FR-126, new; RD-055 and RD-056, their
+                run superseded; #248's definition of in transit, its criteria
+                for a location the user entered, and its notes.
+```
+
+## RD-058 — When does a leg ending short of a stopping position honour the exclusion?
+
+```
+Date:           2026-11-05
+Decided-by:     the Owner, taking `@engineering-lead`'s recommendation on S2
+                of the safety sentinel's verdict on PR #251
+                (`#issuecomment-6337556214`), asked in
+                `#issuecomment-6337566377`, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6656403191,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with one edge the ruling leaves open decided
+                on the ladder below.
+Question:       RD-052, RD-055 and RD-056 held that where a stopping position
+                can be reached only through an area the map data marks private
+                or access-restricted, a leg ending short of it and no leg at
+                all both honour FR-125, how far short being #250's. The
+                sentinel found the short end unchecked for a marking: an
+                unrestricted parking area 40 m behind a gate marked private is
+                established, its leg ends at the gate inside #250's tolerance,
+                and the stop is served. When does ending short honour the
+                rule?
+Interpretation: **Only where no way or barrier so marked lies between the
+                leg's end and the stopping position; otherwise there is no leg
+                and the stop is not served.** The ruling, verbatim: "ending
+                short honours FR-125 only where no marked way or barrier lies
+                between the leg's end and the position. Otherwise there is no
+                leg and the stop is not served". FR-127 carries it, and it
+                holds whoever chose the stop, a stopping position being
+                outside the exception whoever chose it (RD-052, which RD-055
+                and RD-056 left standing for every stopping position). Read on
+                the ladder, a way or barrier lies between the leg's end and
+                the position where it lies on a drivable connection joining
+                the two. How far short a leg may end stays #250's. This
+                supersedes the holding of RD-052, RD-055 and RD-056 that a leg
+                ending short and no leg both honour FR-125 wherever the
+                position can be reached only through such an area.
+Rung:           n/a for the rule — Owner ruling, asked by the lead on the
+                sentinel's S2, the holding it replaces having rested on rung
+                7. The reading of "between" rests on rung 7, most conservative
+                reasonable interpretation: the driver closes the gap by
+                driving it, so any drivable connection across it is one they
+                may take, and a marking on it is a marking on the stop's
+                approach whichever the plan drew.
+Affects:        FR-127, new; FR-125's `Rationale`; RD-052, RD-055 and RD-056,
+                their ending-short holding superseded; #248's criteria for a
+                stopping position, its notes and the reason on its soft edge
+                to #250.
+```
+
+## RD-059 — Which keys and which barriers does the floor of markings take?
+
+```
+Date:           2026-11-05
+Question:       RD-053's floor named seven way values — `private`,
+                `destination`, `customers`, `delivery`, `permit`, `residents`
+                and `restricted` — and for barriers gates and bollards tagged
+                `private`, naming no key. The safety sentinel's verdict on PR
+                #251 (S3, `#issuecomment-6337556214`) cites the routing engine
+                flagging a barrier private for six of those values read on
+                `access` or `motor_vehicle`, counting `lift_gate`,
+                `swing_gate` and `sliding_beam` as gates, giving a barrier
+                tagged `restricted` no flag at all, and reading ways on
+                `access`, `motor_vehicle`, `motorcar` and `vehicle`. A build
+                refusing only a gate or bollard tagged `access=private` passes
+                every criterion while a residents-only lift gate or a road
+                tagged `motor_vehicle=private` is driven in transit. Does the
+                floor take them?
+Interpretation: **Yes. The floor is the seven values on any of the keys
+                `access`, `vehicle`, `motor_vehicle` and `motorcar`, for a way
+                and for a barrier alike, and a barrier of any kind, the floor
+                naming `gate`, `lift_gate`, `swing_gate`, `sliding_beam` and
+                `bollard`.** `@engineering-lead` made this correction on the
+                ladder in `#issuecomment-6337566377`, and the Owner left it
+                there as needing no question in `#issuecomment-6656403191`. In
+                the same comment the Owner accepted, as N1 of the verdict,
+                that `destination` counts, which RD-053 had kept in the floor
+                on rung 7. RD-053 stands for the class, for the spelling being
+                owed with the OSM-derived feature tables, for a spelling found
+                wrong never narrowing the set, and for a marking that bars a
+                car outright being FR-006's; its floor is superseded here.
+Rung:           7 — most conservative reasonable interpretation, on the engine
+                evidence the verdict cites: a floor narrower than what the
+                engine admits lets a build pass every criterion with the
+                admitted markings still driven, and a barrier the engine does
+                not flag is the one an implementation leaning on the engine
+                misses.
+Affects:        FR-125's `Volatility`, and by reference FR-126, FR-127 and
+                FR-128; RD-053, its floor superseded; #248's definition of a
+                marking, its criteria for a marked way and a marked barrier,
+                and its notes.
+```
+
+## RD-060 — Is an area marked only on an enclosing area feature filed now, with a story gating `POST /journeys`?
+
+```
+Date:           2026-11-05
+Decided-by:     the Owner, taking `@engineering-lead`'s recommendation on S4
+                of the safety sentinel's verdict on PR #251
+                (`#issuecomment-6337556214`), asked in
+                `#issuecomment-6337566377`, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6656403191,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with four edges the ruling leaves open decided
+                on the ladder below.
+Question:       RD-054 recorded an area the map data marks private or
+                access-restricted only on a feature enclosing it as owed and
+                outside FR-125. The sentinel found that half of the member
+                with no story and no gate: once #248 closes and
+                `POST /journeys` opens, a customers-only car park drawn as an
+                area with unmarked aisles is used as a cut-through. Is it
+                filed now?
+Interpretation: **Filed now, as FR-128, with its own story #253, and every
+                story that lets a client call `POST /journeys` is blocked by
+                #253 as well as #248; the gap is not accepted.** The ruling,
+                verbatim: "**S4: give it a story and gate on it; the gap is
+                not accepted.** The area-only half of the sixth bullet of
+                `SPECIFICATION.md § Enforceable exclusions` gets its own
+                story. Every story that lets a client call `POST /journeys` is
+                **Blocked by** that story as well as #248." Four edges are
+                read on the ladder. First, FR-128 treats a way lying within
+                such an area as a way so marked for FR-125, FR-126 and FR-127,
+                so the rule, the Owner's exception and its bound are stated
+                once for the member and not twice. Second, the area's floor is
+                RD-059's seven values on its four keys together with `no`: a
+                way barring a car outright is FR-006's, but nothing reads an
+                area so marked unless FR-128 does. Third, a way's own markings
+                do not lift the marking of the area enclosing it. Fourth,
+                FR-128 reaches a driving leg, and the area's half for a
+                walking access path stays owed, with FR-075, in the batch-5
+                debt list in `README.md`. Which area features, and which tags
+                on them, spell the marking stays owed with the OSM-derived
+                feature tables, and a spelling found wrong never narrows the
+                set; the mechanism by which a leg avoids such an area is the
+                implementer's, as #248's is. This supersedes RD-054 for a
+                driving leg; RD-054 stands for the walking access path.
+Rung:           n/a for the filing and the gate — Owner ruling, asked by the
+                lead on the sentinel's S4, RD-054 having rested on rung 6. The
+                first edge rests on rung 4, existing requirements: FR-125,
+                FR-126 and FR-127 already carry the member, its exception and
+                its bound for a marking on the way, and a second statement of
+                them for the area would be a second thing to keep in step. The
+                second and third rest on rung 7, most conservative reasonable
+                interpretation: an area marked `no` is restricted at least as
+                far as one marked `private`, and a way marked public inside an
+                area marked private is a disagreement in the data that the
+                restriction decides, as
+                `SPECIFICATION.md § What establishes a stopping position` has
+                a recorded restriction decide. The fourth rests on rung 6,
+                established repository conventions: an obligation whose
+                surface does not yet exist is recorded as a debt with its home
+                named, as RD-005 and RD-054 did, and no story builds a walking
+                access path.
+Affects:        FR-128, new; FR-125's `Rationale`; RD-054, superseded for a
+                driving leg; the batch-5 debt list in `README.md`; #253, new;
+                #25's dependencies.
+```
