@@ -806,3 +806,289 @@ Rationale:    The cited section records these constants as required for the
               exists.
 Resolved-by:  —
 ```
+
+## FR-125 — Route no driving leg through a private or access-restricted way or barrier
+
+```
+Statement:    The system shall produce no driving leg that runs along a way,
+              or passes a barrier, that the map data marks as private or
+              access-restricted, other than in the run FR-126 admits at a
+              location the user entered.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract holding
+              such ways and barriers, a leg between ways not so marked whose
+              quickest drivable connection runs along a marked way or through
+              a marked barrier is produced on a connection avoiding it, a leg
+              to a stopping position the system chose beside a marked way runs
+              along none, and where every drivable connection between two
+              points on ways not so marked is marked no leg is produced along
+              one
+Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, that the map data marks as private or
+              access-restricted, and between whose ends a drivable connection
+              avoiding every such way and barrier exists, when the leg is
+              produced, then it runs along no such way and passes no such
+              barrier
+              given a driving leg one end of which is a stopping position the
+              system chose, lying nearer a way so marked than any way not so
+              marked, and the other end of which lies on a way not so marked,
+              when the leg is produced, then it runs along no such way and
+              passes no such barrier
+              given two points on ways not so marked, every drivable
+              connection between which runs along such a way or passes such a
+              barrier, when the journey is planned, then no driving leg is
+              produced that runs along such a way or passes such a barrier
+Status:       to-build
+Depends-on:   FR-006; FR-126
+Volatility:   open-question — which tag values spell private and
+              access-restricted is owed with the OSM-derived feature tables
+              that `Architecture.md § Still owed by this document` records as
+              undesigned; the floor of markings this record must exclude is
+              `DECISIONS.md § RD-059`'s, and a spelling found wrong is
+              corrected without narrowing it
+Risk:         A routing engine that prices a private road as a cost rather
+              than a prohibition takes the shortcut through a gated estate or
+              along a residents' road exactly where it saves the most time,
+              and the leg comes back as one a car can drive, so FR-006's check
+              passes. The driver is sent through a gate they have no right to
+              open, and nothing in the result says so.
+Rationale:    The cited section makes this a hard rule: no route may be
+              constructed through an area the map data marks private or
+              access-restricted. FR-075 keeps the walking access path off a
+              way so marked and reads the member as binding the area rather
+              than the way; this record keeps that reading and takes the
+              area's marking from what a driving leg is made of, the ways it
+              runs along and the barriers across them, and FR-128 adds the
+              ways an area so marked encloses. Way and barrier stay one record
+              because a gate and the road behind it mark one area, and a
+              record for either alone leaves the other as the way round it.
+              The member's antecedent is a route through an area and never a
+              stop at a position inside one
+              (`SPECIFICATION.md § What establishes a stopping position`), so
+              this record excludes no stop and no location a journey names; it
+              binds what a leg travels along. Its one exception is the
+              Owner's, a run at a location the user entered, and FR-126 states
+              it with the bound the Owner set (`DECISIONS.md § RD-056`,
+              `DECISIONS.md § RD-057`). A stopping position the user chose is
+              such a location (`DECISIONS.md § RD-061`); one the system chose
+              is outside the exception (`DECISIONS.md § RD-052`), which the
+              second criterion tests, and FR-127 decides when a leg may end
+              short of a stopping position. The third criterion keeps the
+              exclusion hard: where nothing avoids the area the answer is no
+              leg through it, never the least-bad crossing. No mechanism is
+              named, and a penalty is not an exclusion.
+Resolved-by:  #248
+```
+
+## FR-126 — Bound the private run that reaches a location the user entered
+
+```
+Statement:    The system shall reach or leave a location the user entered — a
+              required location of the journey or a stopping position the user
+              chose — that lies on a way the map data marks as private or
+              access-restricted by a driving leg that runs along such ways,
+              and passes such barriers, at that location only in one run
+              joining the location to the first way not so marked, ending at
+              no stopping position the system chose and carrying no more such
+              travel than the least that joins the two.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract holding a
+              location the user entered on a marked way, a leg leaving or
+              reaching it starts or ends at it and leaves the marked ways at
+              the first way not so marked, a stopping position the system
+              chose on that run is reached from the location along none of it,
+              and where two runs join the location to ways not so marked the
+              leg takes no more marked length than the shorter
+Acceptance:   given a location the user entered — the journey's origin, its
+              destination, an intermediate destination or a stopping position
+              the user chose — lying on a way so marked that a car reaches
+              only along such ways, when a leg leaving or reaching that
+              location is produced, then the leg starts or ends at that
+              location, and its travel along such ways and past such barriers
+              there is one run that ends at the first way not so marked it
+              meets
+              given a stopping position the system chose, lying on such ways
+              between a location the user entered on a way so marked and the
+              ways not so marked nearest that location, when the journey is
+              planned, then no driving leg runs along such ways between that
+              location and that stopping position
+              given a location the user entered on a way so marked, joined to
+              ways not so marked by two runs of which the quickest leg would
+              take the one carrying more such travel, when that leg is
+              produced, then the length of such ways it runs along at that
+              location is no more than the least that joins the location to a
+              way not so marked
+Status:       to-build
+Depends-on:   FR-006
+Volatility:   open-question — the markings this record reads are FR-125's,
+              their spelling owed with the OSM-derived feature tables that
+              `Architecture.md § Still owed by this document` records as
+              undesigned and their floor `DECISIONS.md § RD-059`'s
+Risk:         Read wider than the least run to a way not so marked, the
+              exception becomes transit: a home on a private road whose marked
+              network runs on through an estate to a second public road is
+              left by the far side when that is quicker, and a stop the system
+              chose on the run draws one leg into the area and the next out of
+              it, so the journey crosses the area. Read narrower, a home on a
+              private road is not planned to the door, which the Owner ruled
+              it is.
+Rationale:    The member admits no route through a marked area, and the
+              Owner's decisions on PR #251 let a leg enter one to reach a
+              location the user entered, because the user has a reason to be
+              there, and bound the run that does it (`DECISIONS.md § RD-056`,
+              `DECISIONS.md § RD-057`). A stopping position the user chose is
+              such a location, and one the system chose is not
+              (`DECISIONS.md § RD-061`). The three bounds are one record
+              because together they are the run, and each is a criterion
+              because each closes one way the run becomes transit: the first
+              keeps it to the stretch between the location and the first way
+              not so marked; the second keeps a stop the system chose off it,
+              a leg ending at such a stop on the run being a leg along marked
+              ways to no location the user entered; the third refuses the far
+              exit. The first way not so marked is the one the least marked
+              travel reaches, and that travel is measured as length, so a fast
+              road through the area is never the least because it is quick
+              (`DECISIONS.md § RD-057`). A home behind a gate marked private,
+              on a driveway the map data does not mark, lies on a way not so
+              marked: its run is empty and the gate is passed in transit,
+              which FR-125 refuses, as the Owner accepted. A stop the user
+              chose on a way not so marked behind such a gate is the same
+              case, and FR-127 refuses a leg ending short of it.
+Resolved-by:  #248
+```
+
+## FR-127 — Serve no stopping position past a private or access-restricted way or barrier
+
+```
+Statement:    The system shall serve a stopping position by a driving leg
+              ending short of it only where no way or barrier that the map
+              data marks as private or access-restricted lies between the
+              leg's end and the position.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a
+              stopping position a car reaches only along a marked way or past
+              a marked barrier is served by no leg where the system chose it,
+              or where the user chose it on a way not so marked, and one with
+              nothing so marked between it and the end of the leg serving it
+              is not refused by this record
+Acceptance:   given a stopping position the system chose, that a car reaches
+              only by running along a way, or passing a barrier, that the map
+              data marks as private or access-restricted — a parking area
+              behind a gate so marked — when the journey is planned, then no
+              driving leg ends at it or short of it, and the journey includes
+              no stop there
+              given a driving leg ending short of a stopping position, no way
+              or barrier so marked lying between the leg's end and the
+              position, when the journey is planned, then this record refuses
+              neither the leg nor the stop
+              given a stopping position the user chose, lying on a way not so
+              marked, that a car reaches only by running along a way, or
+              passing a barrier, so marked — a parking area not itself so
+              marked behind a gate so marked — when the journey is planned,
+              then no driving leg ends at it or short of it
+Status:       to-build
+Depends-on:   FR-125; FR-126
+Volatility:   open-question — the markings this record reads are FR-125's,
+              their spelling owed with the OSM-derived feature tables that
+              `Architecture.md § Still owed by this document` records as
+              undesigned and their floor `DECISIONS.md § RD-059`'s; how far
+              short of its position a leg may end is a tolerance no document
+              gives
+Risk:         A leg that ends at a gate marked private, within the tolerance
+              for how far short of its position a leg may end, serves the
+              parking area behind it: the driver drives through a gate they
+              have no right to open or finds it locked, and the car half of
+              the stop ends where the walk half does not start.
+Rationale:    FR-125 keeps a leg to a stopping position off such ways and
+              barriers, and a leg that cannot reach the position along any
+              other connection may still end short of it, which FR-125 alone
+              does not refuse. The Owner's decision makes the gap part of what
+              is checked: ending short honours the exclusion only where
+              nothing so marked lies between the leg's end and the position,
+              and otherwise there is no leg and the stop is not served
+              (`DECISIONS.md § RD-058`). A way or barrier lies between them
+              where it lies on a drivable connection joining the two, since
+              the driver closes the gap by driving it. The rule binds every
+              stopping position a leg ends short of. One the system chose is
+              outside the Owner's exception (`DECISIONS.md § RD-052`), which
+              the first criterion tests. One the user chose is a location the
+              user entered (`DECISIONS.md § RD-061`): on a way so marked,
+              FR-126's run reaches it and ends at it, never short of it; on a
+              way not so marked, its run is empty, so a marking between it and
+              the leg's end leaves it unserved, which the third criterion
+              tests. The second criterion keeps the rule to the gap, so a
+              position a few metres off the drivable network with nothing so
+              marked between is not refused by it; how far that gap may run is
+              a tolerance this record does not set.
+Resolved-by:  #248
+```
+
+## FR-128 — Treat the ways inside an area marked private or access-restricted as marked
+
+```
+Statement:    The system shall treat a way, or the part of one, lying within
+              an area that the map data marks as private or access-restricted
+              on an area feature enclosing it as a way so marked for FR-125,
+              FR-126 and FR-127.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract holding an
+              area feature so marked whose own ways carry no marking, a leg
+              whose quickest connection crosses the area is produced on a
+              connection avoiding it, a location the user entered inside it is
+              reached along the run FR-126 admits, and a stopping position the
+              system chose reached only through it is served by no leg
+Acceptance:   given two points on ways outside an area that the map data marks
+              as private or access-restricted on an area feature enclosing it,
+              whose quickest drivable connection runs along a way within that
+              area carrying no such marking of its own, and between which a
+              drivable connection avoiding every such area exists, when the
+              leg is produced, then it runs along no way within that area
+              given a location the user entered — a required location of the
+              journey or a stopping position the user chose — lying within
+              such an area on a way carrying no such marking of its own, when
+              a leg leaving or reaching that location is produced, then the
+              leg starts or ends at that location and runs within the area
+              only in the run FR-126 admits
+              given a stopping position the system chose that a car reaches
+              only along ways within such an area, when the journey is
+              planned, then no driving leg ends at it or short of it, and the
+              journey includes no stop there
+Status:       to-build
+Depends-on:   FR-125; FR-126; FR-127
+Volatility:   open-question — which area features, and which tags on them,
+              spell the marking is owed with the OSM-derived feature tables
+              that `Architecture.md § Still owed by this document` records as
+              undesigned; the floor is `DECISIONS.md § RD-060`'s, and a
+              spelling found wrong is corrected without narrowing it
+Risk:         A car park, an estate or a compound drawn as one area and marked
+              customers-only or private on that area alone routes as public
+              road, because its own ways carry no marking, and the leg cuts
+              through it exactly where that saves time. Every check reading
+              the ways' own markings passes.
+Rationale:    The cited section binds the area, and FR-125 reads the area's
+              marking from what a leg is made of. Where the map data marks an
+              area only on the feature enclosing it, its ways are unmarked and
+              FR-125 alone admits the cut-through the member forbids. Treating
+              those ways as so marked for FR-125, FR-126 and FR-127 states the
+              rule, the Owner's exception and its bound once, so an area so
+              marked is crossed, entered and served exactly as a marked way is
+              (`DECISIONS.md § RD-060`). A stop the user chose in a
+              customers-only car park drawn as such an area is therefore
+              reached along FR-126's run, as
+              `SPECIFICATION.md § What establishes a stopping position` keeps
+              it reachable (`DECISIONS.md § RD-061`). A way's own markings do
+              not lift the marking of the area enclosing it. The record
+              reaches a driving leg; the walking access path's half stays owed
+              with FR-075 until an access path is built. No mechanism is
+              named, and a penalty is not an exclusion.
+Resolved-by:  #253
+```
