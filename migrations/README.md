@@ -29,6 +29,17 @@ the INSERT of `Architecture.md § The sync write path`, mapped as
 `§ The zone ingest field mapping` below says; an id `zone` already holds is
 left untouched, because a feed item is the zone as created (#238).
 
+`0003_access_markings.sql` creates the access-marking tables of
+`Architecture.md § The access-marking tables` (#255, ADR-0008): `access_way`,
+`access_barrier`, `access_barrier_way`, `access_way_exit`, `access_area` and the
+load record `osm_extract_load`; the rule, `access_marked` and
+`access_feature_marked`, which each feature table's generated `marked` column
+calls; and the route check, `access_crossings`, the one statement
+`internal/accessstore` serves. It touches nothing 0001 or 0002 created. The
+tables are filled by `turfgps load-access-markings` from the extract the tiles
+are built from, never by a migration; `access_area` stays empty until #253's
+loader takes areas. A change to the rule is a change to a safety rule.
+
 ## Applying one
 
 **No agent applies a migration.** Application is a deliberate act by an
@@ -43,6 +54,8 @@ psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0001_zone_store.verify.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.verify.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0003_access_markings.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0003_access_markings.verify.sql
 ```
 
 The verify script runs second and is not optional. `CREATE INDEX` succeeding
@@ -52,10 +65,20 @@ existed.
 
 ## State of proof
 
-**Executed on throwaway instances only.** CI's `migrations` job applies 0001 and
-0002 to an ephemeral PostGIS on every pull request, runs each verify file part
+**Executed on throwaway instances only.** CI's `migrations` job applies 0001 to
+0003 to an ephemeral PostGIS on every pull request, runs each verify file part
 by part and each rollback twice, and checks for residue. Nothing here has been applied to
-a database that outlives that job.
+a database that outlives that job. CI's `valhalla` job also applies them to a
+PostGIS of its own and loads the committed test extract into 0003's tables
+(#255).
+
+**0003's EXPLAIN evidence** is part F of its verify file: the route check over a
+synthetic load of 200,000 ways, which fails on a sequential scan of any table
+the check reads, on a plan naming no one of the four indexes it uses, and on a
+plan in which the check's function was not inlined. `access_way_exit_pkey`,
+`access_way_nodes_gin` and `access_way_geom_gist` serve the run and the
+stopping-position checks of #248 and #256, and stay unproven until those
+stories' queries are EXPLAINed.
 
 **Two conditions in `Architecture.md § What is unproven` bear on this
 migration.** Item 1 asks for `EXPLAIN (ANALYZE, BUFFERS)` against a loaded copy
