@@ -14,6 +14,9 @@
 #   7. `gates` or `migrations` not completed/success at the head: missing, failed, in
 #      progress, green only from another app, green superseded by a later red run
 #   8. a safety path without a passing safety verdict at the head
+#  8b. the floor is the union of main's and the PR head's (#252): a PR adding a floor
+#      entry is gated on its own new path; a PR deleting one is still gated by main's;
+#      an unreadable head floor cannot run; the head's copy is read, never executed
 #   9. a default account other than Caisesiume (cannot run)
 #  10. --apply runs exactly one merge, pinned to the head, as the default account;
 #      a dry run and a refusal run none; no token reaches gh or the output
@@ -52,6 +55,7 @@ case "$*" in
   "api repos/"*"/commits/"*"/check-runs "*)  cat "$FIX/checks" ;;
   "api repos/"*"/pulls/"*"/files "*)         cat "$FIX/files" ;;
   "api repos/"*"/issues/"*"/comments "*)     cat "$FIX/comments" ;;
+  "api -H "*"/contents/"*)                   [ -f "$FIX/floor" ] || exit 1; cat "$FIX/floor" ;;
   "pr merge "*) printf 'MERGE %s\n' "$*" >> "$CALLS"; printf 'MERGED%sabc\n' "$(printf '\t')" > "$FIX/after" ;;
   *) printf 'WRITE %s\n' "$*" >> "$CALLS" ;;
 esac
@@ -70,7 +74,7 @@ MIGR_OK="$(check migrations github-actions 101 completed success)"
 green() {   # every check holds
   printf 'Caisesiume\n' > "$FIX/user"; printf 'OPEN%s\n' "$T" > "$FIX/after"
   pr "$HEAD"; lines reviews "$APPROVED_AT_HEAD"; lines checks "$GATES_OK" "$MIGR_OK"
-  lines files service/cmd/turfgps/main.go README.md; lines comments
+  lines files service/cmd/turfgps/main.go README.md; lines comments; rm -f "$FIX/floor"
 }
 
 fails=0; OUT=''; RC=0
@@ -149,6 +153,42 @@ lines comments "$(verdict TheReviewNinja 2026-10-20T10:00:00Z "$HEAD" pass)" \
                "$(verdict TheReviewNinja 2026-10-20T11:00:00Z "$HEAD" block)"; run; refused "a pass superseded by a later block is refused" "(latest: block)"
 lines files service/x.go docs/Requirements/access-classification.md; lines comments
 run;                             refused "a renamed-away safety file still counts" "access-classification.md"
+
+# 8b — the floor is the union of main's and the PR head's (#252). The head's copy is
+#      this checkout's own diff-domains.sh with one entry added or removed, so the
+#      reading is pinned to the file's real form; its first command would leave a mark
+#      in the fixtures if anything ever ran it.
+FL=scripts/loop/diff-domains.sh; FLOORSRC="$DIR/../../loop/diff-domains.sh"
+{ printf ': > "$FIX/executed"\n'
+  sed 's#service/internal/config/\.+|#service/internal/config/.+|service/internal/newsafe/.+|#' "$FLOORSRC"
+} > "$TMP/floor-added"
+sed 's#|service/internal/ownership/\.+##' "$FLOORSRC" > "$TMP/floor-removed"
+if grep '^candidates=' "$TMP/floor-added" | grep -qF 'service/internal/newsafe/' \
+   && grep '^candidates=' "$FLOORSRC" | grep -qF 'service/internal/ownership/' \
+   && ! grep '^candidates=' "$TMP/floor-removed" | grep -qF 'service/internal/ownership/'; then
+  ok "the head-floor fixtures are main's floor with one entry added, and one removed"
+else printf 'FAIL  the head-floor fixtures could not be built from %s\n' "$FL"; fails=$((fails + 1)); fi
+
+green; lines files "$FL" service/internal/newsafe/a.go; cp "$TMP/floor-added" "$FIX/floor"
+run;                             refused "a PR adding a floor entry is gated on its own new path" "touches a safety path (service/internal/newsafe/a.go)"
+grep -qF "contents/$FL?ref=$HEAD " "$CALLS" && ok "the head's floor is read at the head SHA" \
+  || { printf 'FAIL  the head floor was not read at %s\n' "$HEAD"; fails=$((fails + 1)); }
+lines comments "$(verdict TheReviewNinja 2026-10-20T10:00:00Z "$HEAD" pass)"
+run;                             expect "...and with a passing verdict at the head: would merge" 0 "safety paths: service/internal/newsafe/a.go"
+[ ! -e "$FIX/executed" ] && ok "the head's diff-domains.sh is read, never run" \
+  || { printf 'FAIL  the head copy of %s was executed\n' "$FL"; fails=$((fails + 1)); }
+green; lines files "$FL" service/internal/ownership/x.go; cp "$TMP/floor-removed" "$FIX/floor"
+run;                             refused "a PR deleting a floor entry is still gated by main's" "touches a safety path (service/internal/ownership/x.go)"
+green; lines files "$FL" docs/SPECIFICATION.md service/internal/ownership/x.go service/internal/newsafe/a.go
+cp "$TMP/floor-added" "$FIX/floor"
+run;                             refused "main's paths and the head's, each once" "(docs/SPECIFICATION.md, service/internal/ownership/x.go, service/internal/newsafe/a.go)"
+green; lines files "$FL" README.md
+run;                             expect "a changed floor missing at the head cannot run" 2 "its floor at $HEAD could not be read"
+printf '#!/usr/bin/env bash\necho "safety_path_candidates: []"\n' > "$FIX/floor"
+run;                             expect "a changed floor with no candidates= regex cannot run" 2 "its floor at $HEAD could not be read"
+green; cp "$TMP/floor-added" "$FIX/floor"; run
+if [ "$RC" = 0 ] && ! grep -qF '/contents/' "$CALLS"; then ok "a PR that leaves the floor alone fetches no head copy"
+else bad "a PR that leaves the floor alone fetches no head copy"; fi
 
 # 9 — the default account
 green; printf 'TheReviewNinja\n' > "$FIX/user"; run --apply

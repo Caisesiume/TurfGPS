@@ -22,8 +22,9 @@
 #     the latest GitHub Actions check run at --sha is not completed/success.
 #     A missing run is a refusal, never a pass.
 #   - a safety path without a passing safety verdict at --sha, read exactly as
-#     post-review.sh reads it: diff-domains.sh over GitHub's file list, and the
-#     latest TheReviewNinja comment carrying the safety marker for --sha.
+#     post-review.sh reads it: diff-domains.sh over GitHub's file list, with the
+#     floor the union of main's and the PR head's (#252), and the latest
+#     TheReviewNinja comment carrying the safety marker for --sha.
 #
 # DRY RUN BY DEFAULT: it runs every check and prints the merge it would make.
 # --apply makes it — `gh pr merge --merge --match-head-commit <sha>`, so GitHub
@@ -55,6 +56,36 @@ refuse() { printf 'merge: refused — %s\n' "$*" >&2; exit 1; }
 
 # Every gh runs under the default account, with no token in its environment.
 rd() { env -u GH_TOKEN -u GITHUB_TOKEN -u GH_JUDGE_TOKEN "$GH" "$@"; }
+
+# The safety floor is the union of main's and the PR head's (#252): a PR may add
+# to its own gate, never remove from it. main's diff-domains.sh, beside this
+# script, is run. The head's copy is fetched at --sha and only READ: the one
+# regex on its `candidates=` line is matched against the files as data, and
+# nothing else in it runs. It is fetched only when the PR changes that file;
+# otherwise the head's floor is the merge base's, and any entry main has since
+# dropped was dropped by a change that already passed this gate. A changed copy
+# whose floor cannot be read stops the script (exit 2), never falls back to main's.
+# post-review.sh carries the same two functions; change them together.
+FLOOR_FILE='scripts/loop/diff-domains.sh'
+head_floor() {
+  local src pat rc
+  src="$(rd api -H 'Accept: application/vnd.github.raw+json' \
+    "repos/$REPO/contents/$FLOOR_FILE?ref=$SHA" 2>/dev/null)" || return 1
+  pat="$(printf '%s\n' "$src" | tr -d '\r' \
+    | sed -n "s/^candidates=.*| grep -E '\([^']*\)' .*\$/\1/p")"
+  [ -n "$pat" ] && [ "$(printf '%s\n' "$pat" | wc -l)" -eq 1 ] || return 1
+  grep -qE -- "$pat" </dev/null 2>/dev/null; rc=$?
+  [ "$rc" -le 1 ] || return 1
+  printf '%s\n' "$pat"
+}
+union_floor() {   # union_floor <main's candidates, ", "-joined> <the files, one per line>
+  local pat extra
+  printf '%s\n' "$2" | grep -qxF "$FLOOR_FILE" || { printf '%s' "$1"; return 0; }
+  pat="$(head_floor)" || return 1
+  extra="$(printf '%s\n' "$2" | grep -E -- "$pat")"
+  { printf '%s\n' "$1" | sed 's/, /\n/g'; printf '%s\n' "$extra"; } \
+    | awk 'NF && !seen[$0]++' | paste -sd, - | sed 's/,/, /g'
+}
 
 # ── arguments ────────────────────────────────────────────────────────────────
 PR=''; SHA=''; APPLY=0
@@ -119,6 +150,8 @@ domains="$(printf '%s\n' "$files" | tr -d '\r' | bash "$DOMAINS" -)" \
   || die "diff-domains.sh could not classify PR #$PR"
 grep -q '^safety_path_candidates: ' <<< "$domains" || die "diff-domains.sh printed no safety_path_candidates line"
 safety_paths="$(printf '%s\n' "$domains" | sed -n 's/^safety_path_candidates: \[\(.*\)\]$/\1/p')"
+safety_paths="$(union_floor "$safety_paths" "$(printf '%s\n' "$files" | tr -d '\r')")" \
+  || die "PR #$PR changes $FLOOR_FILE and its floor at $SHA could not be read, so whether it adds a safety path is unknown"
 [ -n "$safety_paths" ] || safety_paths='none'
 safety_verdict='not needed'
 if [ "$safety_paths" != none ]; then
