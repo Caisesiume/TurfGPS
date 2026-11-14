@@ -942,7 +942,7 @@ Rationale:    The cited section makes this a hard rule: no route may be
               marking, so a build that takes the most specific key of any
               mode, not of a car, fails. No mechanism is
               named, and a penalty is not an exclusion.
-Resolved-by:  #248
+Resolved-by:  #248, #255, #256
 ```
 
 ## FR-126 — Bound the private run that reaches a location the user entered
@@ -1024,7 +1024,7 @@ Rationale:    The member admits no route through a marked area, and the
               which FR-125 refuses, as the Owner accepted. A stop the user
               chose on a way not so marked behind such a gate is the same
               case, and FR-127 refuses a leg ending short of it.
-Resolved-by:  #248
+Resolved-by:  #248, #256
 ```
 
 ## FR-127 — Serve no stopping position past a private or access-restricted way or barrier
@@ -1110,7 +1110,7 @@ Rationale:    FR-125 keeps a leg to a stopping position off such ways and
               position a few metres off the drivable network with nothing so
               marked between is not refused by it; how far that gap may run is
               a tolerance this record does not set.
-Resolved-by:  #248
+Resolved-by:  #256
 ```
 
 ## FR-128 — Treat the ways inside an area marked private or access-restricted as marked
