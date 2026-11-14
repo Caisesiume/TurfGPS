@@ -105,8 +105,8 @@ $$;
 -- === Part B — the rule, against every value the criteria name ===============
 --
 -- Each case is a feature's tags, spelled exactly as `FR-125`'s criteria, #248's
--- AC2 and AC14 to AC17, and the Owner's decisions on #258 spell them, and the
--- marking the records give it. Keys off the car chain (`bicycle`, `foot`,
+-- AC2 and AC14 to AC17, #255's AC6 and AC9, the Owner's decisions on #258 and
+-- the Owner's ruling on #259 spell them, and the marking the records give it. Keys off the car chain (`bicycle`, `foot`,
 -- `psv`, `motorcycle`) are written in the cases that name them though the rule
 -- has no column for them: that they change nothing is the point of AC17.
 
@@ -162,15 +162,27 @@ BEGIN
             -- the Owner's second decision on #258: a directional key governs its direction
             ('motor_vehicle:backward=no only',        '{"motor_vehicle:backward":"no"}',            true),
             ('vehicle:backward=no on a oneway',       '{"vehicle:backward":"no"}',                  true),
-            ('access:forward=yes, access:backward=yes, access=no', '{"access":"no","access:forward":"yes","access:backward":"yes"}', false),
             ('motorcar:backward=yes, access=no',      '{"access":"no","motorcar:backward":"yes"}',  true),
             ('motor_vehicle:forward=yes, access=private', '{"access":"private","motor_vehicle:forward":"yes"}', true),
-            -- N8 on #258, N9 of the dispatch: direction specificity beats vehicle specificity
+            -- N8 on #258, N9 of the dispatch: direction specificity beats vehicle specificity (RD-065)
             ('N9 motorcar=yes, motor_vehicle:backward=no', '{"motorcar":"yes","motor_vehicle:backward":"no"}', true),
             ('N9 motorcar=yes, motor_vehicle:forward=no',  '{"motorcar":"yes","motor_vehicle:forward":"no"}',  true),
             ('N9 motorcar=yes, access:backward=private',   '{"motorcar":"yes","access:backward":"private"}',   true),
-            -- among the directional forms the first non-null still governs
-            ('motorcar:forward=yes, motor_vehicle:forward=no', '{"motorcar:forward":"yes","motor_vehicle:forward":"no"}', false)
+            -- among the directional forms of one direction the first non-null still governs (RD-065's second edge)
+            ('motorcar:forward=yes, motor_vehicle:forward=no', '{"motorcar:forward":"yes","motor_vehicle:forward":"no"}', false),
+            ('RD-065 motorcar:backward=yes, motor_vehicle:backward=no', '{"motorcar:backward":"yes","motor_vehicle:backward":"no"}', false),
+            ('RD-065 motorcar=yes, motorcar:backward=yes, motor_vehicle:backward=no', '{"motorcar":"yes","motorcar:backward":"yes","motor_vehicle:backward":"no"}', false),
+            -- the Owner's ruling on #259 (RD-066, #255 AC9): a directional form only adds markings,
+            -- so a directional permission in both directions lifts no plain marking
+            ('AC9 motor_vehicle=no, motor_vehicle:forward=yes, motor_vehicle:backward=yes', '{"motor_vehicle":"no","motor_vehicle:forward":"yes","motor_vehicle:backward":"yes"}', true),
+            ('AC9 motorcar=no, motorcar:forward=yes, motorcar:backward=yes', '{"motorcar":"no","motorcar:forward":"yes","motorcar:backward":"yes"}', true),
+            ('AC9 motor_vehicle=no, motorcar:forward=yes, motorcar:backward=yes', '{"motor_vehicle":"no","motorcar:forward":"yes","motorcar:backward":"yes"}', true),
+            ('RD-066 access=no, access:forward=yes, access:backward=yes', '{"access":"no","access:forward":"yes","access:backward":"yes"}', true),
+            -- the Owner's third decision on #258 (RD-064): a :conditional form is no key, so
+            -- a conditional permission lifts nothing (FR-125's fourteenth) and a
+            -- :backward:conditional is not a more specific directional form (N16 on #259)
+            ('AC6 access=private, motor_vehicle:conditional=yes', '{"access":"private","motor_vehicle:conditional":"yes @ (Mo-Fr 08:00-18:00)"}', true),
+            ('N16 motor_vehicle:backward=no, motorcar:backward:conditional=yes', '{"motor_vehicle:backward":"no","motorcar:backward:conditional":"yes @ (Mo-Fr 08:00-18:00)"}', true)
         ) AS t(name, tags, want)
     LOOP
         got := pg_temp.feature_marked(c.tags);

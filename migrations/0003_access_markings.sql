@@ -9,8 +9,9 @@
 -- The design is `Architecture.md § The access-marking tables`, on
 -- `docs/adr/ADR-0008-access-marking-table.md`. What is marked is not owned
 -- here either: it is `FR-125` to `FR-128` with `DECISIONS.md § RD-059`,
--- `RD-060`, `RD-062` and `RD-063`, and the Owner's three tag decisions on #258
--- recorded in that section. Where this file and those records differ, the
+-- `RD-060`, `RD-062` and `RD-063`, the Owner's tag decisions on #258
+-- (`RD-064`, `RD-065`) and the Owner's ruling on #259 (`RD-066`), as that
+-- section reads them. Where this file and those records differ, the
 -- records govern and this file is the defect.
 --
 -- ----------------------------------------------------------------------------
@@ -71,13 +72,15 @@ RETURN coalesce(
     false);
 
 -- The rule over a feature's twelve access keys, as `§ What the tables hold`
--- composes it: per direction, once with each key's directional form where the
--- feature carries one and its plain form otherwise, and once with the
+-- composes it: once on the four plain keys alone, every directional form set
+-- aside (`RD-063`), and once per direction on that direction's four
 -- directional forms alone — the Owner's N8 on #258, direction specificity
--- beats vehicle specificity — and marked where any of the four calls is.
--- Until a leg's direction along a way is known, a feature marked in either
--- direction is marked in both. It is one function so the three tables' columns
--- cannot drift apart.
+-- beats vehicle specificity (`RD-065`) — and marked where any of the three
+-- calls is. A directional form therefore only adds markings: no directional
+-- value lifts what the plain keys mark (the Owner's ruling on #259, `RD-066`,
+-- which supersedes `RD-064`'s edge). Until a leg's direction along a way is
+-- known, a feature marked in either direction is marked in both. It is one
+-- function so the three tables' columns cannot drift apart.
 
 CREATE OR REPLACE FUNCTION public.access_feature_marked(
     motorcar               text, motor_vehicle          text, vehicle          text, access          text,
@@ -85,11 +88,8 @@ CREATE OR REPLACE FUNCTION public.access_feature_marked(
     motorcar_backward      text, motor_vehicle_backward text, vehicle_backward text, access_backward text
 ) RETURNS boolean
 LANGUAGE sql IMMUTABLE PARALLEL SAFE
-RETURN public.access_marked(coalesce(motorcar_forward, motorcar), coalesce(motor_vehicle_forward, motor_vehicle),
-                            coalesce(vehicle_forward, vehicle), coalesce(access_forward, access))
+RETURN public.access_marked(motorcar, motor_vehicle, vehicle, access)
     OR public.access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)
-    OR public.access_marked(coalesce(motorcar_backward, motorcar), coalesce(motor_vehicle_backward, motor_vehicle),
-                            coalesce(vehicle_backward, vehicle), coalesce(access_backward, access))
     OR public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward);
 
 -- --- the feature tables -----------------------------------------------------
