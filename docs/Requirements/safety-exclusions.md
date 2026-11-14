@@ -831,7 +831,10 @@ Verification: test — against routing data built from a test extract holding
               that `DECISIONS.md § RD-063` leaves unmarked, by its precedence
               or by a value it adds to the permissive set, runs along it,
               while one carrying a value outside that set on the least
-              specific key alone is avoided
+              specific key alone is avoided, and one carrying a value outside
+              that set on the most specific of the four keys it carries is
+              avoided though it also carries a value within that set on a key
+              that is none of the four
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -874,6 +877,15 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               keys and none of the other three, and between whose ends a
               drivable connection avoiding every such way and barrier exists,
               when the leg is produced, then it runs along no such way
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, carrying a value outside the permissive set on the most
+              specific of the four keys it carries and a value within that set
+              on a key that is none of the four (`bicycle`, `foot`, `psv` or
+              `motorcycle`), and between whose ends a drivable connection
+              avoiding every such way and barrier exists, when the leg is
+              produced, then it runs along no such way and passes no such
+              barrier
 Status:       to-build
 Depends-on:   FR-006; FR-126
 Volatility:   open-question — how the tags are read is owed with the
@@ -925,7 +937,10 @@ Rationale:    The cited section makes this a hard rule: no route may be
               or whose value the Owner added to the permissive set, is driven,
               so a build that still reads either as marked fails; the seventh
               keeps a value outside the set on the least specific key alone
-              marked, so the loosening lifts nothing else. No mechanism is
+              marked, so the loosening lifts nothing else. The eighth keeps a
+              permission on a key that is none of the four from lifting a
+              marking, so a build that takes the most specific key of any
+              mode, not of a car, fails. No mechanism is
               named, and a penalty is not an exclusion.
 Resolved-by:  #248
 ```
