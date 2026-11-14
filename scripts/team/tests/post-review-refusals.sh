@@ -9,6 +9,9 @@
 #      superseded by a later block
 #   3. ...and allowed with one, and on a diff that touches no safety path — the positive
 #      controls, without which "always refuse" would pass every line of 2
+#  3b. the floor is the union of main's and the PR head's (#252): a PR adding a floor
+#      entry is gated on its own new path; a PR deleting one is still gated by main's;
+#      an unreadable head floor cannot run; the head's copy is read, never executed
 #   4. approve while the PR carries awaiting-human is refused; a closed PR is refused
 #   5. there is no merge path: --event merge is refused, and no line of the script runs one
 #   6. a dry run uses no token: the stub never sees one, and no token value reaches output
@@ -44,6 +47,7 @@ case "$*" in
   "pr view "*)                         cat "$FIX/pr" ;;
   "api repos/"*"/pulls/"*"/files "*)   cat "$FIX/files" ;;
   "api repos/"*"/issues/"*"/comments "*) cat "$FIX/comments" ;;
+  "api -H "*"/contents/"*)             [ -f "$FIX/floor" ] || exit 1; cat "$FIX/floor" ;;
   *) printf 'WRITE %s\n' "$*" >> "$CALLS" ;;
 esac
 exit 0
@@ -109,6 +113,51 @@ files "$SAFE"; comments
 run ruling --pr 9 --sha "$HEAD" --event request-changes --body "$TMP/body.yml"
 expect "request-changes needs no safety verdict" 0 "REQUEST_CHANGES, pinned to $HEAD"
 case "$OUT" in *"add: judge:remanded · remove: judge:approved"*) ok "request-changes swaps the labels" ;; *) bad "request-changes swaps the labels" ;; esac
+
+# 3b — the floor is the union of main's and the PR head's (#252). The head's copy is
+#      this checkout's own diff-domains.sh with one entry added or removed, so the
+#      reading is pinned to the file's real form; its first command would leave a mark
+#      in the fixtures if anything ever ran it.
+FL=scripts/loop/diff-domains.sh; FLOORSRC="$DIR/../../loop/diff-domains.sh"
+{ printf ': > "$FIX/executed"\n'
+  sed 's#service/internal/config/\.+|#service/internal/config/.+|service/internal/newsafe/.+|#' "$FLOORSRC"
+} > "$TMP/floor-added"
+sed 's#|service/internal/ownership/\.+##' "$FLOORSRC" > "$TMP/floor-removed"
+if grep '^candidates=' "$TMP/floor-added" | grep -qF 'service/internal/newsafe/' \
+   && grep '^candidates=' "$FLOORSRC" | grep -qF 'service/internal/ownership/' \
+   && ! grep '^candidates=' "$TMP/floor-removed" | grep -qF 'service/internal/ownership/'; then
+  ok "the head-floor fixtures are main's floor with one entry added, and one removed"
+else printf 'FAIL  the head-floor fixtures could not be built from %s\n' "$FL"; fails=$((fails + 1)); fi
+
+pr "$HEAD"; files "$FL" service/internal/newsafe/a.go; comments; cp "$TMP/floor-added" "$FIX/floor"
+run "${APPROVE[@]}"; expect "a PR adding a floor entry is gated on its own new path" 1 "touches a safety path (service/internal/newsafe/a.go)"
+grep -qF "contents/$FL?ref=$HEAD " "$CALLS" && ok "the head's floor is read at the head SHA" \
+  || { printf 'FAIL  the head floor was not read at %s\n' "$HEAD"; fails=$((fails + 1)); }
+comments "$(verdict TheReviewNinja 2026-10-08T10:00:00Z "$HEAD" pass)"
+run "${APPROVE[@]}"; expect "...and with a passing verdict at the head: allowed" 0 "safety paths: service/internal/newsafe/a.go"
+[ ! -e "$FIX/executed" ] && ok "the head's diff-domains.sh is read, never run" \
+  || { printf 'FAIL  the head copy of %s was executed\n' "$FL"; fails=$((fails + 1)); }
+files "$FL" service/internal/ownership/x.go; comments; cp "$TMP/floor-removed" "$FIX/floor"
+run "${APPROVE[@]}"; expect "a PR deleting a floor entry is still gated by main's" 1 "touches a safety path (service/internal/ownership/x.go)"
+files "$FL" "$SAFE" service/internal/ownership/x.go service/internal/newsafe/a.go; cp "$TMP/floor-added" "$FIX/floor"
+run "${APPROVE[@]}"; expect "main's paths and the head's, each once" 1 "($SAFE, service/internal/ownership/x.go, service/internal/newsafe/a.go)"
+files "$FL" README.md; rm -f "$FIX/floor"
+run "${APPROVE[@]}"; expect "a changed floor missing at the head cannot run" 2 "its floor at $HEAD could not be read"
+printf '#!/usr/bin/env bash\necho "safety_path_candidates: []"\n' > "$FIX/floor"
+run "${APPROVE[@]}"; expect "a changed floor with no candidates= regex cannot run" 2 "its floor at $HEAD could not be read"
+files service/cmd/turfgps/main.go README.md; cp "$TMP/floor-added" "$FIX/floor"; run "${APPROVE[@]}"
+if [ "$RC" = 0 ] && ! grep -qF '/contents/' "$CALLS"; then ok "a PR that leaves the floor alone fetches no head copy"
+else bad "a PR that leaves the floor alone fetches no head copy"; fi
+rm -f "$FIX/floor"
+
+# C1 of #254: grep -q stops at its first match, so a pipe into it SIGPIPEs printf
+#      on a long list and pipefail fails open. The floor file first, then > 64 KB.
+files "$FL" $(seq -f 'web/src/c/long/path/component-%05g.tsx' 2000) service/internal/newsafe/a.go
+comments; cp "$TMP/floor-added" "$FIX/floor"
+[ "$(wc -c < "$FIX/files")" -gt 65536 ] && ok "the long file list is over 64 KB"   || { printf 'FAIL  the long file list is not over 64 KB
+'; fails=$((fails + 1)); }
+run "${APPROVE[@]}"; expect "a floor change first in over 64 KB of files is still read" 1 "touches a safety path (service/internal/newsafe/a.go)"
+rm -f "$FIX/floor"
 
 # 4 — the Owner is deciding; the PR is not open
 pr "$HEAD" "risk:high,awaiting-human"; files README.md; comments
