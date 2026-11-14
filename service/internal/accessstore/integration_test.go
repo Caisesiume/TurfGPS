@@ -582,12 +582,24 @@ func (fx *fixture) logDistance(t *testing.T, node int64, e planner.Edge) {
 	t.Logf("the barrier %d lies %.3f m from the stretch of the edge along way %d", node, metres, e.WayID)
 }
 
-// AC3's ends: node 1231715281 of the service road 107135299, and the midpoint
-// of the service road 107135263 between Ringvägen and the road north of it.
+// AC3's ends: nodes 7853731846 and 1231715095 of Ringvägen itself, neither a
+// junction, so the leg between them runs along it. (Ends on the service roads
+// either side of it gave a route along the road north of it instead, on the
+// first CI run of #255, and the premise below failed rather than pass.)
 var (
-	ringvagenFrom = planner.Point{Latitude: 57.7157494, Longitude: 11.8303664}
-	ringvagenTo   = planner.Point{Latitude: 57.7170056, Longitude: 11.8262218}
+	ringvagenFrom = planner.Point{Latitude: 57.7164555, Longitude: 11.8293466}
+	ringvagenTo   = planner.Point{Latitude: 57.7169564, Longitude: 11.8259839}
 )
+
+// wayIDs lists the ways a leg runs along, for a failure's message.
+func wayIDs(edges []planner.Edge) []int64 {
+	out := make([]int64, len(edges))
+	for i, e := range edges {
+		out[i] = e.WayID
+	}
+
+	return out
+}
 
 // TestAC3ARouteCrossingNoMarkingPassesTheCheck is #255 AC3 (`FR-125`, fifth
 // criterion): a route along unmarked ways only, passing no marked barrier, one
@@ -595,13 +607,15 @@ var (
 func TestAC3ARouteCrossingNoMarkingPassesTheCheck(t *testing.T) {
 	fx := setUp(t)
 
-	// Ringvägen, in the extract's Torslanda part: access=no, motor_vehicle=yes.
-	premise(t, fx.opl.ways, "way", 107135272, map[string]string{"access": "no", "motor_vehicle": "yes"})
+	// Ringvägen, in the extract's Torslanda part: access=no, motor_vehicle=yes,
+	// which the independent reading leaves unmarked: the more specific key
+	// permits.
+	ringvagen := premise(t, fx.opl.ways, "way", 107135272, map[string]string{"access": "no", "motor_vehicle": "yes"})
+	if marked(ringvagen.tags) {
+		t.Fatalf("the premise does not hold: the independent reading marks Ringvägen (%v)", ringvagen.tags)
+	}
 
 	from, to := ringvagenFrom, ringvagenTo
-
-	unmarkedEnd(t, fx.opl, 107135299)
-	unmarkedEnd(t, fx.opl, 107135263)
 
 	journey, err := fx.planner(t, fx.routing, fx.store, fx.tiles).Plan(t.Context(), planner.Request{Origin: from, Destination: to})
 	if err != nil {
@@ -617,8 +631,10 @@ func TestAC3ARouteCrossingNoMarkingPassesTheCheck(t *testing.T) {
 	// The premise on the route itself: it runs along Ringvägen, and every way
 	// it runs along is one the independent reading leaves unmarked.
 	if !slices.ContainsFunc(leg.Edges, func(e planner.Edge) bool { return e.WayID == 107135272 }) {
-		t.Fatal("the premise does not hold: the route does not run along way 107135272, so it carries no access=no with motor_vehicle=yes")
+		t.Fatalf("the premise does not hold: the route runs along the ways %v, not along 107135272, so it carries no access=no with motor_vehicle=yes", wayIDs(leg.Edges))
 	}
+
+	t.Logf("the leg runs along the ways %v", wayIDs(leg.Edges))
 
 	for _, e := range leg.Edges {
 		if ft, ok := fx.opl.ways[e.WayID]; !ok || marked(ft.tags) {
