@@ -24,7 +24,7 @@ The Owner chose option (a). Verbatim, from [#issuecomment-6879855672](https://gi
 
 What is now true:
 
-- **D1 — The markings live in PostGIS**, in the single store of `Architecture.md § D4`: one table each for ways, barriers and area features carrying any of the four keys, with whether each is marked computed in the database by one function from the keys it carries. The design is `Architecture.md § The access-marking tables`.
+- **D1 — The markings live in PostGIS**, in the single store of `Architecture.md § D4`: one table each for ways, barriers and area features carrying any of the four keys or of their `:forward` and `:backward` forms, with whether each is marked computed in the database by one function from the keys it carries. The design is `Architecture.md § The access-marking tables`.
 - **D2 — The tables and Valhalla's tiles are built from the same extract file**, and the service plans nothing while the two record different files.
 - **D3 — The planner checks every car leg** against the tables, by the leg's OpenStreetMap way identifiers and its shape, and refuses one that runs along a marked way, passes a marked barrier or crosses a marked area outside the run `FR-126` admits. The check is the guarantee; nothing the engine is told replaces it.
 - **D4 — The planner may tell Valhalla to avoid what the check found**, through the route request's documented exclusions, and checks the new answer the same way. Avoidance is how a leg avoiding a marking is produced where one exists; it is never what makes a leg safe.
