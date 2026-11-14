@@ -888,15 +888,18 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               barrier
 Status:       to-build
 Depends-on:   FR-006; FR-126
-Volatility:   open-question — how the tags are read is owed with the
-              OSM-derived feature tables that
-              `Architecture.md § Still owed by this document` records as
-              undesigned; a way or barrier is so marked where the most
-              specific of `DECISIONS.md § RD-059`'s keys it carries has a
-              value outside the permissive set, the precedence and the set
-              being `DECISIONS.md § RD-063`'s, which supersedes
-              `DECISIONS.md § RD-062`'s second and third edges, and a
-              spelling found wrong is corrected without narrowing it
+Volatility:   open-question — how the tags are read is designed in
+              `Architecture.md § The access-marking tables`, which reads
+              neither a leg's direction nor a conditional key yet; a way or
+              barrier is so marked where the most specific of
+              `DECISIONS.md § RD-059`'s keys it carries has a value outside
+              the permissive set, the precedence and the set being
+              `DECISIONS.md § RD-063`'s, which supersedes
+              `DECISIONS.md § RD-062`'s second and third edges; the keys'
+              directional and conditional forms, and a node carrying no
+              `barrier` key, are read as `DECISIONS.md § RD-064` and
+              `DECISIONS.md § RD-065` decide; and a spelling found wrong is
+              corrected without narrowing it
 Risk:         A routing engine that prices a private road as a cost rather
               than a prohibition takes the shortcut through a gated estate or
               along a residents' road exactly where it saves the most time,
@@ -988,12 +991,13 @@ Acceptance:   given a location the user entered — the journey's origin, its
 Status:       to-build
 Depends-on:   FR-006
 Volatility:   open-question — the markings this record reads are FR-125's,
-              their spelling owed with the OSM-derived feature tables that
-              `Architecture.md § Still owed by this document` records as
-              undesigned and their floor a value outside the permissive set
-              on the most specific key carried, as
-              `DECISIONS.md § RD-063` reads `DECISIONS.md § RD-062`'s
-              allow-list
+              their spelling designed in
+              `Architecture.md § The access-marking tables` and their floor a
+              value outside the permissive set on the most specific key
+              carried, as `DECISIONS.md § RD-063` reads
+              `DECISIONS.md § RD-062`'s allow-list, with the keys' directional
+              and conditional forms read as `DECISIONS.md § RD-064` and
+              `DECISIONS.md § RD-065` decide
 Risk:         Read wider than the least run to a way not so marked, the
               exception becomes transit: a home on a private road whose marked
               network runs on through an estate to a second public road is
@@ -1073,14 +1077,14 @@ Acceptance:   given a stopping position the system chose, that a car reaches
 Status:       to-build
 Depends-on:   FR-125; FR-126
 Volatility:   open-question — the markings this record reads are FR-125's,
-              their spelling owed with the OSM-derived feature tables that
-              `Architecture.md § Still owed by this document` records as
-              undesigned and their floor a value outside the permissive set
-              on the most specific key carried, as
-              `DECISIONS.md § RD-063` reads `DECISIONS.md § RD-062`'s
-              allow-list; how far
-              short of its position a leg may end is a tolerance no document
-              gives
+              their spelling designed in
+              `Architecture.md § The access-marking tables` and their floor a
+              value outside the permissive set on the most specific key
+              carried, as `DECISIONS.md § RD-063` reads
+              `DECISIONS.md § RD-062`'s allow-list, with the keys' directional
+              and conditional forms read as `DECISIONS.md § RD-064` and
+              `DECISIONS.md § RD-065` decide; how far short of its position a
+              leg may end is a tolerance no document gives
 Risk:         A leg that ends at a gate marked private, within the tolerance
               for how far short of its position a leg may end, serves the
               parking area behind it: the driver drives through a gate they
@@ -1158,14 +1162,16 @@ Acceptance:   given two points on ways outside an area that the map data marks
 Status:       to-build
 Depends-on:   FR-125; FR-126; FR-127
 Volatility:   open-question — which area features, and which tags on them,
-              spell the marking is owed with the OSM-derived feature tables
-              that `Architecture.md § Still owed by this document` records as
-              undesigned; an area feature is so marked where the most
-              specific of `DECISIONS.md § RD-059`'s keys it carries has a
-              value outside the permissive set, the precedence and the set
-              being `DECISIONS.md § RD-063`'s reading of
-              `DECISIONS.md § RD-062`'s allow-list, and a spelling found
-              wrong is corrected without narrowing it
+              spell the marking is proposed in
+              `Architecture.md § What the tables hold` and not yet confirmed;
+              an area feature is so marked where the most specific of
+              `DECISIONS.md § RD-059`'s keys it carries has a value outside
+              the permissive set, the precedence and the set being
+              `DECISIONS.md § RD-063`'s reading of
+              `DECISIONS.md § RD-062`'s allow-list, with the keys'
+              directional and conditional forms read as
+              `DECISIONS.md § RD-064` and `DECISIONS.md § RD-065` decide; and
+              a spelling found wrong is corrected without narrowing it
 Risk:         A car park, an estate or a compound drawn as one area and marked
               customers-only or private on that area alone routes as public
               road, because its own ways carry no marking, and the leg cuts
