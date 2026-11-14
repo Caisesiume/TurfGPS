@@ -834,13 +834,15 @@ Verification: test — against routing data built from a test extract holding
               specific key alone is avoided, and one carrying a value outside
               that set on the most specific of the four keys it carries is
               avoided though it also carries a value within that set on a key
-              that is none of the four; and one carrying a value outside that
-              set only on a `:forward` or `:backward` form is avoided in the
-              direction the form does not name, as is one carrying such a
-              value on a directional form while the most specific plain key it
-              carries permits, and a node carrying such a value with no
-              `barrier` key, while one carrying such a value only on a
-              `:conditional` form is driven; and one carrying a value outside
+              that is none of the four; and one so marked, as
+              `DECISIONS.md § RD-064`, `DECISIONS.md § RD-065` and
+              `DECISIONS.md § RD-066` define, by a value outside that set only
+              on a `:forward` or `:backward` form is avoided in the direction
+              the form does not name, as is one so marked by such a value on a
+              directional form while the most specific plain key it carries
+              permits, and a node carrying such a value with no `barrier` key,
+              while one carrying such a value only on a `:conditional` form is
+              driven; and one carrying a value outside
               that set on the most specific of the four keys it carries is
               avoided though it carries a value within that set on both the
               `:forward` and the `:backward` form of one of them, or on a
@@ -1009,12 +1011,19 @@ Rationale:    The cited section makes this a hard rule: no route may be
               marking, so a build that takes the most specific key of any
               mode, not of a car, fails. The ninth to the twelfth test the
               Owner's tag decisions (`DECISIONS.md § RD-064`,
-              `DECISIONS.md § RD-065`): a way marked in one direction alone is
-              avoided in the other, so a build that ignores the directional
-              forms, or reads a leg's direction before the check can, fails; a
-              node so marked with no `barrier` key is a barrier; a directional
-              form outside the set marks though a plain, more specific key
-              permits; and a value outside the set on a `:conditional` form
+              `DECISIONS.md § RD-065`), the ninth's and the eleventh's
+              premises reading "so marked" as those entries and
+              `DECISIONS.md § RD-066` define: a way marked in one direction
+              alone is avoided in the other, so a build that ignores the
+              directional forms, or reads a leg's direction before the check
+              can, fails; a node so marked with no `barrier` key is a barrier;
+              a directional form outside the set marks though a plain, more
+              specific key permits, but not where a more specific directional
+              form of the same direction permits, which
+              `DECISIONS.md § RD-065`'s second edge reads as unmarked
+              (`motorcar:backward=yes` with `motor_vehicle:backward=no`, with
+              or without `motorcar=yes`);
+              and a value outside the set on a `:conditional` form
               alone is driven, so a build that reads a condition it cannot
               evaluate as a marking fails. The thirteenth holds the Owner's
               ruling that a directional form only adds markings
