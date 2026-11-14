@@ -80,7 +80,9 @@ head_floor() {
 }
 union_floor() {   # union_floor <main's candidates, ", "-joined> <the files, one per line>
   local pat extra
-  printf '%s\n' "$2" | grep -qxF "$FLOOR_FILE" || { printf '%s' "$1"; return 0; }
+  # A here-string, not a pipe: grep -q stops at its first match, and under
+  # pipefail the SIGPIPE to printf on a long list would skip the head floor (#254 C1).
+  grep -qxF -- "$FLOOR_FILE" <<< "$2" || { printf '%s' "$1"; return 0; }
   pat="$(head_floor)" || return 1
   extra="$(printf '%s\n' "$2" | grep -E -- "$pat")"
   { printf '%s\n' "$1" | sed 's/, /\n/g'; printf '%s\n' "$extra"; } \

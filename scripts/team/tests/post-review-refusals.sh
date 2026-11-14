@@ -150,6 +150,15 @@ if [ "$RC" = 0 ] && ! grep -qF '/contents/' "$CALLS"; then ok "a PR that leaves 
 else bad "a PR that leaves the floor alone fetches no head copy"; fi
 rm -f "$FIX/floor"
 
+# C1 of #254: grep -q stops at its first match, so a pipe into it SIGPIPEs printf
+#      on a long list and pipefail fails open. The floor file first, then > 64 KB.
+files "$FL" $(seq -f 'web/src/c/long/path/component-%05g.tsx' 2000) service/internal/newsafe/a.go
+comments; cp "$TMP/floor-added" "$FIX/floor"
+[ "$(wc -c < "$FIX/files")" -gt 65536 ] && ok "the long file list is over 64 KB"   || { printf 'FAIL  the long file list is not over 64 KB
+'; fails=$((fails + 1)); }
+run "${APPROVE[@]}"; expect "a floor change first in over 64 KB of files is still read" 1 "touches a safety path (service/internal/newsafe/a.go)"
+rm -f "$FIX/floor"
+
 # 4 — the Owner is deciding; the PR is not open
 pr "$HEAD" "risk:high,awaiting-human"; files README.md; comments
 run "${APPROVE[@]}"; expect "approve under awaiting-human is refused" 1 "awaiting-human"

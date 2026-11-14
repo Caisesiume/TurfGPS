@@ -190,6 +190,14 @@ green; cp "$TMP/floor-added" "$FIX/floor"; run
 if [ "$RC" = 0 ] && ! grep -qF '/contents/' "$CALLS"; then ok "a PR that leaves the floor alone fetches no head copy"
 else bad "a PR that leaves the floor alone fetches no head copy"; fi
 
+# C1 of #254: grep -q stops at its first match, so a pipe into it SIGPIPEs printf
+#      on a long list and pipefail fails open. The floor file first, then > 64 KB.
+green; lines files "$FL" $(seq -f 'web/src/c/long/path/component-%05g.tsx' 2000) service/internal/newsafe/a.go
+cp "$TMP/floor-added" "$FIX/floor"
+[ "$(wc -c < "$FIX/files")" -gt 65536 ] && ok "the long file list is over 64 KB"   || { printf 'FAIL  the long file list is not over 64 KB
+'; fails=$((fails + 1)); }
+run;                             refused "a floor change first in over 64 KB of files is still read" "touches a safety path (service/internal/newsafe/a.go)"
+
 # 9 — the default account
 green; printf 'TheReviewNinja\n' > "$FIX/user"; run --apply
 expect "a default account other than Caisesiume cannot run" 2 "the default gh account is 'TheReviewNinja'"
