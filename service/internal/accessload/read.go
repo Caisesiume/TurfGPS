@@ -28,7 +28,6 @@ import (
 	"io"
 	"os"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/osmpbf"
@@ -55,12 +54,8 @@ func valuesOf(tags map[string]string) (Values, bool) {
 		carrying bool
 	)
 
-	for i, k := range Keys[:4] { // RED RUN: no directional form
+	for i, k := range Keys {
 		if val, ok := tags[k]; ok {
-			v[i] = &val
-			carrying = true
-		} else if val, ok := tags[k+":conditional"]; ok { // RED RUN: a conditional form read as its key
-			val, _, _ = strings.Cut(val, " @")
 			v[i] = &val
 			carrying = true
 		}
@@ -278,7 +273,7 @@ func (p *nodesPass) Node(n osmpbf.Node) error {
 	}
 
 	v, carrying := valuesOf(n.Tags)
-	if _, barrier := n.Tags["barrier"]; !carrying || !barrier { // RED RUN
+	if !carrying {
 		return nil
 	}
 
