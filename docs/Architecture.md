@@ -303,6 +303,7 @@ The ports:
 | `ZoneSyncLock` | The sync's exclusive lock, shared with any migration that touches `zone` | PostgreSQL advisory lock |
 | `TurfClient` | Player rank, held zones, region lords, zone sync | Turf API v5 |
 | `PlanStore` | Short-code plan persistence and expiry | PostGIS |
+| `AccessMarkings` | The marked ways, barriers and areas a car leg's edges cross, and the least run at a location (*§ The access-marking tables*) | PostGIS |
 | `Geocoder` | Address, place, and zone-name resolution | Self-hosted; zone names local |
 
 `ZoneSyncStore` and `ZoneSyncLock` are the sync worker's write side; `ZoneRepository` stays the read side, and the only one of the three a request may reach.
@@ -819,6 +820,110 @@ And finally, this is a design and not a migration. **The DDL is written next, an
 
 ---
 
+## The access-marking tables
+
+The first of the OSM-derived feature tables of *§ D4*, and the only one designed so far: where the system reads whether a way, a barrier or an area is marked private or access-restricted, and how every car leg is checked against it. The decision is `docs/adr/ADR-0008-access-marking-table.md` (#248). The rule it reads is not owned here: what is marked is `FR-125` to `FR-128` with `DECISIONS.md § RD-059`, `RD-060`, `RD-062` and `RD-063`. This section spells the rule once, as the function that computes it, and where the two differ the records govern and the function is the defect.
+
+It is a **proposal**, as *§ The schema* was: no DDL exists for it, and the migration, the loader and the check are the marking-table story's (#248). It keeps the convention *§ What this section does not cover* fixed for every spatial table: `geography`, SRID 4326 written explicitly, and a coordinate guard asserting a known distance.
+
+### What the tables hold
+
+**Three feature tables, two that join them, and a load record.** A feature enters a feature table if it carries any of the four keys of `RD-059`, or any of their `:forward` and `:backward` forms — together **the twelve access keys** — whatever their values, so a feature the rule leaves unmarked is still visible with the value that left it so; a feature carrying none of them is unmarked by definition and is not stored.
+
+| Table | One row per | Columns beyond the keys |
+|---|---|---|
+| `access_way` | OSM way carrying any of the twelve access keys | `way_id bigint` primary key · `geom geography(LineString, 4326)` · `nodes bigint[]`, the way's node ids in order · `marked boolean`, generated |
+| `access_barrier` | OSM node carrying any of the twelve access keys, with a `barrier` key of any value or none | `node_id bigint` primary key · `barrier text`, null where the node carries none · `geom geography(Point, 4326)` · `marked boolean`, generated |
+| `access_barrier_way` | pair of such a barrier and a way referencing it | `node_id`, `way_id`; primary key `(way_id, node_id)`. Every referencing way, in `access_way` or not |
+| `access_way_exit` | node of a marked way where a highway way not marked meets it | `way_id`, `node_id`; primary key `(way_id, node_id)` |
+| `access_area` | area feature carrying any of the twelve access keys | `osm_type char(1)` and `osm_id bigint`, the primary key · `geom geography(MultiPolygon, 4326)` · `marked boolean`, generated |
+| `osm_extract_load` | load of an extract | `extract_sha256` · the extract's own timestamp where its header carries one · `loaded_at` · each table's row count, and the count of features in the extract that table takes · `current boolean`, true on exactly one row |
+
+The twelve access keys are twelve `text` columns: `motorcar`, `motor_vehicle`, `vehicle` and `access`, and each of them with `:forward` and with `:backward`, each the tag's value exactly as the extract holds it, or null where the feature does not carry it.
+
+**Which tags count is the Owner's reading, on #258** ([the decision](https://github.com/Caisesiume/TurfGPS/pull/258#issuecomment-6881987007)):
+
+- **A node carrying a non-permissive value without a `barrier` key counts as a barrier.** `access_barrier` therefore takes every node carrying the keys, and its `marked` does not read `barrier`.
+- **A `:forward` or `:backward` key governs its own direction**, and until the check can tell which direction a leg runs a way in, **a feature marked in either direction is marked in both.**
+- **A `:conditional` key is ignored** — `motor_vehicle:conditional` and `motor_vehicle:forward:conditional` alike: the loader reads no `:conditional` form of an access key, so a conditional value neither marks a feature nor lifts its marking, and only the unconditional tags count until conditions can be evaluated.
+
+**`marked` is a generated column, and the rule lives in one function.** `access_marked(motorcar, motor_vehicle, vehicle, access)` is an `IMMUTABLE` SQL function returning the reading `RD-063` gives: the first non-null of the four, in that order, governs, and the feature is marked unless that value is one of `yes`, `permissive`, `designated`, `public` and `allowed`. The column calls it twice per direction and is true where any of the four calls is. The first call takes, for each key, its directional form's value where the feature carries one and its plain value otherwise: `access_marked(coalesce(motorcar_forward, motorcar), …)`. The second takes the directional forms alone: `access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)`. Both are repeated with `_backward`. The second call is the Owner's decision on #258 ([N8](https://github.com/Caisesiume/TurfGPS/pull/258#issuecomment-6882566291)): direction specificity beats vehicle specificity. A non-permissive directional key therefore marks its direction even where a plain, more specific key permits. `motorcar=yes` with `motor_vehicle:backward=no` is marked backward, although the first call alone lets `motorcar=yes` govern there. Among the directional forms the first non-null still governs, and a directional permission never lifts a marking the first call finds. With all four arguments null the function returns false, because a feature carrying none of the keys is unmarked. The comparison is exact, and fails closed: `Yes`, `yes;private` and `yes ` are values outside the set and mark the feature, because a value the rule does not name is a marking (`RD-062`). The reason for a generated column is the one *§ Geometry, SRID, and the coordinate guard* gives for `geom`: the write path never computes the marking, so it cannot compute it wrongly, and the rule sits in the one line a reviewer reads. A change to the permissive set is therefore a migration, reviewed as a change to a safety rule.
+
+**An area does not inherit its ways' permission.** `access_area.marked` is the area's own; a way's keys never lift the marking of an area enclosing it (`RD-060`, `RD-063`). Which area features `access_area` takes is #253's to confirm (`RD-060` leaves the spelling owed). The proposal is the most inclusive: every closed way without a `highway` key, every closed way tagged `area=yes`, and every `type=multipolygon` relation, carrying any of the twelve access keys.
+
+**`access_way_exit` is what makes the run computable from the tables.** `FR-126`'s run ends at the first way not marked, and a way not marked is mostly a way the tables do not hold. The loader sees every way, so it records, for each marked way, the nodes at which a `highway` way not marked joins it. The least run at a location the user entered is then a shortest path by length over `access_way` rows sharing nodes, from the location's way to any exit node, over a component that is small wherever a marked network is.
+
+**The least run is a lower bound, or it is undefined, and an undefined one refuses.** It is a bound on every drivable run only if it is measured as the leg's marked length is: both from the point where the leg's shape meets the location's way, both along the geometry PostGIS holds, both as `ST_Length` on `geography`, and over every marked way sharing a node whatever its direction of travel, so no drivable run is shorter. The engine's `edge.length` is never compared with a length the tables give. The least run is **undefined** where the location's way is not a marked `access_way` — the location lies in a marked area on a way not itself marked, `FR-128`'s case — and where no exit node is reachable from it over marked ways. An undefined least run is no bound: a leg whose run it would bound is refused (*§ The route check*, step 4), and never read as unbounded.
+
+### Loading from the extract the tiles are built from
+
+**One file, two derivations, one act.** The loader reads the same `.osm.pbf` file `valhalla_build_tiles` reads, and the deployment's tile build (`DEPLOYMENT.md`, #25) runs both from that file in one step. The loader writes into staging tables and replaces the feature tables in one transaction, as the zone sync's merge does (*§ The sync write path*), and inserts the `osm_extract_load` row with the file's SHA-256 as `current`. The tile build records the same SHA-256 beside the tiles.
+
+**The two cannot disagree silently, because the planner refuses to plan while they might.** A way absent from `access_way` is read as unmarked, which is true only if the tiles were built from the file the tables were loaded from: a way marked private in a newer extract and present in newer tiles would otherwise pass as public. The service therefore plans no journey while no `osm_extract_load` row is `current`, or while its SHA-256 differs from the tile set's — the same fail-closed shape as `FR-091`. **An identity the service cannot read is unknown, and unknown stops planning as a difference does:** a tile set's SHA-256 that is missing or unreadable, or that is not read from the tiles the running engine serves — tiles reloaded under a running engine, a record beside the tiles left from the last build — is a refusal, never a pass. The planner reads both identities when it starts planning a journey and again before it returns one, and a change between the two reads refuses the journey.
+
+**A feature lost on load fails the load.** The loader counts the features in the extract that each table takes and the rows each receives, and a feature carrying the keys that yields no row — a multipolygon that does not assemble, as one clipped at the extract's edge may not, or a way whose geometry cannot be built — fails the load: the staging tables are dropped, nothing is swapped, and the previous load stays `current`, or none is. `osm2pgsql` skips such a feature without failing, as the safety review of #258 found, so the loader's own count, not the tool's exit status, is what catches it. A marked feature is therefore never read as unmarked because the loader could not draw it, and an extract whose edge cuts one cannot be loaded until it is cut so the feature is whole, which is the deployment's to fix with #25's tile build. Neither table nor tiles is refreshed on a timer; a refresh is the deliberate act `DEPLOYMENT.md` already describes for the tiles.
+
+**The tool is proposed, not chosen: `osm2pgsql` with a flex style.** It assembles multipolygon relations into area geometries, which is the hard part of `access_area` and the reason not to write a reader. A Go reader over the PBF is the alternative if the dependency costs more than it saves; either reads the twelve access keys verbatim and computes nothing about them.
+
+The load is never on a request path and never touches `zone`, so *§ Migrating against a running sync* does not bind it; a migration on these tables still follows `postgis-migration-protocol`.
+
+### The route check
+
+Every car leg, before the planner accepts it:
+
+1. **The route.** The `RoutingProvider` returns the leg's shape, as it does today.
+2. **Its ways.** The Valhalla adapter sends that shape to `trace_attributes` with `shape_match=edge_walk`, which the map-matching reference says is for "the shape from a prior Valhalla route", and asks for `edge.way_id`, `edge.begin_shape_index` and `edge.end_shape_index` (`docs/docs/api/map-matching.md` at 3.9.1, § Shape-matching parameters and § Edge items). A shape that does not match, an edge without a `way_id`, or a leg the trace does not cover end to end refuses the leg. The port returns the leg as edges, each a way id and its stretch of shape, so the check reads no Valhalla type.
+3. **The markings it crosses, in one statement.** The planner passes the edges to the `AccessMarkings` port, whose PostGIS implementation takes them as rows of `(seq, way_id, shape)`. An edge is marked where its `way_id` is a marked `access_way`; where a marked `access_barrier` on that way, by `access_barrier_way`, lies within the barrier tolerance of its stretch of shape; or where its stretch of shape intersects a marked `access_area`, the marked length being the length of the intersection. A leg whose shape reaches a marked barrier counts as passing it, including a leg ending at one, which is `FR-127`'s case.
+4. **The run.** At an end that is a location the user entered, the leading or trailing marked edges are the run if they are one contiguous stretch that ends where the leg meets an unmarked way, passes no stopping position the system chose, and carries no more marked length than the least run from that location (*§ What the tables hold*). Where the least run is undefined, the run fails its bound and the leg is refused. Every other marked edge is in transit.
+5. **The gap, at both ends.** A leg meets a stopping position at either end of its shape: its last point at the stop it arrives at, its first at the stop it leaves. It is short of that stop where that end of its shape lies farther from the position than the end tolerance (*§ What is not decided*), and `FR-127` makes the gap part of what is checked: the drivable connection joining the position to the leg's shape, since the driver closes the gap by driving it. That check is not yet designed, so until one is built and passes `FR-127`'s criteria, **a leg ending short of the stop it arrives at, or starting short of the stop it leaves, serves no stop**: that stop is not served, whoever chose it. A leg within the end tolerance at a stop has the segment between that end of its shape and the position checked by position, at each end where it serves one, since the segment has no way id: a marked barrier within the barrier tolerance of it, a marked `access_way` within the barrier tolerance of it, or a marked `access_area` it intersects refuses the leg.
+6. **The ruling.** A leg with a marked edge in transit is refused, and so is one whose run fails a bound or whose gap fails step 5. Refused means not produced: there is no least-bad crossing (`FR-125`'s third criterion).
+
+**Only a built, checked leg's figures count.** A stop's cost, its ranking, the journey's stated time and the check against `CalculationSpecification.md § The absolute additional-time ceiling` read the time and distance of the leg that passed this check, and nothing else: never a `sources_to_targets` figure, which carries no path to check and may be for a connection through a marking, and never the figure of a leg before it was avoided. A matrix figure may propose which legs to build; it decides nothing a user is shown or held to.
+
+**Why node ids are not the barrier check.** `trace_attributes` can return `edge.begin_osm_node_id` and `edge.end_osm_node_id`, but only "if available in the underlying graph data" (§ Edge items, line 249; § End node items, line 275). The tiles keep them only when built with `keep_osm_node_ids`, which defaults to false (`scripts/valhalla_build_config` at 3.9.1, lines 158 and 499), and only at graph nodes. A node becomes a graph node for being a barrier only where `lua/graph.lua` names its value, though one at a junction is a graph node regardless: as a gate `barrier=gate`, `yes`, `lift_gate`, `swing_gate` and `sliding_beam`, and as a bollard `bollard`, `block`, `kissing_gate`, `motorcycle_barrier`, `cycle_barrier`, `chain` and `bar`, and any node tagged `bollard=removable` (lines 2170–2182, the last at line 2180), with `sump_buster` (line 2185) and `toll_booth` and `border_control` (lines 2265–2268), each of which `src/mjolnir/pbfgraphparser.cc` makes a node of its own type (lines 2190–2218). Every other value — `height_restrictor`, `cattle_grid`, the walls `graph.lua` names at lines 2188–2190 — and a node with an access key and no `barrier` key, which counts as a barrier (*§ What the tables hold*), make none. The check is therefore by way and position, which holds for every barrier; node ids, where the tiles keep them, may corroborate it and never replace it.
+
+### Avoiding, not only refusing
+
+A refused leg is asked for again with the markings it crossed excluded, and the new answer is checked from step 2. An avoided leg may be slower than the one it replaces, so **the ceiling is checked again** on the journey carrying the avoided leg's own figures, and a journey that then exceeds it is treated as `CalculationSpecification.md § The absolute additional-time ceiling` treats any journey over it. The route API at 3.9.1 offers two exclusions (`docs/docs/api/route/api-reference.md`, lines 366–367): `exclude_locations`, "mapped to the closest road or roads", and `exclude_polygons`, which avoids "roads intersecting these rings". The run's own ways at a location the user entered are never excluded. Where the exclusions run out — the engine's limits or the planner's attempt bound — the leg is not produced, even if a connection avoiding the marking exists: a lost leg, never an unsafe one (ADR-0008, § Consequences).
+
+The engine's limits are its configuration, `service_limits` in the tile set's `valhalla.json`; the defaults `valhalla_build_config` writes at 3.9.1 are 50 locations (`max_exclude_locations`, line 412), and a total perimeter of 10,000 m and 100 vertices across all polygons (`max_exclude_polygons_length` and `max_exclude_polygons_vertices`, lines 418–419). The adapter's tests today assert that a request carries neither (`service/internal/valhalla/valhalla_test.go`, beside `costing_options` and `linear_cost_factors`); the story that adds avoidance admits the two exclusions and nothing else.
+
+### The access-marking indexes
+
+```sql
+access_way_pkey               btree (way_id)              -- step 3's join from the trace's way ids
+access_barrier_way_pkey       btree (way_id, node_id)     -- the barriers on a traversed way
+access_barrier_pkey           btree (node_id)
+access_way_exit_pkey          btree (way_id, node_id)     -- the run's ends
+access_area_pkey              btree (osm_type, osm_id)
+CREATE INDEX IF NOT EXISTS access_area_geom_gist ON access_area USING gist (geom);   -- step 3's intersection
+CREATE INDEX IF NOT EXISTS access_way_nodes_gin  ON access_way  USING gin (nodes);   -- ways sharing a node, for the run
+CREATE INDEX IF NOT EXISTS access_way_geom_gist  ON access_way  USING gist (geom);   -- the marked way nearest a stopping position (FR-125's second criterion)
+```
+
+`CONCURRENTLY` is not needed: the tables are filled by the loader's swap, not written under readers. As in *§ The indexes*, none of this is proved until `EXPLAIN (ANALYZE, BUFFERS)` on step 3's statement and the run's query shows each used; the migration's acceptance includes it.
+
+### The evidence CI owes
+
+- **`migrations`** applies the migration and its verify file to a throwaway PostGIS: the coordinate guard on `access_way.geom` and `access_area.geom`; `access_marked` against every case `FR-125`'s criteria and #248's AC2 and AC14–AC17 name, each value exactly as the criterion spells it; a case for each of the Owner's three tag decisions (*§ What the tables hold*) — a node tagged `access=private` with no `barrier` key is a marked `access_barrier`, a way tagged only `motor_vehicle:backward=no` is a marked `access_way`, and a way tagged `access=private` and `motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00)` is marked while one tagged only `motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00)` is not stored; and the `EXPLAIN` evidence above.
+- **`valhalla`** builds tiles from the committed extract (`service/internal/valhalla/testdata/`), loads the same file into a PostGIS beside it, asserts the two record one SHA-256, and runs #248's and #253's criteria against both. Today that job runs no PostGIS, and the extract holds every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference (its README, § Content), so an area feature that is not itself a `highway` way is absent; both are the stories' to extend, and the extract's README records any regeneration.
+
+### What is not decided
+
+- **The barrier tolerance's value.** The barrier tolerance of steps 3 and 5 is how near a barrier must lie to a stretch of shape to count as passed. **It is an enforcement constant (`CalculationSpecification.md § Conventions`), and its strict direction is upward**: a larger tolerance counts more barriers as passed and refuses more legs, and a smaller one misses barriers: set to zero, it misses every barrier the shape does not pass exactly through. It is taken from configuration with its origin, and **while it is unset the service serves no car leg**. Its value may be measured when the check is built: the largest distance between a barrier on a traversed way and the shape the engine returns there, against the extract.
+- **The end tolerance's value.** The end tolerance of step 5 is how far from a stopping position a leg's shape may end, or start, and still meet it; `FR-127` records that no document gives it. **It is an enforcement constant, and its strict direction is downward**: a smaller tolerance counts more legs as short, which serve no stop, and a larger one lets a gap go unchecked. It is taken from configuration with its origin; while it is unset, every leg whose shape does not end, or start, exactly at the stopping position it serves there is short.
+- **Long legs.** `trace_attributes` is limited at 3.9.1 to an input shape of 200,000 m and 16,000 points by default (`service_limits.trace`, `scripts/valhalla_build_config` lines 392–396); a leg of *§ D5*'s scale exceeds them. Whether a long leg is traced in pieces, or the limits raised, and to what, is the story's.
+- **The exclusion limits and the attempt bound.** Which `service_limits` values the deployment sets, and how many re-requests the planner makes, are not chosen. Whether `exclude_locations`' snapping to "the closest road or roads" excludes an unmarked neighbour, and so loses legs, is unmeasured.
+- **How the optimizer proposes legs from matrix figures**, which carry no path to check and so enter no cost, ranking, stated time or ceiling check (*§ The route check*; ADR-0008, § Consequences).
+- **The drivable-connection check of a gap** (step 5). Until it is built, a leg short of a stop at either end serves no stop.
+- **openrouteservice.** Whether it can return way ids for a leg is not established; until it can, it serves no car leg.
+- **How the service reads the tile set's SHA-256**, which is `DEPLOYMENT.md`'s to fix with #25's tile build. Until it is fixed the identity is unknown, and the service plans nothing.
+- **Direction and conditions.** The check cannot yet tell which direction a leg runs a way in, so a feature marked in either direction is marked in both; and the access keys' `:conditional` forms are ignored until conditions can be evaluated (*§ What the tables hold*). Reading either more finely is a change to a safety rule, and the Owner's.
+- **Volume.** Nothing has measured how many features of *§ D5*'s extract carry any of the twelve access keys, nor the tables' size.
+- **The area features** `access_area` takes, and how `access_way_exit` accounts for a way's part inside a marked area, are #253's.
+
+---
+
 ## Still owed by this document
 
 Sections this document owes independently of the content moved into it: **failure handling**, **observability**, and **security architecture**.
@@ -826,6 +931,8 @@ Sections this document owes independently of the content moved into it: **failur
 The **deployment model** left this list on 14 August 2026, having been handed to `DEPLOYMENT.md` as this section always said it would be. That document now exists and carries it: the runtime target, where the deployment configuration lives, and how it accounts for the statefulness *§ Runtime topology* above requires it account for. What it still owes — host sizing and the pipeline among it — is listed in *DEPLOYMENT.md § Still owed by this document* and is owed there rather than here.
 
 The **schema** left this list on 6 August 2026, and only for the two tables *§ The schema* proposes — the synced zone table and the plan store behind `PlanStore`. The **OSM-derived feature tables** of *§ D4* are still owed and sit deliberately outside that section: they carry the enforceable exclusions in access classification, which makes them a safety surface owed its own design and its own review rather than an appendix to this one. What else that section leaves open is listed in *§ What this section does not cover*.
+
+The **access markings** among the OSM-derived feature tables left this list on 14 November 2026, designed in *§ The access-marking tables* on ADR-0008 (#248). The rest of those tables — barriers as obstacles to access, `layer`/`bridge`/`tunnel` relationships, parking areas and `maxspeed` — is still owed, on the same terms.
 
 ---
 
