@@ -90,12 +90,16 @@ type recordedRequest struct {
 	Body   map[string]any
 }
 
-// fakeEngine answers every route request with respond's answer and records
-// the request.
+// fakeEngine answers every route request with respond's answer and every
+// trace request with trace's, echoing the route's shape as one edge where trace
+// is nil, and records each request: route requests in asked, trace requests in
+// traced.
 type fakeEngine struct {
 	mu      sync.Mutex
 	asked   []recordedRequest
+	traced  []recordedRequest
 	respond func(req map[string]any) (int, string)
+	trace   func(req map[string]any) (int, string)
 }
 
 func (f *fakeEngine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -104,14 +108,84 @@ func (f *fakeEngine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
 	_ = json.Unmarshal(raw, &body)
 
+	rec := recordedRequest{Method: r.Method, Path: r.URL.Path, Body: body}
+
+	respond := f.respond
+
 	f.mu.Lock()
-	f.asked = append(f.asked, recordedRequest{Method: r.Method, Path: r.URL.Path, Body: body})
+	if strings.HasSuffix(r.URL.Path, "/trace_attributes") {
+		f.traced = append(f.traced, rec)
+
+		respond = f.trace
+		if respond == nil {
+			respond = echoTrace
+		}
+	} else {
+		f.asked = append(f.asked, rec)
+	}
 	f.mu.Unlock()
 
-	status, out := f.respond(body)
+	status, out := respond(body)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, _ = io.WriteString(w, out)
+}
+
+// traceEdge is one edge of a trace answer, in the documented shape.
+type traceEdge struct {
+	WayID           int64 `json:"way_id"`
+	BeginShapeIndex int   `json:"begin_shape_index"`
+	EndShapeIndex   int   `json:"end_shape_index"`
+}
+
+// traceAnswer is a trace answer holding a shape and its edges.
+func traceAnswer(shape string, edges ...traceEdge) string {
+	b, err := json.Marshal(map[string]any{"shape": shape, "edges": edges})
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
+}
+
+// echoTrace answers a trace with the shape it was sent, as one edge along way
+// 1 spanning all of it.
+func echoTrace(req map[string]any) (int, string) {
+	encoded, _ := req["encoded_polyline"].(string)
+
+	shape, err := decodeShape(encoded)
+	if err != nil || len(shape) < 2 {
+		return http.StatusBadRequest, `{"error_code":443,"error":"Exact route match algorithm failed to find path","status_code":400}`
+	}
+
+	return http.StatusOK, traceAnswer(encoded, traceEdge{WayID: 1, BeginShapeIndex: 0, EndShapeIndex: len(shape) - 1})
+}
+
+// clearAccess is access markings that find nothing and routing data from the
+// same extract, so a plan reaches this adapter: these tests are about routing.
+type clearAccess struct{}
+
+func (clearAccess) ExtractSHA256(context.Context) (string, error) {
+	return strings.Repeat("0", 64), nil
+}
+
+func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
+	return nil, nil
+}
+
+// joined is the shape of a route's edges, joined as the planner joins them.
+func joined(edges []planner.Edge) []planner.Point {
+	var out []planner.Point
+
+	for i, e := range edges {
+		if i == 0 {
+			out = append(out, e.Shape...)
+		} else {
+			out = append(out, e.Shape[1:]...)
+		}
+	}
+
+	return out
 }
 
 func startEngine(t *testing.T, respond func(map[string]any) (int, string)) (*fakeEngine, *Client) {
@@ -158,7 +232,7 @@ func TestEveryLegIsRequestedForACar(t *testing.T) {
 
 	engine, c := startEngine(t, straightByCar)
 
-	p, err := planner.New(c, heldCopy{})
+	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -241,10 +315,12 @@ func TestTheLegIsAskedBetweenItsLocationsInOrder(t *testing.T) {
 	from := planner.Point{Latitude: 57.7036, Longitude: 11.9611}
 	to := planner.Point{Latitude: 57.7052, Longitude: 11.9714}
 
-	shape, err := c.Route(t.Context(), from, to)
+	edges, err := c.Route(t.Context(), from, to)
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
+
+	shape := joined(edges)
 
 	locs, _ := engine.asked[0].Body["locations"].([]any)
 	if len(locs) != 2 {
@@ -449,8 +525,8 @@ func TestARouteEndsWithItsTimeoutOrItsCaller(t *testing.T) {
 }
 
 // TestTheRoutePathIsJoinedOntoTheBaseURL: the route API is the `route` path
-// under the configured base, with or without a trailing slash and under a
-// prefix.
+// under the configured base, and the map-matching API the `trace_attributes`
+// path, with or without a trailing slash and under a prefix.
 func TestTheRoutePathIsJoinedOntoTheBaseURL(t *testing.T) {
 	t.Parallel()
 
@@ -468,6 +544,10 @@ func TestTheRoutePathIsJoinedOntoTheBaseURL(t *testing.T) {
 
 		if c.routeURL != want {
 			t.Errorf("New(%q) routes at %q, want %q", base, c.routeURL, want)
+		}
+
+		if wantTrace := strings.TrimSuffix(want, "route") + "trace_attributes"; c.traceURL != wantTrace {
+			t.Errorf("New(%q) traces at %q, want %q", base, c.traceURL, wantTrace)
 		}
 	}
 

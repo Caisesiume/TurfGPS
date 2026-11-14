@@ -9,8 +9,9 @@ import (
 	"testing"
 )
 
-// fakeRouting answers every route with a shape of its own choosing and records
-// what it was asked and what it answered.
+// fakeRouting answers every route with a shape of its own choosing, as one
+// edge per segment of it, and records what it was asked and the shape of what
+// it answered.
 type fakeRouting struct {
 	shape    func(from, to Point) []Point
 	err      error
@@ -18,17 +19,50 @@ type fakeRouting struct {
 	answered [][]Point
 }
 
-func (f *fakeRouting) Route(_ context.Context, from, to Point) ([]Point, error) {
+func (f *fakeRouting) Route(_ context.Context, from, to Point) ([]Edge, error) {
 	f.asked = append(f.asked, [2]Point{from, to})
 	if f.err != nil {
 		return nil, f.err
 	}
 
 	shape := f.shape(from, to)
-	f.answered = append(f.answered, shape)
+	edges := edgesOf(shape)
 
-	return shape, nil
+	joined, _ := joinEdges(edges)
+	f.answered = append(f.answered, joined)
+
+	return edges, nil
 }
+
+// edgesOf cuts a shape into one edge per segment, each along a way of its own,
+// and a single point into one edge repeating it.
+func edgesOf(shape []Point) []Edge {
+	switch len(shape) {
+	case 0:
+		return nil
+	case 1:
+		return []Edge{{WayID: 1, Shape: []Point{shape[0], shape[0]}}}
+	}
+
+	edges := make([]Edge, 0, len(shape)-1)
+	for i := range len(shape) - 1 {
+		edges = append(edges, Edge{WayID: int64(i + 1), Shape: []Point{shape[i], shape[i+1]}})
+	}
+
+	return edges
+}
+
+// testExtract is the SHA-256 every fake identity reports unless a test says
+// otherwise.
+const testExtract = "0b878c989152be85784eea44c01e67d363140937629f27813caa0a3ac4f9aab9"
+
+// clearAccess is access markings that find nothing on any leg, and routing
+// data, both reporting testExtract.
+type clearAccess struct{}
+
+func (clearAccess) ExtractSHA256(context.Context) (string, error) { return testExtract, nil }
+
+func (clearAccess) Crossings(context.Context, []Edge) ([]Crossing, error) { return nil, nil }
 
 // randomShapes is a fake whose every route is a random shape, which never
 // begins or ends at the locations asked for.
@@ -110,7 +144,7 @@ func TestEveryJourneyBeginsAtTheOriginAndEndsAtTheDestination(t *testing.T) {
 	for c := range cases {
 		routing := randomShapes(r)
 
-		p, err := New(routing, copyHeld)
+		p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -175,7 +209,7 @@ func TestEveryJourneyPassesThroughItsIntermediateDestinationsInTheEnteredOrder(t
 	for c := range cases {
 		routing := randomShapes(r)
 
-		p, err := New(routing, copyHeld)
+		p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -256,7 +290,7 @@ func TestAFasterOrderDoesNotOverrideTheEnteredOrder(t *testing.T) {
 
 	routing := &fakeRouting{shape: func(from, to Point) []Point { return []Point{from, to} }}
 
-	p, err := New(routing, copyHeld)
+	p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -327,7 +361,7 @@ func TestAPlanThatCannotBeRoutedIsRefused(t *testing.T) {
 				routing = &fakeRouting{shape: func(from, to Point) []Point { return []Point{from, to} }}
 			}
 
-			p, err := New(routing, copyHeld)
+			p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}
@@ -355,7 +389,7 @@ func TestAPlanThatCannotBeRoutedIsRefused(t *testing.T) {
 func TestNewRefusesNoProvider(t *testing.T) {
 	t.Parallel()
 
-	if _, err := New(nil, copyHeld); err == nil {
-		t.Error("New(nil, copyHeld) returned no error, want a refusal")
+	if _, err := New(nil, copyHeld, clearAccess{}, clearAccess{}); err == nil {
+		t.Error("New(nil, copyHeld, clearAccess{}, clearAccess{}) returned no error, want a refusal")
 	}
 }

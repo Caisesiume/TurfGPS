@@ -21,15 +21,15 @@ import (
 // the route's vertices are never the locations a journey is planned between.
 type straightRouting struct{}
 
-func (straightRouting) Route(_ context.Context, from, to planner.Point) ([]planner.Point, error) {
+func (straightRouting) Route(_ context.Context, from, to planner.Point) ([]planner.Edge, error) {
 	mid := planner.Point{Latitude: (from.Latitude + to.Latitude) / 2, Longitude: (from.Longitude + to.Longitude) / 2}
 
-	return []planner.Point{mid}, nil
+	return []planner.Edge{{WayID: 1, Shape: []planner.Point{mid, mid}}}, nil
 }
 
 type failingRouting struct{}
 
-func (failingRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Point, error) {
+func (failingRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Edge, error) {
 	return nil, errors.New("engine unavailable")
 }
 
@@ -54,6 +54,18 @@ type zoneCopy struct {
 
 func (z zoneCopy) Held(context.Context) (bool, error) { return z.held, z.err }
 
+// clearAccess is access markings that find nothing on any leg and routing
+// data from the same extract: these tests are about the request surface.
+type clearAccess struct{}
+
+func (clearAccess) ExtractSHA256(context.Context) (string, error) {
+	return strings.Repeat("0", 64), nil
+}
+
+func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
+	return nil, nil
+}
+
 // withFakePlanner plans through routing from a zone copy that is held, which is
 // every copy but none (#33).
 func withFakePlanner(t *testing.T, routing planner.RoutingProvider) Option {
@@ -65,7 +77,7 @@ func withFakePlanner(t *testing.T, routing planner.RoutingProvider) Option {
 func withPlannerOver(t *testing.T, routing planner.RoutingProvider, zones planner.ZoneCopy) Option {
 	t.Helper()
 
-	p, err := planner.New(routing, zones)
+	p, err := planner.New(routing, zones, clearAccess{}, clearAccess{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -264,7 +276,7 @@ type stalledRouting struct{ calls *atomic.Int64 }
 
 var errStalledPastItsBound = errors.New("no deadline ended the leg, so the fake's own bound did")
 
-func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planner.Point, error) {
+func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planner.Edge, error) {
 	s.calls.Add(1)
 
 	select {
@@ -279,7 +291,7 @@ func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planne
 // account does, before any plan deadline.
 type ownTimeoutRouting struct{}
 
-func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Point, error) {
+func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Edge, error) {
 	return nil, fmt.Errorf("asking the routing engine: %w", context.DeadlineExceeded)
 }
 
@@ -287,12 +299,12 @@ func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([
 // has already ended.
 type expiredRouting struct{}
 
-func (expiredRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Point, error) {
+func (expiredRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Edge, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	return []planner.Point{from}, nil
+	return []planner.Edge{{WayID: 1, Shape: []planner.Point{from, from}}}, nil
 }
 
 // slowBody delivers its JSON only after a delay, as a client trickling its

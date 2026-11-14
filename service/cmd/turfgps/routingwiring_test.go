@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -36,6 +37,19 @@ type heldZoneCopy struct{}
 
 func (heldZoneCopy) Held(context.Context) (bool, error) { return true, nil }
 
+// clearAccess is access markings that find nothing on any leg and routing
+// data from the same extract: what a test injects where main passes
+// unwiredAccessMarkings and unknownRoutingData.
+type clearAccess struct{}
+
+func (clearAccess) ExtractSHA256(context.Context) (string, error) {
+	return strings.Repeat("0", 64), nil
+}
+
+func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
+	return nil, nil
+}
+
 func lookupOnly(vars map[string]string) config.LookupFunc {
 	return func(name string) (string, bool) {
 		v, ok := vars[name]
@@ -52,7 +66,7 @@ func TestStartupRefusesAMalformedRoutingEngineURL(t *testing.T) {
 	t.Parallel()
 
 	for _, raw := range []string{"127.0.0.1:8002", "tcp://127.0.0.1:8002", "http://127.0.0.1:8002/?json="} {
-		plans, err := newPlanner(lookupOnly(map[string]string{config.EnvValhallaURL: raw}), heldZoneCopy{})
+		plans, err := newPlanner(lookupOnly(map[string]string{config.EnvValhallaURL: raw}), heldZoneCopy{}, clearAccess{}, clearAccess{})
 		if err == nil {
 			t.Errorf("newPlanner accepted %s=%q, want a refusal", config.EnvValhallaURL, raw)
 
@@ -74,7 +88,7 @@ func TestStartupRefusesAMalformedRoutingEngineURL(t *testing.T) {
 func TestWithoutARoutingEngineJourneysAnswer503(t *testing.T) {
 	t.Parallel()
 
-	plans, err := newPlanner(lookupOnly(nil), heldZoneCopy{})
+	plans, err := newPlanner(lookupOnly(nil), heldZoneCopy{}, clearAccess{}, clearAccess{})
 	if err != nil || plans != nil {
 		t.Fatalf("with no engine configured newPlanner gave %v, %v; want no planner and no error", plans, err)
 	}
@@ -116,15 +130,25 @@ func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 		mu.Unlock()
 
 		// Two vertices, (57.7036, 11.9611) and (57.7052, 11.9714), encoded at
-		// six digits; the route API reference documents the shape.
+		// six digits; the route API reference documents the shape, and the
+		// map-matching reference the trace's one edge along it.
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"trip":{"status":0,"legs":[{"shape":"_j}`+"`"+`mBwo`+"`"+`yU_cBwbS","maneuvers":[{"travel_mode":"drive","travel_type":"car"}]}]}}`)
+
+		const shape = "_j}`mBwo`yU_cBwbS"
+
+		if r.URL.Path == "/trace_attributes" {
+			_, _ = io.WriteString(w, `{"shape":"`+shape+`","edges":[{"way_id":1,"begin_shape_index":0,"end_shape_index":1}]}`)
+
+			return
+		}
+
+		_, _ = io.WriteString(w, `{"trip":{"status":0,"legs":[{"shape":"`+shape+`","maneuvers":[{"travel_mode":"drive","travel_type":"car"}]}]}}`)
 	}))
 	t.Cleanup(engine.Close)
 
 	lookup := lookupOnly(map[string]string{config.EnvValhallaURL: engine.URL})
 
-	plans, err := newPlanner(lookup, heldZoneCopy{})
+	plans, err := newPlanner(lookup, heldZoneCopy{}, clearAccess{}, clearAccess{})
 	if err != nil || plans == nil {
 		t.Fatalf("newPlanner with %s=%q gave %v, %v; want a planner", config.EnvValhallaURL, engine.URL, plans, err)
 	}
@@ -159,8 +183,8 @@ func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if len(costing) != 1 || costing[0] != "auto" || paths[0] != "/route" {
-		t.Errorf("the engine was asked %v at %v, want the auto costing once at /route", costing, paths)
+	if len(costing) != 2 || costing[0] != "auto" || paths[0] != "/route" || paths[1] != "/trace_attributes" {
+		t.Errorf("the engine was asked %v at %v, want the auto costing once at /route and once at /trace_attributes", costing, paths)
 	}
 }
 
@@ -172,7 +196,7 @@ type deadlineRouting struct {
 	bounded   []bool
 }
 
-func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Point, error) {
+func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Edge, error) {
 	deadline, ok := ctx.Deadline()
 
 	d.mu.Lock()
@@ -180,7 +204,7 @@ func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point) ([]p
 	d.bounded = append(d.bounded, ok)
 	d.mu.Unlock()
 
-	return []planner.Point{from}, nil
+	return []planner.Edge{{WayID: 1, Shape: []planner.Point{from, from}}}, nil
 }
 
 // TestEveryPlanIsBoundedBelowTheWriteTimeout (#6): the request surface the
@@ -197,7 +221,7 @@ func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
 
 	routing := &deadlineRouting{}
 
-	plans, err := planner.New(routing, heldZoneCopy{})
+	plans, err := planner.New(routing, heldZoneCopy{}, clearAccess{}, clearAccess{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -254,7 +278,7 @@ func TestTheServedPlannerFailsClosedUntilTheZoneStoreIsWired(t *testing.T) {
 
 	lookup := lookupOnly(map[string]string{config.EnvValhallaURL: engine.URL})
 
-	plans, err := newPlanner(lookup, unwiredZoneCopy{})
+	plans, err := newPlanner(lookup, unwiredZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{})
 	if err != nil || plans == nil {
 		t.Fatalf("newPlanner with %s=%q gave %v, %v; want a planner", config.EnvValhallaURL, engine.URL, plans, err)
 	}
@@ -274,5 +298,76 @@ func TestTheServedPlannerFailsClosedUntilTheZoneStoreIsWired(t *testing.T) {
 
 	if asked != 0 {
 		t.Errorf("the engine was asked %d times, want none before the zone copy is read", asked)
+	}
+}
+
+// TestTheServedPlannerPlansNothingUntilTheAccessCheckIsWired (#255): even with
+// a zone copy held, the access markings and routing data main registers
+// refuse every plan before a leg is routed — no leg is served until the
+// request surface has a pool on the access-marking tables (#249) and the tile
+// set's identity can be read (#25).
+func TestTheServedPlannerPlansNothingUntilTheAccessCheckIsWired(t *testing.T) {
+	t.Parallel()
+
+	var (
+		mu    sync.Mutex
+		asked int
+	)
+
+	engine := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		asked++
+		mu.Unlock()
+
+		http.Error(w, "not expected", http.StatusInternalServerError)
+	}))
+	t.Cleanup(engine.Close)
+
+	lookup := lookupOnly(map[string]string{config.EnvValhallaURL: engine.URL})
+
+	plans, err := newPlanner(lookup, heldZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{})
+	if err != nil || plans == nil {
+		t.Fatalf("newPlanner gave %v, %v; want a planner", plans, err)
+	}
+
+	journey, err := plans.Plan(t.Context(), planner.Request{
+		Origin:      planner.Point{Latitude: 57.7036, Longitude: 11.9611},
+		Destination: planner.Point{Latitude: 57.7052, Longitude: 11.9714},
+	})
+	if !errors.Is(err, planner.ErrAccessUnchecked) || journey.Legs != nil {
+		t.Fatalf("Plan gave %d legs and %v, want no journey and an error wrapping ErrAccessUnchecked", len(journey.Legs), err)
+	}
+
+	handler, err := newHandler(lookup, httpapi.WithPlanner(plans))
+	if err != nil {
+		t.Fatalf("newHandler: %v", err)
+	}
+
+	if rec := postJourney(t, handler); rec.Code == http.StatusOK {
+		t.Errorf("POST /journeys answered 200 %s, want a refusal", rec.Body)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if asked != 0 {
+		t.Errorf("the engine was asked %d times, want none before the access markings are read", asked)
+	}
+}
+
+// TestStartupRefusesAMalformedBarrierTolerance (#255): a barrier tolerance set
+// without its origin, or not a number of metres, stops the service at start.
+func TestStartupRefusesAMalformedBarrierTolerance(t *testing.T) {
+	t.Parallel()
+
+	for _, env := range []map[string]string{
+		{config.EnvAccessBarrierTolerance: "2"},
+		{config.EnvAccessBarrierTolerance: "-2", config.EnvAccessBarrierToleranceOrigin: "measured"},
+	} {
+		env[config.EnvValhallaURL] = "http://127.0.0.1:8002"
+
+		if plans, err := newPlanner(lookupOnly(env), heldZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{}); err == nil || plans != nil {
+			t.Errorf("newPlanner with %v gave %v, %v; want a refusal", env, plans, err)
+		}
 	}
 }
