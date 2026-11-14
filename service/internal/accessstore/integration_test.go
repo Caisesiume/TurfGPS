@@ -576,31 +576,49 @@ func (fx *fixture) refused(t *testing.T, tc legCase) {
 	t.Logf("refused: %v", err)
 }
 
-// runsForward fails the test unless every edge of the route along the way
-// runs from the first of the two nodes towards the second: the way's forward
-// direction where the nodes are in the way's order.
+// runsForward fails the test unless the route runs along the way forward,
+// from the first of the two nodes to the second: each point of the shape the
+// route has along the way, in the route's order, lies nearest a node of the
+// way no earlier in the way's order than the point before it, and the points
+// span the two nodes. The engine cuts a way into edges at every junction on
+// it, so it is the points, not the edges' ends, that are compared.
 func (fx *fixture) runsForward(t *testing.T, edges []planner.Edge, way int64, nodes [2]int64) {
 	t.Helper()
 
 	ft := premise(t, fx.opl.ways, "way", way, nil)
-	if a, b := slices.Index(ft.nodes, nodes[0]), slices.Index(ft.nodes, nodes[1]); a < 0 || b <= a {
+
+	from, to := slices.Index(ft.nodes, nodes[0]), slices.Index(ft.nodes, nodes[1])
+	if from < 0 || to <= from {
 		t.Fatalf("the premise does not hold: way %d's nodes %v do not run from %d to %d", way, ft.nodes, nodes[0], nodes[1])
 	}
 
-	first, last := fx.opl.nodes[nodes[0]], fx.opl.nodes[nodes[1]]
-	near := func(p planner.Point, n feature) float64 {
-		return (p.Latitude-n.lat)*(p.Latitude-n.lat) + (p.Longitude-n.lon)*(p.Longitude-n.lon)
+	nearest := func(p planner.Point) int {
+		best, at := 0.0, -1
+
+		for i, id := range ft.nodes {
+			n := fx.opl.nodes[id]
+			if d := (p.Latitude-n.lat)*(p.Latitude-n.lat) + (p.Longitude-n.lon)*(p.Longitude-n.lon); at < 0 || d < best {
+				best, at = d, i
+			}
+		}
+
+		return at
 	}
 
+	var order []int
+
 	for _, e := range edges {
-		if e.WayID != way || len(e.Shape) < 2 {
+		if e.WayID != way {
 			continue
 		}
 
-		start, end := e.Shape[0], e.Shape[len(e.Shape)-1]
-		if near(start, first) > near(start, last) || near(end, last) > near(end, first) {
-			t.Fatalf("the premise does not hold: the engine's route runs along way %d from %v to %v, not forward from node %d to node %d", way, start, end, nodes[0], nodes[1])
+		for _, p := range e.Shape {
+			order = append(order, nearest(p))
 		}
+	}
+
+	if len(order) < 2 || !slices.IsSorted(order) || order[0] > from || order[len(order)-1] < to {
+		t.Fatalf("the premise does not hold: the engine's route runs along way %d through its nodes at %v, not forward from node %d (at %d) to node %d (at %d)", way, order, nodes[0], from, nodes[1], to)
 	}
 }
 
