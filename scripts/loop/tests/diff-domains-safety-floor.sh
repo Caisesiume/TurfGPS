@@ -58,7 +58,7 @@ check "ownership near misses are not safety paths" \
 # service/internal/valhalla/ is the routing adapter: its request decides whether
 # a car is kept off ways the map data closes to it (#6).
 run service/internal/valhalla/valhalla.go service/internal/valhalla/testdata/README.md \
-    service/internal/planner/planner.go
+    service/internal/httpapi/journeys.go
 check "internal/valhalla/ is a safety path" \
   'safety_path_candidates: [service/internal/valhalla/valhalla.go, service/internal/valhalla/testdata/README.md]'
 
@@ -66,6 +66,23 @@ check "internal/valhalla/ is a safety path" \
 run service/internal/valhallax/valhalla.go service/internal/valhalla \
     xservice/internal/valhalla/valhalla.go service/internal/routing/valhalla/x.go
 check "valhalla near misses are not safety paths" \
+  'safety_path_candidates: []'
+
+# The access-marking check (#255): the planner that refuses a leg crossing a
+# marking, the store that reads the tables, the loader and reader that fill
+# them, and the migration that spells the rule — its verify and rollback too.
+run service/internal/planner/planner.go service/internal/accessstore/accessstore.go \
+    service/internal/accessload/write.go service/internal/osmpbf/osmpbf.go \
+    migrations/0003_access_markings.sql migrations/0003_access_markings.verify.sql \
+    migrations/0003_access_markings.down.sql service/internal/httpapi/journeys.go
+check "the access-marking check is a safety path" \
+  'safety_path_candidates: [service/internal/planner/planner.go, service/internal/accessstore/accessstore.go, service/internal/accessload/write.go, service/internal/osmpbf/osmpbf.go, migrations/0003_access_markings.sql, migrations/0003_access_markings.verify.sql, migrations/0003_access_markings.down.sql]'
+
+# Near misses on either side of those anchors: another migration is not one.
+run service/internal/plannerx/p.go service/internal/planner xservice/internal/accessstore/a.go \
+    service/internal/accessloader/x.go migrations/0002_zone_feed.sql migrations/0003_access_markings \
+    xmigrations/0003_access_markings.sql
+check "access-marking near misses are not safety paths" \
   'safety_path_candidates: []'
 
 # The six entries the floor already held still match, in input order.
