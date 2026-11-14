@@ -28,6 +28,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/osmpbf"
@@ -56,6 +57,10 @@ func valuesOf(tags map[string]string) (Values, bool) {
 
 	for i, k := range Keys {
 		if val, ok := tags[k]; ok {
+			v[i] = &val
+			carrying = true
+		} else if val, ok := tags[k+":conditional"]; ok { // RED RUN (b): a conditional form read as its key
+			val, _, _ = strings.Cut(val, " @")
 			v[i] = &val
 			carrying = true
 		}
