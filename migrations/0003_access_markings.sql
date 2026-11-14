@@ -88,9 +88,12 @@ CREATE OR REPLACE FUNCTION public.access_feature_marked(
     motorcar_backward      text, motor_vehicle_backward text, vehicle_backward text, access_backward text
 ) RETURNS boolean
 LANGUAGE sql IMMUTABLE PARALLEL SAFE
-RETURN public.access_marked(motorcar, motor_vehicle, vehicle, access)
+RETURN public.access_marked(coalesce(motorcar_forward, motorcar), coalesce(motor_vehicle_forward, motor_vehicle),
+                            coalesce(vehicle_forward, vehicle), coalesce(access_forward, access))
     OR public.access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)
-    OR public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward);
+    OR public.access_marked(coalesce(motorcar_backward, motorcar), coalesce(motor_vehicle_backward, motor_vehicle),
+                            coalesce(vehicle_backward, vehicle), coalesce(access_backward, access))
+    OR public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward); -- RED RUN
 
 -- --- the feature tables -----------------------------------------------------
 --
