@@ -2611,3 +2611,72 @@ Affects:        FR-125: statement, `Verification`, second criterion and
                 chose; #248's narrative, definitions, AC4, AC5, AC7, AC8, AC11
                 (new) and notes; #253's AC3, AC4 and notes.
 ```
+
+## RD-062 — Is the floor of markings a closed list, or every value not known to be permissive?
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, choosing option (a) of `@engineering-lead`'s
+                question in `#issuecomment-6878733051`, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6878751537,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere, with three edges the ruling leaves open decided
+                on the ladder below.
+Question:       RD-059's floor is a closed list: seven values on the keys
+                `access`, `vehicle`, `motor_vehicle` and `motorcar`. The
+                safety sentinel's verdict on PR #251 (S7,
+                `#issuecomment-6878724583`) cites the routing engine returning
+                no match for a value missing from its tables and then leaving
+                car access at the highway's default, so `access=military`,
+                `motor_vehicle=unknown` or `access=staff` is driven as public,
+                and neither RD-059's seven values nor FR-006 reads it. Does
+                the floor stay a closed list, or take every value not known to
+                be permissive?
+Interpretation: **An allow-list. A way or barrier is marked unless every value
+                it carries on the four keys is one of `yes`, `permissive` and
+                `designated`, or it carries none; every other value, known or
+                unknown, marks it exactly as `private` does.** The ruling,
+                verbatim: "**(a) allow-list.** A way is drivable only if its
+                access values are known permissive ones (yes, permissive,
+                designated, or none set); any other or unknown value is
+                excluded like private." Three edges are read on the ladder.
+                First, the allow-list binds a barrier and an area feature as
+                it binds a way: since RD-059 one floor has served a way and a
+                barrier of any kind alike, and RD-060's area floor is RD-059's
+                with `no` added, so a different rule for either would reopen
+                the way round the marking each was widened to close. An area
+                feature carrying no value on the four keys is not marked.
+                Second, a way or barrier carrying several of the four keys is
+                marked if any one of them carries a value outside the set,
+                whatever a more specific key says, and a value holding several
+                entries (`yes;private`) is outside the set. Third, the
+                permissive set is the three values the ruling names and no
+                more: `public`, `allowed` or any other value the engine's
+                tables read as permissive is marked until the Owner adds it,
+                since adding a value narrows a safety exclusion. RD-059's
+                seven values, `destination` among them, and RD-060's `no` stay
+                marked, now as members of the complement rather than as the
+                list. A value that bars a car outright is still FR-006's as
+                well, and the overlap excludes nothing twice. This supersedes
+                RD-059's floor, and RD-060's area floor, as a closed list;
+                RD-059 stands for the four keys and for a barrier of any kind,
+                RD-060 for everything else it decides, and RD-053 for a
+                spelling found wrong never narrowing the set.
+Rung:           n/a for the ruling — Owner ruling, escalated because it
+                changes a safety rule: rung 4 offered RD-059's closed list and
+                rung 7 an open one, and which a closed list of markings or an
+                allow-list of permissions binds the exclusion is the safety
+                rule itself. The first edge rests on rung 4, existing
+                requirements: RD-059 holds one floor for a way and a barrier
+                alike and RD-060 builds the area's floor on it. The second
+                rests on rung 7, most conservative reasonable interpretation:
+                a more specific key lifting a marking is an engine's reading
+                of the tags, and reading it here would let a value outside the
+                set be driven because another key says `yes`. The third rests
+                on rung 7 as well: the ruling names three values, and a fourth
+                read in widens the permission the ruling bounds.
+Affects:        FR-125's, FR-126's, FR-127's and FR-128's `Volatility`;
+                RD-059 and RD-060, their floors superseded as a closed list;
+                #248's definition of a marking, AC2 and notes; #253's
+                definition of such an area, AC2 and notes.
+```

@@ -822,9 +822,11 @@ Verification: test — against routing data built from a test extract holding
               quickest drivable connection runs along a marked way or through
               a marked barrier is produced on a connection avoiding it, a leg
               to a stopping position the system chose beside a marked way runs
-              along none, and where every drivable connection between two
+              along none, where every drivable connection between two
               points on ways not so marked is marked no leg is produced along
-              one
+              one, and a leg with one end at a location the user entered on a
+              marked way runs beyond FR-126's run on a connection avoiding
+              every marking, or is not produced where none does
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -841,14 +843,23 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               connection between which runs along such a way or passes such a
               barrier, when the journey is planned, then no driving leg is
               produced that runs along such a way or passes such a barrier
+              given a driving leg one end of which is a location the user
+              entered lying on a way so marked, whose quickest drivable
+              connection beyond the run FR-126 admits at that location runs
+              along such a way or passes such a barrier, when the journey is
+              planned, then beyond that run the leg runs along no such way and
+              passes no such barrier, being produced on a drivable connection
+              from that run's end that avoids every such way and barrier
+              where one exists, and not produced where none does
 Status:       to-build
 Depends-on:   FR-006; FR-126
-Volatility:   open-question — which tag values spell private and
-              access-restricted is owed with the OSM-derived feature tables
-              that `Architecture.md § Still owed by this document` records as
-              undesigned; the floor of markings this record must exclude is
-              `DECISIONS.md § RD-059`'s, and a spelling found wrong is
-              corrected without narrowing it
+Volatility:   open-question — how the tags are read is owed with the
+              OSM-derived feature tables that
+              `Architecture.md § Still owed by this document` records as
+              undesigned; a way or barrier is so marked unless every value it
+              carries on `DECISIONS.md § RD-059`'s keys lies in
+              `DECISIONS.md § RD-062`'s permissive set, and a spelling found
+              wrong is corrected without narrowing it
 Risk:         A routing engine that prices a private road as a cost rather
               than a prohibition takes the shortcut through a gated estate or
               along a residents' road exactly where it saves the most time,
@@ -876,7 +887,12 @@ Rationale:    The cited section makes this a hard rule: no route may be
               such a location (`DECISIONS.md § RD-061`); one the system chose
               is outside the exception (`DECISIONS.md § RD-052`), which the
               second criterion tests, and FR-127 decides when a leg may end
-              short of a stopping position. The third criterion keeps the
+              short of a stopping position. The fourth criterion holds the
+              exclusion on the rest of a leg that has one end at such a
+              location, so the exception admits the run and no more of the
+              leg: a leg leaving a home on a private road takes the least run
+              out and is then held to the rule in transit. The third
+              criterion keeps the
               exclusion hard: where nothing avoids the area the answer is no
               leg through it, never the least-bad crossing. No mechanism is
               named, and a penalty is not an exclusion.
@@ -928,7 +944,8 @@ Depends-on:   FR-006
 Volatility:   open-question — the markings this record reads are FR-125's,
               their spelling owed with the OSM-derived feature tables that
               `Architecture.md § Still owed by this document` records as
-              undesigned and their floor `DECISIONS.md § RD-059`'s
+              undesigned and their floor every value outside
+              `DECISIONS.md § RD-062`'s permissive set
 Risk:         Read wider than the least run to a way not so marked, the
               exception becomes transit: a home on a private road whose marked
               network runs on through an estate to a second public road is
@@ -977,7 +994,10 @@ Verification: test — against routing data built from a test extract, a
               a marked barrier is served by no leg where the system chose it,
               or where the user chose it on a way not so marked, and one with
               nothing so marked between it and the end of the leg serving it
-              is not refused by this record
+              is not refused by this record, and a leg ending short of a
+              position that a connection avoiding every marking also reaches
+              is refused where a marked way or barrier lies on a drivable
+              connection between the leg's end and the position
 Acceptance:   given a stopping position the system chose, that a car reaches
               only by running along a way, or passing a barrier, that the map
               data marks as private or access-restricted — a parking area
@@ -993,12 +1013,22 @@ Acceptance:   given a stopping position the system chose, that a car reaches
               passing a barrier, so marked — a parking area not itself so
               marked behind a gate so marked — when the journey is planned,
               then no driving leg ends at it or short of it
+              given a stopping position that a car also reaches along a
+              drivable connection avoiding every way and barrier so marked — a
+              parking area with a public entrance on its far side — and a
+              driving leg ending short of it at a point from which a drivable
+              connection to the position runs along such a way or passes such
+              a barrier — the leg ending before a gate so marked on the
+              parking area's near side — when the journey is planned, then no
+              driving leg ends short of it at that point, and a leg serving
+              it ends at it, or short of it with nothing so marked between
 Status:       to-build
 Depends-on:   FR-125; FR-126
 Volatility:   open-question — the markings this record reads are FR-125's,
               their spelling owed with the OSM-derived feature tables that
               `Architecture.md § Still owed by this document` records as
-              undesigned and their floor `DECISIONS.md § RD-059`'s; how far
+              undesigned and their floor every value outside
+              `DECISIONS.md § RD-062`'s permissive set; how far
               short of its position a leg may end is a tolerance no document
               gives
 Risk:         A leg that ends at a gate marked private, within the tolerance
@@ -1023,6 +1053,9 @@ Rationale:    FR-125 keeps a leg to a stopping position off such ways and
               FR-126's run reaches it and ends at it, never short of it; on a
               way not so marked, its run is empty, so a marking between it and
               the leg's end leaves it unserved, which the third criterion
+              tests. A marking on any connection joining the leg's end to the
+              position lies between them, so a public entrance elsewhere does
+              not admit a leg ending at the gate, which the fourth criterion
               tests. The second criterion keeps the rule to the gap, so a
               position a few metres off the drivable network with nothing so
               marked between is not refused by it; how far that gap may run is
@@ -1045,7 +1078,9 @@ Verification: test — against routing data built from a test extract holding an
               whose quickest connection crosses the area is produced on a
               connection avoiding it, a location the user entered inside it is
               reached along the run FR-126 admits, and a stopping position the
-              system chose reached only through it is served by no leg
+              system chose reached only through it is served by no leg, and a
+              leg with one end at a location the user entered runs within no
+              such area beyond FR-126's run where a connection avoids it
 Acceptance:   given two points on ways outside an area that the map data marks
               as private or access-restricted on an area feature enclosing it,
               whose quickest drivable connection runs along a way within that
@@ -1062,13 +1097,23 @@ Acceptance:   given two points on ways outside an area that the map data marks
               only along ways within such an area, when the journey is
               planned, then no driving leg ends at it or short of it, and the
               journey includes no stop there
+              given a driving leg one end of which is a location the user
+              entered lying within such an area or on a way so marked, whose
+              quickest drivable connection beyond the run FR-126 admits at
+              that location runs along a way within such an area, when the
+              journey is planned, then beyond that run the leg runs along no
+              way within such an area, being produced on a drivable
+              connection from that run's end that avoids every such area
+              where one exists, and not produced where none does
 Status:       to-build
 Depends-on:   FR-125; FR-126; FR-127
 Volatility:   open-question — which area features, and which tags on them,
               spell the marking is owed with the OSM-derived feature tables
               that `Architecture.md § Still owed by this document` records as
-              undesigned; the floor is `DECISIONS.md § RD-060`'s, and a
-              spelling found wrong is corrected without narrowing it
+              undesigned; an area feature is so marked where it carries on
+              `DECISIONS.md § RD-059`'s keys a value outside
+              `DECISIONS.md § RD-062`'s permissive set, and a spelling found
+              wrong is corrected without narrowing it
 Risk:         A car park, an estate or a compound drawn as one area and marked
               customers-only or private on that area alone routes as public
               road, because its own ways carry no marking, and the leg cuts
