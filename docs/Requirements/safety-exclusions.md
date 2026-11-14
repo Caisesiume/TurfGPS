@@ -826,7 +826,12 @@ Verification: test — against routing data built from a test extract holding
               points on ways not so marked is marked no leg is produced along
               one, and a leg with one end at a location the user entered on a
               marked way runs beyond FR-126's run on a connection avoiding
-              every marking, or is not produced where none does
+              every marking, or is not produced where none does; and a leg
+              whose quickest connection runs along a way or past a barrier
+              that `DECISIONS.md § RD-063` leaves unmarked, by its precedence
+              or by a value it adds to the permissive set, runs along it,
+              while one carrying a value outside that set on the least
+              specific key alone is avoided
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -851,15 +856,35 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               passes no such barrier, being produced on a drivable connection
               from that run's end that avoids every such way and barrier
               where one exists, and not produced where none does
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along no way and passes no
+              barrier so marked, one way or barrier on it carrying a value
+              outside the permissive set on a key less specific than another
+              it carries with a value within that set, when the leg is
+              produced, then it runs along that way or passes that barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along no way and passes no
+              barrier so marked, one way or barrier on it carrying on its most
+              specific key a value that `DECISIONS.md § RD-063` adds to the
+              permissive set, when the leg is produced, then it runs along
+              that way or passes that barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way carrying a value
+              outside the permissive set on the least specific of the four
+              keys and none of the other three, and between whose ends a
+              drivable connection avoiding every such way and barrier exists,
+              when the leg is produced, then it runs along no such way
 Status:       to-build
 Depends-on:   FR-006; FR-126
 Volatility:   open-question — how the tags are read is owed with the
               OSM-derived feature tables that
               `Architecture.md § Still owed by this document` records as
-              undesigned; a way or barrier is so marked unless every value it
-              carries on `DECISIONS.md § RD-059`'s keys lies in
-              `DECISIONS.md § RD-062`'s permissive set, and a spelling found
-              wrong is corrected without narrowing it
+              undesigned; a way or barrier is so marked where the most
+              specific of `DECISIONS.md § RD-059`'s keys it carries has a
+              value outside the permissive set, the precedence and the set
+              being `DECISIONS.md § RD-063`'s, which supersedes
+              `DECISIONS.md § RD-062`'s second and third edges, and a
+              spelling found wrong is corrected without narrowing it
 Risk:         A routing engine that prices a private road as a cost rather
               than a prohibition takes the shortcut through a gated estate or
               along a residents' road exactly where it saves the most time,
@@ -894,7 +919,13 @@ Rationale:    The cited section makes this a hard rule: no route may be
               out and is then held to the rule in transit. The third
               criterion keeps the
               exclusion hard: where nothing avoids the area the answer is no
-              leg through it, never the least-bad crossing. No mechanism is
+              leg through it, never the least-bad crossing. The fifth and
+              sixth criteria hold the Owner's loosening of the floor
+              (`DECISIONS.md § RD-063`): a way a more specific key permits,
+              or whose value the Owner added to the permissive set, is driven,
+              so a build that still reads either as marked fails; the seventh
+              keeps a value outside the set on the least specific key alone
+              marked, so the loosening lifts nothing else. No mechanism is
               named, and a penalty is not an exclusion.
 Resolved-by:  #248
 ```
@@ -944,8 +975,10 @@ Depends-on:   FR-006
 Volatility:   open-question — the markings this record reads are FR-125's,
               their spelling owed with the OSM-derived feature tables that
               `Architecture.md § Still owed by this document` records as
-              undesigned and their floor every value outside
-              `DECISIONS.md § RD-062`'s permissive set
+              undesigned and their floor a value outside the permissive set
+              on the most specific key carried, as
+              `DECISIONS.md § RD-063` reads `DECISIONS.md § RD-062`'s
+              allow-list
 Risk:         Read wider than the least run to a way not so marked, the
               exception becomes transit: a home on a private road whose marked
               network runs on through an estate to a second public road is
@@ -1027,8 +1060,10 @@ Depends-on:   FR-125; FR-126
 Volatility:   open-question — the markings this record reads are FR-125's,
               their spelling owed with the OSM-derived feature tables that
               `Architecture.md § Still owed by this document` records as
-              undesigned and their floor every value outside
-              `DECISIONS.md § RD-062`'s permissive set; how far
+              undesigned and their floor a value outside the permissive set
+              on the most specific key carried, as
+              `DECISIONS.md § RD-063` reads `DECISIONS.md § RD-062`'s
+              allow-list; how far
               short of its position a leg may end is a tolerance no document
               gives
 Risk:         A leg that ends at a gate marked private, within the tolerance
@@ -1110,9 +1145,11 @@ Depends-on:   FR-125; FR-126; FR-127
 Volatility:   open-question — which area features, and which tags on them,
               spell the marking is owed with the OSM-derived feature tables
               that `Architecture.md § Still owed by this document` records as
-              undesigned; an area feature is so marked where it carries on
-              `DECISIONS.md § RD-059`'s keys a value outside
-              `DECISIONS.md § RD-062`'s permissive set, and a spelling found
+              undesigned; an area feature is so marked where the most
+              specific of `DECISIONS.md § RD-059`'s keys it carries has a
+              value outside the permissive set, the precedence and the set
+              being `DECISIONS.md § RD-063`'s reading of
+              `DECISIONS.md § RD-062`'s allow-list, and a spelling found
               wrong is corrected without narrowing it
 Risk:         A car park, an estate or a compound drawn as one area and marked
               customers-only or private on that area alone routes as public

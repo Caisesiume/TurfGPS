@@ -2680,3 +2680,64 @@ Affects:        FR-125's, FR-126's, FR-127's and FR-128's `Volatility`;
                 #248's definition of a marking, AC2 and notes; #253's
                 definition of such an area, AC2 and notes.
 ```
+
+## RD-063 — Which key governs a marking, and which values are permissive? (supersedes RD-062's second and third edges)
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, asked by `@engineering-lead` with the safety
+                sentinel's and the critic's assessment of RD-062's three
+                ladder edges, in
+                https://github.com/Caisesiume/TurfGPS/pull/251#issuecomment-6878946357,
+                relayed by `@engineering-lead`. This entry records a ruling
+                made elsewhere; it supersedes RD-062's second and third edges
+                and leaves RD-062 otherwise standing.
+Question:       RD-062 read the Owner's allow-list on the ladder with three
+                edges: the first binds a barrier and an area feature as it
+                binds a way; the second marks a feature carrying several of
+                the four keys if any one carries a value outside the set,
+                whatever a more specific key says, so `access=no` with
+                `motor_vehicle=yes` is marked; the third holds the permissive
+                set to `yes`, `permissive` and `designated`, so `public` and
+                `allowed` are marked. Do the three stand?
+Interpretation: **The most specific of the four keys that the feature carries
+                governs, and a feature is marked exactly when that key's value
+                is outside the permissive set, which is `yes`, `permissive`,
+                `designated`, `public` and `allowed`.** The precedence, most
+                specific first, is `motorcar`, `motor_vehicle`, `vehicle`,
+                `access`; the keys less specific than the governing one are
+                not read, so `access=no` with `motor_vehicle=yes` is drivable
+                and `access=yes` with `motor_vehicle=private` is marked. A
+                feature carrying none of the four keys is unmarked, and one
+                carrying `access=no` and no more specific key is marked. The
+                ruling, verbatim: "edge **1 confirmed**: barriers and areas
+                follow the allow-list. Edge **2 loosened**: the most specific
+                car-applicable tag wins (motorcar, then motor_vehicle, then
+                vehicle, then access), so `access=no` + `motor_vehicle=yes` is
+                drivable. Edge **3 loosened**: `public` and `allowed` count as
+                permissive values too." RD-062's first edge stands, now
+                confirmed by the Owner: the rule binds a way, a barrier of any
+                kind and an area feature alike. What RD-062's second edge also
+                said of a value holding several entries is unchanged by the
+                ruling and stands: on the governing key, `yes;private` is
+                outside the set and marks the feature. Every other value on
+                the governing key, known or unknown (`private`, `destination`,
+                `no`, `military`, `unknown`), still marks it, as RD-062 ruled.
+                The precedence binds the four keys of one feature; it does not
+                let a way's own keys lift the marking of an area enclosing it,
+                which RD-060 decides and this ruling does not touch. A value
+                that bars a car outright is still FR-006's as well.
+Rung:           n/a — Owner ruling, escalated because each edge is a reading
+                of a safety rule. RD-062 rested its second and third edges on
+                rung 7, most conservative reasonable interpretation, and its
+                first on rung 4; the safety sentinel's verdict at `a261093`
+                (`#issuecomment-6878724583`) found none relaxed an exclusion
+                and placed all three with the Owner, who confirmed the first
+                and loosened the other two. The ladder stops there: loosening
+                a safety exclusion is the Owner's alone.
+Affects:        RD-062's second and third edges, superseded; FR-125's,
+                FR-126's, FR-127's and FR-128's `Volatility`; FR-125's
+                acceptance criteria, gaining three; #248's definition of a
+                marking, AC2, AC14 to AC16 and notes; #253's definition of
+                such an area, AC2 and notes.
+```
