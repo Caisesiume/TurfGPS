@@ -2878,3 +2878,90 @@ Affects:        FR-125's, FR-126's, FR-127's and FR-128's `Volatility`;
                 #255's definitions of a marking are bound by it and not edited
                 in this pass; the test case for this ruling is #255's.
 ```
+
+## RD-066 — Does a directional permission in both directions lift a plain marking? (supersedes RD-064's edge)
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, on `@engineering-lead`'s question in
+                `#issuecomment-6884122480`, raised from the safety sentinel's
+                N11 on PR #259 (`#issuecomment-6884115815`), in
+                https://github.com/Caisesiume/TurfGPS/pull/259#issuecomment-6884145900,
+                relayed by `@engineering-lead`; the same comment directs that
+                the decision be recorded as an entry here and RD-064's open
+                reading corrected. This entry records a ruling made elsewhere;
+                it supersedes RD-064's edge and leaves RD-064 otherwise
+                standing.
+Question:       RD-064 read one edge of the ruling's "govern their own
+                direction" on the ladder: in one direction, a key's
+                directional form takes that key's place in RD-063's
+                precedence, so `motorcar=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes` is unmarked in both directions, and so
+                unmarked. The sentinel found that the edge lifts a marking
+                RD-063 alone imposes, which loosens a safety exclusion. As the
+                lead put it to the Owner: does a directional car 'yes' in both
+                directions lift a plain car 'no' (e.g. `motor_vehicle=no` +
+                `motor_vehicle:forward=yes` + `motor_vehicle:backward=yes`)?
+Interpretation: **No: a directional form of an access key only adds markings.
+                A feature is marked in a direction where the most specific of
+                the four plain keys it carries has a value outside the
+                permissive set, read as `DECISIONS.md § RD-063` reads it with
+                every directional form set aside, or where
+                `DECISIONS.md § RD-065` marks that direction on the
+                directional forms alone; no directional value lifts a marking
+                either reading gives.** The ruling, verbatim: "**stays
+                closed**. Directional car keys only add markings; a
+                directional 'yes' in both directions never lifts a plain car
+                'no'." So `motor_vehicle=no` with `motor_vehicle:forward=yes`
+                and `motor_vehicle:backward=yes` is marked; so is
+                `motorcar=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes`, which RD-064's edge read as unmarked;
+                and so is `motor_vehicle=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes`, the plain reading never consulting a
+                directional form. RD-064's edge is superseded whole, not
+                narrowed. In each direction the key it lets govern is either a
+                plain key with no more specific key carried in either form,
+                which is then the most specific plain key and marks under the
+                plain reading, or a directional form with no more specific
+                directional form of that direction, which marks under RD-065.
+                Every marking the edge gives, one of the two readings gives
+                too, and what the edge did alone was lift a plain marking,
+                which the ruling forbids. RD-064 otherwise stands: its three
+                decisions, and its sentence that a feature marked in either
+                direction is marked in both. RD-065 stands. Its first edge,
+                that `motorcar=no` with `motor_vehicle:forward=yes` stays
+                marked, now follows from this ruling as well, and the reading
+                its Interpretation marks "in addition to" is the plain reading
+                above. Its second edge is not reached: the ruling answers
+                whether a directional value lifts a plain one, and among the
+                directional forms of one direction RD-063's precedence still
+                governs, so `motorcar:backward=yes` with
+                `motor_vehicle:backward=no` is unmarked, with or without
+                `motorcar=yes`.
+Rung:           n/a for the ruling — Owner ruling, escalated by the lead on
+                the sentinel's N11 because RD-064's edge lifted a marking
+                RD-063 alone imposes, and loosening a safety exclusion is the
+                Owner's alone (RD-063's `Rung`). RD-064 had run the ladder to
+                rung 7, most conservative reasonable interpretation, and
+                stopped short there: it read "govern their own direction" as
+                including permission, and rejected a directional form that
+                only adds markings as denying the ruling's words; the Owner
+                chose that rejected reading. That the edge gives no marking
+                the two readings miss is the analysis recorded above. That
+                RD-065's second edge survives rests on rung 4, existing
+                requirements: it is a filed entry this ruling does not
+                address, and it stands until a ruling or an entry supersedes
+                it.
+Affects:        RD-064's edge, superseded; RD-065's first edge, now resting on
+                this ruling too; FR-125's, FR-126's, FR-127's and FR-128's
+                `Volatility`; FR-125's acceptance criteria, gaining the
+                thirteenth, with the ninth's and the eleventh's premises
+                narrowed to the marking RD-064, RD-065 and this entry define;
+                #255, gaining AC9. `Architecture.md § What the tables hold`,
+                whose first call per direction takes a directional form's
+                value in its key's place and so reads all three examples above
+                as unmarked, contradicts this ruling; it is raised to
+                `@engineering-lead` and not edited here. #248's and #253's
+                definitions of a marking are bound by it and not edited in
+                this pass.
+```

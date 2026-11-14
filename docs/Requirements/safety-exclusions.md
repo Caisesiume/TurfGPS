@@ -840,7 +840,11 @@ Verification: test — against routing data built from a test extract holding
               value on a directional form while the most specific plain key it
               carries permits, and a node carrying such a value with no
               `barrier` key, while one carrying such a value only on a
-              `:conditional` form is driven
+              `:conditional` form is driven; and one carrying a value outside
+              that set on the most specific of the four keys it carries is
+              avoided though it carries a value within that set on both the
+              `:forward` and the `:backward` form of one of them, or on a
+              `:conditional` form of one
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -896,11 +900,13 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, carrying none of the four keys and a value outside the
               permissive set on a `:forward` or `:backward` form of one of
-              them, that connection running along the way or passing the
-              barrier in the direction the form does not name, and between
-              whose ends a drivable connection avoiding every such way and
-              barrier exists, when the leg is produced, then it runs along no
-              such way and passes no such barrier
+              them, and so marked as `DECISIONS.md § RD-064`,
+              `DECISIONS.md § RD-065` and `DECISIONS.md § RD-066` define, that
+              connection running along the way or passing the barrier in the
+              direction the form does not name, and between whose ends a
+              drivable connection avoiding every such way and barrier exists,
+              when the leg is produced, then it runs along no such way and
+              passes no such barrier
               given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection passes a node carrying no `barrier`
               key and a value outside the permissive set on the most specific
@@ -913,16 +919,37 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               barrier, carrying a value within the permissive set on the most
               specific of the four keys it carries and a value outside that
               set on a `:forward` or `:backward` form of a less specific one
-              (`motorcar=yes` with `motor_vehicle:backward=no`), and between
-              whose ends a drivable connection avoiding every such way and
-              barrier exists, when the leg is produced, then it runs along no
-              such way and passes no such barrier
+              (`motorcar=yes` with `motor_vehicle:backward=no`), and so marked
+              as `DECISIONS.md § RD-064`, `DECISIONS.md § RD-065` and
+              `DECISIONS.md § RD-066` define, and between whose ends a
+              drivable connection avoiding every such way and barrier exists,
+              when the leg is produced, then it runs along no such way and
+              passes no such barrier
               given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along no way and passes no
               barrier so marked, one way on it carrying none of the four keys
               or their `:forward` and `:backward` forms and a value outside
               the permissive set on a `:conditional` form of one of them, when
               the leg is produced, then it runs along that way
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, carrying a value outside the permissive set on the most
+              specific of the four keys it carries and a value within that set
+              on both the `:forward` and the `:backward` form of one of them
+              (`motor_vehicle=no` with `motor_vehicle:forward=yes` and
+              `motor_vehicle:backward=yes`), and between whose ends a drivable
+              connection avoiding every such way and barrier exists, when the
+              leg is produced, then it runs along no such way and passes no
+              such barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, carrying a value outside the permissive set on the most
+              specific of the four keys it carries and a value within that set
+              on a `:conditional` form of one of them (`access=private` with
+              `motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00)`), and
+              between whose ends a drivable connection avoiding every such way
+              and barrier exists, when the leg is produced, then it runs along
+              no such way and passes no such barrier
 Status:       to-build
 Depends-on:   FR-006; FR-126
 Volatility:   open-question — how the tags are read is designed in
@@ -934,9 +961,9 @@ Volatility:   open-question — how the tags are read is designed in
               `DECISIONS.md § RD-063`'s, which supersedes
               `DECISIONS.md § RD-062`'s second and third edges; the keys'
               directional and conditional forms, and a node carrying no
-              `barrier` key, are read as `DECISIONS.md § RD-064` and
-              `DECISIONS.md § RD-065` decide; and a spelling found wrong is
-              corrected without narrowing it
+              `barrier` key, are read as `DECISIONS.md § RD-064`,
+              `DECISIONS.md § RD-065` and `DECISIONS.md § RD-066` decide; and
+              a spelling found wrong is corrected without narrowing it
 Risk:         A routing engine that prices a private road as a cost rather
               than a prohibition takes the shortcut through a gated estate or
               along a residents' road exactly where it saves the most time,
@@ -989,8 +1016,17 @@ Rationale:    The cited section makes this a hard rule: no route may be
               form outside the set marks though a plain, more specific key
               permits; and a value outside the set on a `:conditional` form
               alone is driven, so a build that reads a condition it cannot
-              evaluate as a marking fails. No mechanism is
-              named, and a penalty is not an exclusion.
+              evaluate as a marking fails. The thirteenth holds the Owner's
+              ruling that a directional form only adds markings
+              (`DECISIONS.md § RD-066`): a plain marking stands though both
+              directional forms of a key permit, so a build that lets a
+              directional permission take its key's place fails. The
+              fourteenth holds the other half of the conditional decision: a
+              `:conditional` permission lifts no marking, so a build that
+              reads a condition it cannot evaluate as a permission fails, and
+              the half of that decision that errs strict is held as firmly as
+              the twelfth holds the half that does not. No mechanism is named,
+              and a penalty is not an exclusion.
 Resolved-by:  #248, #255, #256
 ```
 
@@ -1042,8 +1078,8 @@ Volatility:   open-question — the markings this record reads are FR-125's,
               value outside the permissive set on the most specific key
               carried, as `DECISIONS.md § RD-063` reads
               `DECISIONS.md § RD-062`'s allow-list, with the keys' directional
-              and conditional forms read as `DECISIONS.md § RD-064` and
-              `DECISIONS.md § RD-065` decide
+              and conditional forms read as `DECISIONS.md § RD-064`,
+              `DECISIONS.md § RD-065` and `DECISIONS.md § RD-066` decide
 Risk:         Read wider than the least run to a way not so marked, the
               exception becomes transit: a home on a private road whose marked
               network runs on through an estate to a second public road is
@@ -1128,9 +1164,10 @@ Volatility:   open-question — the markings this record reads are FR-125's,
               value outside the permissive set on the most specific key
               carried, as `DECISIONS.md § RD-063` reads
               `DECISIONS.md § RD-062`'s allow-list, with the keys' directional
-              and conditional forms read as `DECISIONS.md § RD-064` and
-              `DECISIONS.md § RD-065` decide; how far short of its position a
-              leg may end is a tolerance no document gives
+              and conditional forms read as `DECISIONS.md § RD-064`,
+              `DECISIONS.md § RD-065` and `DECISIONS.md § RD-066` decide; how
+              far short of its position a leg may end is a tolerance no
+              document gives
 Risk:         A leg that ends at a gate marked private, within the tolerance
               for how far short of its position a leg may end, serves the
               parking area behind it: the driver drives through a gate they
@@ -1216,8 +1253,9 @@ Volatility:   open-question — which area features, and which tags on them,
               `DECISIONS.md § RD-063`'s reading of
               `DECISIONS.md § RD-062`'s allow-list, with the keys'
               directional and conditional forms read as
-              `DECISIONS.md § RD-064` and `DECISIONS.md § RD-065` decide; and
-              a spelling found wrong is corrected without narrowing it
+              `DECISIONS.md § RD-064`, `DECISIONS.md § RD-065` and
+              `DECISIONS.md § RD-066` decide; and a spelling found wrong is
+              corrected without narrowing it
 Risk:         A car park, an estate or a compound drawn as one area and marked
               customers-only or private on that area alone routes as public
               road, because its own ways carry no marking, and the leg cuts
