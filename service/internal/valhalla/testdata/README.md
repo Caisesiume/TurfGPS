@@ -23,10 +23,10 @@ derived from it is subject to the ODbL's share-alike terms.
 
 | | |
 |---|---|
-| Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); and four small islands elsewhere, below |
+| Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); and seven small islands elsewhere, below |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; and the access-marking cases below, with the nodes of their ways |
-| Size | 196,273 bytes; SHA-256 `927c833ad8fbb35e002d1c7a0a8898eb165c381af2bdbcd85cbb33d8fa76e727` — 13,452 nodes, 3,862 ways, 57 relations |
-| Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T20:55:17Z, each as the Overpass API reported it |
+| Size | 197,799 bytes; SHA-256 `ab8f4dbac9e0468dbb01458c2f3c770c9f67984b40b3a652500bbf5a889fe728` — 13,541 nodes, 3,877 ways, 57 relations |
+| Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z, each as the Overpass API reported it |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; both beside this file |
 
@@ -48,6 +48,9 @@ reference, so a test reads it from the same file the tiles are built from:
 | a way carrying `motor_vehicle=private` with `access=yes` | way 5179080, Klarabergsgatan | Stockholm, 59.3325 N 18.0637 E | the way alone |
 | a `lift_gate` carrying `access=residents`, on the only road between two unmarked ones | node 8691377189, on way 444469850 (Frönäs sjöväg) | south of Stockholm, 58.8934 N 17.8009 E | the ways through the gate, and the `highway` ways meeting them |
 | a way carrying `access=no` with `motor_vehicle=yes`, between unmarked ways | way 107135272, Ringvägen | Torslanda, Göteborg, 57.7168 N 11.8276 E | the way, and the `highway` ways meeting it |
+| a way carrying only `motor_vehicle:backward=no`, between unmarked ways (AC6, AC7) | way 14175890, Falkenbergsgatan | Kallebäck, Göteborg, 57.6809 N 11.9994 E | the way, and the `highway` ways meeting it |
+| a node carrying `access=private` and no `barrier` key, on a road between unmarked ones (AC6, AC7) | node 312500257, on way 28443588 | Malmö, 55.6217 N 13.0519 E | the ways through the node, and the `highway` ways meeting them |
+| a way carrying only `motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00)`, between unmarked ways (AC6, AC8) | way 4313847, Mornington Road | Bristol, 51.4685 N 2.6154 W | the way, and the `highway` ways meeting it |
 
 The box already holds a way carrying `access=private` (way 976307072, among
 others) and Viktoriagatan's block 32709123, carrying `vehicle:backward=no`.

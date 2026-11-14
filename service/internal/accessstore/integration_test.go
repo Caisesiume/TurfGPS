@@ -73,8 +73,9 @@ func input(t *testing.T, name string) string {
 // --- the independent reading ------------------------------------------------
 
 type feature struct {
-	tags  map[string]string
-	nodes []int64
+	tags     map[string]string
+	nodes    []int64
+	lon, lat float64 // a node's
 }
 
 type oplExtract struct {
@@ -97,8 +98,9 @@ func unescape(s string) string {
 
 // readOPL reads the OPL text `osmium cat -f opl` wrote of the extract
 // (https://osmcode.org/opl-file-format/): one object a line, its fields
-// separated by spaces, its tags in the field opening with T and a way's nodes
-// in the field opening with N.
+// separated by spaces, its tags in the field opening with T, a way's nodes in
+// the field opening with N, and a node's longitude and latitude in the fields
+// opening with x and y.
 func readOPL(t *testing.T) *oplExtract {
 	t.Helper()
 
@@ -142,6 +144,14 @@ func readOPL(t *testing.T) *oplExtract {
 
 					ft.nodes = append(ft.nodes, ref)
 				}
+			case strings.HasPrefix(fl, "x") && len(fl) > 1:
+				if ft.lon, err = strconv.ParseFloat(fl[1:], 64); err != nil {
+					t.Fatalf("node %d's longitude %q", id, fl)
+				}
+			case strings.HasPrefix(fl, "y") && len(fl) > 1:
+				if ft.lat, err = strconv.ParseFloat(fl[1:], 64); err != nil {
+					t.Fatalf("node %d's latitude %q", id, fl)
+				}
 			}
 		}
 
@@ -167,10 +177,10 @@ func readOPL(t *testing.T) *oplExtract {
 // The rule, written again from its records rather than from the migration:
 // `DECISIONS.md § RD-063` — the first of motorcar, motor_vehicle, vehicle and
 // access a feature carries governs, and every value but the five permissive
-// ones is a marking — with the Owner's decisions on #258: a directional form
-// governs its direction, a non-permissive directional form marks its direction
-// even where a plain, more specific key permits (N8), a feature marked in
-// either direction is marked, and no `:conditional` form counts.
+// ones is a marking — read on the plain keys with every directional form set
+// aside, and again on each direction's directional forms alone (`RD-065`); a
+// directional form only adds markings (`RD-066`), a feature marked in either
+// direction is marked, and no `:conditional` form counts (`RD-064`).
 var (
 	chain      = []string{"motorcar", "motor_vehicle", "vehicle", "access"}
 	permissive = map[string]bool{"yes": true, "permissive": true, "designated": true, "public": true, "allowed": true}
@@ -207,19 +217,13 @@ func marked(tags map[string]string) bool {
 		return nil
 	}
 
-	for _, dir := range []string{":forward", ":backward"} {
-		merged, own := make([]*string, len(chain)), make([]*string, len(chain))
-
+	for _, suffix := range []string{"", ":forward", ":backward"} {
+		values := make([]*string, len(chain))
 		for i, k := range chain {
-			own[i] = get(k + dir)
-			merged[i] = own[i]
-
-			if merged[i] == nil {
-				merged[i] = get(k)
-			}
+			values[i] = get(k + suffix)
 		}
 
-		if governs(merged) || governs(own) {
+		if governs(values) {
 			return true
 		}
 	}
@@ -471,6 +475,7 @@ type legCase struct {
 	kind       string
 	feature    int64
 	featureWay int64
+	forward    [2]int64 // where set, two of featureWay's nodes, in its order, the route must run between
 }
 
 // The cases. Viktoriagatan's block 32709123 carries vehicle:backward=no and so
@@ -509,54 +514,93 @@ func TestAC2ARouteCrossingAMarkingYieldsNoLeg(t *testing.T) {
 	}
 
 	for _, tc := range crossingCases {
-		t.Run(tc.name, func(t *testing.T) {
-			unmarkedEnd(t, fx.opl, tc.fromWay)
-			unmarkedEnd(t, fx.opl, tc.toWay)
+		t.Run(tc.name, func(t *testing.T) { fx.refused(t, tc) })
+	}
+}
 
-			// The engine's route runs where the case says, before the check.
-			edges, err := fx.routing.Route(t.Context(), tc.from, tc.to)
-			if err != nil {
-				t.Fatalf("the engine routed no leg: %v", err)
-			}
+// refused plans the case's leg and fails unless the engine's own route runs
+// along the case's way, no leg is produced from it, and the refusal names the
+// case's feature at an edge along that way.
+func (fx *fixture) refused(t *testing.T, tc legCase) {
+	t.Helper()
 
-			if !slices.ContainsFunc(edges, func(e planner.Edge) bool { return e.WayID == tc.featureWay }) {
-				t.Fatalf("the premise does not hold: the engine's route does not run along way %d", tc.featureWay)
-			}
+	unmarkedEnd(t, fx.opl, tc.fromWay)
+	unmarkedEnd(t, fx.opl, tc.toWay)
 
-			journey, err := fx.planner(t, fx.routing, fx.store, fx.tiles).Plan(t.Context(), planner.Request{Origin: tc.from, Destination: tc.to})
-			if journey.Legs != nil {
-				t.Fatalf("the journey has %d legs, want none", len(journey.Legs))
-			}
+	// The engine's route runs where the case says, before the check.
+	edges, err := fx.routing.Route(t.Context(), tc.from, tc.to)
+	if err != nil {
+		t.Fatalf("the engine routed no leg: %v", err)
+	}
 
-			var refusal *planner.CrossingError
-			if !errors.As(err, &refusal) {
-				t.Fatalf("Plan refused with %v, want a CrossingError", err)
-			}
+	if !slices.ContainsFunc(edges, func(e planner.Edge) bool { return e.WayID == tc.featureWay }) {
+		t.Fatalf("the premise does not hold: the engine's route runs along the ways %v, not along way %d", wayIDs(edges), tc.featureWay)
+	}
 
-			found := false
+	if tc.forward != [2]int64{} {
+		fx.runsForward(t, edges, tc.featureWay, tc.forward)
+	}
 
-			for _, c := range refusal.Crossings {
-				if c.Kind != tc.kind || c.OSMID != tc.feature {
-					continue
-				}
+	journey, err := fx.planner(t, fx.routing, fx.store, fx.tiles).Plan(t.Context(), planner.Request{Origin: tc.from, Destination: tc.to})
+	if journey.Legs != nil {
+		t.Fatalf("the journey has %d legs, want none", len(journey.Legs))
+	}
 
-				found = true
+	var refusal *planner.CrossingError
+	if !errors.As(err, &refusal) {
+		t.Fatalf("Plan refused with %v, want a CrossingError", err)
+	}
 
-				if c.Edge < 0 || c.Edge >= len(refusal.Edges) || refusal.Edges[c.Edge].WayID != tc.featureWay {
-					t.Errorf("the %s %d is named at edge %d, want an edge along way %d", tc.kind, tc.feature, c.Edge, tc.featureWay)
-				}
+	found := false
 
-				if tc.kind == "barrier" {
-					fx.logDistance(t, tc.feature, refusal.Edges[c.Edge])
-				}
-			}
+	for _, c := range refusal.Crossings {
+		if c.Kind != tc.kind || c.OSMID != tc.feature {
+			continue
+		}
 
-			if !found {
-				t.Errorf("the refusal names %v, want the %s %d among them", refusal.Crossings, tc.kind, tc.feature)
-			}
+		found = true
 
-			t.Logf("refused: %v", err)
-		})
+		if c.Edge < 0 || c.Edge >= len(refusal.Edges) || refusal.Edges[c.Edge].WayID != tc.featureWay {
+			t.Errorf("the %s %d is named at edge %d, want an edge along way %d", tc.kind, tc.feature, c.Edge, tc.featureWay)
+		}
+
+		if tc.kind == "barrier" {
+			fx.logDistance(t, tc.feature, refusal.Edges[c.Edge])
+		}
+	}
+
+	if !found {
+		t.Errorf("the refusal names %v, want the %s %d among them", refusal.Crossings, tc.kind, tc.feature)
+	}
+
+	t.Logf("refused: %v", err)
+}
+
+// runsForward fails the test unless every edge of the route along the way
+// runs from the first of the two nodes towards the second: the way's forward
+// direction where the nodes are in the way's order.
+func (fx *fixture) runsForward(t *testing.T, edges []planner.Edge, way int64, nodes [2]int64) {
+	t.Helper()
+
+	ft := premise(t, fx.opl.ways, "way", way, nil)
+	if a, b := slices.Index(ft.nodes, nodes[0]), slices.Index(ft.nodes, nodes[1]); a < 0 || b <= a {
+		t.Fatalf("the premise does not hold: way %d's nodes %v do not run from %d to %d", way, ft.nodes, nodes[0], nodes[1])
+	}
+
+	first, last := fx.opl.nodes[nodes[0]], fx.opl.nodes[nodes[1]]
+	near := func(p planner.Point, n feature) float64 {
+		return (p.Latitude-n.lat)*(p.Latitude-n.lat) + (p.Longitude-n.lon)*(p.Longitude-n.lon)
+	}
+
+	for _, e := range edges {
+		if e.WayID != way || len(e.Shape) < 2 {
+			continue
+		}
+
+		start, end := e.Shape[0], e.Shape[len(e.Shape)-1]
+		if near(start, first) > near(start, last) || near(end, last) > near(end, first) {
+			t.Fatalf("the premise does not hold: the engine's route runs along way %d from %v to %v, not forward from node %d to node %d", way, start, end, nodes[0], nodes[1])
+		}
 	}
 }
 
@@ -615,7 +659,14 @@ func TestAC3ARouteCrossingNoMarkingPassesTheCheck(t *testing.T) {
 		t.Fatalf("the premise does not hold: the independent reading marks Ringvägen (%v)", ringvagen.tags)
 	}
 
-	from, to := ringvagenFrom, ringvagenTo
+	fx.passes(t, ringvagenFrom, ringvagenTo, 107135272, "access=no with motor_vehicle=yes")
+}
+
+// passes plans the leg between from and to and fails unless it is produced,
+// runs along the case's way, runs along no way and past no node the
+// independent reading marks, and the check finds nothing on it.
+func (fx *fixture) passes(t *testing.T, from, to planner.Point, caseWay int64, carrying string) {
+	t.Helper()
 
 	journey, err := fx.planner(t, fx.routing, fx.store, fx.tiles).Plan(t.Context(), planner.Request{Origin: from, Destination: to})
 	if err != nil {
@@ -628,10 +679,10 @@ func TestAC3ARouteCrossingNoMarkingPassesTheCheck(t *testing.T) {
 
 	leg := journey.Legs[0]
 
-	// The premise on the route itself: it runs along Ringvägen, and every way
-	// it runs along is one the independent reading leaves unmarked.
-	if !slices.ContainsFunc(leg.Edges, func(e planner.Edge) bool { return e.WayID == 107135272 }) {
-		t.Fatalf("the premise does not hold: the route runs along the ways %v, not along 107135272, so it carries no access=no with motor_vehicle=yes", wayIDs(leg.Edges))
+	// The premise on the route itself: it runs along the case's way, and every
+	// way it runs along is one the independent reading leaves unmarked.
+	if !slices.ContainsFunc(leg.Edges, func(e planner.Edge) bool { return e.WayID == caseWay }) {
+		t.Fatalf("the premise does not hold: the route runs along the ways %v, not along %d, so it carries no %s", wayIDs(leg.Edges), caseWay, carrying)
 	}
 
 	t.Logf("the leg runs along the ways %v", wayIDs(leg.Edges))
@@ -801,4 +852,132 @@ func TestAC5NoTableOrTheWrongOnePlansNoJourney(t *testing.T) {
 
 		plansNothing(t, fx.planner(t, fx.routing, store, fx.tiles), planner.ErrAccessUnchecked)
 	})
+}
+
+// onlyKeys fails the test unless the feature carries, of the twelve access
+// keys, exactly those named: the "only" of AC6 to AC8.
+func onlyKeys(t *testing.T, kind string, id int64, ft feature, keys ...string) {
+	t.Helper()
+
+	for _, k := range chain {
+		for _, form := range []string{k, k + ":forward", k + ":backward"} {
+			if _, ok := ft.tags[form]; ok && !slices.Contains(keys, form) {
+				t.Fatalf("the premise does not hold: %s %d carries %s=%q beside %v", kind, id, form, ft.tags[form], keys)
+			}
+		}
+	}
+}
+
+// TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms is #255 AC6
+// (`FR-125`, ninth to twelfth criteria, at the table), on the instances the
+// extract holds: a way carrying only motor_vehicle:backward=no is held as
+// marked, a node carrying access=private and no barrier key is held as a
+// marked barrier, and a way carrying only motor_vehicle:conditional=no @
+// (Mo-Fr 08:00-18:00) is not held as marked. The rule's reading of AC6's other
+// two ways is part B of the migration's verify file: OpenStreetMap holds no way
+// tagged as either (#261).
+func TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms(t *testing.T) {
+	fx := setUp(t)
+
+	backward := premise(t, fx.opl.ways, "way", 14175890, map[string]string{"motor_vehicle:backward": "no"})
+	onlyKeys(t, "way", 14175890, backward, "motor_vehicle:backward")
+
+	keyless := premise(t, fx.opl.nodes, "node", 312500257, map[string]string{"access": "private"})
+	if b, ok := keyless.tags["barrier"]; ok {
+		t.Fatalf("the premise does not hold: node 312500257 carries barrier=%q", b)
+	}
+
+	conditional := premise(t, fx.opl.ways, "way", 4313847, map[string]string{"motor_vehicle:conditional": "no @ (Mo-Fr 08:00-18:00)"})
+	onlyKeys(t, "way", 4313847, conditional)
+
+	ways := fx.ids(t, `SELECT way_id FROM public.access_way WHERE marked`)
+	if _, ok := slices.BinarySearch(ways, 14175890); !ok {
+		t.Error("way 14175890 (motor_vehicle:backward=no only) is not held as marked")
+	}
+
+	if _, ok := slices.BinarySearch(ways, 4313847); ok {
+		t.Error("way 4313847 (motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00) only) is held as marked, want it driven: a :conditional form is ignored")
+	}
+
+	var (
+		barrier *string
+		held    bool
+	)
+
+	err := fx.pool.QueryRow(t.Context(), `SELECT barrier, marked FROM public.access_barrier WHERE node_id = 312500257`).Scan(&barrier, &held)
+	if err != nil {
+		t.Fatalf("node 312500257 (access=private, no barrier key) is not in access_barrier: %v", err)
+	}
+
+	if !held || barrier != nil {
+		t.Errorf("node 312500257 is held with barrier %v and marked %t, want no barrier key and marked", barrier, held)
+	}
+}
+
+// AC7's cases. Falkenbergsgatan 14175890 runs from node 135472415, where
+// Ebbe Lieberathsgatan crosses it, to node 135473091, where the rest of
+// Falkenbergsgatan goes on west; the leg runs along it forward, the direction
+// motor_vehicle:backward=no does not name. Node 312500257, access=private and
+// no barrier key, lies on way 28443588 between that way's dead end and
+// Krusegatan; the leg runs from the dead end's stretch to Krusegatan.
+var directionalCases = []legCase{
+	{
+		name: "a leg along a way marked only by motor_vehicle:backward=no, run forward",
+		from: planner.Point{Latitude: 57.6810412, Longitude: 11.9998148}, fromWay: 733746795, // between nodes 135472415 and 1311282119
+		to: planner.Point{Latitude: 57.6807610, Longitude: 11.9985051}, toWay: 228006263, // between nodes 135473091 and 3530862679
+		kind: "way", feature: 14175890, featureWay: 14175890, forward: [2]int64{135472415, 135473091},
+	},
+	{
+		name: "a leg past a node carrying access=private and no barrier key",
+		from: planner.Point{Latitude: 55.6226584, Longitude: 13.0530011}, fromWay: 28443588, // between nodes 312500255 and 312500257
+		to: planner.Point{Latitude: 55.6192836, Longitude: 13.0495794}, toWay: 28288767, // between nodes 312500253 and 10188608433
+		kind: "barrier", feature: 312500257, featureWay: 28443588,
+	},
+}
+
+// TestAC7ARouteCrossingSuchAMarkingYieldsNoLeg is #255 AC7 (`FR-125`, ninth
+// to eleventh criteria), on the instances the extract holds: a route the
+// engine returns between two points on unmarked ways, along a way carrying
+// only motor_vehicle:backward=no in its forward direction, and separately past
+// a node carrying access=private and no barrier key, produces no leg, and the
+// refusal names the feature and the edge it lies on. OpenStreetMap holds no
+// way carrying motorcar=yes with motor_vehicle:backward=no, AC7's third (#261).
+func TestAC7ARouteCrossingSuchAMarkingYieldsNoLeg(t *testing.T) {
+	fx := setUp(t)
+
+	backward := premise(t, fx.opl.ways, "way", 14175890, map[string]string{"motor_vehicle:backward": "no"})
+	onlyKeys(t, "way", 14175890, backward, "motor_vehicle:backward")
+
+	keyless := premise(t, fx.opl.nodes, "node", 312500257, map[string]string{"access": "private"})
+	if b, ok := keyless.tags["barrier"]; ok {
+		t.Fatalf("the premise does not hold: node 312500257 carries barrier=%q", b)
+	}
+
+	if road := premise(t, fx.opl.ways, "way", 28443588, nil); !slices.Contains(road.nodes, 312500257) || carries(road.tags) {
+		t.Fatalf("the premise does not hold: way 28443588 does not carry node 312500257, or is itself marked (%v)", road.tags)
+	}
+
+	for _, tc := range directionalCases {
+		t.Run(tc.name, func(t *testing.T) { fx.refused(t, tc) })
+	}
+}
+
+// TestAC8AConditionalValueAloneRefusesNothing is #255 AC8 (`FR-125`, twelfth
+// criterion): a route along unmarked ways only, passing no marked barrier, one
+// way on it carrying only motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00),
+// is refused nothing. Mornington Road's ends are Anglesea Place, which meets
+// it at node 26149484, and the rest of Mornington Road, from node 26149485.
+func TestAC8AConditionalValueAloneRefusesNothing(t *testing.T) {
+	fx := setUp(t)
+
+	conditional := premise(t, fx.opl.ways, "way", 4313847, map[string]string{"motor_vehicle:conditional": "no @ (Mo-Fr 08:00-18:00)"})
+	onlyKeys(t, "way", 4313847, conditional)
+
+	unmarkedEnd(t, fx.opl, 4315572)
+	unmarkedEnd(t, fx.opl, 462835349)
+
+	fx.passes(t,
+		planner.Point{Latitude: 51.4684353, Longitude: -2.6163190}, // Anglesea Place, between nodes 26163964 and 26149484
+		planner.Point{Latitude: 51.4686804, Longitude: -2.6146257}, // Mornington Road 462835349, between nodes 26149485 and 26149486
+		4313847, "motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00)")
 }
