@@ -181,7 +181,7 @@ BEGIN
     END LOOP;
 
     IF cardinality(wrong) > 0 THEN
-        RAISE EXCEPTION E'the rule disagrees with its records on %s case(s):\n%s', cardinality(wrong), array_to_string(wrong, E'\n');
+        RAISE EXCEPTION E'the rule disagrees with its records on % case(s):\n%', cardinality(wrong), array_to_string(wrong, E'\n');
     END IF;
 
     IF public.access_marked(NULL, NULL, NULL, NULL) IS DISTINCT FROM false THEN
