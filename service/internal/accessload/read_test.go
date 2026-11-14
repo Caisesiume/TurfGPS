@@ -110,6 +110,70 @@ func TestTheReaderTakesTheTwelveKeysVerbatim(t *testing.T) {
 	}
 }
 
+// TestAConditionalFormIsNoKey holds the Owner's third tag decision on #258
+// (`RD-064`) at the reader: a `:conditional` form of an access key, plain or
+// directional, is read as none of the twelve keys. A `:backward:conditional`
+// permission is therefore not a more specific directional form, and lifts
+// nothing a `:backward` key marks (N16 on #259); a conditional permission
+// lifts no plain marking either (`FR-125`'s fourteenth criterion).
+func TestAConditionalFormIsNoKey(t *testing.T) {
+	t.Parallel()
+
+	const when = "yes @ (Mo-Fr 08:00-18:00)"
+
+	for _, tc := range []struct {
+		name string
+		tags map[string]string
+		want map[string]string
+	}{
+		{
+			"a :backward:conditional permission beside a :backward marking",
+			map[string]string{"motor_vehicle:backward": "no", "motorcar:backward:conditional": when},
+			map[string]string{"motor_vehicle:backward": "no"},
+		},
+		{
+			"a :forward:conditional permission beside a :forward marking",
+			map[string]string{"access:forward": "private", "motorcar:forward:conditional": when, "motor_vehicle:forward:conditional": when},
+			map[string]string{"access:forward": "private"},
+		},
+		{
+			"a plain conditional permission beside a plain marking",
+			map[string]string{"access": "private", "motor_vehicle:conditional": when},
+			map[string]string{"access": "private"},
+		},
+	} {
+		got, carrying := valuesOf(tc.tags)
+		if !carrying {
+			t.Errorf("%s: %v is read as carrying no access key", tc.name, tc.tags)
+
+			continue
+		}
+
+		for i, k := range Keys {
+			want, named := tc.want[k]
+
+			switch {
+			case named && (got[i] == nil || *got[i] != want):
+				t.Errorf("%s: %s is read as %v, want %q", tc.name, k, deref(got[i]), want)
+			case !named && got[i] != nil:
+				t.Errorf("%s: %s is read as %q from %v, want it absent: a :conditional form is not that key", tc.name, k, *got[i], tc.tags)
+			}
+		}
+	}
+
+	if _, carrying := valuesOf(map[string]string{"motorcar:backward:conditional": when}); carrying {
+		t.Error("a feature carrying only motorcar:backward:conditional is read as carrying an access key")
+	}
+}
+
+func deref(s *string) any {
+	if s == nil {
+		return nil
+	}
+
+	return *s
+}
+
 // TestAnUnsortedFileIsRefused: both passes rely on every node preceding every
 // way, so a file in another order is refused rather than read with barriers
 // missing from their ways.
