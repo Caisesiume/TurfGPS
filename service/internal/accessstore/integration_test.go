@@ -886,14 +886,56 @@ func onlyKeys(t *testing.T, kind string, id int64, ft feature, keys ...string) {
 	}
 }
 
+// The synthetic cases (`testdata/README.md` § The synthetic cases): ways and
+// nodes not from OpenStreetMap, which holds no instance of these tag sets
+// (#261), written into the extract by hand under ids from syntheticBase up, a
+// range OpenStreetMap's ids cannot reach. Each lies in the Kattegat, joined to
+// nothing the extract holds from OpenStreetMap.
+const (
+	syntheticBase int64 = 9_000_000_000_000_000_000
+	syntheticNote       = "synthetic, not from OpenStreetMap: TurfGPS #255 test case"
+
+	// motorcar=yes, motor_vehicle:backward=no: AC6's third clause, AC7's third case.
+	synMotorcarBackward = syntheticBase + 2
+	// motor_vehicle=no, motor_vehicle:forward=yes, motor_vehicle:backward=yes: AC9's route.
+	synMotorVehicleBoth = syntheticBase + 12
+	// motorcar=no, motorcar:forward=yes, motorcar:backward=yes: AC9.
+	synMotorcarBoth = syntheticBase + 14
+	// motor_vehicle=no, motorcar:forward=yes, motorcar:backward=yes: AC9.
+	synMotorVehicleMotorcarBoth = syntheticBase + 15
+	// access=private, motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00): AC6's fifth clause.
+	synPrivateConditional = syntheticBase + 21
+)
+
+// synthetic is the premise for a synthetic case: the way is in the extract
+// with every tag named, carries no access key beyond those named, and is
+// marked as not from OpenStreetMap, by its id's range and by its note.
+func synthetic(t *testing.T, opl *oplExtract, id int64, tags map[string]string) {
+	t.Helper()
+
+	ft := premise(t, opl.ways, "way", id, tags)
+
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+
+	onlyKeys(t, "way", id, ft, keys...)
+
+	if id < syntheticBase || ft.tags["note"] != syntheticNote {
+		t.Fatalf("the premise does not hold: way %d (note %q) is not one of the extract's synthetic cases", id, ft.tags["note"])
+	}
+}
+
 // TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms is #255 AC6
-// (`FR-125`, ninth to twelfth criteria, at the table), on the instances the
-// extract holds: a way carrying only motor_vehicle:backward=no is held as
-// marked, a node carrying access=private and no barrier key is held as a
-// marked barrier, and a way carrying only motor_vehicle:conditional=no @
-// (Mo-Fr 08:00-18:00) is not held as marked. The rule's reading of AC6's other
-// two ways is part B of the migration's verify file: OpenStreetMap holds no way
-// tagged as either (#261).
+// (`FR-125`, ninth to twelfth criteria, at the table): a way carrying only
+// motor_vehicle:backward=no is held as marked, a node carrying access=private
+// and no barrier key is held as a marked barrier, a way carrying motorcar=yes
+// with motor_vehicle:backward=no is held as marked, a way carrying only
+// motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00) is not held as marked,
+// and a way carrying access=private with motor_vehicle:conditional=yes @
+// (Mo-Fr 08:00-18:00) is held as marked. The third and fifth are synthetic:
+// OpenStreetMap holds no way tagged as either (#261).
 func TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms(t *testing.T) {
 	fx := setUp(t)
 
@@ -908,9 +950,20 @@ func TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms(t *testing.T) 
 	conditional := premise(t, fx.opl.ways, "way", 4313847, map[string]string{"motor_vehicle:conditional": "no @ (Mo-Fr 08:00-18:00)"})
 	onlyKeys(t, "way", 4313847, conditional)
 
+	synthetic(t, fx.opl, synMotorcarBackward, map[string]string{"motorcar": "yes", "motor_vehicle:backward": "no"})
+	synthetic(t, fx.opl, synPrivateConditional, map[string]string{"access": "private", "motor_vehicle:conditional": "yes @ (Mo-Fr 08:00-18:00)"})
+
 	ways := fx.ids(t, `SELECT way_id FROM public.access_way WHERE marked`)
 	if _, ok := slices.BinarySearch(ways, 14175890); !ok {
 		t.Error("way 14175890 (motor_vehicle:backward=no only) is not held as marked")
+	}
+
+	if _, ok := slices.BinarySearch(ways, synMotorcarBackward); !ok {
+		t.Errorf("way %d (motorcar=yes, motor_vehicle:backward=no) is not held as marked: the backward form's marking is lost to the plain permission", synMotorcarBackward)
+	}
+
+	if _, ok := slices.BinarySearch(ways, synPrivateConditional); !ok {
+		t.Errorf("way %d (access=private, motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00)) is not held as marked: a :conditional permission lifted the plain marking", synPrivateConditional)
 	}
 
 	if _, ok := slices.BinarySearch(ways, 4313847); ok {
@@ -937,7 +990,10 @@ func TestAC6TheTableReadsTheDirectionalKeylessAndConditionalForms(t *testing.T) 
 // Falkenbergsgatan goes on west; the leg runs along it forward, the direction
 // motor_vehicle:backward=no does not name. Node 312500257, access=private and
 // no barrier key, lies on way 28443588 between that way's dead end and
-// Krusegatan; the leg runs from the dead end's stretch to Krusegatan.
+// Krusegatan; the leg runs from the dead end's stretch to Krusegatan. The
+// synthetic way synMotorcarBackward runs east between two unmarked synthetic
+// ways, and the leg runs along it east, forward: the direction the engine,
+// reading motor_vehicle:backward=no as a one-way, routes it.
 var directionalCases = []legCase{
 	{
 		name: "a leg along a way marked only by motor_vehicle:backward=no, run forward",
@@ -951,15 +1007,22 @@ var directionalCases = []legCase{
 		to: planner.Point{Latitude: 55.6192836, Longitude: 13.0495794}, toWay: 28288767, // between nodes 312500253 and 10188608433
 		kind: "barrier", feature: 312500257, featureWay: 28443588,
 	},
+	{
+		name: "a leg along a way carrying motorcar=yes with motor_vehicle:backward=no",
+		from: planner.Point{Latitude: 57.0000000, Longitude: 11.7015000}, fromWay: syntheticBase + 1, // between nodes +101 and +102
+		to: planner.Point{Latitude: 57.0000000, Longitude: 11.7075000}, toWay: syntheticBase + 3, // between nodes +104 and +105
+		kind: "way", feature: synMotorcarBackward, featureWay: synMotorcarBackward, forward: [2]int64{syntheticBase + 102, syntheticBase + 104},
+	},
 }
 
 // TestAC7ARouteCrossingSuchAMarkingYieldsNoLeg is #255 AC7 (`FR-125`, ninth
-// to eleventh criteria), on the instances the extract holds: a route the
-// engine returns between two points on unmarked ways, along a way carrying
-// only motor_vehicle:backward=no in its forward direction, and separately past
-// a node carrying access=private and no barrier key, produces no leg, and the
-// refusal names the feature and the edge it lies on. OpenStreetMap holds no
-// way carrying motorcar=yes with motor_vehicle:backward=no, AC7's third (#261).
+// to eleventh criteria): a route the engine returns between two points on
+// unmarked ways, along a way carrying only motor_vehicle:backward=no in its
+// forward direction, separately past a node carrying access=private and no
+// barrier key, and separately along a way carrying motorcar=yes with
+// motor_vehicle:backward=no, produces no leg, and the refusal names the
+// feature and the edge it lies on. The third is synthetic: OpenStreetMap holds
+// no way tagged so (#261).
 func TestAC7ARouteCrossingSuchAMarkingYieldsNoLeg(t *testing.T) {
 	fx := setUp(t)
 
@@ -974,6 +1037,8 @@ func TestAC7ARouteCrossingSuchAMarkingYieldsNoLeg(t *testing.T) {
 	if road := premise(t, fx.opl.ways, "way", 28443588, nil); !slices.Contains(road.nodes, 312500257) || carries(road.tags) {
 		t.Fatalf("the premise does not hold: way 28443588 does not carry node 312500257, or is itself marked (%v)", road.tags)
 	}
+
+	synthetic(t, fx.opl, synMotorcarBackward, map[string]string{"motorcar": "yes", "motor_vehicle:backward": "no"})
 
 	for _, tc := range directionalCases {
 		t.Run(tc.name, func(t *testing.T) { fx.refused(t, tc) })
@@ -998,4 +1063,46 @@ func TestAC8AConditionalValueAloneRefusesNothing(t *testing.T) {
 		planner.Point{Latitude: 51.4684353, Longitude: -2.6163190}, // Anglesea Place, between nodes 26163964 and 26149484
 		planner.Point{Latitude: 51.4686804, Longitude: -2.6146257}, // Mornington Road 462835349, between nodes 26149485 and 26149486
 		4313847, "motor_vehicle:conditional=no @ (Mo-Fr 08:00-18:00)")
+}
+
+// TestAC9ADirectionalPermissionLiftsNoPlainMarking is #255 AC9 (`FR-125`,
+// thirteenth criterion; `RD-066`): the ways carrying motor_vehicle=no with
+// motor_vehicle:forward=yes and motor_vehicle:backward=yes, motorcar=no with
+// motorcar:forward=yes and motorcar:backward=yes, and motor_vehicle=no with
+// motorcar:forward=yes and motorcar:backward=yes are held as marked, and a
+// route the engine returns along the first, between two points on unmarked
+// ways, produces no leg. All three are synthetic: OpenStreetMap holds no way
+// tagged as any of them (#261). The engine routes the first as a road a car
+// may use (Valhalla 3.9.1's graph.lua lets motor_vehicle:forward and
+// :backward override motor_vehicle), so the check is what refuses it.
+func TestAC9ADirectionalPermissionLiftsNoPlainMarking(t *testing.T) {
+	fx := setUp(t)
+
+	cases := []struct {
+		id   int64
+		tags map[string]string
+	}{
+		{synMotorVehicleBoth, map[string]string{"motor_vehicle": "no", "motor_vehicle:forward": "yes", "motor_vehicle:backward": "yes"}},
+		{synMotorcarBoth, map[string]string{"motorcar": "no", "motorcar:forward": "yes", "motorcar:backward": "yes"}},
+		{synMotorVehicleMotorcarBoth, map[string]string{"motor_vehicle": "no", "motorcar:forward": "yes", "motorcar:backward": "yes"}},
+	}
+
+	for _, c := range cases {
+		synthetic(t, fx.opl, c.id, c.tags)
+	}
+
+	ways := fx.ids(t, `SELECT way_id FROM public.access_way WHERE marked`)
+	for _, c := range cases {
+		if _, ok := slices.BinarySearch(ways, c.id); !ok {
+			t.Errorf("way %d (%v) is not held as marked: a directional permission lifted the plain marking", c.id, c.tags)
+		}
+	}
+
+	// The synthetic way runs east between two unmarked synthetic ways.
+	fx.refused(t, legCase{
+		name: "a leg along a way carrying motor_vehicle=no with motor_vehicle:forward=yes and motor_vehicle:backward=yes",
+		from: planner.Point{Latitude: 57.0100000, Longitude: 11.7015000}, fromWay: syntheticBase + 11, // between nodes +201 and +202
+		to: planner.Point{Latitude: 57.0100000, Longitude: 11.7075000}, toWay: syntheticBase + 13, // between nodes +204 and +205
+		kind: "way", feature: synMotorVehicleBoth, featureWay: synMotorVehicleBoth,
+	})
 }
