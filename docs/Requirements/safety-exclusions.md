@@ -834,7 +834,13 @@ Verification: test — against routing data built from a test extract holding
               specific key alone is avoided, and one carrying a value outside
               that set on the most specific of the four keys it carries is
               avoided though it also carries a value within that set on a key
-              that is none of the four
+              that is none of the four; and one carrying a value outside that
+              set only on a `:forward` or `:backward` form is avoided in the
+              direction the form does not name, as is one carrying such a
+              value on a directional form while the most specific plain key it
+              carries permits, and a node carrying such a value with no
+              `barrier` key, while one carrying such a value only on a
+              `:conditional` form is driven
 Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along a way, or passes a
               barrier, that the map data marks as private or
@@ -886,6 +892,37 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               avoiding every such way and barrier exists, when the leg is
               produced, then it runs along no such way and passes no such
               barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, carrying none of the four keys and a value outside the
+              permissive set on a `:forward` or `:backward` form of one of
+              them, that connection running along the way or passing the
+              barrier in the direction the form does not name, and between
+              whose ends a drivable connection avoiding every such way and
+              barrier exists, when the leg is produced, then it runs along no
+              such way and passes no such barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection passes a node carrying no `barrier`
+              key and a value outside the permissive set on the most specific
+              of the four keys it carries, and between whose ends a drivable
+              connection avoiding every such node and every way and barrier so
+              marked exists, when the leg is produced, then it passes no such
+              node
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along a way, or passes a
+              barrier, carrying a value within the permissive set on the most
+              specific of the four keys it carries and a value outside that
+              set on a `:forward` or `:backward` form of a less specific one
+              (`motorcar=yes` with `motor_vehicle:backward=no`), and between
+              whose ends a drivable connection avoiding every such way and
+              barrier exists, when the leg is produced, then it runs along no
+              such way and passes no such barrier
+              given a driving leg whose ends lie on ways not so marked, whose
+              quickest drivable connection runs along no way and passes no
+              barrier so marked, one way on it carrying none of the four keys
+              or their `:forward` and `:backward` forms and a value outside
+              the permissive set on a `:conditional` form of one of them, when
+              the leg is produced, then it runs along that way
 Status:       to-build
 Depends-on:   FR-006; FR-126
 Volatility:   open-question — how the tags are read is designed in
@@ -943,7 +980,16 @@ Rationale:    The cited section makes this a hard rule: no route may be
               marked, so the loosening lifts nothing else. The eighth keeps a
               permission on a key that is none of the four from lifting a
               marking, so a build that takes the most specific key of any
-              mode, not of a car, fails. No mechanism is
+              mode, not of a car, fails. The ninth to the twelfth test the
+              Owner's tag decisions (`DECISIONS.md § RD-064`,
+              `DECISIONS.md § RD-065`): a way marked in one direction alone is
+              avoided in the other, so a build that ignores the directional
+              forms, or reads a leg's direction before the check can, fails; a
+              node so marked with no `barrier` key is a barrier; a directional
+              form outside the set marks though a plain, more specific key
+              permits; and a value outside the set on a `:conditional` form
+              alone is driven, so a build that reads a condition it cannot
+              evaluate as a marking fails. No mechanism is
               named, and a penalty is not an exclusion.
 Resolved-by:  #248, #255, #256
 ```
