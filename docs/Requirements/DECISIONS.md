@@ -2741,3 +2741,227 @@ Affects:        RD-062's second and third edges, superseded; FR-125's,
                 marking, AC2, AC14 to AC16 and notes; #253's definition of
                 such an area, AC2 and notes.
 ```
+
+## RD-064 — How does a marking read a node with no `barrier` key, a directional key, and a conditional key?
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, on `@engineering-lead`'s three questions in
+                `#issuecomment-6880364498`, in
+                https://github.com/Caisesiume/TurfGPS/pull/258#issuecomment-6881987007,
+                relayed by `@engineering-lead`; the Owner's ruling on N8, in
+                https://github.com/Caisesiume/TurfGPS/pull/258#issuecomment-6882566291,
+                directs that the second decision be recorded as an entry here.
+                This entry records a ruling made elsewhere, with one edge the
+                ruling leaves open decided on the ladder below.
+Question:       The design ADR-0008 adds (PR #258) met three kinds of tag that
+                RD-059 to RD-063 do not name: a node carrying one of the four
+                keys but no `barrier` key; the `:forward` and `:backward`
+                forms of the four keys; and their `:conditional` forms. RD-063
+                reads a feature carrying none of the four keys as unmarked, so
+                read literally it leaves a way tagged only
+                `motor_vehicle:backward=no` unmarked (the safety sentinel's N7
+                on PR #258, `#issuecomment-6882489717`). How does a marking
+                read each?
+Interpretation: **A node carrying a value outside the permissive set counts as
+                a barrier whether or not it carries a `barrier` key; a
+                `:forward` or `:backward` form of one of the four keys governs
+                its own direction, and a feature marked in either direction is
+                marked in both until the check can tell which direction a leg
+                runs a way in; a `:conditional` form of an access key is
+                ignored, neither marking a feature nor lifting its marking.**
+                The ruling, verbatim: "(1) a node with a non-permissive access
+                key but no barrier key **counts as a barrier**; (2)
+                `:forward`/`:backward` keys govern their own direction, and
+                **both directions count as marked** until the check can tell
+                a leg's direction; (3) `:conditional` keys are **ignored** for
+                now: only unconditional tags count until conditions can be
+                evaluated." The four keys and their eight directional forms
+                are the twelve access keys of
+                `Architecture.md § What the tables hold`, and a feature
+                carrying any of the twelve is read by this entry, never by
+                RD-063's sentence on a feature carrying none of the four. The
+                third answer is the Owner's against the sentinel's
+                recommendation, recorded in the lead's question, that a
+                non-permissive conditional value mark the way at all times.
+                One edge is read on the ladder: in one direction, a key's
+                directional form takes that key's place in RD-063's
+                precedence, and the plain key governs that direction only
+                where its directional form is absent. So `motorcar=no` with
+                `motorcar:forward=yes` and `motorcar:backward=yes` is unmarked
+                in both directions, and so unmarked: a directional permission
+                in both directions lifts a plain marking of the same key,
+                which is the ruling's "govern their own direction" (the
+                sentinel's N10 on PR #258, `#issuecomment-6882790979`). And
+                `motorcar=no` with `motor_vehicle:forward=yes` stays marked,
+                `motorcar` remaining the more specific key in that direction.
+                Whether a directional form outside the permissive set marks
+                its direction against a plain, more specific key that permits
+                is RD-065's.
+Rung:           n/a for the ruling — Owner ruling, escalated by the lead
+                because how a marking reads each of the three is a reading of
+                a safety rule: rung 4 offered RD-059's four keys and its
+                barrier of any kind, which name none of the three. The edge
+                rests on rung 7, most conservative reasonable interpretation:
+                of the readings the ruling's "govern their own direction"
+                admits, placing a directional form where its key stands lifts
+                the fewest markings. Ranking every directional form above
+                every plain key would let `access:forward=yes` lift
+                `motorcar=no`, and letting a directional form only add
+                markings would deny the ruling's own words.
+Affects:        FR-125's, FR-126's, FR-127's and FR-128's `Volatility`;
+                RD-059's barrier of any kind, extended to a node carrying no
+                `barrier` key; RD-063's reading of a feature carrying none of
+                the four keys, superseded for one carrying a directional form;
+                `Architecture.md § What the tables hold`, which already
+                carries the ruling. #248's, #253's and #255's definitions of a
+                marking are bound by it and not edited in this pass.
+```
+
+## RD-065 — Does a directional key outside the permissive set mark its direction where a plain, more specific key permits?
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, on the safety sentinel's N8 on PR #258
+                (`#issuecomment-6882489717`), in
+                https://github.com/Caisesiume/TurfGPS/pull/258#issuecomment-6882566291,
+                relayed by `@engineering-lead`; the same comment directs that
+                this decision be recorded as an entry here. This entry records
+                a ruling made elsewhere, with two edges the ruling leaves open
+                decided on the ladder below.
+Question:       Under RD-064's edge a key's directional form takes that key's
+                place in RD-063's precedence, so in `motorcar=yes` with
+                `motor_vehicle:backward=no` the plain `motorcar`, the more
+                specific key, governs the backward direction and the way is
+                unmarked. The sentinel found that ranking a key's vehicle
+                before its direction is a reading, not a sourced OSM rule.
+                Does a directional key outside the permissive set mark its
+                direction where a plain, more specific key permits?
+Interpretation: **Yes: direction specificity beats vehicle specificity for a
+                marking. A feature is marked in a direction where the most
+                specific of the directional forms it carries for that
+                direction has a value outside the permissive set, whatever any
+                plain key says; this marks in addition to RD-064's reading and
+                never lifts what that reading marks.** The ruling, verbatim:
+                "a **direction-specific non-permissive key marks its
+                direction** even when a plain, more specific car key permits
+                (e.g. `motorcar=yes` + `motor_vehicle:backward=no` is marked
+                backward). Direction specificity beats vehicle specificity."
+                That way is therefore marked backward and, under RD-064,
+                marked. Two edges are read on the ladder. First, the ruling is
+                one-sided: it lets a directional value outside the set mark,
+                and gives a directional value inside the set no power over a
+                plain, more specific key outside it, so `motorcar=no` with
+                `motor_vehicle:forward=yes` stays marked, as RD-064 holds.
+                Second, among the directional forms of one direction RD-063's
+                precedence still governs, so `motorcar:backward=yes` with
+                `motor_vehicle:backward=no` is unmarked backward: the
+                permitting key is as specific in direction as the other and
+                more specific in vehicle, so it wins under both rules.
+Rung:           n/a for the ruling — Owner ruling, escalated because which of
+                a key's vehicle and its direction ranks first is a reading of
+                a safety rule: RD-063 orders the four keys and says nothing of
+                direction, so rung 4 offered vehicle first, as RD-064's edge
+                places a directional form, and rung 7 direction first, which
+                marks more; the Owner chose direction. The first edge rests on
+                rung 7, most conservative reasonable interpretation: a
+                directional permission read in against a more specific marking
+                loosens an exclusion the ruling does not loosen. The second
+                rests on rung 4, existing requirements: between two
+                directional forms of one direction the ruling's contrast
+                between direction and vehicle does not arise, and RD-063's
+                precedence is what remains.
+Affects:        FR-125's, FR-126's, FR-127's and FR-128's `Volatility`;
+                RD-064's edge, added to and not superseded;
+                `Architecture.md § What the tables hold`, whose second call
+                per direction already carries the ruling. #248's, #253's and
+                #255's definitions of a marking are bound by it and not edited
+                in this pass; the test case for this ruling is #255's.
+```
+
+## RD-066 — Does a directional permission in both directions lift a plain marking? (supersedes RD-064's edge)
+
+```
+Date:           2026-11-14
+Decided-by:     the Owner, on `@engineering-lead`'s question in
+                `#issuecomment-6884122480`, raised from the safety sentinel's
+                N11 on PR #259 (`#issuecomment-6884115815`), in
+                https://github.com/Caisesiume/TurfGPS/pull/259#issuecomment-6884145900,
+                relayed by `@engineering-lead`; the same comment directs that
+                the decision be recorded as an entry here and RD-064's open
+                reading corrected. This entry records a ruling made elsewhere;
+                it supersedes RD-064's edge and leaves RD-064 otherwise
+                standing.
+Question:       RD-064 read one edge of the ruling's "govern their own
+                direction" on the ladder: in one direction, a key's
+                directional form takes that key's place in RD-063's
+                precedence, so `motorcar=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes` is unmarked in both directions, and so
+                unmarked. The sentinel found that the edge lifts a marking
+                RD-063 alone imposes, which loosens a safety exclusion. As the
+                lead put it to the Owner: does a directional car 'yes' in both
+                directions lift a plain car 'no' (e.g. `motor_vehicle=no` +
+                `motor_vehicle:forward=yes` + `motor_vehicle:backward=yes`)?
+Interpretation: **No: a directional form of an access key only adds markings.
+                A feature is marked in a direction where the most specific of
+                the four plain keys it carries has a value outside the
+                permissive set, read as `DECISIONS.md § RD-063` reads it with
+                every directional form set aside, or where
+                `DECISIONS.md § RD-065` marks that direction on the
+                directional forms alone; no directional value lifts a marking
+                either reading gives.** The ruling, verbatim: "**stays
+                closed**. Directional car keys only add markings; a
+                directional 'yes' in both directions never lifts a plain car
+                'no'." So `motor_vehicle=no` with `motor_vehicle:forward=yes`
+                and `motor_vehicle:backward=yes` is marked; so is
+                `motorcar=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes`, which RD-064's edge read as unmarked;
+                and so is `motor_vehicle=no` with `motorcar:forward=yes` and
+                `motorcar:backward=yes`, the plain reading never consulting a
+                directional form. RD-064's edge is superseded whole, not
+                narrowed. In each direction the key it lets govern is either a
+                plain key with no more specific key carried in either form,
+                which is then the most specific plain key and marks under the
+                plain reading, or a directional form with no more specific
+                directional form of that direction, which marks under RD-065.
+                Every marking the edge gives, one of the two readings gives
+                too, and what the edge did alone was lift a plain marking,
+                which the ruling forbids. RD-064 otherwise stands: its three
+                decisions, and its sentence that a feature marked in either
+                direction is marked in both. RD-065 stands. Its first edge,
+                that `motorcar=no` with `motor_vehicle:forward=yes` stays
+                marked, now follows from this ruling as well, and the reading
+                its Interpretation marks "in addition to" is the plain reading
+                above. Its second edge is not reached: the ruling answers
+                whether a directional value lifts a plain one, and among the
+                directional forms of one direction RD-063's precedence still
+                governs, so `motorcar:backward=yes` with
+                `motor_vehicle:backward=no` is unmarked, with or without
+                `motorcar=yes`.
+Rung:           n/a for the ruling — Owner ruling, escalated by the lead on
+                the sentinel's N11 because RD-064's edge lifted a marking
+                RD-063 alone imposes, and loosening a safety exclusion is the
+                Owner's alone (RD-063's `Rung`). RD-064 had run the ladder to
+                rung 7, most conservative reasonable interpretation, and
+                stopped short there: it read "govern their own direction" as
+                including permission, and rejected a directional form that
+                only adds markings as denying the ruling's words; the Owner
+                chose that rejected reading. That the edge gives no marking
+                the two readings miss is the analysis recorded above. That
+                RD-065's second edge survives rests on rung 4, existing
+                requirements: it is a filed entry this ruling does not
+                address, and it stands until a ruling or an entry supersedes
+                it.
+Affects:        RD-064's edge, superseded; RD-065's first edge, now resting on
+                this ruling too; FR-125's, FR-126's, FR-127's and FR-128's
+                `Volatility`; FR-125's acceptance criteria, gaining the
+                thirteenth, with the ninth's and the eleventh's premises
+                narrowed to the marking RD-064, RD-065 and this entry define;
+                #255, gaining AC9. `Architecture.md § What the tables hold`,
+                whose first call per direction takes a directional form's
+                value in its key's place and so reads all three examples above
+                as unmarked, contradicts this ruling; it is raised to
+                `@engineering-lead` and not edited here. #248's and #253's
+                definitions of a marking are bound by it and not edited in
+                this pass.
+```
