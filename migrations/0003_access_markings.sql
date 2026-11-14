@@ -88,14 +88,9 @@ CREATE OR REPLACE FUNCTION public.access_feature_marked(
     motorcar_backward      text, motor_vehicle_backward text, vehicle_backward text, access_backward text
 ) RETURNS boolean
 LANGUAGE sql IMMUTABLE PARALLEL SAFE
-RETURN (public.access_marked(motorcar, motor_vehicle, vehicle, access) -- RED RUN (a): a permission both ways lifts the plain marking
-        AND NOT (coalesce(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward) IS NOT NULL
-                 AND NOT public.access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)
-                 AND coalesce(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward) IS NOT NULL
-                 AND NOT public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward)))
-    OR (coalesce(motorcar, motor_vehicle, vehicle, access) IS NULL -- RED RUN (c): a directional form is read only where no plain key is
-        AND (public.access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)
-             OR public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward)));
+RETURN public.access_marked(motorcar, motor_vehicle, vehicle, access)
+    OR public.access_marked(motorcar_forward, motor_vehicle_forward, vehicle_forward, access_forward)
+    OR public.access_marked(motorcar_backward, motor_vehicle_backward, vehicle_backward, access_backward);
 
 -- --- the feature tables -----------------------------------------------------
 --
