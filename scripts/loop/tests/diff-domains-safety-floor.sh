@@ -25,7 +25,9 @@ check() { # check <label> <expected safety_path_candidates line, whole>
 }
 
 # Given the changed paths include owed.go, the floor names it and nothing else.
-run service/internal/config/owed.go service/cmd/turfgps/main.go web/src/App.tsx
+# (The off-floor Go path was service/cmd/turfgps/main.go until #268 put the
+# composition root on the floor; that path has its own case below.)
+run service/internal/config/owed.go service/internal/turf/session.go web/src/App.tsx
 check "config/owed.go is a safety path" \
   'safety_path_candidates: [service/internal/config/owed.go]'
 
@@ -85,11 +87,46 @@ run migrations/0004_access_run.sql migrations/0004_access_run.verify.sql \
 check "the run's migration is a safety path" \
   'safety_path_candidates: [migrations/0004_access_run.sql, migrations/0004_access_run.verify.sql, migrations/0004_access_run.down.sql, service/internal/planner/run.go, service/internal/accessstore/run.go]'
 
-# Near misses on either side of those anchors: another migration is not one.
+# Near misses on either side of those anchors. (migrations/0002_zone_feed.sql
+# and migrations/0004_access_runs.sql stood here until #268 put every migration
+# SQL file on the floor; they are listed in the case after this one.)
 run service/internal/plannerx/p.go service/internal/planner xservice/internal/accessstore/a.go \
-    service/internal/accessloader/x.go migrations/0002_zone_feed.sql migrations/0003_access_markings \
-    xmigrations/0003_access_markings.sql migrations/0004_access_runs.sql migrations/0004_access_run
+    service/internal/accessloader/x.go migrations/0003_access_markings \
+    xmigrations/0003_access_markings.sql migrations/0004_access_run
 check "access-marking near misses are not safety paths" \
+  'safety_path_candidates: []'
+
+# A later migration that creates, replaces, alters or drops the rule, the check
+# or their tables, its verify, and its rollback (#268, sentinel N4 on PR #261).
+# The floor sees paths only, so it lists every migration SQL file, an edit to an
+# earlier one included, rather than miss the one that redefines access_crossings.
+run migrations/0005_access_rule_v2.sql migrations/0005_access_rule_v2.verify.sql \
+    migrations/0005_access_rule_v2.down.sql migrations/0002_zone_feed.sql \
+    migrations/0004_access_runs.sql migrations/0001_zone_store.sql \
+    migrations/README.md service/internal/httpapi/journeys.go
+check "every migration SQL file is a safety path" \
+  'safety_path_candidates: [migrations/0005_access_rule_v2.sql, migrations/0005_access_rule_v2.verify.sql, migrations/0005_access_rule_v2.down.sql, migrations/0002_zone_feed.sql, migrations/0004_access_runs.sql, migrations/0001_zone_store.sql]'
+
+# Near misses on either side of the migration anchor: not SQL, not under the
+# root migrations/, or the directory alone.
+run migrations/0005_access_rule_v2 migrations/0005_access_rule_v2.sqlx migrations/.sql \
+    xmigrations/0005_access_rule_v2.sql service/migrations/0005_access_rule_v2.sql \
+    migrations/0001_zone_store.density.csv migrations/README.md migrations
+check "migration near misses are not safety paths" \
+  'safety_path_candidates: []'
+
+# service/cmd/turfgps/ is the composition root: it wires the access-marking
+# store, the tile-identity reader and the zone copy into the planner, and runs
+# the loader that fills the tables (#268, the lead's routing from PR #279).
+run service/cmd/turfgps/main.go service/cmd/turfgps/accessload.go \
+    service/cmd/turfgps/tileidentitywiring_test.go service/internal/turf/session.go
+check "the composition root is a safety path" \
+  'safety_path_candidates: [service/cmd/turfgps/main.go, service/cmd/turfgps/accessload.go, service/cmd/turfgps/tileidentitywiring_test.go]'
+
+# Near misses on either side of the composition-root anchors.
+run service/cmd/turfgpsx/main.go service/cmd/turfgps xservice/cmd/turfgps/main.go \
+    service/cmd/other/main.go cmd/turfgps/main.go
+check "composition-root near misses are not safety paths" \
   'safety_path_candidates: []'
 
 # The six entries the floor already held still match, in input order.

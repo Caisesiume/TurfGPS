@@ -74,7 +74,7 @@ MIGR_OK="$(check migrations github-actions 101 completed success)"
 green() {   # every check holds
   printf 'Caisesiume\n' > "$FIX/user"; printf 'OPEN%s\n' "$T" > "$FIX/after"
   pr "$HEAD"; lines reviews "$APPROVED_AT_HEAD"; lines checks "$GATES_OK" "$MIGR_OK"
-  lines files service/cmd/turfgps/main.go README.md; lines comments; rm -f "$FIX/floor"
+  lines files service/internal/turf/session.go README.md; lines comments; rm -f "$FIX/floor"
 }
 
 fails=0; OUT=''; RC=0
@@ -153,6 +153,14 @@ lines comments "$(verdict TheReviewNinja 2026-10-20T10:00:00Z "$HEAD" pass)" \
                "$(verdict TheReviewNinja 2026-10-20T11:00:00Z "$HEAD" block)"; run; refused "a pass superseded by a later block is refused" "(latest: block)"
 lines files service/x.go docs/Requirements/access-classification.md; lines comments
 run;                             refused "a renamed-away safety file still counts" "access-classification.md"
+# #268: a later migration, which may redefine the access rule or the check, and the
+#       composition root are on the floor as GitHub's file list shows them
+green; lines files migrations/0005_access_rule_v2.sql migrations/0005_access_rule_v2.down.sql README.md
+run;                             refused "a later migration is a safety path" "touches a safety path (migrations/0005_access_rule_v2.sql, migrations/0005_access_rule_v2.down.sql)"
+lines comments "$(verdict TheReviewNinja 2026-10-20T10:00:00Z "$HEAD" pass)"
+run;                             expect "...and with a passing verdict at the head: would merge" 0 "safety paths: migrations/0005_access_rule_v2.sql, migrations/0005_access_rule_v2.down.sql"
+green; lines files service/cmd/turfgps/main.go README.md
+run;                             refused "the composition root is a safety path" "touches a safety path (service/cmd/turfgps/main.go)"
 
 # 8b — the floor is the union of main's and the PR head's (#252). The head's copy is
 #      this checkout's own diff-domains.sh with one entry added or removed, so the
