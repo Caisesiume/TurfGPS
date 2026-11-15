@@ -48,7 +48,7 @@ Rationale:    The four classes are the terminals of the flowchart under
               candidate must land somewhere honest rather than nowhere. Which
               class a candidate reaches is decided by FR-068 and the records
               after it; this one forbids none and two.
-Resolved-by:  —
+Resolved-by:  #77
 ```
 
 ## FR-068 — Choose the validation regime from the direct-access tolerance
@@ -106,7 +106,7 @@ Rationale:    The cited calculation section states outright that the constant
               tolerance is cited and never quoted, so the record stands at
               whatever value a deployment enforces — and that the value may be
               tightened and never loosened is FR-069's.
-Resolved-by:  —
+Resolved-by:  #83
 ```
 
 ## FR-071 — Send an established level or barrier failure to the park-and-walk branch
@@ -178,7 +178,7 @@ Rationale:    The cited section states that a zone is not lost by falling
               and it is not repeated here. `Risk` is present on a should
               because this is an access-classification record and therefore a
               safety path, per `safety-path-checklist`.
-Resolved-by:  —
+Resolved-by:  #86
 ```
 
 ## FR-072 — Classify uncertain where the direct-access evidence is ambiguous
@@ -228,7 +228,7 @@ Rationale:    The cited section states this outright, and it acts on different
               is why `Depends-on` names FR-092; FR-070 carries the argument
               for evaluating the level relationship there and it is not
               repeated here.
-Resolved-by:  —
+Resolved-by:  #87
 ```
 
 ## FR-073 — Measure a candidate's access route to the zone's coordinate
@@ -277,7 +277,7 @@ Rationale:    The cited section requires the route to connect the stopping
               is ordinary — and what such an approach costs the estimate's
               confidence is FR-081's and what must then be said of it is
               FR-088's.
-Resolved-by:  —
+Resolved-by:  #88
 ```
 
 ## FR-075 — Build no access path from a way the data bars to pedestrians
@@ -327,7 +327,7 @@ Rationale:    This is the obligation carried by the cited section's evaluation
               does not record it cannot establish, per
               `SPECIFICATION.md § Requirements the data cannot verify`, and
               this record claims nothing beyond what the data marks.
-Resolved-by:  —
+Resolved-by:  #90
 ```
 
 ## FR-078 — Validate every leg of a multi-zone walking route
@@ -375,7 +375,7 @@ Rationale:    The cited section states that the barrier reasoning governing
               which sharing occurs: a shared driving deviation is established
               by routing under FR-086 and charged once by FR-008, and a shared
               stop is established here.
-Resolved-by:  —
+Resolved-by:  #93
 ```
 
 ## FR-081 — Assign a confidence level to every access estimate
@@ -448,7 +448,7 @@ Rationale:    The cited section obliges a confidence level per access estimate
               batch. Confidence is a gate and never a term in the score, per
               `CalculationSpecification.md § Proposed form: value per minute`,
               and nothing here makes it one.
-Resolved-by:  —
+Resolved-by:  #98
 ```
 
 ## FR-082 — Classify a low-confidence access estimate as uncertain
@@ -533,7 +533,7 @@ Rationale:    The cited section sends zones with low-confidence access out of
               system can route every fallback-priced candidate correctly and
               still call an incomplete elevation sample confident. What an
               uncertain classification then means for the search is FR-084's.
-Resolved-by:  —
+Resolved-by:  #100
 ```
 
 ## FR-083 — Admit park-and-walk only on a routed path and an obtained elevation profile
@@ -614,7 +614,7 @@ Rationale:    The obligation is positive by design. Stated as a prohibition on
               honesty of the access model, standing to it as FR-014 and FR-015
               stand to FR-016. Authored in this lane on `@requirements-nfr`'s
               referral and agreed: a prohibition on a behaviour is functional.
-Resolved-by:  —
+Resolved-by:  #92
 ```
 
 ## FR-084 — Keep uncertain candidates out of the optimization
@@ -666,7 +666,7 @@ Rationale:    The cited section sends low-confidence access out of
               against the ceiling — is owed to the batch scoped to
               `SPECIFICATION.md § Route review and zone confirmation` and is
               deliberately not authored here.
-Resolved-by:  —
+Resolved-by:  #101
 ```
 
 ## FR-085 — Classify a zone accessible only on an identified connection
@@ -732,7 +732,7 @@ Rationale:    The cited section states that a zone is accessible only where
               prohibition, that a zone is not accessible merely because its
               centre lies within a configured radius of a road or parking
               location, and it is the branch this record fires on.
-Resolved-by:  —
+Resolved-by:  #79
 ```
 
 ## FR-092 — Identify a stopping position rather than manufacture one
@@ -841,7 +841,7 @@ Rationale:    The obligation is positive by design. Stated as a prohibition on
               the one position is FR-093's, and the two fail independently: a
               system can identify a proper position and still resolve it
               twice.
-Resolved-by:  —
+Resolved-by:  #78
 ```
 
 ## FR-139 — Record a stopping position the user places on the map as one the user chose

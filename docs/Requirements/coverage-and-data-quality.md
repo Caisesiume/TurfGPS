@@ -80,5 +80,5 @@ Rationale:    The obligation is the relation, not the assignment. That an
               `Architecture.md § Ports and adapters` rather than by the cited
               section, and naming provider resolution in the condition above
               would have claimed an obligation owed to the batch scoped there.
-Resolved-by:  —
+Resolved-by:  #99
 ```

@@ -40,7 +40,7 @@ Category vocabulary and the ID allocation ledger: `README.md`. Story links: `TRA
 
 **148 rows read `to-build`, six read `draft` and five read `implemented-verified`.** `FR-007`, `FR-008` and `FR-009` were classified `implemented-verified` on 15 November 2026 from `main` at `f54ee08`, after PRs #289, #290 and #291 built #7, #8 and #9. `FR-008`: the cost is `service/internal/planner/cost.go:135`, taken at `:154`, and its two criteria are proved by `service/internal/planner/cost_test.go:102` and `:172`. `FR-009`: the stop's time enters the duration at `service/internal/planner/cost.go:116`, and its two criteria are proved by `service/internal/planner/stoptime_test.go:37` and `:79`. `FR-007`: the value is `service/internal/planner/value.go:68`, over the set `:44` returns, and its two criteria are proved by `service/internal/planner/value_test.go:93` and `:142`. No production path yet builds a journey alternative, so each is proved at the unit the stories built, which is what each record obliges. `FR-004` was classified `implemented-verified` on 15 November 2026 from `main` at `4851688`, after PR #287 built #3: the check is `service/internal/planner/waypoints.go:33`, called at `service/internal/planner/planner.go:540`, and its two criteria are proved by `service/internal/planner/waypoints_test.go:94` and `:160`. `FR-012` was classified `implemented-verified` on 15 November 2026 from `main` at `76960a2`, after PR #281 built #5: the guard is `service/internal/planner/planner.go:662`, called at `:487`, and its three criteria are proved by `service/internal/planner/returntoorigin_test.go:19`, `:74` and `:118` and `service/internal/httpapi/journeys_test.go:222`. `FR-140` and `FR-141`, filed on 15 November 2026 on the safety verdict at PR #274's head `7272346` and the Owner's decisions as `DECISIONS.md § RD-078` and `DECISIONS.md § RD-077` record them, were filed `to-build`. `FR-138` and `FR-139`, filed on 15 November 2026 on the safety verdict on PR #274 and the Owner's decisions as `DECISIONS.md § RD-074` and `DECISIONS.md § RD-073` record them, were filed `to-build`. `FR-136` and `FR-137`, filed on 15 November 2026 on the safety verdict on PR #274 and the Owner's scoping answer as `DECISIONS.md § RD-069` and `DECISIONS.md § RD-070` read it, were filed `to-build`. `FR-129` … `FR-135`, filed on 15 November 2026 on the Owner's decision on #248 recorded as `DECISIONS.md § RD-067`, split: `FR-131`, `FR-132`, `FR-133` and `FR-135` were filed `to-build`, and `FR-129`, `FR-130` and `FR-134` `draft`, each resting on an edge of that ruling put to the Owner; the Owner answered all three the same day, recorded as `DECISIONS.md § RD-068`, and the three moved `draft` → `to-build`. `FR-126` … `FR-128`, filed on 5 November 2026 on the Owner's decisions on PR #251, were filed `to-build`, as `FR-125` was on 22 October 2026 on the Owner's decision on PR #246. `FR-119` … `FR-124`, filed on 20 October 2026 from the Owner's zone-sync decision on #20, stay `draft` until `Architecture.md § Retrieving zones` carries that decision through the amendment the Owner approved on 20 October 2026. Batch 6 — `FR-094` … `FR-118` and `NFR-008` … `NFR-018` — was authored, de-conflicted and moved `draft` → `to-build` by `@requirements-engineer` under `ADR-0001 § D6` before it was filed on 28 August 2026, its remaining questions logged in `DECISIONS.md` as `RD-010` … `RD-040` — **thirty-one entries**, seventeen at the filing pass and the rest added by the three revisions PR #135's review produced, which `README.md § ID allocation ledger` blocks and dates; it is the first batch this index has taken whose rows have never held `draft` in a committed state. Batch 5 — `FR-058` … `FR-093`, `NFR-006` and `NFR-007` — was filed on 7 August 2026 and moved `draft` → `to-build` on 14 August 2026, `@requirements-engineer` recording the transition itself under `ADR-0001 § D6` with the batch's seven remaining questions logged in `DECISIONS.md`. Every row filed before it moved the same way: batch 4 — `FR-038` … `FR-054` — was signed off on 6 August 2026 and all seventeen moved from `draft` **straight to `to-build`**, as batch 3b did earlier the same day, as batch 3 did on 4 August 2026 and as batches 1 and 2 each did on the day they were filed, and `FR-055` … `FR-057` moved the same way on 7 August 2026. `approved` stays unreachable while `@requirements-reconciler` is dormant, and no record in this corpus has ever held it. **Nothing in this column says how far the build has got** — that question is answered by following `Resolved-by` to the stories, never by a value written here. See `README.md § Corpus state`.
 
-**90 rows name at least one story in `Resolved-by`, and 69 read `—`.** `FR-058` … `FR-062` gained #68 … #72 on 15 November 2026, transcribed from the issues' `Resolves:` lines, which took the rows reading `—` from seventy-four to sixty-nine. `FR-140` and `FR-141`, added on 15 November 2026, were filed with their stories, #276 and #278, each gaining a criterion. `FR-138` and `FR-139`, added on 15 November 2026, were filed with their stories, #276, and #277 and #278. `FR-136` and `FR-137`, added on 15 November 2026, were filed with their story, #275. `FR-129` … `FR-135`, added on 15 November 2026, were filed with their stories, #271 and #273, in one pass, and `FR-125` gained #271, which changes its third and fourth criteria's refusal between two locations the user entered into a warned leg. `FR-126` and `FR-127`, added on 5 November 2026, were filed with #248 and `FR-128` with its own story, #253, which was split on 15 November 2026 on the lead's ruling, so `FR-128` carries #292 and #293 as well; `FR-125`, added on 22 October 2026, was filed with its story, #248. On 14 November 2026 #248 was split: its stopping-position criteria went to #256, which takes `FR-127` whole, and the access-marking table and route check the Owner ruled for went to #255. The six added on 20 October 2026 were filed with their stories, #232 and #233, in one pass. The sixty-two were allocated in six passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, the three batch-3b rows and seventeen batch-4 rows on 6 August 2026, and three more on 7 August 2026, each allocation following its batch's sign-off as a pass of its own — and thirteen epics and fifty-nine stories carry them. **The rows naming a story and the rows reading `to-build` are no longer the same set**, which is the visible consequence of the transitions above: the 148 that read `to-build` include sixty-nine that name no story here. `—` says *not yet allocated* here and never *unknown*, and **the sixty-nine are not one population.** Batch 5's thirty-three are a **transcription gap**, not a story pass outstanding: story creation follows `to-build` and not the reverse (`ADR-0001 § D6`), that pass ran on 14 August 2026, and each of the thirty-three is resolved on the board by one of #73 … #105, under eight epics, whose `Resolves:` lines are not yet transcribed (`TRACEABILITY.md § Story → requirement`). Batch 6's thirty-six are a story pass that is **not due at all**, under the Owner's sequencing directive that the platform is specified before stories are made — their `—` is deliberate rather than pending, and `README.md § ID allocation ledger` records it as the third reading this column's em-dash has carried. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
+**123 rows name at least one story in `Resolved-by`, and 36 read `—`.** `FR-063` … `FR-093`, `NFR-006` and `NFR-007` gained #73 … #105, one apiece, on 16 November 2026, and `NFR-005` gained #224 beside #26, each transcribed from the issue's `Resolves:` line, which took the rows reading `—` from sixty-nine to thirty-six. `FR-058` … `FR-062` gained #68 … #72 on 15 November 2026, transcribed the same way, which took them from seventy-four to sixty-nine. `FR-140` and `FR-141`, added on 15 November 2026, were filed with their stories, #276 and #278, each gaining a criterion. `FR-138` and `FR-139`, added on 15 November 2026, were filed with their stories, #276, and #277 and #278. `FR-136` and `FR-137`, added on 15 November 2026, were filed with their story, #275. `FR-129` … `FR-135`, added on 15 November 2026, were filed with their stories, #271 and #273, in one pass, and `FR-125` gained #271, which changes its third and fourth criteria's refusal between two locations the user entered into a warned leg. `FR-126` and `FR-127`, added on 5 November 2026, were filed with #248 and `FR-128` with its own story, #253, which was split on 15 November 2026 on the lead's ruling, so `FR-128` carries #292 and #293 as well; `FR-125`, added on 22 October 2026, was filed with its story, #248. On 14 November 2026 #248 was split: its stopping-position criteria went to #256, which takes `FR-127` whole, and the access-marking table and route check the Owner ruled for went to #255. The six added on 20 October 2026 were filed with their stories, #232 and #233, in one pass. The sixty-two were allocated in six passes — eighteen on 2 August 2026, the twenty-one batch-3 rows on 4 August 2026, the three batch-3b rows and seventeen batch-4 rows on 6 August 2026, and three more on 7 August 2026, each allocation following its batch's sign-off as a pass of its own — and thirteen epics and fifty-nine stories carry them. **The rows naming a story and the rows reading `to-build` are no longer the same set**, which is the visible consequence of the transitions above: the 148 that read `to-build` include thirty-six that name no story here. `—` says *not yet allocated* here and never *unknown*, and **the thirty-six are one population**: batch 6. Batch 5's thirty-eight all name a story since 16 November 2026 — their story pass ran on 14 August 2026, story creation following `to-build` and not the reverse (`ADR-0001 § D6`), and what the column lacked until then was the transcription of #68 … #105, not a story pass. Batch 6's thirty-six are a story pass that is **not due at all**, under the Owner's sequencing directive that the platform is specified before stories are made — their `—` is deliberate rather than pending, and `README.md § ID allocation ledger` records it as the third reading this column's em-dash has carried. Which stories, and which epic each requirement sits under, is `TRACEABILITY.md`; this column is a view of its first table.
 
 ## Journey definition
 
@@ -129,10 +129,10 @@ The second-hole debt recorded in `README.md § ID allocation ledger` — that no
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-063` | Bound a corridor set by the corridor half-width | Candidate identification | MUST | to-build | test | — |
-| `FR-064` | Promote no more candidates to full evaluation than the cap | Candidate identification | MUST | to-build | test | — |
-| `FR-065` | Record where the promotion cap bound | Candidate identification | MUST | to-build | test | — |
-| `FR-080` | Apply the configured maximum walking distance as a bound | Candidate identification | MUST | to-build | test | — |
+| `FR-063` | Bound a corridor set by the corridor half-width | Candidate identification | MUST | to-build | test | #73 |
+| `FR-064` | Promote no more candidates to full evaluation than the cap | Candidate identification | MUST | to-build | test | #74 |
+| `FR-065` | Record where the promotion cap bound | Candidate identification | MUST | to-build | test | #75 |
+| `FR-080` | Apply the configured maximum walking distance as a bound | Candidate identification | MUST | to-build | test | #91 |
 
 `FR-064` carries the obligation the reserved-ID worked example in `requirements-authoring` illustrates. The example is `FR-000` and is fictional in its identity alone; the duty it draws on is created here, and the two are not the same record. See `README.md § ID allocation ledger` for why the example's number is reserved.
 
@@ -142,19 +142,19 @@ The second-hole debt recorded in `README.md § ID allocation ledger` — that no
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-067` | Assign exactly one access class to every classified candidate | Access classification | MUST | to-build | test | — |
-| `FR-068` | Choose the validation regime from the direct-access tolerance | Access classification | MUST | to-build | test | — |
-| `FR-071` | Send an established level or barrier failure to the park-and-walk branch | Access classification | SHOULD | to-build | test | — |
-| `FR-072` | Classify uncertain where the direct-access evidence is ambiguous | Access classification | MUST | to-build | test | — |
-| `FR-073` | Measure a candidate's access route to the zone's coordinate | Access classification | MUST | to-build | test | — |
-| `FR-075` | Build no access path from a way the data bars to pedestrians | Access classification | MUST | to-build | test | — |
-| `FR-078` | Validate every leg of a multi-zone walking route | Access classification | MUST | to-build | test | — |
-| `FR-081` | Assign a confidence level to every access estimate | Access classification | MUST | to-build | test | — |
-| `FR-082` | Classify a low-confidence access estimate as uncertain | Access classification | MUST | to-build | test | — |
-| `FR-083` | Admit park-and-walk only on a routed path and an obtained elevation profile | Access classification | MUST | to-build | test | — |
-| `FR-084` | Keep uncertain candidates out of the optimization | Access classification | MUST | to-build | test | — |
-| `FR-085` | Classify a zone accessible only on an identified connection | Access classification | MUST | to-build | test | — |
-| `FR-092` | Identify a stopping position rather than manufacture one | Access classification | MUST | to-build | test | — |
+| `FR-067` | Assign exactly one access class to every classified candidate | Access classification | MUST | to-build | test | #77 |
+| `FR-068` | Choose the validation regime from the direct-access tolerance | Access classification | MUST | to-build | test | #83 |
+| `FR-071` | Send an established level or barrier failure to the park-and-walk branch | Access classification | SHOULD | to-build | test | #86 |
+| `FR-072` | Classify uncertain where the direct-access evidence is ambiguous | Access classification | MUST | to-build | test | #87 |
+| `FR-073` | Measure a candidate's access route to the zone's coordinate | Access classification | MUST | to-build | test | #88 |
+| `FR-075` | Build no access path from a way the data bars to pedestrians | Access classification | MUST | to-build | test | #90 |
+| `FR-078` | Validate every leg of a multi-zone walking route | Access classification | MUST | to-build | test | #93 |
+| `FR-081` | Assign a confidence level to every access estimate | Access classification | MUST | to-build | test | #98 |
+| `FR-082` | Classify a low-confidence access estimate as uncertain | Access classification | MUST | to-build | test | #100 |
+| `FR-083` | Admit park-and-walk only on a routed path and an obtained elevation profile | Access classification | MUST | to-build | test | #92 |
+| `FR-084` | Keep uncertain candidates out of the optimization | Access classification | MUST | to-build | test | #101 |
+| `FR-085` | Classify a zone accessible only on an identified connection | Access classification | MUST | to-build | test | #79 |
+| `FR-092` | Identify a stopping position rather than manufacture one | Access classification | MUST | to-build | test | #78 |
 | `FR-139` | Record a stopping position the user places on the map as one the user chose | Access classification | SHOULD | to-build | test | #277, #278 |
 
 Thirteen records at first filing, which makes this the corpus's second-largest category behind `Turf data integration`. **It is not the whole of the access model**, and the neighbours are worth naming because a reviewer checking access coverage will otherwise read one file and stop: the exclusions that refuse a class sit under `Safety exclusions`, the pricing of a validated stop under `Cost and time composition`, what the user is told about an uncertain estimate under `Recommendation disclosure`, and the judged correctness bar over all of them under `Classification correctness`. Each line is drawn on the register in `README.md`.
@@ -165,8 +165,8 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `FR-086` | Route a detour's cost through the proposed stopping position | Route construction | MUST | to-build | test | — |
-| `FR-087` | Reuse no candidate's detour cost across journeys | Route construction | MUST | to-build | test | — |
+| `FR-086` | Route a detour's cost through the proposed stopping position | Route construction | MUST | to-build | test | #103 |
+| `FR-087` | Reuse no candidate's detour cost across journeys | Route construction | MUST | to-build | test | #104 |
 
 ## Cost and time composition
 
@@ -178,9 +178,9 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-009` | Charge stop time to the journey even where no detour is driven | Cost and time composition | MUST | implemented-verified | test | #8 |
 | `FR-027` | Exclude blocktime from stop time | Cost and time composition | MUST | to-build | test | #32 |
 | `FR-062` | Keep the general-route deviation separable from the Turf stop time | Cost and time composition | SHOULD | to-build | test | #72 |
-| `FR-074` | Compute access cost from the routed path and its elevation profile | Cost and time composition | MUST | to-build | test | — |
-| `FR-079` | Price a park-and-walk stop over the set of zones it serves | Cost and time composition | MUST | to-build | test | — |
-| `FR-093` | Compute both halves of a stop against one resolved stopping position | Cost and time composition | MUST | to-build | test | — |
+| `FR-074` | Compute access cost from the routed path and its elevation profile | Cost and time composition | MUST | to-build | test | #89 |
+| `FR-079` | Price a park-and-walk stop over the set of zones it serves | Cost and time composition | MUST | to-build | test | #94 |
+| `FR-093` | Compute both halves of a stop against one resolved stopping position | Cost and time composition | MUST | to-build | test | #105 |
 
 `FR-027` is the first record in the corpus whose `Source` document differs from the document its category's other records cite: it is sourced from `Architecture.md § Player data` and filed under `Cost and time composition`. That is not a filing error and is not to be normalized — `Source` is where the obligation comes from, `Category` is the subsystem it binds.
 
@@ -237,8 +237,8 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-047` | Present an above-limit alternative as a stretch alternative | Recommendation disclosure | MUST | to-build | test | #45 |
 | `FR-048` | Name what the stated limit was exceeded for | Recommendation disclosure | MUST | to-build | test | #52 |
 | `FR-054` | Present the additional time for the journey as a whole | Recommendation disclosure | SHOULD | to-build | test | #54 |
-| `FR-066` | Tell the user where the promotion cap shaped the result | Recommendation disclosure | SHOULD | to-build | test | — |
-| `FR-088` | State the material uncertainty in an access estimate | Recommendation disclosure | SHOULD | to-build | test | — |
+| `FR-066` | Tell the user where the promotion cap shaped the result | Recommendation disclosure | SHOULD | to-build | test | #76 |
+| `FR-088` | State the material uncertainty in an access estimate | Recommendation disclosure | SHOULD | to-build | test | #102 |
 | `FR-131` | Identify every marked stretch of a warned leg | Recommendation disclosure | MUST | to-build | test | #271 |
 | `FR-132` | Show each marked stretch of a warned leg on the map | Recommendation disclosure | MUST | to-build | test | #273 |
 | `FR-133` | Warn that a warned route includes private property and should be reconsidered | Recommendation disclosure | MUST | to-build | test | #273 |
@@ -297,13 +297,13 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-046` | Reject a configured ceiling multiplier above the permitted maximum | Safety exclusions | MUST | to-build | test | #51 |
 | `FR-053` | Test the limit and the ceiling against the sum across all legs | Safety exclusions | MUST | to-build | test | #56 |
 | `FR-061` | Test the stated limit and the ceiling against the whole additional time | Safety exclusions | MUST | to-build | test | #71 |
-| `FR-069` | Reject a direct-access tolerance above the permitted value | Safety exclusions | MUST | to-build | test | — |
-| `FR-070` | Require compatible levels and no barrier for direct road access | Safety exclusions | MUST | to-build | test | — |
-| `FR-076` | Exclude an absent, disconnected, or implausibly steep access path | Safety exclusions | MUST | to-build | test | — |
-| `FR-077` | Let no zone's value admit an unsafe or infeasible access route | Safety exclusions | MUST | to-build | test | — |
-| `FR-089` | Propose no stop on a road the exclusions refuse | Safety exclusions | MUST | to-build | test | — |
-| `FR-090` | Reject a maximum stopping speed above the permitted value | Safety exclusions | MUST | to-build | test | — |
-| `FR-091` | Plan no journey while an owed enforcement constant is unconfigured | Safety exclusions | MUST | to-build | test | — |
+| `FR-069` | Reject a direct-access tolerance above the permitted value | Safety exclusions | MUST | to-build | test | #84 |
+| `FR-070` | Require compatible levels and no barrier for direct road access | Safety exclusions | MUST | to-build | test | #85 |
+| `FR-076` | Exclude an absent, disconnected, or implausibly steep access path | Safety exclusions | MUST | to-build | test | #95 |
+| `FR-077` | Let no zone's value admit an unsafe or infeasible access route | Safety exclusions | MUST | to-build | test | #96 |
+| `FR-089` | Propose no stop on a road the exclusions refuse | Safety exclusions | MUST | to-build | test | #80 |
+| `FR-090` | Reject a maximum stopping speed above the permitted value | Safety exclusions | MUST | to-build | test | #81 |
+| `FR-091` | Plan no journey while an owed enforcement constant is unconfigured | Safety exclusions | MUST | to-build | test | #97 |
 | `FR-125` | Route no driving leg through a private or access-restricted way or barrier | Safety exclusions | MUST | to-build | test | #248, #255, #256, #271 |
 | `FR-126` | Bound the private run that reaches a location the user entered | Safety exclusions | MUST | to-build | test | #248, #256 |
 | `FR-127` | Serve no stopping position past a private or access-restricted way or barrier | Safety exclusions | MUST | to-build | test | #256 |
@@ -324,7 +324,7 @@ The category triples in one pass and its subject widens with it: `FR-044` … `F
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-006` | Fall access confidence with the evidence behind the estimate | Coverage and data quality | MUST | to-build | test | — |
+| `NFR-006` | Fall access confidence with the evidence behind the estimate | Coverage and data quality | MUST | to-build | test | #99 |
 
 ## Data currency and confidence
 
@@ -342,7 +342,7 @@ The category triples in one pass and its subject widens with it: `FR-044` … `F
 
 | ID | Title | Category | Priority | Status | Verification | Resolved-by |
 |---|---|---|---|---|---|---|
-| `NFR-007` | Classify no zone confidently and wrongly | Classification correctness | MUST | to-build | human-judgement | — |
+| `NFR-007` | Classify no zone confidently and wrongly | Classification correctness | MUST | to-build | human-judgement | #82 |
 
 ## Outbound rate compliance
 
@@ -378,7 +378,7 @@ The category triples in one pass and its subject widens with it: `FR-044` … `F
 |---|---|---|---|---|---|---|
 | `NFR-003` | Build the service as one self-contained executable | Runtime and deployment shape | MUST | to-build | test | #19 |
 | `NFR-004` | Run the service as one long-running process | Runtime and deployment shape | MUST | to-build | inspection | #25 |
-| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | to-build | test | #26 |
+| `NFR-005` | Serve the client as static files | Runtime and deployment shape | MUST | to-build | test | #26, #224 |
 
 ## Reading the Verification column
 
