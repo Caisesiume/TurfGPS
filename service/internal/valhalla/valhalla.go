@@ -21,12 +21,34 @@
 // back to the engine's map-matching service, `trace_attributes`, with
 // `shape_match=edge_walk` — the documented match for "the shape from a prior
 // Valhalla route" — asking only for each edge's `way_id`, `begin_shape_index`
-// and `end_shape_index`, the matched shape, and each input point's match. A
-// shape that does not match, a point left unmatched, an edge without a way id,
-// or edges that do not join end to start and cover the matched shape end to
-// end refuse the leg; nothing is guessed. The leg returned is the matched
+// and `end_shape_index`, and the matched shape. The leg returned is the matched
 // shape cut into those edges, so the geometry the planner checks is the
-// geometry it hands on.
+// geometry it hands on. Two checks keep that leg whole, and nothing is guessed:
+//
+//   - The walk is all or nothing. At 3.9.1 an `edge_walk` succeeds only by
+//     following the shape from an edge its first point lies on to an edge its
+//     last point lies on (`src/thor/route_matcher.cc`, RouteMatcher::FormPath,
+//     lines 327–568). A walk that falls short is thrown
+//     (`src/thor/trace_route_action.cc`, thor_worker_t::route_match, line 167)
+//     and answered as error 443 (`src/thor/trace_attributes_action.cc`, the
+//     `edge_walk` case, lines 46–56), which post returns as an error and Route
+//     refuses.
+//   - The answer is checked rather than trusted. tracedEdges refuses a leg
+//     whose answer has no shape, or one that does not decode; that holds no
+//     edges; that has an edge naming no way or carrying no stretch of the
+//     shape; or whose edges do not join end to start and cover the matched
+//     shape from its first point to its last.
+//
+// NO INPUT POINT IS CHECKED, because an `edge_walk` answer reports none.
+// `matched_points`, the per-point results whose `type` may be `unmatched`, are
+// documented only "when using the `map_snap` shape match algorithm"
+// (map-matching reference, § Outputs of `trace_attributes`). At 3.9.1 the
+// `edge_walk` case hands the serializer no match results
+// (`src/thor/trace_attributes_action.cc`, line 49), and the serializer writes
+// `matched_points` only when there are some (`src/tyr/trace_serializer.cc`,
+// append_trace_info, line 612). So the walk and tracedEdges' coverage check
+// are all that keep the leg whole. No point check backs them, and loosening
+// the coverage check loosens the guarantee (#264).
 //
 // THE ENGINE DOES NOT KEEP A CAR OFF PRIVATE AND ACCESS-RESTRICTED WAYS, and
 // is not trusted to. At 3.9.1, as the safety review of #246 read
@@ -68,9 +90,10 @@
 // https://github.com/valhalla/valhalla/blob/3.9.1/docs/docs/api/map-matching.md:
 // `encoded_polyline`, `shape_match` and `filters` (§ Shape-matching
 // parameters, § Attribute filters), the `edges` with `way_id`,
-// `begin_shape_index` and `end_shape_index` (§ Edge items), the trip `shape`,
-// and `matched_points` with `type` and `edge_index` (§ Matched point items).
-// The shape's encoding is docs/docs/api/decoding.md at the same version.
+// `begin_shape_index` and `end_shape_index` (§ Edge items), and the trip
+// `shape` (§ Outputs of `trace_attributes`). The source files cited above are
+// at the same tag, https://github.com/valhalla/valhalla/tree/3.9.1. The
+// shape's encoding is docs/docs/api/decoding.md at the same version.
 //
 // NOTHING HERE LOGS, and no error quotes a location. A route's origin is
 // frequently the user's home (`Architecture.md § Personal data`), and the
