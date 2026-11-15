@@ -3759,3 +3759,62 @@ Affects:        FR-129: statement, second and third criteria,
                 criteria, `Verification`, `Volatility`, `Rationale`. #271,
                 #275 and #276 gain cycle-6 criteria, appended.
 ```
+
+## RD-081 — Which parking area's unmarked parts does the warned leg's bound except, and on which legs?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `0e1fa56`
+                (`#issuecomment-6898726557`) found, as S6, that the exception
+                RD-080 and FR-129 carry, "a part not itself so marked within a
+                parking area establishing a stop between them", covers every
+                parking area holding any stop, on every leg, with nothing
+                tying it to the stretch the user accepted. The scenario: a
+                gate node on an unmarked site road, the user's stop behind it,
+                a parking area X beside the stretch and a second, Y, reached
+                only through X's aisles, both unmarked. With a stop the system
+                chose in each, the route through X into Y and back passes the
+                gate once and drives each part of the stretch once, every
+                aisle of X and Y is excepted, and FR-129 admits it: the driver
+                is sent deeper into the gated site than the stretch they
+                accepted, for a zone the planner chose. As N20, FR-129's
+                "those legs together" bound only the legs crossing a marking;
+                as N21, its statement did not carry RD-080's "fixed by the two
+                locations alone". Which parking area is excepted, and on which
+                legs?
+Interpretation: **Only the parking area that meets the stretch, and only on
+                the legs to and from its own stop.** A part not itself so
+                marked within the parking area establishing a stop between the
+                two locations the user entered is excepted from the bound only
+                where a driving leg to or from that stop drives it, and only
+                where a part within that parking area meets a part that the
+                warned leg produced with no stop between them drives: a car
+                turns from the one onto the other with no other part between
+                them. A parking area reached only through another's aisles
+                meets no part that leg drives, so its parts count, and that
+                leg drives them zero times; a parking area that meets the
+                stretch, crossed on a leg to some other stop, counts on that
+                leg in full. The bound counts every driving leg between the
+                two locations, not only those crossing a marking (N20), and
+                the leg it compares with is one the two locations alone fix
+                (N21). A parking area joined to the stretch only by a
+                connector way outside it stays refused, the verdict's N22,
+                which refuses more than the ruling needs and is the Owner's to
+                narrow; it is recorded and not changed here. This supersedes
+                RD-080's sentence beginning "a part not itself so marked
+                within a parking area establishing a stop is excepted" and
+                leaves the rest of RD-080 standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: the Owner's "even if the stop for them is on the
+                private stretch you already accepted" serves a stop beside
+                that stretch, and "no detours onto other private roads"
+                refuses any private driving the user's locations do not cause.
+                A parking area reached through another is further into the
+                site than the stretch, and a parking area crossed on the way
+                to a different stop is driving for that other stop and not for
+                its own, so neither is excepted. No Turf mechanic is read and
+                no constant is introduced.
+Affects:        FR-129: statement, second and third criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-137: `Volatility`,
+                `Rationale`. #271 gains cycle-7 criteria, appended.
+```
