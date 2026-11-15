@@ -23,8 +23,12 @@ Acceptance:   given two journey alternatives that capture the same set of
               given a journey alternative whose driving time changes while its
               captured zone set does not, when its Turf value is recomputed,
               then the value is unchanged
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   FR-001
+Volatility:   settled — a zone captured twice in one journey counts once, as
+              the Owner decided (`DECISIONS.md § RD-085`); the weight a
+              captured zone carries is FR-011's and reaches this record
+              through no constant
 Risk:         Once a property of the route leaks into value, the comparison of
               value against cost stops meaning anything — the same minutes are
               counted as a benefit on one side and a penalty on the other —
@@ -43,6 +47,9 @@ Rationale:    The source determines value by the zones a journey holds and
               journey passing a zone it does not stop at gains nothing;
               `SPECIFICATION.md § The journey as an optimization problem` now
               reads "captures" in both, corrected to that reading on 1 August
-              2026 with the Owner's approval.
+              2026 with the Owner's approval. The zones an alternative
+              captures are a set: a second stop at a zone already captured in
+              the same journey adds nothing to its value, while FR-009 still
+              charges that stop its time (`DECISIONS.md § RD-085`).
 Resolved-by:  #9
 ```

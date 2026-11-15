@@ -86,7 +86,7 @@ Rationale:    The section's word is multiple; the statement says more than one
               one general road route can still yield several journey
               alternatives. Whether this record narrows it is returned with
               this batch rather than decided here.
-Resolved-by:  —
+Resolved-by:  #68
 ```
 
 ## FR-059 — Produce general road routes that are different drives
@@ -134,7 +134,7 @@ Rationale:    FR-058's second criterion is the machine-checkable floor of this
               FR-016 does not: that record judges the alternatives offered to
               the user, and by the time it applies the search has already
               spent its budget on whatever general road routes were produced.
-Resolved-by:  —
+Resolved-by:  #69
 ```
 
 ## FR-060 — Build on more than the fastest conventional route
@@ -177,5 +177,5 @@ Rationale:    The section asks the optimizer to score the usability of each
               rule that skips the fastest route. Risk is omitted and its
               argument folded here, on FR-025's precedent: the failure costs
               result variety and puts no driver anywhere.
-Resolved-by:  —
+Resolved-by:  #70
 ```

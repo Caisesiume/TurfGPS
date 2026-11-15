@@ -57,7 +57,10 @@ Priority:     MUST
 Verification: test — an alternative whose additional time exceeds the ceiling
               is absent from the offered set, and one exceeding it while
               capturing the zone that carries the user's highest-ranked
-              attribute is equally absent
+              attribute is equally absent, and one whose leg was produced on a
+              connection avoiding a marking is absent where the figures of
+              that connection carry it past the ceiling though those of the
+              connection avoided would not
 Acceptance:   given a produced journey alternative whose additional time
               exceeds the ceiling, when recommendations are offered, then that
               alternative is not among them
@@ -68,8 +71,18 @@ Acceptance:   given a produced journey alternative whose additional time
               given a journey for which every produced alternative exceeds the
               ceiling, when recommendations are offered, then no alternative
               above the ceiling is offered in place of an empty set
+              given a produced journey alternative one of whose legs FR-125
+              produced on a connection avoiding a marking, and whose
+              additional time exceeds the ceiling at the figures of that
+              connection though not at those of the connection it avoided,
+              when recommendations are offered, then that alternative is not
+              among them
 Status:       to-build
-Depends-on:   FR-008; FR-044
+Depends-on:   FR-008; FR-044; FR-125
+Volatility:   settled — `CalculationSpecification.md § The absolute additional-time ceiling`
+              makes enforcement binding whatever value the constant holds; the
+              multiplier is a proposed default there, and this record states
+              no figure, so a revision of it moves nothing here
 Risk:         This is the product's one absolute promise about the user's
               time, and the pressure to break it arrives where it is least
               visible — a single highly valued zone just past the line, on a
@@ -90,8 +103,15 @@ Rationale:    The obligation is enforcement, not arithmetic: whatever value
               helpfulness: where everything produced is above the ceiling, the
               honest outcome is owned by
               `DESIGN.md § When nothing fits at all` and it is not an
-              above-ceiling recommendation. The re-check after every change
-              during review is a separate obligation, created by
+              above-ceiling recommendation. The fourth reads the figures
+              `Architecture.md § The route check` allows the ceiling check,
+              those of the leg that passed it and never those of the leg
+              before it was avoided (`DECISIONS.md § RD-086`): a leg avoided
+              around a marking is ordinarily slower than the one refused, so
+              a check reading the earlier figure passes every other criterion
+              while the journey served runs past the ceiling. The re-check
+              after every change during review is a separate obligation,
+              created by
               `SPECIFICATION.md § Consequences for the optimizer`, and is not
               authored here. Time is never grounds for relaxing a safety rule
               and value is never grounds for relaxing this one, per
@@ -260,7 +280,7 @@ Rationale:    Three readings of the quantity are available and two of them
               same quantity across a journey's legs and this record fixes what
               enters it on each leg; neither states the other. The arithmetic
               has one home and is cited, per `docs/README.md § Conventions`.
-Resolved-by:  —
+Resolved-by:  #71
 ```
 
 ## FR-069 — Reject a direct-access tolerance above the permitted value
@@ -1358,7 +1378,7 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               reaches a driving leg; the walking access path's half stays owed
               with FR-075 until an access path is built. No mechanism is
               named, and a penalty is not an exclusion.
-Resolved-by:  #253
+Resolved-by:  #253, #292, #293
 ```
 
 ## FR-129 — Produce a warned leg where nothing avoids a marking between two locations the user entered
