@@ -21,10 +21,19 @@ import (
 // Nothing here chooses how a route is computed. The travel mode is the
 // routing port's contract (`internal/planner`), and the request that carries
 // it is the adapter's (`internal/valhalla`); this block only says where the
-// engine is and how long one route may take.
+// engine is, how long one route may take, and where the record of the tiles
+// it serves lies.
+//
+// THE TILE RECORD'S PATH HAS NO DEFAULT EITHER, and its origin is
+// `DEPLOYMENT.md § The tile build`, whose table introduces
+// EnvTileIdentityFile as the tile record's path: the file beside the served
+// tiles holding the SHA-256 of the extract they were built from. Unset or
+// empty, it is not refused — the identity it would give is unreadable, and
+// the planner plans no journey on an unreadable one (#249).
 const (
-	EnvValhallaURL     = "TURFGPS_VALHALLA_URL"
-	EnvValhallaTimeout = "TURFGPS_VALHALLA_TIMEOUT"
+	EnvValhallaURL      = "TURFGPS_VALHALLA_URL"
+	EnvValhallaTimeout  = "TURFGPS_VALHALLA_TIMEOUT"
+	EnvTileIdentityFile = "TURFGPS_TILE_IDENTITY_FILE"
 )
 
 // defaultValhallaTimeout bounds one route request end to end. It is this
@@ -46,25 +55,33 @@ type Valhalla struct {
 
 	// Timeout bounds one route request.
 	Timeout time.Duration
+
+	// TileIdentityFile is the tile record's path, as given; empty where none
+	// is set.
+	TileIdentityFile string
 }
 
 // LoadValhalla reads the routing engine's configuration.
 //
-// It returns (nil, nil) when neither variable is set, which is a service
-// running without journey planning. A timeout set without a URL is refused as
-// a partial configuration rather than ignored, so that an operator who meant
-// to configure the engine does not start a service that answers 503 with
-// nothing at start saying why.
+// It returns (nil, nil) when no variable is set, which is a service running
+// without journey planning. A timeout or a tile record set without a URL is
+// refused as a partial configuration rather than ignored, so that an operator
+// who meant to configure the engine does not start a service that answers 503
+// with nothing at start saying why.
 //
 // A URL that is not an http or https URL naming a host, or that carries a
 // query or a fragment, is refused: the route API's path is joined onto it, and
 // a query or fragment would be silently dropped or misplaced by that join.
 func LoadValhalla(lookup LookupFunc) (*Valhalla, error) {
+	record, _ := lookup(EnvTileIdentityFile)
+
 	raw, ok := lookup(EnvValhallaURL)
 	if !ok || raw == "" {
-		if v, set := lookup(EnvValhallaTimeout); set && v != "" {
-			return nil, fmt.Errorf("the routing engine is partially configured: %s is set and %s is not — set %s to route journeys, or neither to run without",
-				EnvValhallaTimeout, EnvValhallaURL, EnvValhallaURL)
+		for _, name := range []string{EnvValhallaTimeout, EnvTileIdentityFile} {
+			if v, set := lookup(name); set && v != "" {
+				return nil, fmt.Errorf("the routing engine is partially configured: %s is set and %s is not — set %s to route journeys, or neither to run without",
+					name, EnvValhallaURL, EnvValhallaURL)
+			}
 		}
 
 		return nil, nil
@@ -79,7 +96,7 @@ func LoadValhalla(lookup LookupFunc) (*Valhalla, error) {
 		return nil, err
 	}
 
-	return &Valhalla{URL: raw, Timeout: timeout}, nil
+	return &Valhalla{URL: raw, Timeout: timeout, TileIdentityFile: record}, nil
 }
 
 // validateEngineURL holds a routing engine's base URL to the form described on

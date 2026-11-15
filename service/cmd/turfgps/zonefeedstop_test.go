@@ -48,7 +48,7 @@ func TestAnUnconfiguredFeedIsNotReportedAsHavingDied(t *testing.T) {
 
 	stop := &countedStop{cancel: cancel}
 
-	wait, err := startZoneFeed(ctx, stop.stop, loadedFeed(t))
+	wait, err := startZoneFeedFromEnv(t, ctx, stop.stop)
 	if err != nil {
 		t.Fatalf("no zone feed is configured and startZoneFeed refused to start: %v — main maps that to exit 1, so a service with no feed would not start", err)
 	}
@@ -73,7 +73,7 @@ func TestAStoppedFeedIsNotReportedAsHavingDied(t *testing.T) {
 
 	cancel()
 
-	wait, err := startZoneFeed(ctx, stop.stop, loadedFeed(t))
+	wait, err := startZoneFeedFromEnv(t, ctx, stop.stop)
 	if err != nil {
 		t.Fatalf("a configured feed refused to start: %v", err)
 	}
@@ -149,4 +149,19 @@ func TestABackgroundJobThatEndsOnItsOwnTakesTheProcessDown(t *testing.T) {
 			}
 		})
 	}
+}
+
+// startZoneFeedFromEnv is main's sequence for the feed over the process's
+// environment: its configuration read, its pool opened, and the job started.
+func startZoneFeedFromEnv(t *testing.T, ctx context.Context, stop context.CancelFunc) (func() bool, error) {
+	t.Helper()
+
+	feed := loadedFeed(t)
+
+	pools, err := openJobPools(ctx, nil, feed)
+	if err != nil {
+		return nil, err
+	}
+
+	return startZoneFeed(ctx, stop, feed, pools.feed)
 }

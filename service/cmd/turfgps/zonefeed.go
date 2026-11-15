@@ -12,7 +12,6 @@ import (
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/syncstore"
 	"github.com/Caisesiume/TurfGPS/service/internal/turf"
-	"github.com/Caisesiume/TurfGPS/service/internal/zonestore"
 	"github.com/Caisesiume/TurfGPS/service/internal/zonesync"
 )
 
@@ -23,8 +22,8 @@ import (
 // IT IS WIRED BESIDE THE SYNC AND NOT INSIDE IT. The feed has its own
 // configuration block and its own schedule, and either job runs without the
 // other: a service with no feed configured starts and serves, for `NFR-003`'s
-// reason given on startZoneSync. It opens a pool of its own rather than
-// sharing the sync's, so neither job's wiring depends on the other's being
+// reason given on startZoneSync. It has a pool of its own rather than sharing
+// the sync's, so neither job's wiring depends on the other's being
 // configured; the two meet only in the database, under the sync's advisory key
 // (`internal/syncstore`'s ApplyFeed says how).
 //
@@ -32,8 +31,10 @@ import (
 // main waits for the two at once: see main.
 //
 // feed is loadZoneFeed's, read before anything started; nil is no feed
-// configured.
-func startZoneFeed(ctx context.Context, stop context.CancelFunc, feed *zoneFeed) (func() bool, error) {
+// configured. pool is the feed's, as openJobPools opened it, which the request
+// path reads through where no sync is configured. The waiter closes it once
+// the feed has stopped.
+func startZoneFeed(ctx context.Context, stop context.CancelFunc, feed *zoneFeed, pool *pgxpool.Pool) (func() bool, error) {
 	if feed == nil {
 		slog.Info("no zone feed is configured, so zones created since the last full sync will not reach the local copy until the next one",
 			"configure", strings.Join(config.ZoneFeedRequired(), ", "))
@@ -41,15 +42,8 @@ func startZoneFeed(ctx context.Context, stop context.CancelFunc, feed *zoneFeed)
 		return func() bool { return false }, nil
 	}
 
-	pool, err := zonestore.Open(ctx, feed.cfg.DatabaseURL)
-	if err != nil {
-		return nil, err
-	}
-
 	poller, err := newZoneFeedPoller(feed, pool)
 	if err != nil {
-		pool.Close()
-
 		return nil, err
 	}
 

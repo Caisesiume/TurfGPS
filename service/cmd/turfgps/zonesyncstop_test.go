@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"sync/atomic"
 	"testing"
 
@@ -123,7 +124,7 @@ func TestAnUnconfiguredSyncIsNotReportedAsHavingDied(t *testing.T) {
 
 	stop := &countedStop{cancel: cancel}
 
-	wait, err := startZoneSync(ctx, stop.stop)
+	wait, err := startZoneSyncFromEnv(t, ctx, stop.stop)
 	if err != nil {
 		t.Fatalf("no zone sync is configured and startZoneSync refused to start: %v — main maps that refusal to exit 1, so a service with no sync would not start at all", err)
 	}
@@ -162,7 +163,7 @@ func TestAStoppedSyncIsNotReportedAsHavingDied(t *testing.T) {
 
 	stop := &countedStop{cancel: cancel}
 
-	wait, err := startZoneSync(ctx, stop.stop)
+	wait, err := startZoneSyncFromEnv(t, ctx, stop.stop)
 	if err != nil {
 		t.Fatalf("a configured zone sync could not be started: %v", err)
 	}
@@ -193,9 +194,27 @@ func TestAPartlyConfiguredSyncIsRefusedRatherThanRunWithout(t *testing.T) {
 
 	stop := &countedStop{cancel: cancel}
 
-	wait, err := startZoneSync(ctx, stop.stop)
+	wait, err := startZoneSyncFromEnv(t, ctx, stop.stop)
 	if err == nil {
 		t.Fatalf("a zone sync configured with %s alone was accepted (waiter present: %v), want a refusal — main exits 1 on one, and on the other it serves indefinitely without ever refreshing the copy",
 			config.EnvDatabaseURL, wait != nil)
 	}
+}
+
+// startZoneSyncFromEnv is main's sequence for the sync over the process's
+// environment: its configuration read, its pool opened, and the job started.
+func startZoneSyncFromEnv(t *testing.T, ctx context.Context, stop context.CancelFunc) (func() bool, error) {
+	t.Helper()
+
+	cfg, err := config.LoadZoneSync(os.LookupEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	pools, err := openJobPools(ctx, cfg, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return startZoneSync(ctx, stop, cfg, pools.sync)
 }

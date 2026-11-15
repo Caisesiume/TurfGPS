@@ -26,7 +26,9 @@
 # the tree it applies nothing and says so. After it, one step runs the Go tests
 # that need the schema — `internal/zonestore`'s, built under the `postgis` tag
 # (#27), and `internal/syncstore`'s write path (#38, #39) — against a scratch
-# database migrated in the same container. go test's exit status is the step's;
+# database migrated in the same container, and then the composition root's
+# planner planning through a job's pool on that schema (#249). go test's exit
+# status is the step's;
 # a skip in that run is red as well, because syncstore's test skips wherever no
 # copy is named. The container is the job's and is
 # discarded with it; nothing durable is provisioned and nothing touches
@@ -35,14 +37,19 @@
 # The `valhalla` job (#6) runs the Valhalla adapter's integration tests against
 # a real Valhalla — the Owner's decision on #6 (`#issuecomment-6334699894`), so
 # that a wrong assumption about the engine surfaces here and not on the server.
-# It builds tiles from the OpenStreetMap extract committed under
-# `service/internal/valhalla/testdata/` (whose README says what it holds and
-# how to regenerate it), serves them on loopback, and runs
-# `internal/valhalla`'s tests under the `valhalla` tag with the race detector.
+# It scripts the act of `DEPLOYMENT.md § The tile build` over the OpenStreetMap
+# extract committed under `service/internal/valhalla/testdata/` (whose README
+# says what it holds and how to regenerate it): the act's file derived once
+# from a copy named by its SHA-256, and given to every later step (#249 AC9);
+# tiles built from it with `mjolnir.dataset_id` set to its tile stamp, and
+# served on loopback with the verbose status allowed; and `internal/valhalla`'s
+# tests run under the `valhalla` tag with the race detector, the tile identity
+# read through the service's reader among them (#249 AC8).
 # Beside the engine it runs a PostGIS of its own (#255, ADR-0008, § Consequences):
-# `migrations/` applied to a scratch database, the same extract loaded into the
-# access-marking tables by `turfgps load-access-markings`, the load's SHA-256
-# asserted equal to the file's the tiles were built from, and the extract read a
+# `migrations/` applied to a scratch database, the act's file loaded into the
+# access-marking tables by `turfgps load-access-markings`, the act's file hashed
+# again and held to the load's SHA-256, the tile record written beside the
+# tiles, and the act's file read a
 # second, independent way — `osmium cat` to OPL — so `internal/accessstore`'s
 # tests compare the tables with a reading that shares neither the module's PBF
 # reader nor the migration's rule.
@@ -234,6 +241,16 @@ jobs:
           log="$RUNNER_TEMP/schema-tests.log"
           TURFGPS_TEST_DATABASE_URL="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable" \
             go test -tags postgis -race -count=1 -p 1 -v "${pkgs[@]}" 2>&1 | tee "$log"
+          # The composition root's planner on a job's pool over the same
+          # schema (#249), after the packages above have emptied what they
+          # wrote. Only its store tests: the package's others run in `gates`.
+          # Each is named and must be seen to pass, so a -run that matched
+          # nothing is red rather than an `ok` that measured nothing.
+          root=(TestTheRootPlansThroughTheStoreOnAJobsPool TestNoJourneyWhereTheAccessTablesAreAbsent)
+          go vet -tags postgis ./cmd/turfgps
+          TURFGPS_TEST_DATABASE_URL="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable" \
+            go test -tags postgis -race -count=1 -v ./cmd/turfgps -run "^($(IFS='|'; echo "${root[*]}"))\$" 2>&1 | tee -a "$log"
+          for t in "${root[@]}"; do grep -q -- "--- PASS: $t " "$log" || { echo "::error::$t did not pass against the migrated schema"; exit 1; }; done
           if grep -q -- '--- SKIP' "$log"; then echo '::error::a test skipped against the migrated schema, so it measured nothing'; exit 1; fi
 
       # Any part whose output carried a query plan, from the logs directory
@@ -324,24 +341,52 @@ jobs:
             echo '::notice title=valhalla::this change touches no routing path — no engine built, no integration test run'
           fi
 
-      # Tiles from the extract, in a scratch directory the containers mount.
-      # Built without an admin or time-zone database, which the extract's
-      # README says why.
-      - name: Valhalla — build tiles from the extract
+      # Step 1 of the act of `DEPLOYMENT.md § The tile build` (#249 AC9): the
+      # extract copied once into a directory of the act's own, its SHA-256
+      # computed from the copy, the copy renamed to it and made read-only. That
+      # path is the act's file, derived here once; every later step is given
+      # it through TURFGPS_TEST_ACT_FILE, and no step names a file by hand.
+      - name: the act's file
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          act="$RUNNER_TEMP/act"
+          mkdir -p "$act"
+          cp "$EXTRACT" "$act/copy"
+          sha="$(sha256sum "$act/copy" | cut -d' ' -f1)"
+          [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { echo '::error::the copy has no SHA-256'; exit 1; }
+          file="$act/$sha.osm.pbf"
+          mv "$act/copy" "$file"
+          chmod a-w "$file"
+          # The tile stamp: the first 16 digits as an unsigned 64-bit integer,
+          # which bash's signed arithmetic cannot hold above 2^63.
+          stamp="$(python3 -c 'import sys; print(int(sys.argv[1][:16], 16))' "$sha")"
+          [ "$stamp" != 0 ] || { echo '::error::the tile stamp is zero, which the engine omits, so these tiles cannot be served'; exit 1; }
+          echo "the act's file is $file, tile stamp $stamp"
+          { echo "TURFGPS_TEST_ACT_FILE=$file"; echo "TURFGPS_TEST_ACT_SHA256=$sha"; echo "TURFGPS_TEST_TILE_STAMP=$stamp"; } >> "$GITHUB_ENV"
+
+      # Step 2: tiles from the act's file, under a configuration whose
+      # mjolnir.dataset_id is its tile stamp, in a scratch directory the
+      # containers mount; the act's directory is mounted read-only at its own
+      # path, so the build is given the derived path itself. The same
+      # configuration serves them, with the verbose status allowed so that the
+      # stamp can be read (#249 AC8). Built without an admin or time-zone
+      # database, which the extract's README says why.
+      - name: Valhalla — build tiles from the act's file
         if: steps.scope.outputs.routing == 'true'
         run: |
           data="$RUNNER_TEMP/valhalla"
           mkdir -p "$data"
-          cp "$EXTRACT" "$data/extract.osm.pbf"
           start=$SECONDS
           docker pull --quiet "$VALHALLA_IMAGE"
           pulled=$((SECONDS - start))
           start=$SECONDS
-          docker run --rm -v "$data:/data" "$VALHALLA_IMAGE" sh -c '
+          docker run --rm -v "$data:/data" -v "$RUNNER_TEMP/act:$RUNNER_TEMP/act:ro" \
+            -e ACT_FILE="$TURFGPS_TEST_ACT_FILE" -e TILE_STAMP="$TURFGPS_TEST_TILE_STAMP" "$VALHALLA_IMAGE" sh -c '
             valhalla_build_config --mjolnir-tile-dir /data/tiles --mjolnir-tile-extract /data/tiles.tar \
               --mjolnir-traffic-extract "" --mjolnir-admin /data/admins.sqlite --mjolnir-timezone /data/tz.sqlite \
+              --mjolnir-dataset-id "$TILE_STAMP" --service-limits-status-allow-verbose true \
               > /data/valhalla.json &&
-            valhalla_build_tiles -c /data/valhalla.json /data/extract.osm.pbf'
+            valhalla_build_tiles -c /data/valhalla.json "$ACT_FILE"'
           built=$((SECONDS - start))
           echo "image pulled in ${pulled}s, tiles built in ${built}s"
           echo "Valhalla: image pulled in ${pulled}s, tiles built in ${built}s" >> "$GITHUB_STEP_SUMMARY"
@@ -368,10 +413,12 @@ jobs:
             service/go.mod
             service/go.sum
 
-      # The access-marking tables, from the file the tiles were built from:
-      # migrations/ applied to a scratch database, then the extract loaded by
-      # the service's own loader, and the load's SHA-256 held to the file's.
-      - name: PostGIS — migrate, and load the extract the tiles were built from
+      # Steps 3 and 4: the access-marking tables, from the act's file —
+      # migrations/ applied to a scratch database, then the act's file loaded
+      # by the service's own loader — and the act's file hashed again and held
+      # to step 1's SHA-256 and to the load's; only then is the tile record
+      # written beside the tiles, to a temporary file renamed over it.
+      - name: PostGIS — migrate, load the act's file, and record the tiles
         if: steps.scope.outputs.routing == 'true'
         run: |
           db=turfgps_access_tests
@@ -379,12 +426,14 @@ jobs:
           find migrations -maxdepth 1 -type f -name '[0-9]*.sql' ! -name '*.verify.sql' ! -name '*.down.sql' | sort |
             while IFS= read -r f; do psql -v ON_ERROR_STOP=1 -q -d "$db" -f "$f"; done
           url="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable"
-          (cd service && TURFGPS_DATABASE_URL="$url" go run ./cmd/turfgps load-access-markings -extract "$GITHUB_WORKSPACE/$EXTRACT")
-          tiles="$(sha256sum "$RUNNER_TEMP/valhalla/extract.osm.pbf" | cut -d' ' -f1)"
+          (cd service && TURFGPS_DATABASE_URL="$url" go run ./cmd/turfgps load-access-markings -extract "$TURFGPS_TEST_ACT_FILE")
+          again="$(sha256sum "$TURFGPS_TEST_ACT_FILE" | cut -d' ' -f1)"
           loaded="$(psql -tA -d "$db" -c 'SELECT extract_sha256 FROM public.osm_extract_load WHERE current')"
-          echo "tiles built from $tiles; access markings loaded from $loaded"
-          [ -n "$tiles" ] && [ "$tiles" = "$loaded" ] || { echo '::error::the access markings and the tiles do not record one extract'; exit 1; }
-          { echo "TURFGPS_TEST_DATABASE_URL=$url"; echo "TURFGPS_TEST_TILES_SHA256=$tiles"; } >> "$GITHUB_ENV"
+          echo "the act's file is $TURFGPS_TEST_ACT_SHA256, hashed again $again; access markings loaded from $loaded"
+          [ "$again" = "$TURFGPS_TEST_ACT_SHA256" ] && [ "$again" = "$loaded" ] || { echo '::error::the access markings and the tiles do not record one extract'; exit 1; }
+          record="$RUNNER_TEMP/valhalla/tiles.sha256"
+          printf '%s\n' "$again" > "$record.tmp" && mv "$record.tmp" "$record"
+          { echo "TURFGPS_TEST_DATABASE_URL=$url"; echo "TURFGPS_TEST_TILES_SHA256=$again"; echo "TURFGPS_TEST_TILE_RECORD=$record"; } >> "$GITHUB_ENV"
 
       # The independent reading: libosmium's, as OPL text. osmium-tool comes
       # from the runner's Ubuntu archive; it reads the extract and nothing else.
@@ -394,7 +443,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends osmium-tool
           osmium --version | head -1
-          osmium cat "$EXTRACT" -f opl -o "$RUNNER_TEMP/extract.opl"
+          osmium cat "$TURFGPS_TEST_ACT_FILE" -f opl -o "$RUNNER_TEMP/extract.opl"
           wc -l "$RUNNER_TEMP/extract.opl"
           echo "TURFGPS_TEST_EXTRACT_OPL=$RUNNER_TEMP/extract.opl" >> "$GITHUB_ENV"
 

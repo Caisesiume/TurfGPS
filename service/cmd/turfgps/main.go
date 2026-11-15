@@ -19,6 +19,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Caisesiume/TurfGPS/service/internal/accessstore"
 	"github.com/Caisesiume/TurfGPS/service/internal/config"
 	"github.com/Caisesiume/TurfGPS/service/internal/httpapi"
 	"github.com/Caisesiume/TurfGPS/service/internal/planner"
@@ -143,46 +144,65 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	plans, err := newPlanner(os.LookupEnv, unwiredZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{})
+	// Both jobs' configurations are read before anything starts: a job
+	// configured wrongly then exits here, with no listener and no job running
+	// to be stopped on the way out (#238).
+	syncCfg, err := config.LoadZoneSync(os.LookupEnv)
 	if err != nil {
-		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
+		slog.Error("the zone sync's configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
 	}
 
-	handler, err := newHandler(os.LookupEnv, httpapi.WithPlanner(plans))
-	if err != nil {
-		slog.Error("the cross-origin configuration is refused, so the service is not starting", "error", err)
-		os.Exit(1)
-	}
-
-	addr, err := listenAddr(os.LookupEnv)
-	if err != nil {
-		slog.Error("the listen address is refused, so the service is not starting", "error", err)
-		os.Exit(1)
-	}
-
-	// Read before anything starts, unlike the sync's configuration, which
-	// startZoneSync reads: a feed configured wrongly then exits here, with no
-	// listener and no sync running to be stopped on the way out (#238).
 	feed, err := loadZoneFeed(os.LookupEnv)
 	if err != nil {
 		slog.Error("the zone feed's configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
 	}
 
+	// Opened before the planner, which reads through one of them (#249), and
+	// closed by each job's waiter once the job has stopped — which main waits
+	// for only after the HTTP drain, so no request outlives the pool it reads.
+	pools, err := openJobPools(ctx, syncCfg, feed)
+	if err != nil {
+		slog.Error("a background job's store could not be opened, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	plans, err := newPlanner(os.LookupEnv, pools.request())
+	if err != nil {
+		pools.close()
+		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	handler, err := newHandler(os.LookupEnv, httpapi.WithPlanner(plans))
+	if err != nil {
+		pools.close()
+		slog.Error("the cross-origin configuration is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
+	addr, err := listenAddr(os.LookupEnv)
+	if err != nil {
+		pools.close()
+		slog.Error("the listen address is refused, so the service is not starting", "error", err)
+		os.Exit(1)
+	}
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
+		pools.close()
 		slog.Error("cannot listen", "addr", addr, "error", err)
 		os.Exit(1)
 	}
 
-	stopSync, err := startZoneSync(ctx, stop)
+	stopSync, err := startZoneSync(ctx, stop, syncCfg, pools.sync)
 	if err != nil {
 		slog.Error("the zone sync is configured and could not start", "error", err)
 		os.Exit(1)
 	}
 
-	stopFeed, err := startZoneFeed(ctx, stop, feed)
+	stopFeed, err := startZoneFeed(ctx, stop, feed, pools.feed)
 	if err != nil {
 		slog.Error("the zone feed is configured and could not start", "error", err)
 		os.Exit(1)
@@ -253,16 +273,11 @@ func main() {
 // service that refused to start without a database and an endpoint would spend
 // that property to gain a check the sync's own logging already makes.
 //
-// Nor does it wait for the store to answer. The pool connects lazily and this
-// function does not force it: a database that is down delays the copy's next
-// refresh, and `FR-022` AC2 is precisely the requirement that no such failure
-// reaches a request.
-func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, error) {
-	cfg, err := config.LoadZoneSync(os.LookupEnv)
-	if err != nil {
-		return nil, err
-	}
-
+// cfg is config.LoadZoneSync's, read before anything started, and nil where no
+// sync is configured; pool is the sync's, as openJobPools opened it, which the
+// request path may read through too. The waiter closes it once the sync has
+// stopped.
+func startZoneSync(ctx context.Context, stop context.CancelFunc, cfg *config.ZoneSync, pool *pgxpool.Pool) (func() bool, error) {
 	if cfg == nil {
 		slog.Info("no zone sync is configured, so the local zone copy will not be refreshed",
 			"configure", strings.Join(config.ZoneSyncRequired(), ", "))
@@ -272,15 +287,8 @@ func startZoneSync(ctx context.Context, stop context.CancelFunc) (func() bool, e
 		return func() bool { return false }, nil
 	}
 
-	pool, err := zonestore.Open(ctx, cfg.DatabaseURL)
-	if err != nil {
-		return nil, err
-	}
-
 	scheduler, err := newZoneSyncScheduler(cfg, pool)
 	if err != nil {
-		pool.Close()
-
 		return nil, err
 	}
 
@@ -446,37 +454,137 @@ func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler,
 	return httpapi.NewHandler(origins, append([]httpapi.Option{httpapi.WithPlanTimeout(planTimeout)}, opts...)...), nil
 }
 
+// jobPools are the connection pools main opens: one for each background job
+// configured, and none for a job that is not (`docs/CODEBASE_MAP.md`). Each
+// job's waiter closes its own.
+type jobPools struct {
+	sync, feed *pgxpool.Pool
+}
+
+// openJobPools opens a pool for each job configured.
+//
+// IT DOES NOT WAIT FOR THE STORE TO ANSWER. A pool connects lazily and this
+// does not force it: a database that is down delays the copy's next refresh,
+// and `FR-022` AC2 is precisely the requirement that no such failure reaches a
+// request. A plan asked of a store that is down is refused, as the planner
+// refuses one whose copy could not be read.
+func openJobPools(ctx context.Context, syncCfg *config.ZoneSync, feed *zoneFeed) (jobPools, error) {
+	var pools jobPools
+
+	if syncCfg != nil {
+		pool, err := zonestore.Open(ctx, syncCfg.DatabaseURL)
+		if err != nil {
+			return jobPools{}, err
+		}
+
+		pools.sync = pool
+	}
+
+	if feed != nil {
+		pool, err := zonestore.Open(ctx, feed.cfg.DatabaseURL)
+		if err != nil {
+			pools.close()
+
+			return jobPools{}, err
+		}
+
+		pools.feed = pool
+	}
+
+	return pools, nil
+}
+
+// request is the pool the request path reads the store through: the sync's
+// where a sync is configured, otherwise the feed's, otherwise none. It is an
+// existing job's pool and never one of its own (#249): the zone copy, the
+// access-marking tables and the load naming their extract are one store
+// (ADR-0008 D1), which each job's pool is on.
+func (p jobPools) request() *pgxpool.Pool {
+	if p.sync != nil {
+		return p.sync
+	}
+
+	return p.feed
+}
+
+// close closes every pool opened, for the exits main takes before any job has
+// started to close its own.
+func (p jobPools) close() {
+	for _, pool := range []*pgxpool.Pool{p.sync, p.feed} {
+		if pool != nil {
+			pool.Close()
+		}
+	}
+}
+
 // newPlanner returns the journey planner, routing every leg through the
-// Valhalla instance config.EnvValhallaURL names (#6) — the one place the
-// adapter is joined to the port `internal/planner` declares.
+// Valhalla instance config.EnvValhallaURL names (#6) and planning against the
+// store that store is a pool on (#249) — the one place the adapters are
+// joined to the ports `internal/planner` declares:
+//
+//   - the zone copy every plan is gated on (#33), `internal/zonestore`;
+//   - the access-marking tables every leg is checked against (#255),
+//     `internal/accessstore`, with the barrier tolerance configured;
+//   - the identity of the tiles the engine serves, which the markings' must
+//     equal: `internal/valhalla`'s TileIdentity, reading that engine's
+//     verbose status and the tile record config.EnvTileIdentityFile names, as
+//     `DEPLOYMENT.md § The tile build` ("How the service reads it") defines.
 //
 // With no engine configured it returns nil and no error: the service starts,
 // and `POST /journeys` answers 503, as `NFR-003` measures an image carrying
-// nothing else. A configuration that is present and malformed is refused, so
-// main stops before anything listens. Nor does it ask the engine whether it is
-// up, for the reason startZoneSync does not ask the store: an engine that is
-// down fails the journeys asked of it, with a 502, and not the start.
-//
-// zones is the copy every plan is gated on (#33). main passes unwiredZoneCopy,
-// so a configured engine is reached by no plan until the request surface has a
-// pool on the zone store (#249); a test that exercises routing passes a held
-// copy instead.
-//
-// markings and data are what every leg is checked against (#255): the
-// access-marking tables, and which extract the engine's tiles were built from.
-// main passes unwiredAccessMarkings and unknownRoutingData, so no leg is served
-// until the request surface has a pool on the tables (#249) and the tile set's
-// identity can be read (`DEPLOYMENT.md`, #25). The barrier tolerance is read
-// here all the same, so a malformed one stops the start rather than waiting
-// for the store it will configure; the avoidance bound is read and given to
-// the planner, which asks no refused leg again where none is set (#248).
-func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings planner.AccessMarkings, data planner.RoutingData) (*planner.Planner, error) {
-	cfg, err := config.LoadValhalla(lookup)
+// nothing else. With an engine and no store — no background job configured,
+// so no pool to read through — it returns nil and no error too, and the same
+// 503 answers: there is no copy to plan from and no table to check a leg
+// against. A configuration that is present and malformed is refused, so main
+// stops before anything listens. Nor does it ask the engine or the store
+// whether either is up, for the reason openJobPools does not: one that is down
+// fails the journeys asked of it, and not the start.
+func newPlanner(lookup config.LookupFunc, store *pgxpool.Pool) (*planner.Planner, error) {
+	cfg, err := loadPlanning(lookup)
+	if err != nil || cfg == nil {
+		return nil, err
+	}
+
+	if store == nil {
+		slog.Info("a routing engine is configured and no store is, so journey planning answers 503",
+			"configure", config.EnvDatabaseURL+", with the zone sync or the zone feed")
+
+		return nil, nil
+	}
+
+	zones, err := zonestore.NewReader(store)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := config.LoadAccessMarkings(lookup); err != nil {
+	markings, err := accessstore.New(store, cfg.barrierTolerance())
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg.build(zones, markings)
+}
+
+// planning is the planner's configuration, read and checked before any store
+// is read.
+type planning struct {
+	engine    *config.Valhalla
+	access    *config.AccessMarkings
+	avoidance *config.AccessAvoidance
+}
+
+// loadPlanning reads the planner's configuration, nil where no engine is
+// configured. The barrier tolerance and the avoidance bound are read all the
+// same, so a malformed one stops the start rather than waiting for the engine
+// it would configure.
+func loadPlanning(lookup config.LookupFunc) (*planning, error) {
+	engine, err := config.LoadValhalla(lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	access, err := config.LoadAccessMarkings(lookup)
+	if err != nil {
 		return nil, err
 	}
 
@@ -485,90 +593,66 @@ func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings plann
 		return nil, err
 	}
 
-	if cfg == nil {
+	if engine == nil {
 		slog.Info("no routing engine is configured, so journey planning answers 503",
 			"configure", config.EnvValhallaURL)
 
 		return nil, nil
 	}
 
-	routing, err := valhalla.New(cfg.URL, cfg.Timeout)
+	return &planning{engine: engine, access: access, avoidance: avoidance}, nil
+}
+
+// barrierTolerance is the configured barrier tolerance, nil where none is:
+// the store then checks no leg, so none is served (`internal/accessstore`).
+func (p *planning) barrierTolerance() *float64 {
+	if p.access == nil {
+		return nil
+	}
+
+	metres := p.access.BarrierToleranceMetres
+
+	return &metres
+}
+
+// build returns the planner over zones and markings, routing through the
+// configured engine.
+//
+// THE TILE IDENTITY IS NOT AN ARGUMENT. It is the routing adapter's own
+// TileIdentity, read from the engine every leg is routed through, so no
+// caller of this function plans against any identity but the one
+// `DEPLOYMENT.md § The tile build` reads (#249).
+func (p *planning) build(zones planner.ZoneCopy, markings planner.AccessMarkings) (*planner.Planner, error) {
+	routing, err := valhalla.New(p.engine.URL, p.engine.Timeout)
 	if err != nil {
 		return nil, err
 	}
 
 	// Without a configured bound no refused leg is asked for again (#248).
 	var opts []planner.Option
-	if avoidance != nil {
-		opts = append(opts, planner.AvoidUpTo(avoidance.Attempts))
+	if p.avoidance != nil {
+		opts = append(opts, planner.AvoidUpTo(p.avoidance.Attempts))
 	}
 
-	plans, err := planner.New(routing, zones, markings, data, opts...)
+	plans, err := planner.New(routing, zones, markings, routing.TileIdentity(p.engine.TileIdentityFile), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := url.Parse(cfg.URL)
+	engine, err := url.Parse(p.engine.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Info("journeys are routed for a car through Valhalla", "url", engine.Redacted(), "timeout", cfg.Timeout)
+	if p.engine.TileIdentityFile == "" {
+		slog.Info("no tile record is named, so the tile set's identity is unreadable and no journey is planned",
+			"configure", config.EnvTileIdentityFile)
+	}
+
+	slog.Info("journeys are routed for a car through Valhalla", "url", engine.Redacted(), "timeout", p.engine.Timeout,
+		"tile_record", p.engine.TileIdentityFile)
 
 	return plans, nil
-}
-
-// errZoneStoreUnwired is what unwiredZoneCopy reports in place of an answer.
-var errZoneStoreUnwired = errors.New("the request surface holds no pool on the zone store yet (#249)")
-
-// unwiredZoneCopy is the ZoneCopy main plans from until the request surface is
-// given a pool on the zone store, which is #249's to wire: `internal/zonestore`
-// implements the port, and no pool reaches a handler yet.
-//
-// IT FAILS CLOSED. Held reports that it could not read, never a copy held and
-// never none, so every plan is refused with 503 before a leg is routed. A copy
-// reported held would plan over zones nobody read; one reported absent would
-// answer `FR-033`'s refusal for a store that may be full.
-type unwiredZoneCopy struct{}
-
-func (unwiredZoneCopy) Held(context.Context) (bool, error) { return false, errZoneStoreUnwired }
-
-// errAccessStoreUnwired is what unwiredAccessMarkings reports in place of an
-// answer.
-var errAccessStoreUnwired = errors.New("the request surface holds no pool on the access-marking tables yet (#249)")
-
-// unwiredAccessMarkings is the AccessMarkings main checks legs against until
-// the request surface is given a pool on the store, which is #249's to wire:
-// `internal/accessstore` implements the port.
-//
-// IT FAILS CLOSED, as unwiredZoneCopy does: it can name no extract and check
-// no leg, so every plan is refused before a leg is produced.
-type unwiredAccessMarkings struct{}
-
-func (unwiredAccessMarkings) ExtractSHA256(context.Context) (string, error) {
-	return "", errAccessStoreUnwired
-}
-
-func (unwiredAccessMarkings) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
-	return nil, errAccessStoreUnwired
-}
-
-func (unwiredAccessMarkings) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
-	return planner.RunMeasure{}, errAccessStoreUnwired
-}
-
-// errTileIdentityUnknown is what unknownRoutingData reports.
-var errTileIdentityUnknown = errors.New("how the service reads the SHA-256 of the extract the tiles were built from is not yet fixed (DEPLOYMENT.md, #25)")
-
-// unknownRoutingData is the RoutingData main registers until the deployment's
-// tile build records the tile set's identity where the service can read it
-// (`Architecture.md § What is not decided`). An identity that cannot be read
-// is unknown, and unknown refuses as a difference does, so no journey is
-// planned.
-type unknownRoutingData struct{}
-
-func (unknownRoutingData) ExtractSHA256(context.Context) (string, error) {
-	return "", errTileIdentityUnknown
 }
 
 // listenAddr is the address main binds: the one config.EnvListenAddr names, or

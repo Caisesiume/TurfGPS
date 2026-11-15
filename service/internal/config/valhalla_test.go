@@ -57,6 +57,25 @@ func TestTheRoutingEngineURLIsCarriedAsGiven(t *testing.T) {
 	}
 }
 
+// TestTheTileRecordsPathIsCarriedAsGiven (#249 AC5): the tile record's path
+// reaches the configuration unchanged, and its absence is not a refusal — the
+// identity it would give is unreadable, which plans nothing.
+func TestTheTileRecordsPathIsCarriedAsGiven(t *testing.T) {
+	t.Parallel()
+
+	for _, record := range []string{"/srv/valhalla/tiles.sha256", ""} {
+		cfg, err := LoadValhalla(env(map[string]string{EnvValhallaURL: "http://127.0.0.1:8002", EnvTileIdentityFile: record}))
+		if err != nil || cfg == nil || cfg.TileIdentityFile != record {
+			t.Errorf("%s=%q gave %+v, %v; want the path carried as given", EnvTileIdentityFile, record, cfg, err)
+		}
+	}
+
+	cfg, err := LoadValhalla(env(map[string]string{EnvValhallaURL: "http://127.0.0.1:8002"}))
+	if err != nil || cfg == nil || cfg.TileIdentityFile != "" {
+		t.Errorf("with %s unset LoadValhalla gave %+v, %v; want an engine and no record", EnvTileIdentityFile, cfg, err)
+	}
+}
+
 // TestAMalformedRoutingEngineConfigurationIsRefused: each malformed value is
 // refused with an error naming the variable it came from, so the service
 // stops at start rather than answering every journey with an error.
@@ -78,6 +97,7 @@ func TestAMalformedRoutingEngineConfigurationIsRefused(t *testing.T) {
 		{"a timeout that is not a duration", map[string]string{EnvValhallaURL: "http://127.0.0.1:8002", EnvValhallaTimeout: "10"}, EnvValhallaTimeout},
 		{"a timeout that is not positive", map[string]string{EnvValhallaURL: "http://127.0.0.1:8002", EnvValhallaTimeout: "0s"}, EnvValhallaTimeout},
 		{"a timeout without a URL", map[string]string{EnvValhallaTimeout: "3s"}, EnvValhallaURL},
+		{"a tile record without a URL", map[string]string{EnvTileIdentityFile: "/srv/valhalla/tiles.sha256"}, EnvTileIdentityFile},
 	} {
 		cfg, err := LoadValhalla(env(tc.vars))
 		if err == nil {
