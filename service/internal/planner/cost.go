@@ -99,10 +99,6 @@ func (a Alternative) AdditionalTime() (time.Duration, error) {
 	}
 
 	if len(a.Stops) == 0 {
-		if !a.Journey.same(a.Base) {
-			return 0, fmt.Errorf("%w: it holds no Turf stop, so it is the general route as it is, and its journey is not that route", ErrNotCorresponding)
-		}
-
 		return 0, nil
 	}
 
