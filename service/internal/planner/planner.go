@@ -40,17 +40,37 @@
 // (#255, `Architecture.md § The route check`, ADR-0008). A route comes back from
 // the RoutingProvider as the OpenStreetMap ways it runs along, each with its
 // stretch of shape; the AccessMarkings port says which markings those cross;
-// and a leg crossing any is refused. Refused means not produced: there is no
-// least-bad crossing (`FR-125`'s third criterion). The routing provider is
-// reached from one method only, checkedLeg, so no route reaches a journey by
-// another path (AC4); `checkedleg_test.go` holds that to the source.
+// and a leg crossing any in transit is refused. Refused means not produced:
+// there is no least-bad crossing (`FR-125`'s third criterion). The routing
+// provider is reached from one method only, checkedLeg, so no route reaches a
+// journey by another path (#255 AC4); `checkedleg_test.go` holds that to the
+// source.
 //
-// UNTIL #248 LANDS, EVERY CROSSING IS REFUSED. `FR-126`'s run at a location the
-// user entered is #248's, so today a home on a private road gets no leg. That
-// is the stricter state, and no driver is served it: every story that lets a
-// client call `POST /journeys` is blocked through #248. Areas marked only on
-// the feature enclosing them are #253's (`FR-128`), and the stopping-position
-// checks of `FR-127` are #256's.
+// A LEG MAY RUN ALONG MARKED WAYS ONLY ON THE RUN AT A LOCATION THE USER
+// ENTERED (#248, `FR-126`, `RD-056`, `RD-057`, `RD-061`). Every location of a
+// Request is one the user entered, so both ends of every leg are such
+// locations today; the stopping positions the system chooses are #256's, and
+// a leg's ends carry whether each was entered (legEnds) so that #256 passes
+// false where it was not. At an entered end, the leg's leading — or trailing —
+// edges along marked ways are the run if they are one stretch that ends where
+// the leg meets an unmarked way and carries no more marked length than the
+// least that joins the location to one, both measured by the AccessMarkings
+// port along the geometry the tables hold (`§ The route check`, step 4).
+// Everything else on the leg is in transit (`FR-125`'s fourth criterion), and
+// a run whose least is undefined refuses the leg. run.go holds the reading.
+//
+// A REFUSED LEG IS ASKED FOR AGAIN, AVOIDING WHAT IT CROSSED (ADR-0008 D4,
+// `§ Avoiding, not only refusing`). The provider is told the places the check
+// found — a point on each marked way in transit, each marked barrier in
+// transit, and a point on each way of a run longer than the least that the
+// least does not use — and its new answer is checked from the start. The run's
+// own ways are never avoided. Avoidance is how a leg avoiding a marking is
+// produced; the check is what makes it safe, so a provider that ignores what
+// it is told gives a refused leg, never a crossing one. How many times a leg
+// is asked for again is configured (AvoidUpTo); where that is spent, or the
+// provider finds nothing keeping off the places, the leg is refused with the
+// crossings of the last answer checked — a lost leg, never an unsafe one. Only
+// the answer that passed reaches the journey, never one that was refused.
 //
 // THE MARKINGS AND THE ROUTING DATA MUST COME FROM ONE EXTRACT, or nothing is
 // planned. A way absent from the markings reads as unmarked, which is true only
@@ -63,8 +83,11 @@
 //
 // What this package does not do yet, and where each lands:
 //
-//   - Producing the leg that avoids a marking where one exists, and admitting
-//     `FR-126`'s run at a location the user entered (#248).
+//   - Areas marked only on the feature enclosing them (`FR-128`, #253): a
+//     crossing of a marked area is refused wherever it lies on the leg, and
+//     is not avoided.
+//   - The stopping positions the system chooses, and the gap short of one
+//     (`FR-127`, #256).
 //   - Refusing a request with no destination (`FR-005`, #4). Request has no way
 //     to omit one, so that refusal belongs to whatever decodes a request.
 //   - Refusing a return to the origin that names no distinct intermediate
@@ -79,6 +102,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -197,17 +221,26 @@ type Edge struct {
 // a route without them; the openrouteservice adapter inherits the obligation.
 // The provider is not trusted to keep off marked ways — it need not, and the
 // Valhalla one does not — because the check is what keeps every leg off them.
+//
+// A ROUTE MAY BE ASKED TO KEEP OFF PLACES (#248, ADR-0008 D4). avoid lists
+// points the check found an earlier answer crossing a marking at: a point on a
+// marked way, or a marked barrier's position. A provider routes around the
+// roads at each where it can, and errs where it finds no route that does; it
+// is never trusted to have kept off them, since the check reads every answer
+// again. An empty avoid asks for the route a car is given with nothing
+// avoided.
 type RoutingProvider interface {
-	// Route returns a route a car can drive from one location to another, as
-	// the edges it runs along, at least one.
-	Route(ctx context.Context, from, to Point) ([]Edge, error)
+	// Route returns a route a car can drive from one location to another,
+	// kept off the places avoid lists, as the edges it runs along, at least
+	// one.
+	Route(ctx context.Context, from, to Point, avoid []Point) ([]Edge, error)
 }
 
 // Crossing is one access marking a leg crosses.
 type Crossing struct {
 	// Edge is the index, in the leg's Edges, of the edge that crosses it,
-	// which is where on the leg it lies: #248 tells `FR-126`'s run from
-	// transit by it.
+	// which is where on the leg it lies: the run at a location the user
+	// entered is told from transit by it.
 	Edge int
 
 	// Kind is "way", "barrier" or "area".
@@ -232,7 +265,9 @@ func (c Crossing) String() string {
 }
 
 // CrossingError is the refusal of a leg that crosses access markings. It names
-// every marking found and where on the leg each lies (#255 AC2).
+// every marking that refused it and where on the leg each lies (#255 AC2): each
+// one in transit, and each on a run the leg was not admitted along. Where the
+// leg was asked for again avoiding them, it is the last answer checked.
 type CrossingError struct {
 	// Leg is the index of the refused leg in the journey.
 	Leg int
@@ -241,6 +276,10 @@ type CrossingError struct {
 	Edges []Edge
 
 	Crossings []Crossing
+
+	// Avoided is how many times the leg was asked for again, avoiding what
+	// the answer before it crossed, before it was refused.
+	Avoided int
 }
 
 func (e *CrossingError) Error() string {
@@ -249,7 +288,7 @@ func (e *CrossingError) Error() string {
 		names[i] = c.String()
 	}
 
-	return fmt.Sprintf("leg %d crosses %d access marking(s): %s", e.Leg, len(e.Crossings), strings.Join(names, "; "))
+	return fmt.Sprintf("leg %d crosses %d access marking(s), asked for again %d time(s): %s", e.Leg, len(e.Crossings), e.Avoided, strings.Join(names, "; "))
 }
 
 // Is reports a CrossingError as ErrCrossesMarking.
@@ -270,7 +309,45 @@ type AccessMarkings interface {
 	// tolerance of its stretch, and each marked area a stretch intersects. An
 	// error means the edges were not checked, never that they cross nothing.
 	Crossings(ctx context.Context, edges []Edge) ([]Crossing, error)
+
+	// Run measures a leg's run at a location the user entered (`FR-126`,
+	// `Architecture.md § What the tables hold`). run is the leg's edges from
+	// that location in the order travelled away from it — at a leg's far end,
+	// its last edges reversed, each stretch reversed with them — every one
+	// along a marked way; its first point is where the leg's shape meets the
+	// location's way, and its last is where the leg meets an unmarked way.
+	//
+	// It returns the marked length the run travels and the least marked
+	// length that joins its first point to an unmarked way, both measured the
+	// same way along the geometry the tables hold, so that the run is
+	// admitted exactly where the first is no more than the second. An error
+	// wrapping ErrNoLeastRun means the least is undefined, or the run could
+	// not be placed on the tables' geometry, and refuses the leg; any other
+	// error means the run was not measured.
+	Run(ctx context.Context, run []Edge) (RunMeasure, error)
 }
+
+// RunMeasure is what AccessMarkings.Run measures of a run.
+type RunMeasure struct {
+	// Marked is the marked length, in metres, the run travels.
+	Marked float64
+
+	// Least is the least marked length, in metres, that joins the run's first
+	// point to an unmarked way.
+	Least float64
+
+	// LeastWays are the ways a least run travels along. A run longer than the
+	// least is asked for again avoiding its other ways, and these never.
+	LeastWays []int64
+}
+
+// ErrNoLeastRun is the error AccessMarkings.Run wraps where the least run is
+// undefined — the location's way is not a marked way the tables hold, or no
+// unmarked way is reachable from it over marked ways — or where the run cannot
+// be placed on the tables' geometry. An undefined least run is no bound: the
+// leg it would bound is refused, never read as unbounded
+// (`Architecture.md § What the tables hold`).
+var ErrNoLeastRun = errors.New("the run at the location has no least run to be held to")
 
 // RoutingData reports which extract the routing engine's data was built from.
 //
@@ -304,6 +381,33 @@ type Planner struct {
 	zones    ZoneCopy
 	markings AccessMarkings
 	data     RoutingData
+
+	// avoidUpTo is how many times a refused leg is asked for again; zero
+	// unless AvoidUpTo sets it.
+	avoidUpTo int
+}
+
+// Option configures a Planner beyond what New requires.
+type Option func(*Planner) error
+
+// AvoidUpTo sets how many times a leg refused for crossing a marking is asked
+// for again, avoiding what it crossed (ADR-0008 D4). Without it a refused leg
+// is never asked for again, so every leg crossing a marking in transit is
+// refused: the stricter state, which loses legs rather than serving any. The
+// bound is the deployment's, taken from configuration with its origin
+// (`config.LoadAccessAvoidance`), because no document gives it
+// (`Architecture.md § What is not decided`). It trades lost legs against the
+// engine calls a leg may cost, and no value of it lets a crossing leg through.
+func AvoidUpTo(attempts int) Option {
+	return func(p *Planner) error {
+		if attempts < 0 {
+			return fmt.Errorf("an avoidance bound of %d attempts is negative", attempts)
+		}
+
+		p.avoidUpTo = attempts
+
+		return nil
+	}
 }
 
 // New returns a Planner that routes through routing, plans only while zones
@@ -311,7 +415,7 @@ type Planner struct {
 // nothing, while markings and data report one extract. Every argument is
 // required: a planner that could not ask would have to guess, and every guess
 // fails one way or the other.
-func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data RoutingData) (*Planner, error) {
+func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data RoutingData, opts ...Option) (*Planner, error) {
 	switch {
 	case routing == nil:
 		return nil, errors.New("no routing provider")
@@ -323,12 +427,21 @@ func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data 
 		return nil, errors.New("no identity of the routing data to check the access markings against")
 	}
 
-	return &Planner{routing: routing, zones: zones, markings: markings, data: data}, nil
+	p := &Planner{routing: routing, zones: zones, markings: markings, data: data}
+
+	for _, opt := range opts {
+		if err := opt(p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
 }
 
 // Plan plans the journey req names. Every journey it returns begins at
 // req.Origin, passes through req.Intermediates in the order they were entered,
-// and ends at req.Destination, and no leg of it crosses an access marking.
+// and ends at req.Destination, and no leg of it crosses an access marking but
+// along the run at a location the user entered.
 //
 // A location that is not a coordinate is refused before the provider is asked,
 // with an error wrapping ErrNotACoordinate. Where no zone copy is held, no
@@ -360,7 +473,8 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 	legs := make([]Leg, 0, len(locations)-1)
 
 	for i := range len(locations) - 1 {
-		leg, err := p.checkedLeg(ctx, i, locations[i], locations[i+1])
+		// Every location of a request is one the user entered (`RD-056`).
+		leg, err := p.checkedLeg(ctx, i, locations[i], locations[i+1], legEnds{fromEntered: true, toEntered: true})
 		if err != nil {
 			return Journey{}, err
 		}
@@ -385,28 +499,66 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 
 // checkedLeg routes one leg and checks it against the access markings. It is
 // the only caller of the routing provider, so every route the planner obtains
-// is checked before it is used (#255 AC4).
-func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point) (Leg, error) {
-	edges, err := p.routing.Route(ctx, from, to)
-	if err != nil {
-		return Leg{}, fmt.Errorf("routing leg %d: %w", i, err)
-	}
+// is checked before it is used (#255 AC4), each answer to avoidance included.
+//
+// An answer that crosses a marking in transit, or runs a run it is not
+// admitted along, is asked for again up to avoidUpTo times, each time avoiding
+// every place found so far, and the leg is refused where no answer passes. A
+// provider that errs on a later ask — finding no route keeping off the places,
+// or refusing as many as were sent — leaves the leg refused for the crossings
+// of the last answer checked, unless the plan itself has ended.
+func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends legEnds) (Leg, error) {
+	var (
+		avoid   []Point
+		refusal *CrossingError
+	)
 
-	shape, err := joinEdges(edges)
-	if err != nil {
-		return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
-	}
+	for attempt := 0; ; attempt++ {
+		edges, err := p.routing.Route(ctx, from, to, avoid)
+		if err != nil {
+			if refusal == nil || ctx.Err() != nil {
+				return Leg{}, fmt.Errorf("routing leg %d: %w", i, err)
+			}
 
-	crossings, err := p.markings.Crossings(ctx, edges)
-	if err != nil {
-		return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
-	}
+			refusal.Avoided = attempt
 
-	if len(crossings) > 0 {
-		return Leg{}, &CrossingError{Leg: i, Edges: edges, Crossings: crossings}
-	}
+			return Leg{}, refusal
+		}
 
-	return Leg{Shape: shape, Edges: edges}, nil
+		shape, err := joinEdges(edges)
+		if err != nil {
+			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+		}
+
+		crossings, err := p.markings.Crossings(ctx, edges)
+		if err != nil {
+			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+		}
+
+		refused, places, err := p.refusing(ctx, edges, crossings, ends)
+		if err != nil {
+			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+		}
+
+		if len(refused) == 0 {
+			return Leg{Shape: shape, Edges: edges}, nil
+		}
+
+		refusal = &CrossingError{Leg: i, Edges: edges, Crossings: refused, Avoided: attempt}
+
+		more := 0
+
+		for _, pl := range places {
+			if !slices.Contains(avoid, pl) {
+				avoid = append(avoid, pl)
+				more++
+			}
+		}
+
+		if attempt >= p.avoidUpTo || more == 0 {
+			return Leg{}, refusal
+		}
+	}
 }
 
 // joinEdges holds a provider's edges to the contract RoutingProvider states and

@@ -19,7 +19,7 @@ type fakeRouting struct {
 	answered [][]Point
 }
 
-func (f *fakeRouting) Route(_ context.Context, from, to Point) ([]Edge, error) {
+func (f *fakeRouting) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
 	f.asked = append(f.asked, [2]Point{from, to})
 	if f.err != nil {
 		return nil, f.err
@@ -63,6 +63,10 @@ type clearAccess struct{}
 func (clearAccess) ExtractSHA256(context.Context) (string, error) { return testExtract, nil }
 
 func (clearAccess) Crossings(context.Context, []Edge) ([]Crossing, error) { return nil, nil }
+
+func (clearAccess) Run(context.Context, []Edge) (RunMeasure, error) {
+	return RunMeasure{}, ErrNoLeastRun
+}
 
 // randomShapes is a fake whose every route is a random shape, which never
 // begins or ends at the locations asked for.

@@ -21,7 +21,7 @@ import (
 // the route's vertices are never the locations a journey is planned between.
 type straightRouting struct{}
 
-func (straightRouting) Route(_ context.Context, from, to planner.Point) ([]planner.Edge, error) {
+func (straightRouting) Route(_ context.Context, from, to planner.Point, _ []planner.Point) ([]planner.Edge, error) {
 	mid := planner.Point{Latitude: (from.Latitude + to.Latitude) / 2, Longitude: (from.Longitude + to.Longitude) / 2}
 
 	return []planner.Edge{{WayID: 1, Shape: []planner.Point{mid, mid}}}, nil
@@ -29,7 +29,7 @@ func (straightRouting) Route(_ context.Context, from, to planner.Point) ([]plann
 
 type failingRouting struct{}
 
-func (failingRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Edge, error) {
+func (failingRouting) Route(context.Context, planner.Point, planner.Point, []planner.Point) ([]planner.Edge, error) {
 	return nil, errors.New("engine unavailable")
 }
 
@@ -64,6 +64,10 @@ func (clearAccess) ExtractSHA256(context.Context) (string, error) {
 
 func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
 	return nil, nil
+}
+
+func (clearAccess) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
+	return planner.RunMeasure{}, planner.ErrNoLeastRun
 }
 
 // withFakePlanner plans through routing from a zone copy that is held, which is
@@ -276,7 +280,7 @@ type stalledRouting struct{ calls *atomic.Int64 }
 
 var errStalledPastItsBound = errors.New("no deadline ended the leg, so the fake's own bound did")
 
-func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planner.Edge, error) {
+func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point, _ []planner.Point) ([]planner.Edge, error) {
 	s.calls.Add(1)
 
 	select {
@@ -291,7 +295,7 @@ func (s stalledRouting) Route(ctx context.Context, _, _ planner.Point) ([]planne
 // account does, before any plan deadline.
 type ownTimeoutRouting struct{}
 
-func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([]planner.Edge, error) {
+func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point, []planner.Point) ([]planner.Edge, error) {
 	return nil, fmt.Errorf("asking the routing engine: %w", context.DeadlineExceeded)
 }
 
@@ -299,7 +303,7 @@ func (ownTimeoutRouting) Route(context.Context, planner.Point, planner.Point) ([
 // has already ended.
 type expiredRouting struct{}
 
-func (expiredRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Edge, error) {
+func (expiredRouting) Route(ctx context.Context, from, _ planner.Point, _ []planner.Point) ([]planner.Edge, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

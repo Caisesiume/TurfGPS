@@ -78,10 +78,17 @@ run service/internal/planner/planner.go service/internal/accessstore/accessstore
 check "the access-marking check is a safety path" \
   'safety_path_candidates: [service/internal/planner/planner.go, service/internal/accessstore/accessstore.go, service/internal/accessload/write.go, service/internal/osmpbf/osmpbf.go, migrations/0003_access_markings.sql, migrations/0003_access_markings.verify.sql, migrations/0003_access_markings.down.sql]'
 
+# The run's migration (#248), its verify and rollback too.
+run migrations/0004_access_run.sql migrations/0004_access_run.verify.sql \
+    migrations/0004_access_run.down.sql service/internal/planner/run.go \
+    service/internal/accessstore/run.go
+check "the run's migration is a safety path" \
+  'safety_path_candidates: [migrations/0004_access_run.sql, migrations/0004_access_run.verify.sql, migrations/0004_access_run.down.sql, service/internal/planner/run.go, service/internal/accessstore/run.go]'
+
 # Near misses on either side of those anchors: another migration is not one.
 run service/internal/plannerx/p.go service/internal/planner xservice/internal/accessstore/a.go \
     service/internal/accessloader/x.go migrations/0002_zone_feed.sql migrations/0003_access_markings \
-    xmigrations/0003_access_markings.sql
+    xmigrations/0003_access_markings.sql migrations/0004_access_runs.sql migrations/0004_access_run
 check "access-marking near misses are not safety paths" \
   'safety_path_candidates: []'
 

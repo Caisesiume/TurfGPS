@@ -189,7 +189,7 @@ func TestACarLegIsNeverRoutedAlongAPedestrianStreet(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	edges, err := c.Route(t.Context(), westEnd, eastEnd)
+	edges, err := c.Route(t.Context(), westEnd, eastEnd, nil)
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestEveryCarLegNamesTheWaysItRunsAlong(t *testing.T) {
 	}
 
 	for _, leg := range [][2]planner.Point{{westEnd, eastEnd}, {southOfViktoriagatan, northOfViktoriagatan}} {
-		edges, err := c.Route(t.Context(), leg[0], leg[1])
+		edges, err := c.Route(t.Context(), leg[0], leg[1], nil)
 		if err != nil {
 			t.Fatalf("Route(%v, %v): %v", leg[0], leg[1], err)
 		}
@@ -312,7 +312,7 @@ func TestEveryCarLegNamesTheWaysItRunsAlong(t *testing.T) {
 		}
 	}
 
-	edges, err := c.Route(t.Context(), southOfViktoriagatan, northOfViktoriagatan)
+	edges, err := c.Route(t.Context(), southOfViktoriagatan, northOfViktoriagatan, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -468,7 +468,8 @@ func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler,
 // until the request surface has a pool on the tables (#249) and the tile set's
 // identity can be read (`DEPLOYMENT.md`, #25). The barrier tolerance is read
 // here all the same, so a malformed one stops the start rather than waiting
-// for the store it will configure.
+// for the store it will configure; the avoidance bound is read and given to
+// the planner, which asks no refused leg again where none is set (#248).
 func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings planner.AccessMarkings, data planner.RoutingData) (*planner.Planner, error) {
 	cfg, err := config.LoadValhalla(lookup)
 	if err != nil {
@@ -476,6 +477,11 @@ func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings plann
 	}
 
 	if _, err := config.LoadAccessMarkings(lookup); err != nil {
+		return nil, err
+	}
+
+	avoidance, err := config.LoadAccessAvoidance(lookup)
+	if err != nil {
 		return nil, err
 	}
 
@@ -491,7 +497,13 @@ func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings plann
 		return nil, err
 	}
 
-	plans, err := planner.New(routing, zones, markings, data)
+	// Without a configured bound no refused leg is asked for again (#248).
+	var opts []planner.Option
+	if avoidance != nil {
+		opts = append(opts, planner.AvoidUpTo(avoidance.Attempts))
+	}
+
+	plans, err := planner.New(routing, zones, markings, data, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -539,6 +551,10 @@ func (unwiredAccessMarkings) ExtractSHA256(context.Context) (string, error) {
 
 func (unwiredAccessMarkings) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
 	return nil, errAccessStoreUnwired
+}
+
+func (unwiredAccessMarkings) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
+	return planner.RunMeasure{}, errAccessStoreUnwired
 }
 
 // errTileIdentityUnknown is what unknownRoutingData reports.

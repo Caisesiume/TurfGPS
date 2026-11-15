@@ -35,13 +35,25 @@
 // `delivery`, `permit` or `residents` as destination-only at a penalty, passes
 // a private gate or bollard at a penalty, and treats `access=restricted`, and
 // any value its tables do not list, as open (ADR-0008, § Context). The planner
-// refuses every leg the check finds crossing a marking; this adapter only
-// names the ways.
+// checks every leg it is given and refuses one crossing a marking in transit;
+// this adapter names the ways, and keeps off what it is told to.
+//
+// WHAT THE PLANNER ASKS IT TO AVOID IS SENT AS `exclude_locations`, and as
+// nothing else (#248, `Architecture.md § Avoiding, not only refusing`). Each
+// place goes as a location the engine maps to "the closest road or roads" and
+// routes around (route API reference, § Other request options), which for a
+// point on a marked way is that way and for a barrier's position the roads
+// through it. `exclude_polygons` and every costing option stay unsent: the
+// first is limited to a hundred vertices across a request at 3.9.1's
+// defaults, and the second alters what the car costing may use. An answer to
+// an avoiding request is checked like any other, so an engine that ignored the
+// exclusions would give a refused leg, never a crossing one.
 //
 // THE FIELDS ARE VALHALLA'S DOCUMENTED ONES, at the version CI runs (3.9.1),
 // and none is assumed. Each is in the route API reference,
 // https://github.com/valhalla/valhalla/blob/3.9.1/docs/docs/api/route/api-reference.md:
-// `locations` with `lat` and `lon` (§ Locations), `costing` and the `auto`
+// `locations` with `lat` and `lon` (§ Locations), `exclude_locations` (§ Other
+// request options), `costing` and the `auto`
 // model (§ Costing models), `directions_type` (§ Directions options), a leg's
 // `shape` and its maneuvers' `travel_mode` and `travel_type` (§ Trip legs and
 // maneuvers), and the error body's `error_code` and `error` (§ HTTP status
@@ -156,9 +168,10 @@ type location struct {
 }
 
 type routeRequest struct {
-	Locations      []location `json:"locations"`
-	Costing        string     `json:"costing"`
-	DirectionsType string     `json:"directions_type"`
+	Locations        []location `json:"locations"`
+	ExcludeLocations []location `json:"exclude_locations,omitempty"`
+	Costing          string     `json:"costing"`
+	DirectionsType   string     `json:"directions_type"`
 }
 
 type routeResponse struct {
@@ -206,8 +219,8 @@ type errorResponse struct {
 }
 
 // Route returns the route a car drives from one location to the other, as
-// Valhalla's `auto` costing finds it, cut into the OpenStreetMap ways it runs
-// along.
+// Valhalla's `auto` costing finds it keeping off the roads at each place avoid
+// names, cut into the OpenStreetMap ways it runs along.
 //
 // The route's ends are where the engine placed the locations on its graph —
 // for a car, on the nearest road a car may use — and so are generally near
@@ -216,11 +229,17 @@ type errorResponse struct {
 // one this adapter cannot hold to the documented shape, including a leg not
 // reported as driven by car, which wraps ErrNotDriven, and a leg whose ways
 // the engine could not name, which wraps ErrWaysUnnamed.
-func (c *Client) Route(ctx context.Context, from, to planner.Point) ([]planner.Edge, error) {
+func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) ([]planner.Edge, error) {
+	var excluded []location
+	for _, p := range avoid {
+		excluded = append(excluded, location{Lat: p.Latitude, Lon: p.Longitude})
+	}
+
 	raw, err := c.post(ctx, c.routeURL, routeRequest{
-		Locations:      []location{{Lat: from.Latitude, Lon: from.Longitude}, {Lat: to.Latitude, Lon: to.Longitude}},
-		Costing:        costingCar,
-		DirectionsType: directionsManeuvers,
+		Locations:        []location{{Lat: from.Latitude, Lon: from.Longitude}, {Lat: to.Latitude, Lon: to.Longitude}},
+		ExcludeLocations: excluded,
+		Costing:          costingCar,
+		DirectionsType:   directionsManeuvers,
 	})
 	if err != nil {
 		return nil, err
