@@ -3959,3 +3959,112 @@ Affects:        FR-129: statement, second and third criteria,
                 `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
                 cycle-9 criteria, appended, and AC15(b) is read with them.
 ```
+
+## RD-084 — Is a negative additional time reported as it stands, or clamped at zero?
+
+```
+Date:           2026-11-15
+Question:       Raised on #7 while PR #289 built FR-008: where a journey
+                alternative's estimated duration, the time at its Turf stops
+                included, falls below that of the general route it is built
+                on, as when the routing provider answers the journey through a
+                stop as quicker than the base's own legs, is its additional
+                time reported as the negative difference, or clamped at zero?
+Interpretation: **Reported as it stands, with no clamp.** The additional time
+                is the alternative's estimated duration less its general
+                route's, whatever its sign. The total FR-061 tests is the
+                general-route deviation and this figure together, so
+                unclamped it is the alternative's estimated duration less the
+                fastest conventional route's, which is the time the driver
+                adds; clamped, it would overstate that time by the amount
+                discarded, and the two quantities FR-062 retains would no
+                longer sum to it. A leg answered as taking less than no time
+                is a different case: it is refused where it is produced, and
+                that stands.
+Rung:           1, explicit specification, with rung 4.
+                `CalculationSpecification.md § Additional journey time` defines
+                the figure as "Turf-enhanced journey duration − baseline
+                journey duration", with no floor; FR-008's first criterion
+                makes the cost equal that difference, and FR-062's first makes
+                its two quantities sum to the total FR-061 tests, which a
+                clamp on one of them breaks. The tree agrees at `f54ee08`:
+                `service/internal/planner/cost.go:154` returns the difference
+                unclamped, and a clamp there fails
+                `TestAnAlternativeIsChargedItsDurationLessItsBase`. No Turf
+                mechanic is read and no constant is introduced.
+Affects:        FR-008: `Rationale` gains the reading. FR-061 and FR-062 read
+                it, unchanged.
+```
+
+## RD-085 — Does a zone captured twice in one journey count once toward its Turf value?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` on PR #291, relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/291#issuecomment-6902611057.
+                The relay, verbatim: "Owner decision (AskUserQuestion,
+                2026-11-15): **counts once**. Once a zone is taken it is held,
+                so a second visit in the same journey gains nothing, and the
+                value sums distinct zones. The PR's behaviour stands. The
+                analyst records it as a decision entry once #274 frees
+                docs/Requirements." This entry records a ruling made
+                elsewhere.
+Question:       Where a journey alternative holds two Turf stops that capture
+                the same zone, does its Turf value under FR-007 count that
+                zone once, or once per stop?
+Interpretation: **Once.** A journey alternative's Turf value sums over the
+                distinct zones it captures, and a second stop at a zone
+                already captured in the same journey adds nothing to it. Only
+                the value collapses: FR-009 still charges each stop its time,
+                so a repeated stop costs what it costs and gains nothing.
+Rung:           n/a — Owner ruling, and no rung is claimed. Rung 1 stopped
+                short: `SPECIFICATION.md § The journey as an optimization problem`
+                derives value from "the zones it captures" and is silent on a
+                zone captured twice, and whether a second take of a zone in
+                one journey earns anything is a Turf mechanic, never inferred
+                (`safety-path-checklist § Domain facts are verified, not inferred`),
+                so the question was the Owner's.
+Affects:        FR-007: `Rationale` cites it and `Volatility` is added; its
+                first criterion's "the same set of zones" reads with it.
+                `service/internal/planner/value.go` at `f54ee08` already
+                counts each zone once.
+```
+
+## RD-086 — Which record obliges the ceiling to be tested at the figures of a leg avoided around a marking?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict's N4 on PR #270
+                (`#issuecomment-6887632946`), routed by the lead to #7
+                (`#issuecomment-6887637367`): where the planner requests a
+                leg again around a marking and serves the avoided answer, the
+                time ceiling has to be checked on that answer. PR #289 built
+                the cost half, an avoided leg carrying the time of the answer
+                that passed. Which record obliges the ceiling half, and in
+                what words?
+Interpretation: **FR-045, as a fourth criterion.** Given a produced journey
+                alternative one of whose legs FR-125 produced on a connection
+                avoiding a marking, and whose additional time exceeds the
+                ceiling at the figures of that connection though not at those
+                of the connection it avoided, when recommendations are
+                offered, then that alternative is not among them. FR-045's
+                statement is unchanged; the criterion names the branch on
+                which a check reading the earlier, quicker figure passes every
+                other criterion. The cost half needs no record of its own:
+                FR-008 measures the alternative from the legs it holds, and
+                `service/internal/planner/cost_test.go:307` proves an avoided
+                leg is costed at the answer that passed.
+Rung:           2, architecture constraints, with rung 4.
+                `Architecture.md § The route check` states, under "Only a
+                built, checked leg's figures count", that the check against
+                `CalculationSpecification.md § The absolute additional-time ceiling`
+                reads the time of the leg that passed the route check "and
+                never the figure of a leg before it was avoided"; FR-045 is
+                the record that forbids offering above the ceiling, so the
+                criterion is its. No constant is introduced and no Turf
+                mechanic is read.
+Affects:        FR-045: `Verification`, a fourth criterion, `Depends-on`
+                gains FR-125, `Volatility` added, `Rationale`. #50 is to gain
+                the matching AC4; that edit is the Owner's.
+```
