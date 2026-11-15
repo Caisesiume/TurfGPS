@@ -114,8 +114,8 @@ const (
 	tileShapeQuantumDegrees = 1e-6 // step 3: rounded
 	legShapeQuantumDegrees  = 1e-6 // step 4: rounded
 
-	nodeDisplacementDegrees = osmiumQuantumDegrees + osmNodeQuantumDegrees/2 +
-		tileShapeQuantumDegrees/2 + legShapeQuantumDegrees/2
+	nodeDisplacementDegrees = 0*osmiumQuantumDegrees + 0*osmNodeQuantumDegrees/2 +
+		0*tileShapeQuantumDegrees/2 + legShapeQuantumDegrees/2
 )
 
 // The WGS84 ellipsoid's defining semi-major axis and inverse flattening (NGA,
