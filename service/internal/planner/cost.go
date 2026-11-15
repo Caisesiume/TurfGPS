@@ -98,7 +98,7 @@ func (a Alternative) AdditionalTime() (time.Duration, error) {
 		return 0, nil
 	}
 
-	return a.Duration() - a.Base.DrivingTime(), nil
+	return a.Duration(), nil
 }
 
 // corresponds reports whether Base is a journey the alternative can be built
