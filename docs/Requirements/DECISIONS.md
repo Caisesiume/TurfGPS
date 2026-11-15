@@ -3927,14 +3927,18 @@ Interpretation: **The set a car reaches from where it meets, and nothing
                 outside the parking area, is not admitted under (ii), so a
                 gate the map data places inside the outline rather than on it
                 closes the set where it stands, and an open link to another
-                parking area reopens nothing. Each parking area establishing a stop is
-                still tested on its own (RD-082's N23). N25 is recorded, not
-                changed: one parking area drawn around two car parks with no
-                marked barrier and no marked part between them is one parking
-                area, and one drawn over a site's unmarked roads admits those
-                roads up to the first marked barrier, because nothing in the
-                map data separates what the driver passes; the safety verdict
-                judges it non-blocking. This supersedes RD-082's (ii) in its
+                parking area does not reopen it under that parking area. Each
+                parking area establishing a stop is still tested on its own
+                (RD-082's N23). N25 is recorded, not changed: one parking area
+                drawn around two car parks with no marked barrier and no
+                marked part between them is one parking area, and one drawn
+                over a site's unmarked roads admits every part of them a car
+                reaches within it from where it meets the stretch, past no
+                marked barrier, so where Y's gated aisles, the link and X all
+                lie within one larger parking area that meets the stretch, the
+                larger one admits the aisles beyond Y's gate, because nothing
+                in the map data separates what the driver passes; the safety
+                verdict judges it non-blocking. This supersedes RD-082's (ii) in its
                 words "and that parking area meets the stretch" as the whole
                 condition on the part, and leaves the rest of RD-082, RD-081's
                 legs-to-and-from rule and N22, and RD-080's count standing.

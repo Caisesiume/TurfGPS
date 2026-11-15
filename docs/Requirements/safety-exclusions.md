@@ -1625,8 +1625,12 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               reached from where it meets, not every part of a parking area
               that meets, so a gate the map data places inside the outline
               rather than on it closes the set where it stands, and the parts
-              beyond the gate are not admitted however an open link joins
-              them to another parking area. One
+              beyond the gate are not admitted under that parking area
+              however an open link joins them to another; where both and the
+              link lie within one larger parking area that meets the stretch,
+              the larger one, tested on its own, admits the parts beyond the
+              gate that a car reaches within it past no marked barrier
+              (RD-083's N25). One
               parking area drawn around two car parks with no marked barrier
               or marked part between them is one parking area, nothing in the
               map data separating what the driver passes.
