@@ -242,18 +242,18 @@ func measure(run []planner.Edge, points []runPoint, network map[int64]runWay) (p
 		return planner.RunMeasure{}, fmt.Errorf("%w: no unmarked way is reachable over marked ways from way %d", planner.ErrNoLeastRun, run[0].WayID)
 	}
 
-	marked, err := travelled(run, points, network, exits)
+	marked, exit, err := travelled(run, points, network, exits)
 	if err != nil {
 		return planner.RunMeasure{}, err
 	}
 
-	return planner.RunMeasure{Marked: marked, Least: least, LeastWays: leastWays}, nil
+	return planner.RunMeasure{Marked: marked, Least: least, LeastWays: leastWays, Exit: exit}, nil
 }
 
 // travelled is the run's own marked length: the segments it travels, in its
 // order, summed in that order from the length its first point lies from the
-// vertex it travels to.
-func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, exits map[int64]bool) (float64, error) {
+// vertex it travels to; and the exit node it ends at.
+func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, exits map[int64]bool) (float64, int64, error) {
 	var (
 		metres  float64
 		node    int64 // the node the edge before ended at
@@ -264,16 +264,16 @@ func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, 
 	for i, e := range run {
 		w, ok := network[e.WayID]
 		if !ok {
-			return 0, fmt.Errorf("%w: edge %d of the run is along way %d, which the marked network at the location does not hold", planner.ErrNoLeastRun, i, e.WayID)
+			return 0, 0, fmt.Errorf("%w: edge %d of the run is along way %d, which the marked network at the location does not hold", planner.ErrNoLeastRun, i, e.WayID)
 		}
 
 		if repeats(w.nodes) {
-			return 0, fmt.Errorf("%w: edge %d of the run is along way %d, which passes a node twice", planner.ErrNoLeastRun, i, e.WayID)
+			return 0, 0, fmt.Errorf("%w: edge %d of the run is along way %d, which passes a node twice", planner.ErrNoLeastRun, i, e.WayID)
 		}
 
 		end := points[2*i+1].vertex
 		if end < 0 || end >= len(w.nodes) {
-			return 0, fmt.Errorf("%w: edge %d ends at vertex %d of %d", ErrUnchecked, i, end, len(w.nodes))
+			return 0, 0, fmt.Errorf("%w: edge %d ends at vertex %d of %d", ErrUnchecked, i, end, len(w.nodes))
 		}
 
 		var from, dir int
@@ -293,7 +293,7 @@ func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, 
 		} else {
 			from = points[2*i].vertex
 			if from < 0 || from >= len(w.nodes) || w.nodes[from] != node {
-				return 0, fmt.Errorf("%w: edge %d does not start at the node edge %d ended at", planner.ErrNoLeastRun, i, i-1)
+				return 0, 0, fmt.Errorf("%w: edge %d does not start at the node edge %d ended at", planner.ErrNoLeastRun, i, i-1)
 			}
 
 			switch {
@@ -305,7 +305,7 @@ func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, 
 		}
 
 		if e.WayID == prevWay && dir != 0 && prevDir != 0 && dir != prevDir {
-			return 0, fmt.Errorf("%w: the run turns back along way %d at edge %d", planner.ErrNoLeastRun, e.WayID, i)
+			return 0, 0, fmt.Errorf("%w: the run turns back along way %d at edge %d", planner.ErrNoLeastRun, e.WayID, i)
 		}
 
 		for v := from; v != end; v += dir {
@@ -328,10 +328,10 @@ func travelled(run []planner.Edge, points []runPoint, network map[int64]runWay, 
 	}
 
 	if !exits[node] || !slices.Contains(network[prevWay].exits, node) {
-		return 0, fmt.Errorf("%w: the run ends at node %d, which is no exit of way %d to an unmarked way", planner.ErrNoLeastRun, node, prevWay)
+		return 0, 0, fmt.Errorf("%w: the run ends at node %d, which is no exit of way %d to an unmarked way", planner.ErrNoLeastRun, node, prevWay)
 	}
 
-	return metres, nil
+	return metres, node, nil
 }
 
 func repeats(nodes []int64) bool {

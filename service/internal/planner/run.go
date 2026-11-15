@@ -25,11 +25,14 @@ import (
 //     nothing.
 //
 // An admitted run admits the marked ways it runs along and the marked barriers
-// on them, and one barrier more: one the run's last edge passes that the first
-// edge after it is found passing too, which is a barrier at the node where the
-// run meets the unmarked way — a gate at the end of a private road. It is the
-// same barrier, passed once, on the run's own way. Every other crossing is in
-// transit and refuses the leg, and so does every crossing of a run not
+// on them, and one barrier more: the one at the node the run ends at, where it
+// meets the unmarked way (RunMeasure.Exit) — a gate at the end of a private
+// road — which the run's last edge and the first edge after it are both found
+// passing. It is the same barrier, passed once, on the run's own way. A barrier
+// the first edge after the run passes anywhere else is in transit, though it
+// lie on the run's way and within the tolerance of its stretch: a way that
+// meets the road twice puts its second meeting there. Every other crossing is
+// in transit and refuses the leg, and so does every crossing of a run not
 // admitted.
 
 // legEnds says which ends of a leg are locations the user entered. A stopping
@@ -107,7 +110,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 			switch {
 			case slices.Contains(order[:k], c.Edge) && c.Kind != "area":
 				admitted[j] = true
-			case c.Edge == after && c.Kind == "barrier" && passes(crossings, last, c.OSMID):
+			case c.Edge == after && c.Kind == "barrier" && measure.Exit != 0 && c.OSMID == measure.Exit && passes(crossings, last, c.OSMID):
 				admitted[j] = true
 			}
 		}

@@ -339,6 +339,12 @@ type RunMeasure struct {
 	// LeastWays are the ways a least run travels along. A run longer than the
 	// least is asked for again avoiding its other ways, and these never.
 	LeastWays []int64
+
+	// Exit is the node the run ends at, where it meets the unmarked way: an
+	// exit of the run's last way. A marked barrier the first edge after the
+	// run passes is the run's only where it is this node. Zero, which no
+	// OpenStreetMap node is, admits no barrier.
+	Exit int64
 }
 
 // ErrNoLeastRun is the error AccessMarkings.Run wraps where the least run is

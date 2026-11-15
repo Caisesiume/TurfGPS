@@ -117,6 +117,13 @@ func admitted(least float64, ways ...int64) func([]Edge) (RunMeasure, error) {
 	}
 }
 
+// exitingAt is admitted, the run ending at the exit node given.
+func exitingAt(exit int64, least float64, ways ...int64) func([]Edge) (RunMeasure, error) {
+	return func(run []Edge) (RunMeasure, error) {
+		return RunMeasure{Marked: least, Least: least, LeastWays: ways, Exit: exit}, nil
+	}
+}
+
 func waysOf(legs []Leg) [][]int64 {
 	out := make([][]int64, len(legs))
 	for i, l := range legs {
@@ -457,10 +464,41 @@ func TestBeyondTheRunALegIsInTransit(t *testing.T) {
 		t.Parallel()
 
 		routing := &scripted{answers: [][]int64{{8, 1, 2}}}
-		table := &tableFake{marked: map[int64]bool{8: true}, barriers: map[int64][]int64{8: {66}, 1: {66}}, run: admitted(10, 8)}
+		table := &tableFake{marked: map[int64]bool{8: true}, barriers: map[int64][]int64{8: {66}, 1: {66}}, run: exitingAt(66, 10, 8)}
 
 		if _, err := plannerOn(t, routing, table).Plan(t.Context(), Request{Origin: home, Destination: shops}); err != nil {
 			t.Fatalf("the gate where the run meets the unmarked way refused the leg: %v", err)
+		}
+	})
+
+	// The safety verdict's S1 on #270: a customers-only way 8, not closed,
+	// meets the public road 1 at node 65 and again at node 77, 15 m on, where
+	// a private lift_gate stands across the road. The run ends at 65 and the
+	// leg drives on along the road through 77. The gate lies on way 8 and
+	// within the tolerance of the run's stretch, so the run's last edge is
+	// found passing it; it is in transit all the same.
+	t.Run("a gate where the run's way meets the road a second time", func(t *testing.T) {
+		t.Parallel()
+
+		routing := &scripted{answers: [][]int64{{8, 1, 2}}}
+		table := &tableFake{marked: map[int64]bool{8: true}, barriers: map[int64][]int64{8: {77}, 1: {77}}, run: exitingAt(65, 10, 8)}
+
+		_, err := plannerOn(t, routing, table).Plan(t.Context(), Request{Origin: home, Destination: shops})
+
+		var refusal *CrossingError
+		if !errors.As(err, &refusal) || len(refusal.Crossings) != 1 || refusal.Crossings[0].OSMID != 77 || refusal.Crossings[0].Edge != 1 {
+			t.Fatalf("Plan gave %v, want a CrossingError naming the gate at node 77 on the road alone", err)
+		}
+	})
+
+	t.Run("a run with no exit node admits no gate", func(t *testing.T) {
+		t.Parallel()
+
+		routing := &scripted{answers: [][]int64{{8, 1, 2}}}
+		table := &tableFake{marked: map[int64]bool{8: true}, barriers: map[int64][]int64{8: {66}, 1: {66}}, run: admitted(10, 8)}
+
+		if _, err := plannerOn(t, routing, table).Plan(t.Context(), Request{Origin: home, Destination: shops}); !errors.Is(err, ErrCrossesMarking) {
+			t.Fatalf("Plan gave %v, want the gate refused where the measure names no exit", err)
 		}
 	})
 

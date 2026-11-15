@@ -62,6 +62,33 @@ func TestALegAlongTheLeastRunMeasuresExactlyTheLeast(t *testing.T) {
 	if !slices.Equal(got.LeastWays, []int64{1, 2}) {
 		t.Errorf("the least runs along %v, want w1 then w2", got.LeastWays)
 	}
+
+	if got.Exit != 4 {
+		t.Errorf("the run's exit is node %d, want node 4, where it ends", got.Exit)
+	}
+}
+
+// TestTheRunsExitIsTheNodeItEndsAt: a way that meets unmarked ways at both its
+// ends, nodes 1 and 3, gives as the run's exit the one the run ends at, never
+// the other (#270's S1).
+func TestTheRunsExitIsTheNodeItEndsAt(t *testing.T) {
+	t.Parallel()
+
+	loop := map[int64]runWay{1: {nodes: []int64{1, 2, 3}, segments: []float64{0.8, 0.3}, exits: []int64{1, 3}}}
+
+	for _, tc := range []struct {
+		end  int
+		want int64
+	}{{0, 1}, {2, 3}} {
+		got, err := measure(edges(1), []runPoint{start, at(tc.end)}, loop)
+		if err != nil {
+			t.Fatalf("measure: %v", err)
+		}
+
+		if got.Exit != tc.want {
+			t.Errorf("the run ending at vertex %d gave exit node %d, want %d", tc.end, got.Exit, tc.want)
+		}
+	}
 }
 
 func TestARunPastTheNearestExitMeasuresMore(t *testing.T) {
