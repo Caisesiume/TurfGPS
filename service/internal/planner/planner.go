@@ -601,7 +601,6 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 	var (
 		avoid   []Point
 		refusal *CrossingError
-		first   = time.Duration(-1)
 	)
 
 	for attempt := 0; ; attempt++ {
@@ -620,10 +619,6 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 		// so it is refused as an answer the provider's contract rules out.
 		if route.Duration < 0 {
 			return Leg{}, fmt.Errorf("routing leg %d: the routing provider estimated a duration of %v", i, route.Duration)
-		}
-
-		if first < 0 {
-			first = route.Duration
 		}
 
 		edges := route.Edges
@@ -648,7 +643,7 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 		// and the ceiling read the leg that passed (`§ Avoiding, not only
 		// refusing`).
 		if len(refused) == 0 {
-			return Leg{Shape: shape, Edges: edges, Duration: first}, nil
+			return Leg{Shape: shape, Edges: edges, Duration: route.Duration}, nil
 		}
 
 		refusal = &CrossingError{Leg: i, Edges: edges, Crossings: refused, Avoided: attempt}

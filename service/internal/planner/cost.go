@@ -94,6 +94,10 @@ func (a Alternative) AdditionalTime() (time.Duration, error) {
 		return 0, err
 	}
 
+	if len(a.Stops) == 0 {
+		return 0, nil
+	}
+
 	return a.Duration() - a.Base.DrivingTime(), nil
 }
 
