@@ -50,9 +50,15 @@ var ErrNotCorresponding = errors.New("the base is not the journey without Turf s
 var ErrUnpricedStop = errors.New("a Turf stop carries no time spent at it")
 
 // Stop is a Turf stop a journey alternative holds: a place it stops at to
-// capture a zone, and the time spent there. How the place is chosen is #256's.
+// capture a zone, the zone it captures, and the time spent there. How the
+// place is chosen is #256's.
 type Stop struct {
 	At Point
+
+	// Zone is the id of the zone the stop captures, as the local zone copy
+	// holds it. It is what the alternative's Turf value is derived from
+	// (`FR-007`, value.go); the place and the time are not.
+	Zone int32
 
 	// Time is the time spent at the stop, beyond the driving its journey's
 	// legs carry: the stop time `CalculationSpecification.md § Stop time`
