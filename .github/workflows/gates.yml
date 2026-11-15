@@ -39,9 +39,17 @@
 # `service/internal/valhalla/testdata/` (whose README says what it holds and
 # how to regenerate it), serves them on loopback, and runs
 # `internal/valhalla`'s tests under the `valhalla` tag with the race detector.
+# Beside the engine it runs a PostGIS of its own (#255, ADR-0008, § Consequences):
+# `migrations/` applied to a scratch database, the same extract loaded into the
+# access-marking tables by `turfgps load-access-markings`, the load's SHA-256
+# asserted equal to the file's the tiles were built from, and the extract read a
+# second, independent way — `osmium cat` to OPL — so `internal/accessstore`'s
+# tests compare the tables with a reading that shares neither the module's PBF
+# reader nor the migration's rule.
 # A skip in that run is red, as in the schema step above. It runs on every push
 # to main, and on a pull request whose diff touches routing — the adapter, the
-# planner's port, the routing configuration, the composition root, the
+# planner and its access check, the loader and its reader, the migrations, the
+# routing and access-marking configuration, the composition root, the
 # module's dependencies, or this file; on any other it does nothing and says so.
 #
 # Supply chain: every action is pinned to a full commit SHA, and the PostGIS
@@ -268,7 +276,24 @@ jobs:
     defaults:
       run:
         shell: bash
+    services:
+      postgis:
+        # The migrations job's image, for the reason given there.
+        image: postgis/postgis@sha256:eeead53aa76f9219eac3af490e00484a7dd604dbcbc3ed2ae0e96668986f16f3 # 17-3.6
+        env:
+          POSTGRES_PASSWORD: throwaway-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
     env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: throwaway-ci-only
       # Valhalla 3.9.1's multi-arch index. The adapter cites this version's
       # route API reference for every field it sends and reads.
       VALHALLA_IMAGE: ghcr.io/valhalla/valhalla@sha256:4fd114eb1d26b8fc2f43bcb3df234c1b63a0bf13c277405e5943d5361dc575de # 3.9.1
@@ -292,7 +317,7 @@ jobs:
             exit 0
           fi
           changed="$(git diff --name-only HEAD^1 HEAD)" || { echo '::error::cannot read the pull request diff against its base'; exit 1; }
-          if printf '%s\n' "$changed" | grep -qE '^(service/internal/(valhalla|planner)/|service/internal/config/valhalla|service/cmd/turfgps/|service/go\.(mod|sum)$|\.github/workflows/gates\.yml$)'; then
+          if printf '%s\n' "$changed" | grep -qE '^(service/internal/(valhalla|planner|accessstore|accessload|osmpbf)/|service/internal/config/(valhalla|accessmarkings)|service/cmd/turfgps/|migrations/|service/go\.(mod|sum)$|\.github/workflows/gates\.yml$)'; then
             echo "routing=true" >> "$GITHUB_OUTPUT"
           else
             echo "routing=false" >> "$GITHUB_OUTPUT"
@@ -343,17 +368,48 @@ jobs:
             service/go.mod
             service/go.sum
 
+      # The access-marking tables, from the file the tiles were built from:
+      # migrations/ applied to a scratch database, then the extract loaded by
+      # the service's own loader, and the load's SHA-256 held to the file's.
+      - name: PostGIS — migrate, and load the extract the tiles were built from
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          db=turfgps_access_tests
+          psql -v ON_ERROR_STOP=1 -q -d postgres -c "CREATE DATABASE \"$db\" TEMPLATE template0"
+          find migrations -maxdepth 1 -type f -name '[0-9]*.sql' ! -name '*.verify.sql' ! -name '*.down.sql' | sort |
+            while IFS= read -r f; do psql -v ON_ERROR_STOP=1 -q -d "$db" -f "$f"; done
+          url="postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$db?sslmode=disable"
+          (cd service && TURFGPS_DATABASE_URL="$url" go run ./cmd/turfgps load-access-markings -extract "$GITHUB_WORKSPACE/$EXTRACT")
+          tiles="$(sha256sum "$RUNNER_TEMP/valhalla/extract.osm.pbf" | cut -d' ' -f1)"
+          loaded="$(psql -tA -d "$db" -c 'SELECT extract_sha256 FROM public.osm_extract_load WHERE current')"
+          echo "tiles built from $tiles; access markings loaded from $loaded"
+          [ -n "$tiles" ] && [ "$tiles" = "$loaded" ] || { echo '::error::the access markings and the tiles do not record one extract'; exit 1; }
+          { echo "TURFGPS_TEST_DATABASE_URL=$url"; echo "TURFGPS_TEST_TILES_SHA256=$tiles"; } >> "$GITHUB_ENV"
+
+      # The independent reading: libosmium's, as OPL text. osmium-tool comes
+      # from the runner's Ubuntu archive; it reads the extract and nothing else.
+      - name: the extract, read independently
+        if: steps.scope.outputs.routing == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends osmium-tool
+          osmium --version | head -1
+          osmium cat "$EXTRACT" -f opl -o "$RUNNER_TEMP/extract.opl"
+          wc -l "$RUNNER_TEMP/extract.opl"
+          echo "TURFGPS_TEST_EXTRACT_OPL=$RUNNER_TEMP/extract.opl" >> "$GITHUB_ENV"
+
       # go test's exit status is the step's (the job's shell runs with
-      # pipefail). The tagged file fails rather than skips without an engine,
-      # and a skip anywhere in the run is red too.
+      # pipefail). The tagged files fail rather than skip without their inputs,
+      # and a skip anywhere in the run is red too. The access tests share the
+      # one database, so the packages run one at a time (-p 1).
       - name: Go tests against Valhalla
         if: steps.scope.outputs.routing == 'true'
         run: |
           cd service
-          go vet -tags valhalla ./internal/valhalla
+          go vet -tags valhalla ./internal/valhalla ./internal/accessstore
           log="$RUNNER_TEMP/valhalla-tests.log"
           TURFGPS_TEST_VALHALLA_URL=http://127.0.0.1:8002 \
-            go test -tags valhalla -race -count=1 -v ./internal/valhalla 2>&1 | tee "$log"
+            go test -tags valhalla -race -count=1 -p 1 -v ./internal/valhalla ./internal/accessstore 2>&1 | tee "$log"
           if grep -q -- '--- SKIP' "$log"; then echo '::error::a test skipped against Valhalla, so it measured nothing'; exit 1; fi
 
       - name: Valhalla logs

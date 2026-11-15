@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NOT FROM OPENSTREETMAP. Synthetic access-marking cases for #255, written by
+     hand because OpenStreetMap holds no instance of them (README.md beside this
+     file, "The synthetic cases"). Every id is 9000000000000000000 or above, a
+     range OpenStreetMap's ids cannot reach; every way carries a note saying so.
+     They lie in the Kattegat, more than 35 km from every other object of the
+     extract, joined to nothing else. -->
+<osm version="0.6" generator="hand-written for TurfGPS #255">
+  <!-- AC6 third clause and AC7 third case: a road of three ways running east,
+       the middle one tagged motorcar=yes with motor_vehicle:backward=no. -->
+  <node id="9000000000000000101" lat="57.0000000" lon="11.7000000"/>
+  <node id="9000000000000000102" lat="57.0000000" lon="11.7030000"/>
+  <node id="9000000000000000103" lat="57.0000000" lon="11.7045000"/>
+  <node id="9000000000000000104" lat="57.0000000" lon="11.7060000"/>
+  <node id="9000000000000000105" lat="57.0000000" lon="11.7090000"/>
+  <!-- AC9: the same road again, the middle way tagged motor_vehicle=no with
+       motor_vehicle:forward=yes and motor_vehicle:backward=yes. -->
+  <node id="9000000000000000201" lat="57.0100000" lon="11.7000000"/>
+  <node id="9000000000000000202" lat="57.0100000" lon="11.7030000"/>
+  <node id="9000000000000000203" lat="57.0100000" lon="11.7045000"/>
+  <node id="9000000000000000204" lat="57.0100000" lon="11.7060000"/>
+  <node id="9000000000000000205" lat="57.0100000" lon="11.7090000"/>
+  <!-- AC9's other two ways, and AC6's fifth clause: a way each, alone. -->
+  <node id="9000000000000000301" lat="57.0200000" lon="11.7000000"/>
+  <node id="9000000000000000302" lat="57.0200000" lon="11.7030000"/>
+  <node id="9000000000000000303" lat="57.0250000" lon="11.7000000"/>
+  <node id="9000000000000000304" lat="57.0250000" lon="11.7030000"/>
+  <node id="9000000000000000401" lat="57.0300000" lon="11.7000000"/>
+  <node id="9000000000000000402" lat="57.0300000" lon="11.7030000"/>
+  <way id="9000000000000000001">
+    <nd ref="9000000000000000101"/>
+    <nd ref="9000000000000000102"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000002">
+    <nd ref="9000000000000000102"/>
+    <nd ref="9000000000000000103"/>
+    <nd ref="9000000000000000104"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motorcar" v="yes"/>
+    <tag k="motor_vehicle:backward" v="no"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000003">
+    <nd ref="9000000000000000104"/>
+    <nd ref="9000000000000000105"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000011">
+    <nd ref="9000000000000000201"/>
+    <nd ref="9000000000000000202"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000012">
+    <nd ref="9000000000000000202"/>
+    <nd ref="9000000000000000203"/>
+    <nd ref="9000000000000000204"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motor_vehicle" v="no"/>
+    <tag k="motor_vehicle:forward" v="yes"/>
+    <tag k="motor_vehicle:backward" v="yes"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000013">
+    <nd ref="9000000000000000204"/>
+    <nd ref="9000000000000000205"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000014">
+    <nd ref="9000000000000000301"/>
+    <nd ref="9000000000000000302"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motorcar" v="no"/>
+    <tag k="motorcar:forward" v="yes"/>
+    <tag k="motorcar:backward" v="yes"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000015">
+    <nd ref="9000000000000000303"/>
+    <nd ref="9000000000000000304"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motor_vehicle" v="no"/>
+    <tag k="motorcar:forward" v="yes"/>
+    <tag k="motorcar:backward" v="yes"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+  <way id="9000000000000000021">
+    <nd ref="9000000000000000401"/>
+    <nd ref="9000000000000000402"/>
+    <tag k="highway" v="residential"/>
+    <tag k="access" v="private"/>
+    <tag k="motor_vehicle:conditional" v="yes @ (Mo-Fr 08:00-18:00)"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #255 test case"/>
+  </way>
+</osm>

@@ -15,19 +15,28 @@
 //     reports any other is refused, so a leg the engine itself says was not
 //     driven is never offered as a driving leg.
 //
-// PRIVATE AND ACCESS-RESTRICTED WAYS ARE NOT YET EXCLUDED, and a route this
-// returns may run along one. `SPECIFICATION.md § Enforceable exclusions`
-// forbids constructing a route through an area the map data marks as private
-// or access-restricted, and the `auto` costing does not enforce it. At 3.9.1,
-// as the safety review of #246 read `lua/graph.lua` and
-// `src/mjolnir/pbfgraphparser.cc`, it admits a way tagged `access=private`,
-// `destination`, `customers`, `delivery`, `permit` or `residents` as
-// destination-only at a penalty, passes a private gate or bollard at a
-// penalty, and treats `access=restricted` as open. A route that saves more
-// than the penalty takes such a way, and a location snapped onto one starts or
-// ends the leg on it. The exclusion is a story of its own, owed against this
-// adapter ("exclude private and access-restricted ways from driving legs"),
-// and no client may call `POST /journeys` before it lands.
+// EVERY LEG COMES WITH THE WAYS IT RUNS ALONG, so the planner can check it
+// against the access markings (#255, ADR-0008, `Architecture.md § The route
+// check`, step 2). The route answer names no way, so the leg's shape is sent
+// back to the engine's map-matching service, `trace_attributes`, with
+// `shape_match=edge_walk` — the documented match for "the shape from a prior
+// Valhalla route" — asking only for each edge's `way_id`, `begin_shape_index`
+// and `end_shape_index`, the matched shape, and each input point's match. A
+// shape that does not match, a point left unmatched, an edge without a way id,
+// or edges that do not join end to start and cover the matched shape end to
+// end refuse the leg; nothing is guessed. The leg returned is the matched
+// shape cut into those edges, so the geometry the planner checks is the
+// geometry it hands on.
+//
+// THE ENGINE DOES NOT KEEP A CAR OFF PRIVATE AND ACCESS-RESTRICTED WAYS, and
+// is not trusted to. At 3.9.1, as the safety review of #246 read
+// `lua/graph.lua` and `src/mjolnir/pbfgraphparser.cc`, the `auto` costing
+// admits a way tagged `access=private`, `destination`, `customers`,
+// `delivery`, `permit` or `residents` as destination-only at a penalty, passes
+// a private gate or bollard at a penalty, and treats `access=restricted`, and
+// any value its tables do not list, as open (ADR-0008, § Context). The planner
+// refuses every leg the check finds crossing a marking; this adapter only
+// names the ways.
 //
 // THE FIELDS ARE VALHALLA'S DOCUMENTED ONES, at the version CI runs (3.9.1),
 // and none is assumed. Each is in the route API reference,
@@ -36,8 +45,14 @@
 // model (§ Costing models), `directions_type` (§ Directions options), a leg's
 // `shape` and its maneuvers' `travel_mode` and `travel_type` (§ Trip legs and
 // maneuvers), and the error body's `error_code` and `error` (§ HTTP status
-// codes and conditions, § Internal error codes and conditions). The shape's
-// encoding is docs/docs/api/decoding.md at the same version.
+// codes and conditions, § Internal error codes and conditions). The trace's
+// are in the map-matching reference at the same version,
+// https://github.com/valhalla/valhalla/blob/3.9.1/docs/docs/api/map-matching.md:
+// `encoded_polyline`, `shape_match` and `filters` (§ Shape-matching
+// parameters, § Attribute filters), the `edges` with `way_id`,
+// `begin_shape_index` and `end_shape_index` (§ Edge items), the trip `shape`,
+// and `matched_points` with `type` and `edge_index` (§ Matched point items).
+// The shape's encoding is docs/docs/api/decoding.md at the same version.
 //
 // NOTHING HERE LOGS, and no error quotes a location. A route's origin is
 // frequently the user's home (`Architecture.md § Personal data`), and the
@@ -85,6 +100,7 @@ const maxResponseBytes = 16 << 20
 // Client routes car legs through one Valhalla instance.
 type Client struct {
 	routeURL string
+	traceURL string
 	timeout  time.Duration
 	http     *http.Client
 }
@@ -92,7 +108,8 @@ type Client struct {
 var _ planner.RoutingProvider = (*Client)(nil)
 
 // New returns a Client for the Valhalla instance at baseURL, whose route API
-// is the `route` path under it, and which allows each route timeout to answer.
+// is the `route` path under it and whose map-matching API is the
+// `trace_attributes` path, and which allows each call timeout to answer.
 //
 // baseURL is taken as `config.LoadValhalla` holds it; New refuses only what it
 // cannot join a path onto.
@@ -106,8 +123,14 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 		return nil, fmt.Errorf("the routing engine's URL cannot carry the route path: %w", err)
 	}
 
+	traceURL, err := url.JoinPath(baseURL, "trace_attributes")
+	if err != nil {
+		return nil, fmt.Errorf("the routing engine's URL cannot carry the trace path: %w", err)
+	}
+
 	return &Client{
 		routeURL: routeURL,
+		traceURL: traceURL,
 		timeout:  timeout,
 		http: &http.Client{
 			// A redirect is refused rather than followed. The engine is the
@@ -121,6 +144,11 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 // ErrNotDriven is the error Route wraps when the engine answers with a leg it
 // does not report as driven by car.
 var ErrNotDriven = errors.New("the routing engine did not route the leg for a car")
+
+// ErrWaysUnnamed is the error Route wraps when the engine could not name the
+// ways a leg runs along, so the leg cannot be checked against the access
+// markings and is not served.
+var ErrWaysUnnamed = errors.New("the routing engine did not name the ways the leg runs along")
 
 type location struct {
 	Lat float64 `json:"lat"`
@@ -145,36 +173,96 @@ type routeResponse struct {
 	} `json:"trip"`
 }
 
+// The map-matching request: the route's own encoded shape, walked edge by
+// edge, with the four attributes the check reads and no others.
+const shapeMatchEdgeWalk = "edge_walk"
+
+var traceAttributes = []string{"edge.way_id", "edge.begin_shape_index", "edge.end_shape_index", "shape"}
+
+type traceFilters struct {
+	Attributes []string `json:"attributes"`
+	Action     string   `json:"action"`
+}
+
+type traceRequest struct {
+	EncodedPolyline string       `json:"encoded_polyline"`
+	Costing         string       `json:"costing"`
+	ShapeMatch      string       `json:"shape_match"`
+	Filters         traceFilters `json:"filters"`
+}
+
+type traceResponse struct {
+	Shape *string `json:"shape"`
+	Edges []struct {
+		WayID           *int64 `json:"way_id"`
+		BeginShapeIndex *int   `json:"begin_shape_index"`
+		EndShapeIndex   *int   `json:"end_shape_index"`
+	} `json:"edges"`
+}
+
 type errorResponse struct {
 	ErrorCode int    `json:"error_code"`
 	Error     string `json:"error"`
 }
 
-// Route returns the geometry of the route a car drives from one location to
-// the other, as Valhalla's `auto` costing finds it.
+// Route returns the route a car drives from one location to the other, as
+// Valhalla's `auto` costing finds it, cut into the OpenStreetMap ways it runs
+// along.
 //
 // The route's ends are where the engine placed the locations on its graph —
 // for a car, on the nearest road a car may use — and so are generally near
 // the locations rather than at them. A failure is an error: the engine
 // unreachable or slower than the timeout, an answer it marks as an error, or
 // one this adapter cannot hold to the documented shape, including a leg not
-// reported as driven by car, which wraps ErrNotDriven.
-func (c *Client) Route(ctx context.Context, from, to planner.Point) ([]planner.Point, error) {
-	body, err := json.Marshal(routeRequest{
+// reported as driven by car, which wraps ErrNotDriven, and a leg whose ways
+// the engine could not name, which wraps ErrWaysUnnamed.
+func (c *Client) Route(ctx context.Context, from, to planner.Point) ([]planner.Edge, error) {
+	raw, err := c.post(ctx, c.routeURL, routeRequest{
 		Locations:      []location{{Lat: from.Latitude, Lon: from.Longitude}, {Lat: to.Latitude, Lon: to.Longitude}},
 		Costing:        costingCar,
 		DirectionsType: directionsManeuvers,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("encoding the route request: %w", err)
+		return nil, err
+	}
+
+	shape, err := driven(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err = c.post(ctx, c.traceURL, traceRequest{
+		EncodedPolyline: shape,
+		Costing:         costingCar,
+		ShapeMatch:      shapeMatchEdgeWalk,
+		Filters:         traceFilters{Attributes: traceAttributes, Action: "include"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
+	}
+
+	edges, err := tracedEdges(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
+	}
+
+	return edges, nil
+}
+
+// post sends one request to the engine under the call timeout and returns the
+// answer's body, or an error for an answer other than 200.
+func (c *Client) post(ctx context.Context, target string, request any) ([]byte, error) {
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("encoding the request: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.routeURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("building the route request: %w", err)
+		return nil, fmt.Errorf("building the request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -198,7 +286,7 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point) ([]planner.P
 		return nil, engineError(resp.StatusCode, raw)
 	}
 
-	return driven(raw)
+	return raw, nil
 }
 
 // engineError describes an answer other than 200 by the code and message the
@@ -212,48 +300,117 @@ func engineError(status int, raw []byte) error {
 	return fmt.Errorf("the routing engine answered %d, error %d: %s", status, e.ErrorCode, e.Error)
 }
 
-// driven returns the shape of the one leg a two-location route answer holds,
-// once every maneuver of it is reported as driven by car.
-func driven(raw []byte) ([]planner.Point, error) {
+// driven returns the encoded shape of the one leg a two-location route answer
+// holds, once every maneuver of it is reported as driven by car and the shape
+// decodes.
+func driven(raw []byte) (string, error) {
 	var r routeResponse
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return nil, fmt.Errorf("the routing engine's answer is not a route: %w", err)
+		return "", fmt.Errorf("the routing engine's answer is not a route: %w", err)
 	}
 
 	if r.Trip == nil {
-		return nil, errors.New("the routing engine's answer holds no trip")
+		return "", errors.New("the routing engine's answer holds no trip")
 	}
 
 	// Two break locations make one leg (§ Trip legs and maneuvers).
 	if n := len(r.Trip.Legs); n != 1 {
-		return nil, fmt.Errorf("the routing engine's answer holds %d legs for two locations, want 1", n)
+		return "", fmt.Errorf("the routing engine's answer holds %d legs for two locations, want 1", n)
 	}
 
 	leg := r.Trip.Legs[0]
 
 	if len(leg.Maneuvers) == 0 {
-		return nil, fmt.Errorf("%w: the leg carries no maneuvers, so nothing says how it is travelled", ErrNotDriven)
+		return "", fmt.Errorf("%w: the leg carries no maneuvers, so nothing says how it is travelled", ErrNotDriven)
 	}
 
 	for i, m := range leg.Maneuvers {
 		if m.TravelMode != travelModeDrive || m.TravelType != travelTypeCar {
-			return nil, fmt.Errorf("%w: maneuver %d is travelled as %q/%q, want %q/%q",
+			return "", fmt.Errorf("%w: maneuver %d is travelled as %q/%q, want %q/%q",
 				ErrNotDriven, i, m.TravelMode, m.TravelType, travelModeDrive, travelTypeCar)
 		}
 	}
 
 	if leg.Shape == nil {
-		return nil, errors.New("the routing engine's leg carries no shape")
+		return "", errors.New("the routing engine's leg carries no shape")
 	}
 
 	shape, err := decodeShape(*leg.Shape)
 	if err != nil {
-		return nil, fmt.Errorf("the routing engine's leg shape: %w", err)
+		return "", fmt.Errorf("the routing engine's leg shape: %w", err)
 	}
 
 	if len(shape) == 0 {
-		return nil, errors.New("the routing engine's leg shape has no vertices")
+		return "", errors.New("the routing engine's leg shape has no vertices")
 	}
 
-	return shape, nil
+	return *leg.Shape, nil
+}
+
+// tracedEdges cuts the matched shape of a trace answer into its edges.
+//
+// IT TRUSTS THE WALK AND CHECKS THE ANSWER. An `edge_walk` answer is the
+// route's own path: at 3.9.1 the walk starts on an edge the shape's first
+// point lies on, follows the shape point by point, and succeeds only on
+// reaching an edge its last point lies on (`src/thor/route_matcher.cc`,
+// RouteMatcher::FormPath), so a shape it cannot walk whole is an error, which
+// Route refuses. What is checked here is that the answer says so whole: at
+// least one edge, every edge naming a way, and the edges' stretches joining
+// end to start and spanning the matched shape from its first point to its
+// last.
+func tracedEdges(raw []byte) ([]planner.Edge, error) {
+	var r traceResponse
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return nil, fmt.Errorf("the trace answer is not one: %w", err)
+	}
+
+	if r.Shape == nil {
+		return nil, errors.New("the trace answer carries no shape")
+	}
+
+	shape, err := decodeShape(*r.Shape)
+	if err != nil {
+		return nil, fmt.Errorf("the trace answer's shape: %w", err)
+	}
+
+	if len(shape) < 2 {
+		return nil, fmt.Errorf("the trace answer's shape has %d points", len(shape))
+	}
+
+	if len(r.Edges) == 0 {
+		return nil, errors.New("the trace answer holds no edges")
+	}
+
+	edges := make([]planner.Edge, 0, len(r.Edges))
+	next := 0
+
+	for i, e := range r.Edges {
+		if e.WayID == nil || *e.WayID <= 0 {
+			return nil, fmt.Errorf("edge %d names no way", i)
+		}
+
+		if e.BeginShapeIndex == nil || e.EndShapeIndex == nil {
+			return nil, fmt.Errorf("edge %d carries no stretch of the shape", i)
+		}
+
+		begin, end := *e.BeginShapeIndex, *e.EndShapeIndex
+
+		if begin != next || end < begin || end >= len(shape) {
+			return nil, fmt.Errorf("edge %d spans points %d to %d of %d, want it to start at %d", i, begin, end, len(shape), next)
+		}
+
+		stretch := shape[begin : end+1]
+		if len(stretch) == 1 {
+			stretch = []planner.Point{stretch[0], stretch[0]}
+		}
+
+		edges = append(edges, planner.Edge{WayID: *e.WayID, Shape: append([]planner.Point(nil), stretch...)})
+		next = end
+	}
+
+	if next != len(shape)-1 {
+		return nil, fmt.Errorf("the edges end at point %d of %d, want the shape covered to its last", next, len(shape))
+	}
+
+	return edges, nil
 }

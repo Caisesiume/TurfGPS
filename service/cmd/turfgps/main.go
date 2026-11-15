@@ -128,10 +128,22 @@ const (
 )
 
 func main() {
+	// The one executable also loads the access-marking tables (#255), as an
+	// operator's act beside the tile build, so the clean host still needs one
+	// file (`NFR-003`); see accessload.go.
+	if len(os.Args) > 1 && os.Args[1] == loadAccessMarkingsCommand {
+		if err := loadAccessMarkings(os.Args[2:], os.LookupEnv); err != nil {
+			slog.Error("the access markings were not loaded", "error", err)
+			os.Exit(1)
+		}
+
+		return
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	plans, err := newPlanner(os.LookupEnv, unwiredZoneCopy{})
+	plans, err := newPlanner(os.LookupEnv, unwiredZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{})
 	if err != nil {
 		slog.Error("the routing engine's configuration is refused, so the service is not starting", "error", err)
 		os.Exit(1)
@@ -449,9 +461,21 @@ func newHandler(lookup config.LookupFunc, opts ...httpapi.Option) (http.Handler,
 // so a configured engine is reached by no plan until the request surface has a
 // pool on the zone store (#249); a test that exercises routing passes a held
 // copy instead.
-func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy) (*planner.Planner, error) {
+//
+// markings and data are what every leg is checked against (#255): the
+// access-marking tables, and which extract the engine's tiles were built from.
+// main passes unwiredAccessMarkings and unknownRoutingData, so no leg is served
+// until the request surface has a pool on the tables (#249) and the tile set's
+// identity can be read (`DEPLOYMENT.md`, #25). The barrier tolerance is read
+// here all the same, so a malformed one stops the start rather than waiting
+// for the store it will configure.
+func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy, markings planner.AccessMarkings, data planner.RoutingData) (*planner.Planner, error) {
 	cfg, err := config.LoadValhalla(lookup)
 	if err != nil {
+		return nil, err
+	}
+
+	if _, err := config.LoadAccessMarkings(lookup); err != nil {
 		return nil, err
 	}
 
@@ -467,7 +491,7 @@ func newPlanner(lookup config.LookupFunc, zones planner.ZoneCopy) (*planner.Plan
 		return nil, err
 	}
 
-	plans, err := planner.New(routing, zones)
+	plans, err := planner.New(routing, zones, markings, data)
 	if err != nil {
 		return nil, err
 	}
@@ -496,6 +520,40 @@ var errZoneStoreUnwired = errors.New("the request surface holds no pool on the z
 type unwiredZoneCopy struct{}
 
 func (unwiredZoneCopy) Held(context.Context) (bool, error) { return false, errZoneStoreUnwired }
+
+// errAccessStoreUnwired is what unwiredAccessMarkings reports in place of an
+// answer.
+var errAccessStoreUnwired = errors.New("the request surface holds no pool on the access-marking tables yet (#249)")
+
+// unwiredAccessMarkings is the AccessMarkings main checks legs against until
+// the request surface is given a pool on the store, which is #249's to wire:
+// `internal/accessstore` implements the port.
+//
+// IT FAILS CLOSED, as unwiredZoneCopy does: it can name no extract and check
+// no leg, so every plan is refused before a leg is produced.
+type unwiredAccessMarkings struct{}
+
+func (unwiredAccessMarkings) ExtractSHA256(context.Context) (string, error) {
+	return "", errAccessStoreUnwired
+}
+
+func (unwiredAccessMarkings) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
+	return nil, errAccessStoreUnwired
+}
+
+// errTileIdentityUnknown is what unknownRoutingData reports.
+var errTileIdentityUnknown = errors.New("how the service reads the SHA-256 of the extract the tiles were built from is not yet fixed (DEPLOYMENT.md, #25)")
+
+// unknownRoutingData is the RoutingData main registers until the deployment's
+// tile build records the tile set's identity where the service can read it
+// (`Architecture.md § What is not decided`). An identity that cannot be read
+// is unknown, and unknown refuses as a difference does, so no journey is
+// planned.
+type unknownRoutingData struct{}
+
+func (unknownRoutingData) ExtractSHA256(context.Context) (string, error) {
+	return "", errTileIdentityUnknown
+}
 
 // listenAddr is the address main binds: the one config.EnvListenAddr names, or
 // defaultAddr when it names none (#125). It is the call main makes and the one

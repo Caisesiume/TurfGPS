@@ -28,6 +28,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,10 +189,12 @@ func TestACarLegIsNeverRoutedAlongAPedestrianStreet(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	drive, err := c.Route(t.Context(), westEnd, eastEnd)
+	edges, err := c.Route(t.Context(), westEnd, eastEnd)
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
+
+	drive := joined(edges)
 
 	for _, p := range alongTheStreet {
 		if d := metresFrom(p, drive); d < offTheStreet {
@@ -215,7 +219,7 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 	rec := &recordingTransport{next: http.DefaultTransport}
 	c.http.Transport = rec
 
-	p, err := planner.New(c, heldCopy{})
+	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{})
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -263,8 +267,69 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 	}
 }
 
+// Viktoriagatan's block between Parkgatan and Nya Allén is OSM way 32709123 in
+// the extract; the two points are on the blocks of Viktoriagatan either side
+// of it (ways 491969022 and 1216125508), so the car leg between them runs
+// along it.
+var (
+	southOfViktoriagatan = planner.Point{Latitude: 57.6995038, Longitude: 11.9647739}
+	northOfViktoriagatan = planner.Point{Latitude: 57.7002529, Longitude: 11.9643691}
+)
+
+const viktoriagatan = 32709123
+
+// TestEveryCarLegNamesTheWaysItRunsAlong is #255's step 2 against the engine:
+// the adapter's leg is the ways the engine walked, joined end to start, and a
+// leg whose road is known names that road's way. Without the trace no way is
+// named and the check could read nothing; with a trace that dropped part of
+// the leg the ends would not join, which the planner refuses.
+func TestEveryCarLegNamesTheWaysItRunsAlong(t *testing.T) {
+	base := engineUnderTest(t)
+
+	c, err := New(base, 30*time.Second)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	for _, leg := range [][2]planner.Point{{westEnd, eastEnd}, {southOfViktoriagatan, northOfViktoriagatan}} {
+		edges, err := c.Route(t.Context(), leg[0], leg[1])
+		if err != nil {
+			t.Fatalf("Route(%v, %v): %v", leg[0], leg[1], err)
+		}
+
+		if len(edges) == 0 {
+			t.Fatalf("Route(%v, %v) named no way", leg[0], leg[1])
+		}
+
+		for i, e := range edges {
+			if e.WayID <= 0 || len(e.Shape) < 2 {
+				t.Errorf("edge %d is %+v, want a way id and a stretch", i, e)
+			}
+
+			if i > 0 && edges[i-1].Shape[len(edges[i-1].Shape)-1] != e.Shape[0] {
+				t.Errorf("edge %d does not start where edge %d ends", i, i-1)
+			}
+		}
+	}
+
+	edges, err := c.Route(t.Context(), southOfViktoriagatan, northOfViktoriagatan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !slices.ContainsFunc(edges, func(e planner.Edge) bool { return e.WayID == viktoriagatan }) {
+		ids := make([]int64, len(edges))
+		for i, e := range edges {
+			ids[i] = e.WayID
+		}
+
+		t.Errorf("the leg along Viktoriagatan names the ways %v, want %d among them", ids, viktoriagatan)
+	}
+}
+
 // recordingTransport records, for each route request, the costing it named
-// and the travel modes its answer reported.
+// and the travel modes its answer reported. A trace request passes through
+// unrecorded; the trace's own test is TestEveryCarLegNamesTheWaysItRunsAlong.
 type recordingTransport struct {
 	next    http.RoundTripper
 	answers []recordedAnswer
@@ -276,6 +341,10 @@ type recordedAnswer struct {
 }
 
 func (r *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if strings.HasSuffix(req.URL.Path, "/trace_attributes") {
+		return r.next.RoundTrip(req)
+	}
+
 	reqBody, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err

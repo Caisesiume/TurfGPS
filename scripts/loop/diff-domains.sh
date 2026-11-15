@@ -79,8 +79,12 @@ add $((scripts + ci))        scripts 'correctness, supply chain'
 # decides held zones and region lordship, which feed takeover time and so the
 # ceiling (#234); and service/internal/valhalla/ is the routing adapter, whose
 # request decides whether a car is kept off ways the map data closes to it — a
-# routing exclusion (#6). Pinned by scripts/loop/tests/diff-domains-safety-floor.sh.
-candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+)$' 2>/dev/null)"
+# routing exclusion (#6). The access-marking check is one too (#255): the
+# migration that spells the rule and the check, the reader and loader that fill
+# the tables from the extract, the store that reads them, and the planner that
+# refuses every leg crossing a marking. Pinned by
+# scripts/loop/tests/diff-domains-safety-floor.sh.
+candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+|service/internal/(planner|accessstore|accessload|osmpbf)/.+|migrations/0003_access_markings\.[a-z.]+)$' 2>/dev/null)"
 
 printf 'total_files: %s\n' "$total"
 printf 'domains: {go: %s, frontend: %s, docs: %s, agent_system: %s, scripts: %s, schema: %s, ci: %s, data: %s, other: %s}\n' \
