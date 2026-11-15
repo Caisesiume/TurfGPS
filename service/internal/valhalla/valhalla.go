@@ -207,6 +207,16 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 // does not report as driven by car.
 var ErrNotDriven = errors.New("the routing engine did not route the leg for a car")
 
+// noPathCode is the error code Valhalla answers a route with where its search
+// finds no path between the locations: "No path could be found for input",
+// 442 in `docs/docs/api/route/api-reference.md` at 3.9.1, the engine CI builds
+// (§ Internal error codes and conditions, line 733; answered with HTTP 400,
+// line 633). It is the one code Route reports
+// as planner.ErrNoRoute (#271): every other code — a location with no road
+// near it (171), too many places to avoid (157), a limit, an input the engine
+// refuses — says nothing of whether a route keeping off the places exists.
+const noPathCode = 442
+
 // ErrWaysUnnamed is the error Route wraps when the engine could not name the
 // ways a leg runs along, so the leg cannot be checked against the access
 // markings and is not served.
@@ -283,6 +293,12 @@ type errorResponse struct {
 // reported as driven by car, which wraps ErrNotDriven, a leg whose ways the
 // engine could not name, which wraps ErrWaysUnnamed, and a leg with no usable
 // estimate of its time. The route's duration is the leg's `summary.time`.
+//
+// An answer that no path keeps off the places — the engine's error 442 to the
+// route request, and to no other — wraps planner.ErrNoRoute, the one failure
+// a warned leg is produced on (#271). The trace request's errors never do: a
+// route the engine found and cannot then name the ways of is no statement
+// about the roads.
 func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) (planner.Route, error) {
 	var excluded []location
 	for _, p := range avoid {
@@ -295,7 +311,13 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []plan
 		Costing:          costingCar,
 		DirectionsType:   directionsManeuvers,
 	})
-	if err != nil {
+
+	var engine *engineFailure
+
+	switch {
+	case errors.As(err, &engine) && engine.code == noPathCode:
+		return planner.Route{}, fmt.Errorf("%w: %w", planner.ErrNoRoute, err)
+	case err != nil:
 		return planner.Route{}, err
 	}
 
@@ -362,15 +384,31 @@ func (c *Client) post(ctx context.Context, target string, request any) ([]byte, 
 	return raw, nil
 }
 
+// engineFailure is an answer other than 200, with the code the engine's error
+// body carries, or zero where it carries none.
+type engineFailure struct {
+	status int
+	code   int
+	msg    string
+}
+
+func (e *engineFailure) Error() string {
+	if e.code == 0 {
+		return fmt.Sprintf("the routing engine answered %d", e.status)
+	}
+
+	return fmt.Sprintf("the routing engine answered %d, error %d: %s", e.status, e.code, e.msg)
+}
+
 // engineError describes an answer other than 200 by the code and message the
 // engine's error body carries, where it carries them.
 func engineError(status int, raw []byte) error {
 	var e errorResponse
 	if err := json.Unmarshal(raw, &e); err != nil || e.ErrorCode == 0 {
-		return fmt.Errorf("the routing engine answered %d", status)
+		return &engineFailure{status: status}
 	}
 
-	return fmt.Errorf("the routing engine answered %d, error %d: %s", status, e.ErrorCode, e.Error)
+	return &engineFailure{status: status, code: e.ErrorCode, msg: e.Error}
 }
 
 // driven returns the encoded shape of the one leg a two-location route answer

@@ -20,8 +20,8 @@ This file is a derivative database of OpenStreetMap. It is licensed under the
 ODbL, and **not** under this repository's `LICENSE`, which covers the code. Anything
 derived from it is subject to the ODbL's share-alike terms.
 
-**Not everything in it is from OpenStreetMap.** 201 ways and 245 nodes are
-synthetic, written for #255's and #248's tests: every object with an id of
+**Not everything in it is from OpenStreetMap.** 218 ways and 267 nodes are
+synthetic, written for #255's, #248's and #271's tests: every object with an id of
 9,000,000,000,000,000,000 or above. *The synthetic cases*, below, says which and
 why.
 
@@ -31,7 +31,7 @@ why.
 |---|---|
 | Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 57.00–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 199,930 bytes; SHA-256 `6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113` — 13,786 nodes, 4,078 ways, 57 relations |
+| Size | 200,112 bytes; SHA-256 `32d37537360f0ec1c4d4bd7dd0fa49059c36c20ef5589a3813a8f9f5558004a6` — 13,808 nodes, 4,095 ways, 57 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z, each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; both beside this file. The synthetic cases are `access-marking-synthetic.osm`, beside it too |
@@ -46,7 +46,11 @@ synthetic cases changed none of that file's objects, compared object by object.
 With #255's synthetic cases and before #248's, the file was 198,078 bytes,
 SHA-256 `35c74fb1aad95398138d731ecabf184243ffd06328b9b3e43529407896ab23f8`;
 adding #248's changed none of its 17,500 objects and added 421, compared object
-by object (PR #270).
+by object (PR #270). With #248's cases and before #271's, the file was 199,930
+bytes, SHA-256
+`6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113`; adding
+#271's changed none of its 17,921 objects and added 39, compared object by
+object (#271).
 
 ## The access-marking cases
 
@@ -158,6 +162,38 @@ keeps:
   of the junction, before the destination; case 31 has three unmarked ways
   round the gate, 0.002° to the south, and case 32 none.
 
+### #271's cases
+
+#271's criteria name two layouts the file held no instance of — a marking
+every connection passes with a second one further on that a way round avoids,
+and two connections each through a marking of its own — and a warned leg past
+both a marked way and a marked barrier, which #248's cases name only along a
+run. They were written by a script for #271 and are the `#271` block of
+`access-marking-synthetic.osm`; their ids are a range of their own:
+
+- **Layout j lies along 57.034 + 0.005j ° N**, 11.700–11.712 E, between #255's
+  last case (57.030 N) and #248's first (57.050 N), so the band of *The
+  synthetic cases* holds; its node ids are 9×10¹⁸ + 20,000 + 100j + k and its
+  way ids 9×10¹⁸ + 3,000 + 20j + k. Every way is `highway=residential` and
+  carries `note=synthetic, not from OpenStreetMap: TurfGPS #271 test case`.
+- **Every gate is a node `barrier=lift_gate` `access=residents`**, the tagging
+  of #248's AC3 and AC12 cases, which the engine routes through where nothing
+  goes round it (#248's AC12, second case). **The marked way is tagged
+  `motorcar=yes` `motor_vehicle:backward=no`, drawn east**, which the check
+  marks in both directions (`RD-065`) and the engine drives east, as #255's
+  case on way 2 shows, so the engine's own first answer runs along it and the
+  warned leg's search for less, not the engine's own avoidance, is what keeps
+  it off the leg.
+
+| Layout | Ways (k) | Gate (node k) | Round it | Criterion |
+|---|---|---|---|---|
+| j=0 | 1, 2 (through the gate), 3 (the marked way, 11.706–11.709 E), 4 | 3, at 11.7045 E, on way 2 | ways 5–7, 0.002° north of way 3; nothing round the gate | AC4 |
+| j=1 | 1, 2 (through gate 3), 3; ways 4–6, 0.002° north, through gate 7 | 3 and 7, each at 11.7045 E | each connection is the way round the other's gate | AC5 |
+| j=2 | 1, 2 (the marked way, 11.703–11.706 E), 3 (through the gate), 4 | 4, at 11.7075 E, on way 3 | nothing | AC6 |
+
+The ends of each are points at 11.7010 E and, on the last way, 11.7080 E
+(j=1) or 11.7100 E (j=0, j=2).
+
 Each test establishes its case from the file before measuring it, and asks the
 engine, with `ignore_access`, whether the quickest connection between the ends
 runs along the marking, so a regeneration that loses a case fails them.
@@ -222,7 +258,8 @@ Then fetch the access-marking cases the same way, from
 them and the synthetic cases into the box's PBF. pyosmium 4.3.2's merge sorts
 and de-duplicates, and gave the committed file byte for byte on two runs (#248's
 cases were merged the same way into the file before them, which holds the box
-and #255's cases, with the same result on two runs):
+and #255's cases, and #271's into the file holding #248's, each with the same
+result on two runs):
 
 ```bash
 python -c "import osmium, sys; r = osmium.MergeInputReader(); [r.add_file(f) for f in sys.argv[1:-1]]; h = osmium.WriteHandler(sys.argv[-1]); r.apply(h); h.close()" \

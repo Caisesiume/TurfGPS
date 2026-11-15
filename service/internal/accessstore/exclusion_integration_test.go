@@ -29,7 +29,6 @@ package accessstore_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -359,6 +358,12 @@ func (fx *fixture) avoided(t *testing.T, tc transitCase) {
 		t.Errorf("the check finds %v, %v on the leg produced, want nothing", crossings, err)
 	}
 
+	// A connection avoiding the marking joins the ends, so the leg is not
+	// warned (#271 AC3, `FR-129`'s fourth criterion).
+	if leg.Warned || leg.Marked != nil {
+		t.Errorf("the leg is identified as warned (%v), naming %+v; want a leg not warned", leg.Warned, leg.Marked)
+	}
+
 	t.Logf("the leg runs along %v; the engine was asked %d time(s), avoiding %v", wayIDs(leg.Edges), len(routing.avoids), routing.avoids)
 }
 
@@ -423,14 +428,17 @@ func TestAC3AMarkedBarrierIsNotPassedInTransit(t *testing.T) {
 	}
 }
 
-// TestAC10WhereNothingAvoidsThemNoLegRunsThroughThem is #248 AC10 (`FR-125`,
-// third criterion): between points every drivable connection between which
-// runs along a marked way, or past a marked barrier, the planner that asks
-// again avoiding them produces no leg. The cases are #255's: Frönäs sjöväg's
-// lift_gate, on the only road between its ends, and the synthetic road whose
-// middle way carries motorcar=yes with motor_vehicle:backward=no, the only way
-// between its outer two.
-func TestAC10WhereNothingAvoidsThemNoLegRunsThroughThem(t *testing.T) {
+// TestAC10WhereNothingAvoidsThemTheLegIsWarned is #248 AC10 (`FR-125`, third
+// criterion) as `RD-067` amends it and #271 AC1 reads it: between points every
+// drivable connection between which runs along a marked way, or past a marked
+// barrier, the planner that asks again avoiding them produces no leg but a
+// warned leg, which the two ends here, both locations the user entered, are
+// given. The cases are #255's: Frönäs sjöväg's lift_gate, on the only road
+// between its ends, and the synthetic road whose middle way carries
+// motorcar=yes with motor_vehicle:backward=no, the only way between its outer
+// two. Until #271 the test held the refusal; a leg one end of which is a
+// stopping position the system chose is still refused, which #271 AC2 tests.
+func TestAC10WhereNothingAvoidsThemTheLegIsWarned(t *testing.T) {
 	fx := setUp(t)
 
 	premise(t, fx.opl.nodes, "node", 8691377189, map[string]string{"barrier": "lift_gate", "access": "residents"})
@@ -444,21 +452,22 @@ func TestAC10WhereNothingAvoidsThemNoLegRunsThroughThem(t *testing.T) {
 			p, routing := fx.avoiding(t)
 
 			journey, err := p.Plan(t.Context(), planner.Request{Origin: tc.from, Destination: tc.to})
-
-			var refusal *planner.CrossingError
-			if journey.Legs != nil || !errors.As(err, &refusal) {
-				t.Fatalf("Plan gave %d legs and %v, want none and a CrossingError", len(journey.Legs), err)
+			if err != nil {
+				t.Fatalf("Plan refused the journey: %v (asked to avoid %v)", err, routing.avoids)
 			}
 
-			if refusal.Avoided == 0 || len(routing.avoids) < 2 {
-				t.Errorf("the leg was refused after %d re-asks (%d requests), want it asked for again avoiding the marking first", refusal.Avoided, len(routing.avoids))
+			leg := journey.Legs[0]
+			fx.namesEveryMarking(t, leg)
+
+			if len(routing.avoids) < 2 || len(routing.avoids[1]) == 0 {
+				t.Errorf("the engine was asked %v, want it asked for the leg again avoiding the marking first", routing.avoids)
 			}
 
-			if !slices.ContainsFunc(refusal.Crossings, func(c planner.Crossing) bool { return c.OSMID == tc.feature }) {
-				t.Errorf("the refusal names %v, want the %s %d", refusal.Crossings, tc.kind, tc.feature)
+			if !slices.ContainsFunc(leg.Marked, func(m planner.Marked) bool { return m.Kind == tc.kind && m.OSMID == tc.feature }) {
+				t.Errorf("the warned leg names %+v, want the %s %d", leg.Marked, tc.kind, tc.feature)
 			}
 
-			t.Logf("refused: %v; asked to avoid %v", err, routing.avoids)
+			t.Logf("warned: the leg runs along %v; asked to avoid %v", wayIDs(leg.Edges), routing.avoids)
 		})
 	}
 }
@@ -837,7 +846,9 @@ func TestAC6TheRunCarriesNoMoreMarkedTravelThanTheLeast(t *testing.T) {
 // fourth criterion): from a home on a private road, the quickest connection to
 // the destination passes a lift_gate marked residents beyond the run. With a
 // way round the gate the leg is produced on it, its run at the home admitted
-// and nothing beyond it marked; with none, no leg is produced.
+// and nothing beyond it marked; with none, no leg is produced but, between the
+// home and the destination, both locations the user entered, a warned leg,
+// as `RD-067` amends the criterion and #271 AC1 reads it.
 func TestAC12BeyondTheRunALegIsHeldToTheRuleInTransit(t *testing.T) {
 	fx := setUp(t)
 
@@ -903,16 +914,17 @@ func TestAC12BeyondTheRunALegIsHeldToTheRuleInTransit(t *testing.T) {
 		p, routing := fx.avoiding(t)
 
 		journey, err := p.Plan(t.Context(), planner.Request{Origin: home, Destination: dest})
-
-		var refusal *planner.CrossingError
-		if journey.Legs != nil || !errors.As(err, &refusal) {
-			t.Fatalf("Plan gave %d legs and %v, want none and a CrossingError", len(journey.Legs), err)
+		if err != nil {
+			t.Fatalf("Plan refused the journey: %v (asked to avoid %v)", err, routing.avoids)
 		}
 
-		if !slices.ContainsFunc(refusal.Crossings, func(c planner.Crossing) bool { return c.Kind == "barrier" && c.OSMID == synNode(walledCase, 5) }) {
-			t.Errorf("the refusal names %v, want the lift_gate", refusal.Crossings)
+		leg := journey.Legs[0]
+		fx.namesEveryMarking(t, leg)
+
+		if !slices.ContainsFunc(leg.Marked, func(m planner.Marked) bool { return m.Kind == "barrier" && m.OSMID == synNode(walledCase, 5) }) {
+			t.Errorf("the warned leg names %+v, want the lift_gate", leg.Marked)
 		}
 
-		t.Logf("refused: %v; asked to avoid %v", err, routing.avoids)
+		t.Logf("warned: the leg runs along %v; asked to avoid %v", wayIDs(leg.Edges), routing.avoids)
 	})
 }

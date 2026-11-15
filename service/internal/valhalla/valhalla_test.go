@@ -444,6 +444,50 @@ func TestAnEngineErrorIsAnError(t *testing.T) {
 	}
 }
 
+// TestOnlyNoPathToTheRouteIsNoRoute is #271's port obligation at the adapter:
+// the engine's 442 to the route request — no path keeps off the places —
+// wraps planner.ErrNoRoute, the one failure a warned leg is produced on, and
+// nothing else does: another code to the route, a 442 to the trace, and an
+// answer with no code each say nothing of the roads.
+func TestOnlyNoPathToTheRouteIsNoRoute(t *testing.T) {
+	t.Parallel()
+
+	noPath := `{"error_code":442,"status":"Bad Request","status_code":400,"error":"No path could be found for input"}`
+	avoid := []planner.Point{{Latitude: 57.705, Longitude: 11.965}}
+
+	for _, tc := range []struct {
+		name         string
+		route, trace func(map[string]any) (int, string)
+		want         bool
+	}{
+		{"no path to the route", func(map[string]any) (int, string) { return http.StatusBadRequest, noPath }, nil, true},
+		{"no suitable edges near a location", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error_code":171,"status":"Bad Request","status_code":400,"error":"No suitable edges near location"}`
+		}, nil, false},
+		{"too many places to avoid", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error_code":157,"status":"Bad Request","status_code":400,"error":"Exceeded max avoid locations"}`
+		}, nil, false},
+		{"an answer with no code", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error":"No path could be found for input"}`
+		}, nil, false},
+		{"no path to the trace", straightByCar, func(map[string]any) (int, string) { return http.StatusBadRequest, noPath }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			engine, c := startEngine(t, tc.route)
+			engine.trace = tc.trace
+
+			_, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, avoid)
+			if err == nil {
+				t.Fatal("Route gave no error")
+			}
+
+			if got := errors.Is(err, planner.ErrNoRoute); got != tc.want {
+				t.Errorf("errors.Is(%q, planner.ErrNoRoute) = %v, want %v", err, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestAnOversizedAnswerIsRefused: an answer past maxResponseBytes is refused
 // by an error rather than held in memory whole.
 func TestAnOversizedAnswerIsRefused(t *testing.T) {

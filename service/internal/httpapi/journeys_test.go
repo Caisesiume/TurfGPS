@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -446,4 +447,69 @@ func TestAPlanThatOutlivesItsDeadlineIsRefused(t *testing.T) {
 				rec.Code, http.StatusGatewayTimeout, rec.Body.String())
 		}
 	})
+}
+
+// gatedRouting routes every leg along way 9, which carries a gate, and finds
+// no route keeping off anything it is asked to avoid.
+type gatedRouting struct{}
+
+func (gatedRouting) Route(_ context.Context, from, to planner.Point, avoid []planner.Point) (planner.Route, error) {
+	if len(avoid) > 0 {
+		return planner.Route{}, fmt.Errorf("the engine found no path: %w", planner.ErrNoRoute)
+	}
+
+	return planner.Route{Edges: []planner.Edge{{WayID: 9, Shape: []planner.Point{from, to}}}}, nil
+}
+
+// gateOn9 is access markings finding a marked gate on every edge along way 9.
+type gateOn9 struct{ clearAccess }
+
+var gateAt = planner.Point{Latitude: 58.1, Longitude: 15.2}
+
+func (gateOn9) Crossings(_ context.Context, edges []planner.Edge) ([]planner.Crossing, error) {
+	var out []planner.Crossing
+
+	for i, e := range edges {
+		if e.WayID == 9 {
+			out = append(out, planner.Crossing{Edge: i, Kind: "barrier", OSMType: "n", OSMID: 77, At: gateAt})
+		}
+	}
+
+	return out, nil
+}
+
+// TestAJourneyWithAWarnedLegIsAnsweredWithIt is #271 AC1 and AC6 through the
+// request surface (`FR-129`, `FR-131`): where nothing avoids the gate between
+// the two locations the user entered, `POST /journeys` answers 200 with the
+// journey, the leg identified as warned and the gate named with its point and
+// its stretch of the leg's shape; a leg not warned says so too.
+func TestAJourneyWithAWarnedLegIsAnsweredWithIt(t *testing.T) {
+	t.Parallel()
+
+	const body = `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`
+
+	p, err := planner.New(gatedRouting{}, zoneCopy{held: true}, gateOn9{}, clearAccess{}, planner.AvoidUpTo(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := postJourney(t, body, WithPlanner(p))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body %q", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	var got journeyResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("the body is not a journey: %v; body %q", err, rec.Body.String())
+	}
+
+	want := []wireMarked{{Kind: "barrier", OSMType: "n", OSMID: 77, From: 0, To: 1, At: &wirePoint{58.1, 15.2}}}
+	if len(got.Legs) != 1 || !got.Legs[0].Warned || !reflect.DeepEqual(got.Legs[0].Marked, want) {
+		t.Fatalf("legs = %+v, want one warned leg naming the gate at its point on shape 0-1", got.Legs)
+	}
+
+	plain := postJourney(t, body, withFakePlanner(t, straightRouting{}))
+	if !strings.Contains(plain.Body.String(), `"warned":false`) || strings.Contains(plain.Body.String(), `"marked"`) {
+		t.Errorf("a leg not warned is answered %s, want warned false and nothing marked", plain.Body.String())
+	}
 }
