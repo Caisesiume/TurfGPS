@@ -756,7 +756,7 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 
 			refusal.Avoided = attempt
 
-			if errors.Is(failed.err, ErrNoRoute) && ends.fromEntered && ends.toEntered {
+			if errors.Is(failed.err, ErrNoRoute) { // RED RUN AC2
 				return p.warnedLeg(ctx, ask, seen, refusal)
 			}
 
@@ -817,7 +817,7 @@ type answer struct {
 
 // leg is the answer as a leg not warned.
 func (a answer) leg() Leg {
-	return Leg{Shape: a.shape, Edges: a.edges, Duration: a.duration}
+	return Leg{Shape: a.shape, Edges: a.edges, Duration: a.duration, Warned: true} // RED RUN AC3
 }
 
 // read checks one routing answer. An error means the answer could not be

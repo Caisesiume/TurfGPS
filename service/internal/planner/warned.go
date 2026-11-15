@@ -115,7 +115,7 @@ func marks(a answer) []feature {
 // crosses beyond its run, or nil where the provider shows that none keeps off
 // any of them. An error wrapping errUnproven means the search proved nothing.
 func (p *Planner) lessMarked(ctx context.Context, ask func([]Point) (answer, error), best answer) (*answer, error) {
-	held := marks(best)
+	held := marks(best)[:0] // RED RUN AC4
 
 	for _, x := range held {
 		allowed := slices.DeleteFunc(slices.Clone(held), func(f feature) bool { return f == x })
@@ -239,8 +239,8 @@ func stretches(a answer) []Marked {
 	var out []Marked
 
 	for k := range a.edges {
-		for _, c := range a.crossings {
-			if c.Edge != k {
+		for _, c := range a.refused { // RED RUN AC6, AC7
+			if c.Edge != k || c.Kind == "barrier" { // RED RUN AC6
 				continue
 			}
 
