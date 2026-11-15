@@ -1,9 +1,111 @@
 package config
 
 import (
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
+
+// metresText is v as the environment would carry it, in the fewest digits
+// that read back as v exactly.
+func metresText(v float64) string {
+	return strconv.FormatFloat(v, 'g', -1, 64)
+}
+
+// TestABarrierToleranceBelowTheFloorIsRefused is #265 AC1: a tolerance below
+// the floor, zero included, is refused even with its origin, and the refusal
+// names the floor, its value and where it is derived.
+func TestABarrierToleranceBelowTheFloorIsRefused(t *testing.T) {
+	t.Parallel()
+
+	floor := BarrierToleranceFloorMetres
+
+	for _, raw := range []string{
+		"0", "0.0", "-0",
+		metresText(floor / 2),
+		metresText(math.Nextafter(floor, 0)),
+	} {
+		got, err := LoadAccessMarkings(lookupMap(map[string]string{
+			EnvAccessBarrierTolerance:       raw,
+			EnvAccessBarrierToleranceOrigin: "measured against the extract, #265's test",
+		}))
+		if err == nil || got != nil {
+			t.Errorf("a tolerance of %s m with its origin: LoadAccessMarkings gave %+v, %v; want a refusal below the floor of %v m", raw, got, err, floor)
+
+			continue
+		}
+
+		for _, want := range []string{EnvAccessBarrierTolerance, "config.BarrierToleranceFloorMetres", metresText(floor), "accessmarkings.go"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("a tolerance of %s m: the refusal %q does not name %q", raw, err, want)
+			}
+		}
+	}
+}
+
+// TestABarrierToleranceAtOrAboveTheFloorIsTakenUnchanged is #265 AC2: the floor
+// itself, the next value above it, and the figure CI configures are each taken
+// as they were written, with their origin.
+func TestABarrierToleranceAtOrAboveTheFloorIsTakenUnchanged(t *testing.T) {
+	t.Parallel()
+
+	const origin = "measured against the extract, #265's test"
+
+	floor := BarrierToleranceFloorMetres
+
+	for _, raw := range []string{
+		metresText(floor),
+		metresText(math.Nextafter(floor, math.Inf(1))),
+		"1.0",
+	} {
+		want, err := strconv.ParseFloat(raw, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := LoadAccessMarkings(lookupMap(map[string]string{
+			EnvAccessBarrierTolerance:       raw,
+			EnvAccessBarrierToleranceOrigin: origin,
+		}))
+		if err != nil || got == nil || got.BarrierToleranceMetres != want || got.BarrierToleranceOrigin != origin {
+			t.Errorf("a tolerance of %s m: LoadAccessMarkings gave %+v, %v; want %v m with its origin, unchanged", raw, got, err, want)
+		}
+	}
+}
+
+// TestTheFloorCoversTheShapeEncodingAtEveryLatitude (#265 AC3): the floor is at
+// least the farthest the shape encoding's rounding alone can move a point, at
+// every latitude, measured with the spheroid's own radii rather than the bound
+// the derivation uses for them; and at least the farthest the whole chain of
+// roundings can, steps 1 to 4 summed per axis from their quanta here rather
+// than read from nodeDisplacementDegrees, so a step dropped from that sum
+// fails here. The derivation is on the constant.
+func TestTheFloorCoversTheShapeEncodingAtEveryLatitude(t *testing.T) {
+	t.Parallel()
+
+	const a = wgs84SemiMajorAxisMetres
+
+	f := 1 / wgs84InverseFlattening
+	e2 := f * (2 - f)
+	half := legShapeQuantumDegrees / 2 * math.Pi / 180
+	whole := (osmiumQuantumDegrees + osmNodeQuantumDegrees/2 +
+		tileShapeQuantumDegrees/2 + legShapeQuantumDegrees/2) * math.Pi / 180
+
+	for q := -360; q <= 360; q++ {
+		phi := float64(q) / 4 * math.Pi / 180
+		w := 1 - e2*math.Sin(phi)*math.Sin(phi)
+		meridian, primeVertical := a*(1-e2)/math.Pow(w, 1.5), a/math.Sqrt(w)
+
+		if d := math.Hypot(meridian*half, primeVertical*math.Cos(phi)*half); d > BarrierToleranceFloorMetres {
+			t.Errorf("at %v° the encoding's rounding moves a point %v m, beyond the floor of %v m", float64(q)/4, d, BarrierToleranceFloorMetres)
+		}
+
+		if d := math.Hypot(meridian*whole, primeVertical*math.Cos(phi)*whole); d > BarrierToleranceFloorMetres {
+			t.Errorf("at %v° the four roundings, steps 1 to 4, move a node %v m, beyond the floor of %v m", float64(q)/4, d, BarrierToleranceFloorMetres)
+		}
+	}
+}
 
 // TestTheBarrierToleranceHasNoDefault (#255): with nothing set there is no
 // tolerance, and so no check that could pass a leg — never a value from here.
