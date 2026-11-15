@@ -25,6 +25,17 @@
 // required location and the next, in the order entered, and nothing here
 // compares orders.
 //
+// A RETURN TO THE ORIGIN NEEDS A *THERE* TO DRIVE OUT TO (`FR-012`, #5). A
+// request whose destination is its origin is refused unless it names an
+// intermediate destination distinct from that location: without one the base
+// route is zero-length, and every minute driven would price as additional
+// time. Distinct means a different location named — the coordinates differ —
+// and never a location some distance away: a tolerance for an intermediate
+// lying near the origin would be a constant with no home in
+// `CalculationSpecification.md`. This refuses on what the request names and
+// never plans: a return with a distinct intermediate is planned as any
+// journey through intermediate destinations is (`FR-002`).
+//
 // A JOURNEY IS PLANNED FROM WHATEVER LOCAL ZONE COPY IS HELD, AND REFUSED ONLY
 // WHERE NONE IS (#33). `FR-024` and `FR-033` are one gate reading one input,
 // and that input is ZoneCopy.Held: whether the system holds a local synced copy
@@ -90,8 +101,6 @@
 //     (`FR-127`, #256).
 //   - Refusing a request with no destination (`FR-005`, #4). Request has no way
 //     to omit one, so that refusal belongs to whatever decodes a request.
-//   - Refusing a return to the origin that names no distinct intermediate
-//     destination (#5).
 //   - Zone selection, scoring, and the time budget, which later stories own.
 //   - Recording on a result that it was built from a copy stale beyond a bound
 //     (`FR-034`, #35). That marking reads the copy's age beside the gate in
@@ -110,6 +119,11 @@ import (
 // not a coordinate, so a caller can tell a request it must refuse from a
 // routing failure.
 var ErrNotACoordinate = errors.New("not a coordinate")
+
+// ErrReturnToOrigin is the error Plan returns for a request whose destination
+// is its origin and which names no intermediate destination distinct from that
+// location (`FR-012`): a journey with nowhere to drive out to.
+var ErrReturnToOrigin = errors.New("the destination is the origin and no intermediate destination differs from it")
 
 // ErrNoZoneCopy is the error Plan returns when the system holds no local copy
 // of the zone set: `FR-033`'s one ground for planning no journey for lack of
@@ -451,7 +465,9 @@ func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data 
 // along the run at a location the user entered.
 //
 // A location that is not a coordinate is refused before the provider is asked,
-// with an error wrapping ErrNotACoordinate. Where no zone copy is held, no
+// with an error wrapping ErrNotACoordinate, and a return to the origin naming
+// no distinct intermediate destination with ErrReturnToOrigin; see
+// returnsWithNowhereBetween. Where no zone copy is held, no
 // journey is planned and the error is ErrNoZoneCopy; see requireZoneCopy. A
 // journey the access markings cannot vouch for is refused with an error
 // wrapping ErrAccessUnchecked or ErrExtractMismatch, and one with a leg
@@ -466,6 +482,10 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 		if !validPoint(loc) {
 			return Journey{}, fmt.Errorf("location %d of the request: %w", i, ErrNotACoordinate)
 		}
+	}
+
+	if returnsWithNowhereBetween(req) {
+		return Journey{}, ErrReturnToOrigin
 	}
 
 	if err := p.requireZoneCopy(ctx); err != nil {
@@ -632,6 +652,25 @@ func (p *Planner) oneExtract(ctx context.Context) (string, error) {
 	}
 
 	return data, nil
+}
+
+// returnsWithNowhereBetween reports whether req names one location as both its
+// origin and its destination and no intermediate destination distinct from it
+// (`FR-012`): none at all, or only that location again. Two points are one
+// location exactly where their coordinates are equal, as the package doc
+// gives.
+func returnsWithNowhereBetween(req Request) bool {
+	if req.Origin != req.Destination {
+		return false
+	}
+
+	for _, via := range req.Intermediates {
+		if via != req.Origin {
+			return false
+		}
+	}
+
+	return true
 }
 
 // requireZoneCopy is the gate in front of planning, both of its branches in
