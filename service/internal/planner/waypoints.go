@@ -31,7 +31,7 @@ var ErrWaypointsNotPreserved = errors.New("the journey's mandatory waypoints are
 // location some distance from an entered one is never it. The order is not
 // compared here; it is `FR-003`'s.
 func requireEnteredWaypoints(req Request, alternatives []Journey) error {
-	if true { // RED RUN — not for merge
+	if true { // RED RUN - not for merge
 		return nil
 	}
 	for i, alt := range alternatives {
