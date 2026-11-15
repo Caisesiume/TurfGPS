@@ -38,10 +38,10 @@ import (
 const syntheticNote271 = "synthetic, not from OpenStreetMap: TurfGPS #271 test case"
 
 // #271's layouts, as the generator wrote them: layout j's nodes are
-// syntheticBase + 20000 + 100j + k and its ways syntheticBase + 3000 + 20j +
+// syntheticBase + 271000 + 100j + k and its ways syntheticBase + 27100 + 20j +
 // k, along 57.034 + 0.005j ° N (`testdata/README.md` § #271's cases).
-func wNode(j, k int) int64 { return syntheticBase + 20000 + int64(j)*100 + int64(k) }
-func wWay(j, k int) int64  { return syntheticBase + 3000 + int64(j)*20 + int64(k) }
+func wNode(j, k int) int64 { return syntheticBase + 271000 + int64(j)*100 + int64(k) }
+func wWay(j, k int) int64  { return syntheticBase + 27100 + int64(j)*20 + int64(k) }
 func wLat(j int) float64   { return 57.034 + 0.005*float64(j) }
 
 const (

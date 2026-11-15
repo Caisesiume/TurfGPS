@@ -31,7 +31,7 @@ why.
 |---|---|
 | Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 57.00–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 200,112 bytes; SHA-256 `32d37537360f0ec1c4d4bd7dd0fa49059c36c20ef5589a3813a8f9f5558004a6` — 13,808 nodes, 4,095 ways, 57 relations |
+| Size | 200,117 bytes; SHA-256 `74d751f8a248d8a8bff88fba2cbda6da9c705872f9a06fe64b910e90b7f986d4` — 13,808 nodes, 4,095 ways, 57 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z, each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; both beside this file. The synthetic cases are `access-marking-synthetic.osm`, beside it too |
@@ -173,8 +173,9 @@ run. They were written by a script for #271 and are the `#271` block of
 
 - **Layout j lies along 57.034 + 0.005j ° N**, 11.700–11.712 E, between #255's
   last case (57.030 N) and #248's first (57.050 N), so the band of *The
-  synthetic cases* holds; its node ids are 9×10¹⁸ + 20,000 + 100j + k and its
-  way ids 9×10¹⁸ + 3,000 + 20j + k. Every way is `highway=residential` and
+  synthetic cases* holds; its node ids are 9×10¹⁸ + 271,000 + 100j + k and its
+  way ids 9×10¹⁸ + 27,100 + 20j + k, a range named for the story so that no
+  other story's synthetic cases take it. Every way is `highway=residential` and
   carries `note=synthetic, not from OpenStreetMap: TurfGPS #271 test case`.
 - **Every gate is a node `barrier=lift_gate` `access=residents`**, the tagging
   of #248's AC3 and AC12 cases, which the engine routes through where nothing
