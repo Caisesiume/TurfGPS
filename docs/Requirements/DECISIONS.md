@@ -3232,3 +3232,157 @@ Affects:        FR-134: `Verification`, a fourth criterion, `Depends-on`,
                 `Volatility` and `Rationale`; #273 gains AC9, appended without
                 editing its existing text.
 ```
+
+## RD-072 — Are zones taken from a location the user entered that a leg reaches along FR-126's run?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead`, relayed with its option text verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6893888013.
+                RD-070 raised the question to `@engineering-lead` rather than
+                deciding it, and the safety verdict at PR #274's head
+                `ba85cff` (`#issuecomment-6893234205`, N5) asked it be framed
+                at the scope FR-137's exception reaches. This entry records a
+                ruling made elsewhere and leaves RD-070 standing.
+Question:       FR-137 offers no zone the system chose from a location the
+                user entered that only a warned leg reaches, and its "other
+                than in the run FR-126 admits there" exempts every location
+                the user entered on a way so marked, or within an area so
+                marked, that FR-126's run reaches: a home on a private
+                driveway, and equally a stop the user chose inside a marked
+                area. Are zones the system chose taken from a stop there?
+Interpretation: **Yes.** The Owner chose "Yes, suggest zones (Recommended)",
+                whose description read: "The driveway is just your own
+                access, not a route through someone's property, so zones are
+                planned from the end of it as normal. Only locations
+                reachable solely by a warned route lose their zone
+                suggestions." The second sentence is the rule and is read at
+                the scope N5 named: every location the user entered that a
+                leg reaches along FR-126's run, with a connection avoiding
+                every marking continuing from that run's end, keeps its
+                zones, the home on a driveway and the stop inside a marked
+                area alike; one reachable solely by a warned leg loses them.
+                A home on a driveway not so marked behind a gate so marked
+                has an empty run under FR-126 and is reachable solely by a
+                warned leg, so it loses them, as FR-137's first criterion
+                states. FR-137 gains the third criterion stating the
+                exemption, and its `Volatility`, `Risk` and `Rationale` cite
+                this entry.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion, which goes to the Owner whatever the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`).
+                RD-070 had run the ladder to rung 4, where FR-126's run
+                already reads the location as reached by the user's own
+                access, and stopped short because the Owner's words, "behind
+                private roads", did not say which side of the run a
+                driveway lies on. The scope reading, that the rule covers
+                every location FR-126's run reaches and not the home alone,
+                is the option description's own second sentence, on
+                `@engineering-lead`'s reading in the cycle-3 remand that the
+                answer settles N5.
+Affects:        FR-137: a third criterion, `Verification`, `Volatility`,
+                `Risk` and `Rationale`; #275 gains AC8, appended without
+                editing its existing text.
+```
+
+## RD-073 — How does a user place a stopping position other than as a location of the journey?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead`, relayed with its option text verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6893888013.
+                RD-069 raised the question to `@engineering-lead` rather than
+                deciding it. This entry records a ruling made elsewhere and
+                leaves RD-069 standing.
+Question:       `SPECIFICATION.md § What establishes a stopping position` has
+                the user "place the stop there and have it recorded as
+                user-chosen", FR-126 to FR-129 and FR-136 turn on a stopping
+                position the user chose, and no document describes how a user
+                places one other than as a location of the journey:
+                `DESIGN.md § Reviewing zones one at a time` gives a zone two
+                actions, and neither places a stop. The safety verdict at PR
+                #274's head `ba85cff` (`#issuecomment-6893234205`, N7) adds
+                that a one-tap "stop here" on an offered candidate would be an
+                acceptance under another name.
+Interpretation: **By placing or moving a stop of their own on the map.** The
+                Owner chose "I want map placement", whose description read:
+                "The analyst files a story now for placing or moving your own
+                stop on the map; DESIGN.md gets the interaction." FR-139
+                obliges that a stop the user places or moves on the map is
+                recorded as one the user chose at its point, and its third
+                criterion carries N7: a stop placed at an offered candidate's
+                point or on its marker is the user's, and the candidate stays
+                the system's. The planning API carries origin, intermediate
+                destinations and destination only
+                (`service/internal/httpapi/journeys.go`), so the work is two
+                stories, the client's and the service's, under the epic for
+                the stopping position. The interaction itself is
+                `DESIGN.md`'s to gain and is drafted in the client story for
+                the Owner's approval at its merge; it is not written here.
+                `SHOULD`: every exclusion holds without it.
+Rung:           n/a — an Owner ruling on product intent no document defined,
+                which `team-protocol § Escalation and human judgement` sends to
+                the Owner. RD-069 had run the ladder to rung 3, where
+                `DESIGN.md § Reviewing zones one at a time` places no stop,
+                and stopped short because the act was undefined rather than
+                ambiguous. That two stories are needed rests on rung 5, the
+                request the service accepts today.
+Affects:        FR-139, filed; FR-136: `Volatility` and `Rationale`; two
+                stories filed under the epic "The stopping position, and the
+                roads a stop may be proposed on".
+```
+
+## RD-074 — Is a stopping position the system chose behind a marking offered and then refused, or never offered?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s direction
+                in the cycle-3 remand of PR #274 that the Owner's "never
+                offered" settles it. Raised as N6 of the safety verdict at PR
+                #274's head `ba85cff` (`#issuecomment-6893234205`).
+Question:       FR-127's first criterion and FR-136's refuse to serve a
+                stopping position the system chose that a car reaches only
+                across a marking; neither refuses to offer it. A reserve
+                candidate behind a private gate can be shown after a
+                rejection, accepted and dropped. The Owner said such stops
+                are "never offered". And
+                `SPECIFICATION.md § What establishes a stopping position`
+                sends a restriction recorded on the stopping feature itself
+                to uncertain, "offered during review", so the user "may still
+                place the stop there". Which positions does "never offered"
+                withhold?
+Interpretation: **A stopping position the system chose that a car reaches
+                only along a way, or past a barrier, so marked that is not the
+                feature establishing the position is offered as no
+                recommended stop, no replacement and no reserve candidate. A
+                position whose own feature carries the marking, and that a
+                car reaches past no other, is offered as the cited section
+                keeps it.** A gated car park, a car park at the end of a
+                private road and one beyond an estate marked on its enclosing
+                area are behind a marking and never shown; a customers-only
+                car park is on its marking, not behind it, and stays in
+                review as uncertain, where accepting it serves nothing
+                (FR-136) and placing a stop there does (FR-139). FR-138
+                states it, at the stopping position and not the zone, and
+                FR-128 carries it into areas; FR-127 and FR-136 point to it
+                and keep refusing service as the layer beneath.
+Rung:           1, explicit specification:
+                `SPECIFICATION.md § What establishes a stopping position`
+                gives an excluded candidate "no presentation, no reserve, no
+                second look", and sends a restriction on the feature itself to
+                uncertain rather than exclusion — "Excluding on a recorded
+                restriction would remove both", the customer's car park and
+                the gated staff one. Rung 4 agrees: the Owner's scoping answer
+                quoted under RD-069, "Stops the app picks itself (zones)
+                behind private roads are still never offered — the app can
+                just pick another zone", reads "behind". A position a
+                connection avoiding every marking reaches, but that a journey
+                could join only by a leg FR-129's second criterion refuses, is
+                behind nothing; whether the review offers it is owed to
+                `Review and replacement` and not decided here.
+Affects:        FR-138, filed; FR-127 and FR-136: `Rationale`; FR-128: its
+                statement's list and `Depends-on` gain FR-138; one story
+                filed under the epic "Drivable legs and journey cost".
+```

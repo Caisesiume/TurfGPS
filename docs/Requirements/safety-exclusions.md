@@ -1236,7 +1236,10 @@ Rationale:    FR-125 keeps a leg to a stopping position off such ways and
               tests. The second criterion keeps the rule to the gap, so a
               position a few metres off the drivable network with nothing so
               marked between is not refused by it; how far that gap may run is
-              a tolerance this record does not set.
+              a tolerance this record does not set. That a stopping position
+              the system chose behind such a marking is not offered at all, as
+              a recommended stop, a replacement or a reserve candidate, is
+              FR-138's (`DECISIONS.md § RD-074`).
 Resolved-by:  #256
 ```
 
@@ -1246,7 +1249,7 @@ Resolved-by:  #256
 Statement:    The system shall treat a way, or the part of one, lying within
               an area that the map data marks as private or access-restricted
               on an area feature enclosing it as a way so marked for FR-125,
-              FR-126, FR-127, FR-129, FR-130 and FR-131.
+              FR-126, FR-127, FR-129, FR-130, FR-131, FR-137 and FR-138.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -1284,7 +1287,7 @@ Acceptance:   given two points on ways outside an area that the map data marks
               where one exists, and not produced where none does other than
               as a warned leg FR-129 admits
 Status:       to-build
-Depends-on:   FR-125; FR-126; FR-127; FR-129; FR-130; FR-131
+Depends-on:   FR-125; FR-126; FR-127; FR-129; FR-130; FR-131; FR-137; FR-138
 Volatility:   open-question — which area features, and which tags on them,
               spell the marking is proposed in
               `Architecture.md § What the tables hold` and not yet confirmed;
@@ -1313,7 +1316,17 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               as well makes a warned leg across such an area a warned leg as
               one across a marked way is, its avoidable crossings kept off it
               and its stretch within the area identified
-              (`DECISIONS.md § RD-067`). A stop the user chose in a
+              (`DECISIONS.md § RD-067`). Treating them so for FR-137 and
+              FR-138 keeps the area from reopening what those records close:
+              a stop the user chose on a street beyond a gated estate drawn as
+              one area so marked, whose own ways carry no marking, is reached
+              only by a warned leg, and without this record no zone check
+              reading the ways' own markings sees a marking between the stop
+              and the road, so zones a walk from it are offered and the
+              driver is sent through the estate for zones the planner picked;
+              and a stopping position the system chose there is offered and
+              then not served. Those two records' own criteria test the area,
+              so this record's do not. A stop the user chose in a
               customers-only car park drawn as such an area is therefore
               reached along FR-126's run, as
               `SPECIFICATION.md § What establishes a stopping position` keeps
@@ -1580,8 +1593,9 @@ Volatility:   open-question — the markings are FR-125's, read as
               `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; who
               chose a stop rests on the Owner's scoping answer as
               `DECISIONS.md § RD-069` reads it; how a user places a stopping
-              position other than as a location of the journey no document
-              yet describes
+              position other than as a location of the journey is FR-139's,
+              its interaction owed to `DESIGN.md` as the Owner directed in
+              `DECISIONS.md § RD-073`
 Risk:         Read as the user's once accepted, the exception becomes the
               price of a zone: the reserve offers a car park behind a private
               gate, the user accepts it, and one confirmation sends the driver
@@ -1609,7 +1623,14 @@ Rationale:    The Owner's scope gives "your own stops" a warned route and
               keeps, which reaches a restricted position by the user placing
               the stop there; the second criterion keeps the record to the
               offer, so a build that refuses every stop at such a point
-              fails.
+              fails. FR-138 withholds from the offer a stopping position the
+              system chose behind a marking the position's own feature does
+              not carry, so the first criterion is the layer beneath it: it
+              holds where such a position reaches the plan regardless, and a
+              test of it tells the planner directly which position was offered
+              and accepted. A stop the user places at an offered candidate's
+              point is a stop the user placed, and the candidate stays the
+              system's (FR-139).
 Resolved-by:  #275
 ```
 
@@ -1624,24 +1645,43 @@ Statement:    The system shall offer no zone it chose to be taken from a stop
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
-Verification: test — against routing data built from a test extract, a
-              stopping position the user chose on a way not so marked behind
-              a marked gate, and a destination in the same position, each with
-              a zone a short walk away, have no zone the system chose offered
-              to be taken from a stop there, while a stopping position the
-              user chose that a connection avoiding every marking reaches,
-              joined by a warned leg to an origin behind such a gate, is
-              refused no zone by this record
-Acceptance:   given a stopping position the user chose, on a way not so
-              marked behind a gate so marked that every drivable connection
-              to it passes, with a zone a walk from it could take, when the
-              journey is planned, then no zone the system chose is offered to
-              be taken from a stop there, in the journey, as a replacement or
-              as a reserve candidate
-              given the journey's destination in the same position — a home
-              on a driveway not so marked behind such a gate — with a zone a
-              walk from it could take, when the journey is planned, then no
-              zone the system chose is offered to be taken from a stop there
+Verification: test — against routing data built from a test extract, the
+              journey's origin, an intermediate destination, its destination
+              and a stopping position the user chose, each in turn on a way
+              not so marked behind a marked gate, and a stopping position the
+              user chose on a way not so marked that a car reaches only along
+              the unmarked ways of an area marked on an area feature
+              enclosing it, each with a zone a short walk away, have no zone
+              the system chose offered to be taken from a stop there; while a
+              destination on a driveway itself marked, which a connection
+              avoiding every marking reaches from the end of FR-126's run, and
+              a stopping position the user chose that a connection avoiding
+              every marking reaches, joined by a warned leg to an origin
+              behind such a gate, are refused no zone by this record
+Acceptance:   given a location the user entered — the journey's origin, its
+              destination, an intermediate destination or a stopping position
+              the user chose — on a way not so marked behind a gate so marked
+              that every drivable connection to it passes, such as a home on a
+              driveway not so marked behind such a gate, with a zone a walk
+              from it could take, when the journey is planned, then no zone
+              the system chose is offered to be taken from a stop there, in
+              the journey, as a replacement or as a reserve candidate
+              given a location the user entered on a way not so marked that a
+              car reaches only along ways within an area that the map data
+              marks as private or access-restricted on an area feature
+              enclosing it, those ways carrying no such marking of their own —
+              a street beyond a gated estate drawn as one area so marked —
+              with a zone a walk from it could take, when the journey is
+              planned, then no zone the system chose is offered to be taken
+              from a stop there, in the journey, as a replacement or as a
+              reserve candidate
+              given a location the user entered on a way so marked, or within
+              such an area, that a leg reaches along the run FR-126 admits
+              there, from whose end a drivable connection avoiding every such
+              way and barrier continues — a home on a driveway itself so
+              marked — with a zone a walk from it could take, when the journey
+              is planned, then this record refuses no zone taken from a stop
+              there
               given a stopping position the user chose that a drivable
               connection avoiding every such way and barrier reaches, joined
               by a warned leg to an origin behind such a gate, with a zone a
@@ -1653,33 +1693,140 @@ Volatility:   open-question — the markings are FR-125's, read as
               `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; that
               a zone only a warned leg reaches is a zone behind a private
               road rests on the Owner's scoping answer as
-              `DECISIONS.md § RD-070` reads it
+              `DECISIONS.md § RD-070` reads it; that a location reached along
+              FR-126's run keeps its zones is the Owner's in
+              `DECISIONS.md § RD-072`
 Risk:         Built on who chose the stop alone, a stop the user chose behind
               a private gate carries the zones a walk from it reaches, and one
               confirmation of a warning about the user's own stop sends the
               driver through the gate for zones the planner picked. Built on
+              the ways' own markings alone, a stop beyond an estate drawn as
+              one area so marked does the same through the estate. Built on
               every end of a warned leg, a public car park the user chose is
-              stripped of zones because the leg to it started behind a gate.
+              stripped of zones because the leg to it started behind a gate;
+              built on every location on a marked way, so is a home on a
+              private driveway, which the Owner ruled keeps them.
 Rationale:    The Owner keeps "Stops the app picks itself (zones) behind
               private roads" never offered (`DECISIONS.md § RD-070`). FR-127
               and FR-129 refuse a leg to a stopping position the system chose
               behind a marking, but a zone is also taken on foot from a stop
-              (`SPECIFICATION.md § Stops serving several zones`), and a stop
-              the user chose behind a marking is reached by a warned leg the
-              user confirmed for that stop: a zone the system attached to it
-              is a zone behind a private road. The record reads the location
-              and not the leg, as FR-127's first criterion reads a stopping
-              position a car reaches only so. A location a car reaches only
-              across a marking beyond FR-126's run is one every leg from a
-              location the user entered outside the marking reaches as a
-              warned leg, and an end of a warned leg that a connection
-              avoiding every marking also reaches lies behind nothing, which
-              the third criterion tests. A zone the user named as a location
-              of the journey (`DESIGN.md § Locations`) is entered and not
-              chosen by the system, and one the system offered stays the
-              system's after the user accepts it (FR-136). A location reached
-              within FR-126's run is outside the record, which binds what only
-              a warned leg reaches. The walking access path's own crossing
+              (`SPECIFICATION.md § Stops serving several zones`), and a
+              location the user entered behind a marking is reached by a
+              warned leg the user confirmed for that location: a zone the
+              system attached to it is a zone behind a private road. The
+              record reads the location and not the leg, as FR-127's first
+              criterion reads a stopping position a car reaches only so. A
+              location a car reaches only across a marking beyond FR-126's
+              run is one every leg from a location the user entered outside
+              the marking reaches as a warned leg, and an end of a warned leg
+              that a connection avoiding every marking also reaches lies
+              behind nothing, which the fourth criterion tests. The first
+              criterion names every kind of location the user entered,
+              because the statement binds each, and an origin or an
+              intermediate destination behind a gate is as plausible a place
+              to take a zone from as a destination. FR-128 has the ways of an
+              area marked only on its enclosing feature read as marked here,
+              which the second criterion tests: without it the estate's
+              unmarked ways pass every check reading a way's own markings. A
+              location reached along FR-126's run keeps its zones, as the
+              Owner ruled: the driveway is the user's own access and not a
+              route through someone's property, and only a location reachable
+              solely by a warned route loses them (`DECISIONS.md § RD-072`),
+              which the third criterion tests. A home on a driveway not so
+              marked behind a gate so marked has an empty run and is reached
+              only by a warned leg (FR-126), so the first criterion still
+              binds it. A zone the user named as a location of the journey
+              (`DESIGN.md § Locations`) is entered and not chosen by the
+              system, and one the system offered stays the system's after the
+              user accepts it (FR-136). The walking access path's own crossing
               stays owed with FR-075.
 Resolved-by:  #275
+```
+
+## FR-138 — Offer no stopping position the system chose behind a private or access-restricted way or barrier
+
+```
+Statement:    The system shall offer no stopping position it chose — the
+              position of a recommended stop, of a replacement or of a reserve
+              candidate — that a car reaches only by running along a way, or
+              passing a barrier, that the map data marks as private or
+              access-restricted and that is not the feature establishing the
+              position.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              SPECIFICATION.md § What establishes a stopping position
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a
+              parking area not itself marked that a car reaches only past a
+              marked gate, one reached only along a marked private road, and
+              one reached only along the unmarked ways of an area marked on an
+              area feature enclosing it, each the only stopping position of a
+              zone, is offered as no recommended stop, no replacement and no
+              reserve candidate, before a rejection or after one; while a
+              parking area whose own feature is marked customers-only, reached
+              along no other marked way or barrier, and a position a
+              connection avoiding every marking reaches, are withheld from no
+              offer by this record
+Acceptance:   given a stopping position the system chose that a car reaches
+              only by running along a way, or passing a barrier, so marked
+              that is not the feature establishing the position — a parking
+              area not itself so marked behind a gate so marked, or beyond an
+              area so marked on an area feature enclosing it — when the
+              journey is planned and when the user asks for a different zone,
+              then the position is offered as no recommended stop, no
+              replacement and no reserve candidate
+              given a stopping position the system chose on a feature itself
+              so marked — a parking area marked customers-only — that a car
+              reaches along no other way or barrier so marked, when the
+              journey is planned and when the user asks for a different zone,
+              then this record withholds the position from no offer
+              given a stopping position the system chose that a drivable
+              connection avoiding every such way and barrier reaches, when the
+              journey is planned and when the user asks for a different zone,
+              then this record withholds the position from no offer
+Status:       to-build
+Depends-on:   FR-127; FR-136
+Volatility:   open-question — the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; which
+              features establish a position, and so which marking is the
+              position's own, is owed with the OSM-derived feature tables
+              `SPECIFICATION.md § What establishes a stopping position` names;
+              the reading is `DECISIONS.md § RD-074`'s
+Risk:         Built as a refusal of service alone, a reserve candidate
+              behind a private gate is shown to a user who has just rejected a
+              zone, accepted, and silently dropped from the plan: the Owner's
+              "never offered" is broken in the one place the user sees it, and
+              the user loses the zone they took in its place. Built over the
+              position's own feature as well, a customers-only car park the
+              cited section keeps reachable disappears from review with the
+              gated staff car park it cannot be told apart from.
+Rationale:    The Owner keeps "Stops the app picks itself (zones) behind
+              private roads" never offered, since "the app can just pick
+              another zone" (`DECISIONS.md § RD-069`). FR-127's first
+              criterion and FR-136's refuse to serve such a position, which
+              is not refusing to offer it, and
+              `SPECIFICATION.md § What establishes a stopping position` gives
+              an excluded candidate "no presentation, no reserve, no second
+              look" (`DECISIONS.md § RD-074`). The two are layers: this record
+              keeps the position out of the review, and FR-127 and FR-136
+              keep it out of the plan should it reach the review regardless.
+              The same section sends a restriction recorded on the stopping
+              feature itself to uncertain and not to exclusion, so that "the
+              user may still place the stop there" and a customers-only car
+              park stays reachable; a marking the position's own feature
+              carries is therefore not one it lies behind, which the second
+              criterion tests. Such a position stays the system's when
+              accepted (FR-136) and is served only where the user places the
+              stop there (FR-139); that its stated reason names the
+              restriction is owed to the review batch with the uncertain
+              bucket's other reasons. FR-128 has the ways of an area marked
+              only on its enclosing feature read as marked here. A position
+              that a connection avoiding every marking reaches, but that a
+              journey could join only by a leg FR-129's second criterion
+              refuses, lies behind nothing and is outside this record; whether
+              the review offers it is owed to `Review and replacement`. Stated
+              over a stopping position and not over a zone, because a zone
+              with a second position that nothing so marked separates from the
+              road may be offered from that one.
+Resolved-by:  #276
 ```
