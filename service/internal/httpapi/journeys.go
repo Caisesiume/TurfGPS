@@ -248,7 +248,7 @@ func encodeJourney(j planner.Journey) journeyResponse {
 	out := journeyResponse{Locations: encodePoints(j.Locations), Legs: make([]wireLeg, len(j.Legs))}
 
 	for i, leg := range j.Legs {
-		out.Legs[i] = wireLeg{Shape: encodePoints(leg.Shape), Warned: false} // RED RUN AC1
+		out.Legs[i] = wireLeg{Shape: encodePoints(leg.Shape), Warned: leg.Warned}
 
 		for _, m := range leg.Marked {
 			w := wireMarked{Kind: m.Kind, OSMType: m.OSMType, OSMID: m.OSMID, From: m.From, To: m.To}
