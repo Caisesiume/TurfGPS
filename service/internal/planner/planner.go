@@ -1,6 +1,6 @@
 // Package planner plans a journey from an origin to a destination, through any
-// intermediate destinations the user entered, in the order entered — `FR-001`,
-// `FR-002`, `FR-003`.
+// intermediate destinations the user entered, in the order entered, none of them
+// dropped or replaced — `FR-001`, `FR-002`, `FR-003`, `FR-004`.
 //
 // IT DECLARES THE PORT AND HOLDS NO ADAPTER. Routes come through
 // RoutingProvider, the routing half of the `RoutingProvider` port in
@@ -24,6 +24,16 @@
 // journey from the one the user has to make. Each leg is routed between one
 // required location and the next, in the order entered, and nothing here
 // compares orders.
+//
+// THE ENTERED WAYPOINTS ARE NEVER DROPPED OR REPLACED EITHER (`FR-004`, #3). A
+// waypoint that makes the journey costlier is still visited, and a nearby
+// location that would score better is never visited in its place. Every journey
+// alternative leaves Plan through requireEnteredWaypoints, which refuses one
+// whose mandatory-waypoint set is not the set entered — compared as sets, so a
+// substitute added beside an entered waypoint is refused as well. Plan builds
+// its one alternative from the request and cannot fail the check today; the
+// check is there for whatever later produces several, each of which must pass
+// it on the way out.
 //
 // A RETURN TO THE ORIGIN NEEDS A *THERE* TO DRIVE OUT TO (`FR-012`, #5). A
 // request whose destination is its origin is refused unless it names an
@@ -471,7 +481,9 @@ func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data 
 // journey is planned and the error is ErrNoZoneCopy; see requireZoneCopy. A
 // journey the access markings cannot vouch for is refused with an error
 // wrapping ErrAccessUnchecked or ErrExtractMismatch, and one with a leg
-// crossing a marking with a *CrossingError.
+// crossing a marking with a *CrossingError. A journey whose mandatory
+// waypoints are not the ones entered is never returned, and the error wraps
+// ErrWaypointsNotPreserved.
 func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 	locations := make([]Point, 0, len(req.Intermediates)+2)
 	locations = append(locations, req.Origin)
@@ -521,7 +533,15 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 		return Journey{}, fmt.Errorf("%w: the extract changed while the journey was planned", ErrExtractMismatch)
 	}
 
-	return Journey{Locations: locations, Legs: legs}, nil
+	journey := Journey{Locations: locations, Legs: legs}
+
+	// The one alternative Plan produces today is held to `FR-004` here, where
+	// every alternative leaves the planner; see requireEnteredWaypoints.
+	if err := requireEnteredWaypoints(req, []Journey{journey}); err != nil {
+		return Journey{}, err
+	}
+
+	return journey, nil
 }
 
 // checkedLeg routes one leg and checks it against the access markings. It is
