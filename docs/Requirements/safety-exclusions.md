@@ -1379,10 +1379,12 @@ Statement:    Where every drivable connection between two locations the user
               barrier or drives along that part, and no more times than that
               leg does, or where that part is one not itself so marked within
               a parking area establishing a stop between them, driven on a leg
-              to or from that stop, and a car turns directly, past no such
-              barrier, onto a part not itself so marked within that parking
-              area from a part that warned leg drives along and that is so
-              marked or that a car reaches only across such a way or barrier.
+              to or from that stop, that is either one onto which a car turns
+              directly, past no such barrier, from a part that warned leg
+              drives along and that is so marked or that a car reaches only
+              across such a way or barrier, or one that a car reaches, along
+              parts not themselves so marked within that parking area and past
+              no such barrier, from a part within it so turned onto.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -1407,7 +1409,13 @@ Verification: test — against routing data built from a test extract, a leg
               that leg drives before a marked gate of its own, and separately
               where the second meets that private road only along a marked
               part or past a marked barrier of its own, the journey includes
-              no stop in the second; with one stop
+              no stop in the second; with stops the system chose in the first
+              on both sides of one in a third parking area beyond a marked
+              gate of the third's own that stands within its outline, where a
+              car turns directly from that private road onto an unmarked part
+              within the third before that gate and an unmarked link joins
+              the third's ways beyond the gate to the ways within the first,
+              the journey includes no stop beyond that gate; with one stop
               the system chose in a parking area drawn within a larger one
               that meets that private road where the smaller does not, the
               stop is reached by warned legs along the unmarked ways within
@@ -1451,22 +1459,28 @@ Acceptance:   given two locations the user entered — each the journey's
               or barrier, that the warned leg the system would produce joining
               the two were no stop between them does not pass or drive along,
               or more times than it does, other than a part not itself so
-              marked within a parking area establishing the stop where a car
-              turns directly, past no such barrier, onto a part not itself so
-              marked within that parking area from a part that warned leg
-              drives along and that is so marked or that a car reaches only
-              across such a way or barrier — a parking area behind a second
-              gate off that leg's private road; one beside a single unsplit
-              way past the location the user entered that the warned leg
-              reaches along it, beyond a gate standing on that way; of two
-              connections that cross markings alike, one beside the connection
-              that warned leg does not take; or one that a car reaches from
-              the part of the private road that warned leg drives only through
-              the ways within another parking area beside it, though it meets,
-              past a marked barrier or along a marked part of its own, that
-              private road or a public road that warned leg drives — when the
-              journey is planned, then that leg is not produced, warned or
-              not, and the journey includes no stop there
+              marked within a parking area establishing the stop that is
+              either one onto which a car turns directly, past no such
+              barrier, from a part that warned leg drives along and that is so
+              marked or that a car reaches only across such a way or barrier,
+              or one that a car reaches, along parts not themselves so marked
+              within that parking area and past no such barrier, from a part
+              within it so turned onto — a parking area behind a second gate
+              off that leg's private road; one beside a single unsplit way
+              past the location the user entered that the warned leg reaches
+              along it, beyond a gate standing on that way; of two connections
+              that cross markings alike, one beside the connection that warned
+              leg does not take; one that a car reaches from the part of the
+              private road that warned leg drives only through the ways within
+              another parking area beside it, though it meets, past a marked
+              barrier or along a marked part of its own, that private road or
+              a public road that warned leg drives; or a parking area's ways
+              beyond a marked gate of its own that stands within its outline,
+              though a car turns directly from that private road onto a part
+              within it before that gate, and an unmarked link joins those
+              ways to the ways within another parking area beside that road —
+              when the journey is planned, then that leg is not produced,
+              warned or not, and the journey includes no stop there
               given stopping positions the system chose between two locations
               the user entered, every drivable connection between which runs
               along such a way or passes such a barrier beyond the run FR-126
@@ -1477,11 +1491,13 @@ Acceptance:   given two locations the user entered — each the journey's
               joining the two were no stop between them passes or drives along
               it, and no more times than it does, or along a part not itself
               so marked within a parking area establishing a stop, on the legs
-              to and from that stop, where a car turns directly, past no such
-              barrier, onto a part not itself so marked within that parking
-              area from a part that warned leg drives along and that is so
-              marked or that a car reaches only across such a way or barrier —
-              a parking area beside the part of the private road that leg
+              to and from that stop, that is either one onto which a car turns
+              directly, past no such barrier, from a part that warned leg
+              drives along and that is so marked or that a car reaches only
+              across such a way or barrier, or one that a car reaches, along
+              parts not themselves so marked within that parking area and past
+              no such barrier, from a part within it so turned onto — a
+              parking area beside the part of the private road that leg
               drives, or one on a public road beyond the gate it passes — when
               the journey is planned, then each driving leg between the two
               locations that runs along such a way or passes such a barrier is
@@ -1493,8 +1509,9 @@ Acceptance:   given two locations the user entered — each the journey's
               one such stop behind the gate and one outside it passes the gate
               no more times than that warned leg passes it, and one holding
               stops in a parking area beside the part of the private road that
-              leg drives holds none in a parking area that a car reaches from
-              that road only through the ways within the first
+              leg drives holds none in a parking area, nor beyond a marked
+              gate within one, that a car reaches from that road past no such
+              barrier only through the ways within the first
               given two locations the user entered that one driving leg
               joins, between which a drivable connection avoiding every such
               way and barrier beyond FR-126's run exists, when the journey is
@@ -1511,8 +1528,10 @@ Volatility:   open-question — the markings are FR-125's, read as
               `DECISIONS.md § RD-079`, whose "no detours onto other private
               roads" the statement's bound reads, measured as
               `DECISIONS.md § RD-080` decides, its parking-area exception
-              narrowed by `DECISIONS.md § RD-081` and written as what the legs
-              may use by `DECISIONS.md § RD-082`; the exception in
+              narrowed by `DECISIONS.md § RD-081`, written as what the legs
+              may use by `DECISIONS.md § RD-082` and its parking area's parts
+              made those a car reaches from where it meets the stretch by
+              `DECISIONS.md § RD-083`; the exception in
               `SPECIFICATION.md § Enforceable exclusions` is the amendment PR
               #274 drafts for the Owner's approval at merge
 Risk:         Read wider than the warned leg, to every stop behind the marking
@@ -1535,6 +1554,13 @@ Risk:         Read wider than the warned leg, to every stop behind the marking
               stretch past a marked entrance of its own included, the planner
               sends the driver through a car park beside the stretch into a
               gated staff car park beyond it, for a zone it picked.
+              Admitting every unmarked part within a parking area that meets
+              the stretch, and not only those a car reaches within it, past no
+              marked barrier, from where it meets it, a staff car park whose
+              own gate stands inside its outline meets the stretch by the
+              metres before that gate, and the planner sends the driver
+              through a visitor car park beside the stretch and an open link
+              into it, for a zone it picked.
               Read as both ends the user's, a parking area beside the private
               stretch the user confirmed cannot serve the zones along it,
               which the Owner ruled it may. Built as the refusal it replaces,
@@ -1567,9 +1593,11 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               passes and the parts of ways it drives that are marked or that a
               car reaches only across a marking, each no more times than it
               does, and the unmarked parts within a parking area establishing
-              a stop that meets the stretch the user accepted, on the legs to
-              and from that stop (`DECISIONS.md § RD-080`,
-              `DECISIONS.md § RD-081`); nothing else behind a marking.
+              a stop that a car reaches within it, past no marked barrier,
+              from where it meets the stretch the user accepted, on the legs
+              to and from that stop (`DECISIONS.md § RD-080`,
+              `DECISIONS.md § RD-081`, `DECISIONS.md § RD-083`); nothing else
+              behind a marking.
               Reaching a part only across a marking is what a gate mapped on
               an unmarked road needs: the ways past it carry no marking, and
               without it every stop past the same gate rides on the user's
@@ -1590,6 +1618,18 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               another deeper in the site, whatever the second touches
               elsewhere, nor across a parking area on the way to some other
               stop, which is driving for that other stop and not for its own.
+              Within a parking area that meets the stretch, the list admits
+              the part a car turns onto from the stretch and those a car
+              reaches from that part along unmarked parts within the parking
+              area, past no marked barrier (`DECISIONS.md § RD-083`): a set
+              reached from where it meets, not every part of a parking area
+              that meets, so a gate the map data places inside the outline
+              rather than on it closes the set where it stands, and the parts
+              beyond the gate are not admitted however an open link joins
+              them to another parking area. One
+              parking area drawn around two car parks with no marked barrier
+              or marked part between them is one parking area, nothing in the
+              map data separating what the driver passes.
               Where a stop lies within more than one parking area, nested or
               overlapping, each establishes it and each is tested on its own,
               so the driver stays within one that meets the stretch
@@ -1899,8 +1939,9 @@ Volatility:   open-question — the markings are FR-125's, read as
               or placed requires, and from no stop off it behind a marking, is
               the Owner's in `DECISIONS.md § RD-079`, bounded as FR-129
               states and measured as `DECISIONS.md § RD-080`,
-              `DECISIONS.md § RD-081` and `DECISIONS.md § RD-082` decide; that
-              a location reached along FR-126's run keeps its zones is the
+              `DECISIONS.md § RD-081`, `DECISIONS.md § RD-082` and
+              `DECISIONS.md § RD-083` decide; that a location reached along
+              FR-126's run keeps its zones is the
               Owner's in `DECISIONS.md § RD-072`
 Risk:         Built on the exclusion this record replaced, a user whose home
               or placed stop lies behind a private gate is stripped of the
@@ -1940,9 +1981,11 @@ Rationale:    The Owner ruled that the app never on its own suggests zones and
               drives, no more times than it does; and on the legs to and from
               a stop, the unmarked parts within a parking area establishing it
               onto which a car turns directly, past no marked barrier, from a
-              part that leg drives that is marked or lies behind a marking
+              part that leg drives that is marked or lies behind a marking,
+              and those a car reaches from such a part along unmarked parts
+              within that parking area, past no marked barrier
               (`DECISIONS.md § RD-080`, `DECISIONS.md § RD-081`,
-              `DECISIONS.md § RD-082`).
+              `DECISIONS.md § RD-082`, `DECISIONS.md § RD-083`).
               The second criterion tests a stop beside the private stretch,
               and the third the detour, a second gate or a stop deeper behind
               the first, and the journey that needs no warned leg at all,
@@ -2037,8 +2080,8 @@ Volatility:   open-question — the markings are FR-125's, read as
               `DECISIONS.md § RD-075`; that a position a warned leg FR-129
               admits reaches is offered is the Owner's in
               `DECISIONS.md § RD-079`, bounded as FR-129 states and measured
-              as `DECISIONS.md § RD-080`, `DECISIONS.md § RD-081` and
-              `DECISIONS.md § RD-082` decide
+              as `DECISIONS.md § RD-080`, `DECISIONS.md § RD-081`,
+              `DECISIONS.md § RD-082` and `DECISIONS.md § RD-083` decide
 Risk:         Built as a refusal of service alone, a reserve candidate
               behind a private gate is shown to a user who has just rejected a
               zone, accepted, and silently dropped from the plan: the Owner's

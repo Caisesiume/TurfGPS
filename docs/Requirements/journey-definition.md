@@ -124,7 +124,7 @@ Acceptance:   given an entered mandatory waypoint that raises the journey's
               journey alternatives, then each alternative's mandatory-waypoint
               set compares equal to the entered set, the nearby location
               having not been substituted for it
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   FR-002
 Risk:         A plan that quietly drops or relocates a required destination is
               not the journey the user has to make, and the product's whole

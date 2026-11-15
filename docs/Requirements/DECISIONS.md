@@ -3890,3 +3890,68 @@ Affects:        FR-129: statement, second and third criteria,
                 `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
                 cycle-8 criteria, appended.
 ```
+
+## RD-083 — Which unmarked parts within a parking area that meets the stretch may the legs use?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `6ffb2b8`
+                (`#issuecomment-6900595542`) found, as S8, that RD-082's
+                entry (ii) admits every unmarked part within a parking area
+                that meets the stretch, where meeting asks only that a car
+                turn, past no marked barrier, onto some unmarked part within
+                it. The scenario: a staff car park Y whose outline reaches the
+                stretch, its entrance way carrying a gate node marked private
+                a few metres inside the outline, so the metres before the gate
+                are an unmarked part within Y that a car turns onto directly;
+                Y's aisles beyond the gate join a visitor car park X's aisles
+                through an unmarked link. With stops the system chose in X on
+                both sides of one in Y, the route runs from the stretch
+                through X and the link into Y and back, passes no barrier,
+                drives only unmarked parts within X or Y, and FR-129 admits
+                it. As N25, a single parking area drawn around both car parks,
+                with no marking between them, or drawn over a whole site's
+                unmarked roads, is still admitted whole. Which parts within a
+                parking area that meets the stretch may the legs use?
+Interpretation: **The set a car reaches from where it meets, and nothing
+                else.** Under RD-082's (ii), the unmarked parts within a
+                parking area establishing a stop that the legs to and from
+                that stop may use are exactly the part onto which a car turns
+                directly, past no marked barrier, from a part the warned leg
+                with no stop between the two locations drives that is marked
+                or that a car reaches only across a marking, and every part a
+                car reaches from such a part along unmarked parts within that
+                parking area, past no marked barrier. A part within the
+                parking area that a car reaches from there only past a marked
+                barrier, or only along a marked part, or only through parts
+                outside the parking area, is not admitted under (ii), so a
+                gate the map data places inside the outline rather than on it
+                closes the set where it stands, and an open link to another
+                parking area reopens nothing. Each parking area establishing a stop is
+                still tested on its own (RD-082's N23). N25 is recorded, not
+                changed: one parking area drawn around two car parks with no
+                marked barrier and no marked part between them is one parking
+                area, and one drawn over a site's unmarked roads admits those
+                roads up to the first marked barrier, because nothing in the
+                map data separates what the driver passes; the safety verdict
+                judges it non-blocking. This supersedes RD-082's (ii) in its
+                words "and that parking area meets the stretch" as the whole
+                condition on the part, and leaves the rest of RD-082, RD-081's
+                legs-to-and-from rule and N22, and RD-080's count standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: "even if the stop for them is on the private stretch
+                you already accepted" serves the part of a parking area the
+                driver enters from that stretch, and "no detours onto other
+                private roads" refuses the parts of it that lie past a marked
+                barrier of its own, which a set measured from the meeting
+                excludes wherever the barrier stands. N25 rests on rung 2:
+                `Architecture.md § D5` builds the data plane from an OSM
+                extract, which holds nothing that divides one mapped parking
+                area into two where no marking stands, so a division nothing
+                maps cannot be required. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
+                cycle-9 criteria, appended, and AC15(b) is read with them.
+```
