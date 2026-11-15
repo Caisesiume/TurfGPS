@@ -171,7 +171,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-134` — Confirm no journey holding a warned leg until the user confirms its warning | Drivable legs and journey cost | #273 |
 | `FR-135` — Owner judgement — a warned route's private stretches and warning are unmistakable | Drivable legs and journey cost | #273 |
 | `FR-136` — Hold a stopping position the system offered as the system's once the user accepts it | Drivable legs and journey cost | #275 |
-| `FR-137` — Offer no zone taken from a location the user entered that only a warned leg reaches | Drivable legs and journey cost | #275 |
+| `FR-137` — Offer no zone taken from a stop behind a marking that no warned leg reaches | Drivable legs and journey cost | #275 |
 | `FR-138` — Offer no stopping position the system chose behind a private or access-restricted way or barrier | Drivable legs and journey cost | #276 |
 | `FR-139` — Record a stopping position the user places on the map as one the user chose | The stopping position, and the roads a stop may be proposed on | #277, #278 |
 | `FR-140` — Serve no stopping position the system chose on a parking area marked private or access-restricted | Drivable legs and journey cost | #276 |

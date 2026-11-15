@@ -3596,3 +3596,103 @@ Rung:           1, explicit specification:
 Affects:        FR-140, filed; FR-138 and FR-136: `Rationale`; #276 gains AC7,
                 appended, and `Resolves:` gains FR-140; #278: notes.
 ```
+
+## RD-079 — Are zones the system chose taken along a warned leg a location the user entered requires, a stop of its own on that leg included?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` on S4 of the safety verdict at PR #274's
+                head `ce90ea1` (`#issuecomment-6897526469`), against the
+                lead's recommendation of typed locations only
+                (`#issuecomment-6897549965`), relayed verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897625223.
+                The answer, verbatim: "To put it clearly. The app never
+                automatically suggest zones and routes along private roads,
+                but if you place a stop or so that requires a private road to
+                get to the placed out stop, then the route is okay to have
+                zones along it (but we will still show a warning about the
+                fact the route requires going on private roads." The follow-up
+                clarification, verbatim, chose the option "Any stop on that
+                route", whose description read: "Zones along the warned route
+                may be added even if the stop for them is on the private
+                stretch you already accepted. Still no detours onto other
+                private roads." This entry records a ruling made elsewhere. It
+                supersedes RD-070's "No", RD-072's "one reachable solely by a
+                warned leg loses them", RD-076's bound to a barrier standing
+                on the way the location lies on, RD-068's first edge where a
+                stop the system chose lies within the warned leg's bound, and
+                RD-074's "never offered" and its owed case there, and leaves
+                the rest of each standing.
+Question:       S4: FR-137 kept the zones of a location the user entered
+                behind a gate standing on its own way and took them from one
+                behind a gate on another, and RD-076 widened the first to
+                every location the user entered on the premise that the system
+                cannot tell a home from another such location, which is false
+                for a stop the user placed. The scenario: a stop placed past a
+                gate marked private on an unsplit service road, one warned leg
+                confirmed, and the planner's own ranked zones hung on that
+                stop. Are zones the system chose taken along a warned leg that
+                a location the user entered or placed requires, and how far
+                does that reach?
+Interpretation: **Yes, along the warned leg and no further, and the warning
+                stays.** Where every connection between two locations the user
+                entered, with none between them, crosses a marking beyond
+                FR-126's run, the system may take zones it chose along the
+                warned leg joining them: from a stop at either location,
+                whoever entered it and however, and from a stopping position
+                it chose along that leg, the private stretch the user confirms
+                included. The legs between the two locations then together
+                cross no marking the warned leg directly joining them would
+                not, and run along no way a car reaches only across a marking
+                other than the ways that leg runs along and the ways within a
+                parking area establishing a stop: a stop behind a second gate,
+                or further into a gated site than the warned leg goes, is a
+                detour onto another private road and is refused. Every leg
+                between them that crosses a marking is a warned leg,
+                identified, shown, warned of and confirmed as FR-131 to FR-134
+                oblige. Off a warned leg nothing changes: in a journey whose
+                locations the user entered need no warned leg, no zone and no
+                stop the system chose behind a marking is proposed, and the
+                run FR-126 admits keeps its zones (RD-072) and admits a stop
+                the system chose only on a warned leg. A stop the system
+                offered stays the system's when accepted (RD-069), so an
+                acceptance never causes a warned leg of its own. A public stop
+                just past an origin behind a gate, which RD-074 left owed to
+                `Review and replacement`, is now joined by warned legs within
+                the bound. FR-129 states the bound once; FR-137 is rewritten
+                to it; FR-125, FR-126, FR-127, FR-128, FR-136 and FR-138
+                except a stop a warned leg FR-129 admits reaches.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion and because PR #274 stayed blocked after its third
+                cycle (`team-protocol § Escalation and human judgement`).
+                Three readings are the team's. That "the warned route" is the
+                warned leg directly joining the two locations, whose markings
+                bound the legs a stop divides it into, rests on rung 4, FR-129
+                and FR-130 already fixing which connection a warned leg takes.
+                That "no detours onto other private roads" also bars a way
+                behind a marking that the leg does not run along, though the
+                map data marks only the gate before it, rests on rung 7: a
+                gate mapped on an unmarked road is the commonest mapping S4
+                names, and without the bound every stop past the same gate
+                would ride on one confirmation. That a stop on FR-126's run is
+                admitted on a warned leg and on no other rests on rung 4,
+                FR-131 naming the run as part of the warned leg the user
+                confirms, and on rung 7, an unwarned run carrying no warning
+                to keep. `SPECIFICATION.md § Enforceable exclusions`, as PR
+                #274 drafts its last bullet, reads true unchanged: the route
+                between the two locations crosses the area only as a warned
+                route, and a stop along it adds no crossing.
+Affects:        FR-137: title, statement, criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-129: statement, second
+                criterion and a new third, `Verification`, `Volatility`,
+                `Risk`, `Rationale`. FR-138: statement, first criterion and a
+                new fourth, `Verification`, `Depends-on`, `Volatility`,
+                `Risk`, `Rationale`. FR-126: statement, second criterion,
+                `Verification`, `Depends-on`, `Volatility`, `Rationale`.
+                FR-125, FR-127, FR-128 and FR-136: one criterion each,
+                `Verification`, and `Rationale` or `Volatility`. The term
+                register's `warned leg`. #271, #275, #276, #256 and #253 gain
+                cycle-5 criteria or readings, appended; #275 withdraws AC3,
+                AC6, AC7 and AC10's second case.
+```

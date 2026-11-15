@@ -312,7 +312,7 @@ Thirteen records at first filing, which makes this the corpus's second-largest c
 | `FR-130` | Keep every avoidable marking off a warned leg | Safety exclusions | MUST | to-build | test | #271 |
 | `FR-134` | Confirm no journey holding a warned leg until the user confirms its warning | Safety exclusions | MUST | to-build | test | #273 |
 | `FR-136` | Hold a stopping position the system offered as the system's once the user accepts it | Safety exclusions | MUST | to-build | test | #275 |
-| `FR-137` | Offer no zone taken from a location the user entered that only a warned leg reaches | Safety exclusions | MUST | to-build | test | #275 |
+| `FR-137` | Offer no zone taken from a stop behind a marking that no warned leg reaches | Safety exclusions | MUST | to-build | test | #275 |
 | `FR-138` | Offer no stopping position the system chose behind a private or access-restricted way or barrier | Safety exclusions | MUST | to-build | test | #276 |
 | `FR-140` | Serve no stopping position the system chose on a parking area marked private or access-restricted | Safety exclusions | MUST | to-build | test | #276 |
 
