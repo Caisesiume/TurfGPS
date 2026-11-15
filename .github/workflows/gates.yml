@@ -384,7 +384,7 @@ jobs:
             -e ACT_FILE="$TURFGPS_TEST_ACT_FILE" -e TILE_STAMP="$TURFGPS_TEST_TILE_STAMP" "$VALHALLA_IMAGE" sh -c '
             valhalla_build_config --mjolnir-tile-dir /data/tiles --mjolnir-tile-extract /data/tiles.tar \
               --mjolnir-traffic-extract "" --mjolnir-admin /data/admins.sqlite --mjolnir-timezone /data/tz.sqlite \
-              --service-limits-status-allow-verbose true \
+              --mjolnir-dataset-id "$TILE_STAMP" --service-limits-status-allow-verbose true \
               > /data/valhalla.json &&
             valhalla_build_tiles -c /data/valhalla.json "$ACT_FILE"'
           built=$((SECONDS - start))
