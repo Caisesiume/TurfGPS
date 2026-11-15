@@ -2,7 +2,9 @@
 // AccessMarkings port (#255): it reads which extract the access-marking tables
 // were loaded from, and which markings a car leg's edges cross, from the
 // tables of `Architecture.md § The access-marking tables`
-// (`migrations/0003_access_markings.sql`).
+// (`migrations/0003_access_markings.sql`), and measures the run at a location
+// the user entered against the least that joins it to an unmarked way (#248,
+// `run.go`, on `migrations/0004_access_run.sql`).
 //
 // It reads and never writes. The tables are written by the loader,
 // `internal/accessload`, which nothing on the request path imports, for the

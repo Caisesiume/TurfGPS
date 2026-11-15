@@ -40,6 +40,15 @@ tables are filled by `turfgps load-access-markings` from the extract the tiles
 are built from, never by a migration; `access_area` stays empty until #253's
 loader takes areas. A change to the rule is a change to a safety rule.
 
+`0004_access_run.sql` creates the two statements the run at a location the user
+entered is measured by (#248, `FR-126`): `access_run_network`, every marked way
+reachable from the location's way over marked ways sharing a node, with each
+segment's length and its exits, and `access_run_points`, where a leg's points
+lie on the ways the tables hold. `internal/accessstore` takes the least run and
+the leg's own run from those numbers. It creates no table and alters nothing
+0001 to 0003 created; a change to what the network takes is a change to the
+bound a marked leg is held to.
+
 ## Applying one
 
 **No agent applies a migration.** Application is a deliberate act by an
@@ -56,6 +65,8 @@ psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0002_zone_feed.verify.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0003_access_markings.sql
 psql -v ON_ERROR_STOP=1 -f migrations/0003_access_markings.verify.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0004_access_run.sql
+psql -v ON_ERROR_STOP=1 -f migrations/0004_access_run.verify.sql
 ```
 
 The verify script runs second and is not optional. `CREATE INDEX` succeeding
@@ -66,7 +77,7 @@ existed.
 ## State of proof
 
 **Executed on throwaway instances only.** CI's `migrations` job applies 0001 to
-0003 to an ephemeral PostGIS on every pull request, runs each verify file part
+0004 to an ephemeral PostGIS on every pull request, runs each verify file part
 by part and each rollback twice, and checks for residue. Nothing here has been applied to
 a database that outlives that job. CI's `valhalla` job also applies them to a
 PostGIS of its own and loads the committed test extract into 0003's tables
@@ -75,10 +86,13 @@ PostGIS of its own and loads the committed test extract into 0003's tables
 **0003's EXPLAIN evidence** is part F of its verify file: the route check over a
 synthetic load of 200,000 ways, which fails on a sequential scan of any table
 the check reads, on a plan naming no one of the four indexes it uses, and on a
-plan in which the check's function was not inlined. `access_way_exit_pkey`,
-`access_way_nodes_gin` and `access_way_geom_gist` serve the run and the
-stopping-position checks of #248 and #256, and stay unproven until those
-stories' queries are EXPLAINed.
+plan in which the check's function was not inlined. **0004's** is part C of its
+verify file: the run's network and points over a synthetic load of 200,000
+ways in chains, which fails on a sequential scan of `access_way` or
+`access_way_exit`, on a plan naming none of `access_way_pkey`,
+`access_way_nodes_gin` and `access_way_exit_pkey`, and on a function not
+inlined. `access_way_geom_gist` serves the stopping-position checks of #256
+and stays unproven until that story's queries are EXPLAINed.
 
 **Two conditions in `Architecture.md § What is unproven` bear on this
 migration.** Item 1 asks for `EXPLAIN (ANALYZE, BUFFERS)` against a loaded copy

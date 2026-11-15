@@ -4,7 +4,8 @@
 builds Valhalla's tiles from, so that the Valhalla adapter's integration tests
 (`../valhalla_integration_test.go`) run against a real engine, and loads into
 the access-marking tables beside them, so that the access-marking check's
-(`../../accessstore/integration_test.go`, #255) run against both. It is committed
+(`../../accessstore/integration_test.go`, #255) and the exclusion's
+(`../../accessstore/exclusion_integration_test.go`, #248) run against both. It is committed
 by the Owner's decision on #6 (`#issuecomment-6334699894`, 22 October 2026). The
 full extract of `Architecture.md § D5` is a different thing, and arrives with the
 server (`docs/adr/ADR-0006-deployment-topology.md`).
@@ -19,8 +20,8 @@ This file is a derivative database of OpenStreetMap. It is licensed under the
 ODbL, and **not** under this repository's `LICENSE`, which covers the code. Anything
 derived from it is subject to the ODbL's share-alike terms.
 
-**Not everything in it is from OpenStreetMap.** Nine ways and sixteen nodes are
-synthetic, written by hand for #255's tests: every object with an id of
+**Not everything in it is from OpenStreetMap.** 201 ways and 245 nodes are
+synthetic, written for #255's and #248's tests: every object with an id of
 9,000,000,000,000,000,000 or above. *The synthetic cases*, below, says which and
 why.
 
@@ -28,9 +29,9 @@ why.
 
 | | |
 |---|---|
-| Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat |
+| Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 57.00–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 198,078 bytes; SHA-256 `35c74fb1aad95398138d731ecabf184243ffd06328b9b3e43529407896ab23f8` — 13,557 nodes, 3,886 ways, 57 relations |
+| Size | 199,930 bytes; SHA-256 `6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113` — 13,786 nodes, 4,078 ways, 57 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z, each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; both beside this file. The synthetic cases are `access-marking-synthetic.osm`, beside it too |
@@ -42,6 +43,10 @@ names. The box and the access-marking cases without the synthetic ones were
 197,799 bytes, SHA-256
 `ab8f4dbac9e0468dbb01458c2f3c770c9f67984b40b3a652500bbf5a889fe728`; adding the
 synthetic cases changed none of that file's objects, compared object by object.
+With #255's synthetic cases and before #248's, the file was 198,078 bytes,
+SHA-256 `35c74fb1aad95398138d731ecabf184243ffd06328b9b3e43529407896ab23f8`;
+adding #248's changed none of its 17,500 objects and added 421, compared object
+by object (PR #270).
 
 ## The access-marking cases
 
@@ -79,7 +84,7 @@ through the engine:
   take one of these, and no future regeneration can overwrite one.
 - **Every synthetic way carries** `note=synthetic, not from OpenStreetMap: TurfGPS #255 test case`,
   and the tests fail unless the way they measure carries it.
-- **They lie in the Kattegat**, 57.00–57.03 N, 11.700–11.709 E, more than 70 km
+- **They lie in the Kattegat**, 57.00–57.25 N, 11.700–11.712 E, more than 50 km
   from every object from OpenStreetMap in the file, and share no node with one.
   The engine's location search gives up 35 km out, so a point near them cannot
   snap to a real road, nor a point on a real road to them. No route between
@@ -100,6 +105,62 @@ through the engine:
 The nearest real instances of the same class, and why they were not used, are
 in PR #261: there is none for AC9's, and AC6's and AC7's would have spelled the
 criteria's tags differently.
+
+### #248's cases
+
+#248's criteria name a **road layout** as well as a tag set: a marking whose
+quickest connection has a way round it, a home on a private road, a car park
+of marked ways, a private road with a second way out through an estate, a gate
+beyond the run. The extract held no instance of the layouts, and a real one
+found by search would bring a neighbourhood of roads whose quickest
+connection nothing here controls, so each is a small road network of its own.
+They were written by a script for PR #270, and its output, the `#248` block of
+`access-marking-synthetic.osm`, is what is committed and what a regeneration
+keeps:
+
+- **Case c lies along 57.050 + 0.006c ° N**, 11.700–11.712 E, 0.002° or more
+  from the next; its node ids are 9×10¹⁸ + 10,000 + 100c + k and its way ids
+  9×10¹⁸ + 1,000 + 20c + k. Every way carries
+  `note=synthetic, not from OpenStreetMap: TurfGPS #248 test case`.
+- **A transit case** (0–28) is a road of three `highway=residential` ways east,
+  nodes at 11.700, 11.703, 11.7045, 11.706 and 11.709 E: an unmarked way, the
+  case's way, an unmarked way. The case's tags are on the middle way, or on
+  its middle node at 11.7045 E. Where the criterion needs a connection
+  avoiding the marking, three unmarked ways run round it 0.002° to the north.
+  Its ends are points at 11.7010 and 11.7080 E.
+
+| Case | Tags | Round it | Criterion |
+|---|---|---|---|
+| 0–6 | `access=` `private`, `destination`, `customers`, `delivery`, `permit`, `residents`, `restricted` | yes | AC1 (0), AC2 |
+| 7, 8 | `access=military`; `motor_vehicle=unknown` | yes | AC2 |
+| 9–11 | `motorcar=private`, `motor_vehicle=private`, `vehicle=private`, each with `access=yes` | yes | AC2 |
+| 12, 13 | node `barrier=lift_gate` `access=residents`; node `barrier=gate` `motor_vehicle=private` | yes | AC3 |
+| 14 | node `barrier=gate` `access=private` `motorcar=yes` | no | AC14 |
+| 15, 16 | `access=public`; `motor_vehicle=allowed` | no | AC15 |
+| 17 | `access=no` | yes | AC16 |
+| 18–20 | `access=private` `bicycle=yes` `foot=yes`; `motor_vehicle=private` `psv=yes` (a bus gate's); `motor_vehicle=destination` `motorcycle=yes` | yes | AC17 |
+| 21 | node `barrier=gate` `access=private` `bicycle=yes` `foot=yes` | yes | AC17 |
+| 22, 23 | only `motor_vehicle:backward=no`, drawn east; only `access:forward=private`, drawn west, so a leg east drives it backward | yes | AC18 |
+| 24, 25 | node `access=private`; node `motor_vehicle=destination`; neither with a `barrier` key | yes | AC19 |
+| 26, 27 | `motorcar=yes` `motor_vehicle:backward=no`, drawn east; `motor_vehicle=yes` `access:forward=private`, drawn west | yes | AC20 |
+| 28 | `access=private` `motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00)` | yes | AC22 |
+
+- **Case 29** (AC4): an unmarked road east, with a private road (`access=private`)
+  running 0.002° north from it at 11.703 E, a home at its middle, and a car park
+  of two `highway=service` ways marked `access=customers`, north from it at
+  11.706 E then east, a stop at 11.7066 E on the second.
+- **Case 30** (AC6): a home on private way A, 0.0008° south of the north road it
+  meets; A continues as private way B 0.002° further south to the south road,
+  on which the destination lies 0.0005° east of B's end; the two roads are
+  joined 0.009° east. The quickest leg from the home leaves by B.
+- **Cases 31 and 32** (AC12): a home on a private road north off an unmarked
+  road, on which a node `barrier=lift_gate` `access=residents` lies 0.004° east
+  of the junction, before the destination; case 31 has three unmarked ways
+  round the gate, 0.002° to the south, and case 32 none.
+
+Each test establishes its case from the file before measuring it, and asks the
+engine, with `ignore_access`, whether the quickest connection between the ends
+runs along the marking, so a regeneration that loses a case fails them.
 
 Only the street network is kept because it is all Valhalla builds a routing
 graph from; buildings, land use and the rest would add size and nothing a route
@@ -159,7 +220,9 @@ python -c "import osmium, sys; w = osmium.SimpleWriter(sys.argv[2]); [w.add(o) f
 Then fetch the access-marking cases the same way, from
 `access-marking-cases.overpassql`, into `access-marking-cases.osm`, and merge
 them and the synthetic cases into the box's PBF. pyosmium 4.3.2's merge sorts
-and de-duplicates, and gave the committed file byte for byte on two runs:
+and de-duplicates, and gave the committed file byte for byte on two runs (#248's
+cases were merged the same way into the file before them, which holds the box
+and #255's cases, with the same result on two runs):
 
 ```bash
 python -c "import osmium, sys; r = osmium.MergeInputReader(); [r.add_file(f) for f in sys.argv[1:-1]]; h = osmium.WriteHandler(sys.argv[-1]); r.apply(h); h.close()" \
