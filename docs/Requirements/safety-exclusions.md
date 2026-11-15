@@ -332,7 +332,7 @@ Rationale:    The cited section names this an enforcement constant whose
               misconfiguration behind correct behaviour. The second criterion
               is what keeps this record from hardening a proposed default into
               a fixed figure.
-Resolved-by:  —
+Resolved-by:  #84
 ```
 
 ## FR-070 — Require compatible levels and no barrier for direct road access
@@ -397,7 +397,7 @@ Rationale:    This is one of the exclusions under
               `SPECIFICATION.md § Enforceable exclusions`, which FR-089
               carries for both branches and this record does not — so it
               cannot be read as the whole test for the class.
-Resolved-by:  —
+Resolved-by:  #85
 ```
 
 ## FR-076 — Exclude an absent, disconnected, or implausibly steep access path
@@ -503,7 +503,7 @@ Rationale:    The cited section lists the conditions on which a candidate is
               walk is priced for it. The fourth criterion is the branch this
               record ever fires on, on FR-045's precedent — an excluded
               candidate nobody wanted needs no rule.
-Resolved-by:  —
+Resolved-by:  #95
 ```
 
 ## FR-077 — Let no zone's value admit an unsafe or infeasible access route
@@ -574,7 +574,7 @@ Rationale:    Both cited sections state the same precedence from opposite
               which is the one kind the corpus rejects. Its antecedent is
               FR-076's threshold precisely because that quantity does not move
               with the user's setting.
-Resolved-by:  —
+Resolved-by:  #96
 ```
 
 ## FR-089 — Propose no stop on a road the exclusions refuse
@@ -673,7 +673,7 @@ Rationale:    The obligation is on the stop and not on a class, because that
               than making it. The constant those attributes are compared
               against has one home and is never quoted here, and that it may
               not be configured upward is FR-090's.
-Resolved-by:  —
+Resolved-by:  #80
 ```
 
 ## FR-090 — Reject a maximum stopping speed above the permitted value
@@ -736,7 +736,7 @@ Rationale:    `CalculationSpecification.md § Conventions` names the maximum
               is deliberately absent from `Source`: it measures the
               consequence of the constant against the zone corpus and states
               outright that it is not a source for the constant itself.
-Resolved-by:  —
+Resolved-by:  #81
 ```
 
 ## FR-091 — Plan no journey while an owed enforcement constant is unconfigured
@@ -824,7 +824,7 @@ Rationale:    The cited section records these constants as required for the
               batch that owns it, and this record states what may not happen
               meanwhile. Neither value nor shape is quoted, since neither
               exists.
-Resolved-by:  —
+Resolved-by:  #97
 ```
 
 ## FR-125 — Route no driving leg through a private or access-restricted way or barrier

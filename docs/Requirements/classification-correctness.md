@@ -73,5 +73,5 @@ Rationale:    The look was run before the method was chosen and found nothing
               reaches a confident class is a prohibition on a behaviour and is
               FR-083's, standing to this record as FR-014 and FR-015 stand to
               FR-016.
-Resolved-by:  —
+Resolved-by:  #82
 ```

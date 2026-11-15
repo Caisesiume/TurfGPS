@@ -133,5 +133,5 @@ Rationale:    The obligation is the property, not the toolchain: a record
               independently of the service, which the deployment model in
               `DEPLOYMENT.md § What is deployed` would otherwise have had to
               reconstruct.
-Resolved-by:  #26
+Resolved-by:  #26, #224
 ```

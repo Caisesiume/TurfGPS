@@ -247,7 +247,7 @@ Rationale:    The cited section permits a straight-line measurement as an
               forbidding the fallback where it is the honest estimate; that a
               candidate priced by it may never hold a confident class is
               FR-083's.
-Resolved-by:  —
+Resolved-by:  #89
 ```
 
 ## FR-079 — Price a park-and-walk stop over the set of zones it serves
@@ -312,7 +312,7 @@ Rationale:    The cited section makes a stop serving several zones the common
               with no walking is returned with this batch rather than authored
               here. The order in which the zones are walked is method rather
               than outcome and is not authored.
-Resolved-by:  —
+Resolved-by:  #94
 ```
 
 ## FR-093 — Compute both halves of a stop against one resolved stopping position
@@ -402,5 +402,5 @@ Rationale:    The cited section chains the walk from the proposed stopping
               restates either cost model — what each half computes is FR-074's
               and FR-086's, and this record binds only that they agree about
               where the car stopped.
-Resolved-by:  —
+Resolved-by:  #105
 ```
