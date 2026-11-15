@@ -557,12 +557,28 @@ func newPlanner(lookup config.LookupFunc, store *pgxpool.Pool) (*planner.Planner
 		return nil, err
 	}
 
-	markings, err := accessstore.New(store, cfg.barrierTolerance())
-	if err != nil {
+	if _, err := accessstore.New(store, cfg.barrierTolerance()); err != nil {
 		return nil, err
 	}
 
-	return cfg.build(zones, markings)
+	return cfg.build(zones, unwiredAccessMarkings{})
+}
+
+// RED RUN — not for merge: #249 AC4 against the placeholder it replaces.
+var errAccessStoreUnwired = errors.New("the request surface holds no pool on the access-marking tables yet (#249)")
+
+type unwiredAccessMarkings struct{}
+
+func (unwiredAccessMarkings) ExtractSHA256(context.Context) (string, error) {
+	return "", errAccessStoreUnwired
+}
+
+func (unwiredAccessMarkings) Crossings(context.Context, []planner.Edge) ([]planner.Crossing, error) {
+	return nil, errAccessStoreUnwired
+}
+
+func (unwiredAccessMarkings) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
+	return planner.RunMeasure{}, errAccessStoreUnwired
 }
 
 // planning is the planner's configuration, read and checked before any store
