@@ -3818,3 +3818,75 @@ Affects:        FR-129: statement, second and third criteria, `Verification`,
                 `Volatility`, `Risk`, `Rationale`. FR-137: `Volatility`,
                 `Rationale`. #271 gains cycle-7 criteria, appended.
 ```
+
+## RD-082 — What may the legs between two locations the user entered use behind a marking, and which parking area establishes a stop?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `c0dc9d4`
+                (`#issuecomment-6898905785`) found, as S7, that RD-081's
+                test, "a part within that parking area meets a part that the
+                warned leg produced with no stop between them drives", is
+                wider than RD-081's own claim that a parking area reached only
+                through another's aisles meets no part that leg drives: that
+                leg also drives the public road up to the gate, so a staff car
+                park Y whose entrance, before its own marked gate, meets that
+                road "meets" the leg, and with stops in a visitor car park X
+                beside the stretch on both sides of a stop in Y the route runs
+                through X into Y, its aisles excepted; the same holds where
+                Y's own entrance from the stretch is marked. As N23, "the
+                parking area establishing that stop" assumes one, where the
+                map data may nest or overlap parking areas. As N24, FR-138's
+                `Volatility` omitted RD-081. The lead observed that S5, S6 and
+                S7 share a root: the bound is written as exceptions to a
+                count, and each exception leaks. What may the legs use, and
+                which parking area establishes a stop?
+Interpretation: **A list of what the legs may use behind a marking, and
+                nothing else.** Where a stopping position the system chose
+                divides the warned leg between two locations the user entered,
+                the driving legs between them together pass a barrier so
+                marked, or drive along a part of a way that is so marked or
+                that a car reaches only across such a way or barrier, only
+                where (i) the warned leg the system would produce joining the
+                two were no stop between them passes that barrier or drives
+                along that part, and no more times than it does; or (ii) the
+                part is not itself so marked, lies within a parking area
+                establishing a stop between them, is driven on a leg to or
+                from that stop, and that parking area meets the stretch: a car
+                turns directly, past no barrier so marked, onto a part within
+                it not itself so marked from a part that leg drives that is so
+                marked or that a car reaches only across a marking. Meeting a
+                public road that leg drives is not meeting the stretch, nor is
+                meeting it only along a marked part or past a marked barrier
+                of the parking area's own. Where a stop lies within more than
+                one parking area, nested or overlapping, each establishes it
+                and each is tested on its own, so a part is admitted under
+                (ii) only within one of them that meets the stretch (N23).
+                FR-137's and FR-138's `Volatility` cite this entry and RD-081
+                (N24). This supersedes RD-081's sentence beginning "and only
+                where a part within that parking area meets a part" and its
+                claim that a parking area reached only through another's
+                aisles meets no part that leg drives, and leaves the rest of
+                RD-081, the pass count of RD-080 and RD-081's N22 standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: "even if the stop for them is on the private stretch
+                you already accepted" names the stretch, the private part of
+                the route, and not the public road leading to it, and "no
+                detours onto other private roads" refuses a parking area
+                entered through a marking of its own or through another's
+                aisles. Written as what may be used rather than as what is
+                excepted from a count, nothing behind a marking is admitted
+                that the list does not name. N23 rests on rung 1:
+                `SPECIFICATION.md § What establishes a stopping position`
+                makes a position established by "a feature that is itself a
+                place to stop", and nothing in it makes that feature unique,
+                so every parking area containing the position is one; rung 7
+                then admits the parts within any one that meets the stretch
+                and none within one that does not, so the driver never leaves
+                a parking area beside the stretch. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
+                cycle-8 criteria, appended.
+```
