@@ -242,12 +242,12 @@ func measure(run []planner.Edge, points []runPoint, network map[int64]runWay) (p
 		return planner.RunMeasure{}, fmt.Errorf("%w: no unmarked way is reachable over marked ways from way %d", planner.ErrNoLeastRun, run[0].WayID)
 	}
 
-	marked, exit, err := travelled(run, points, network, exits)
+	marked, _, err := travelled(run, points, network, exits)
 	if err != nil {
 		return planner.RunMeasure{}, err
 	}
 
-	return planner.RunMeasure{Marked: marked, Least: least, LeastWays: leastWays, Exit: exit}, nil
+	return planner.RunMeasure{Marked: marked, Least: least, LeastWays: leastWays}, nil
 }
 
 // travelled is the run's own marked length: the segments it travels, in its
