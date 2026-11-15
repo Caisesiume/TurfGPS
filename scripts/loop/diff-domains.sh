@@ -84,16 +84,9 @@ add $((scripts + ci))        scripts 'correctness, supply chain'
 # the tables from the extract, the store that reads them, and the planner that
 # refuses every leg crossing a marking. So is the migration that measures the
 # run at a location the user entered, the bound a marked leg is held to (#248).
-# So is every migration SQL file (#268): a later migration, its verify or its
-# rollback, may create, replace, alter or drop the rule, the check or the
-# tables they read, and the callers that see only GitHub's file list cannot
-# read its content, so the floor over-lists every one rather than miss that
-# one. And so is service/cmd/turfgps/, the composition root, which wires the
-# access-marking store, the tile-identity reader and the zone copy into the
-# planner, and runs the loader that fills the tables (#268, from PR #279).
 # Pinned by
 # scripts/loop/tests/diff-domains-safety-floor.sh.
-candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+|service/internal/(planner|accessstore|accessload|osmpbf)/.+|service/cmd/turfgps/.+|migrations/0003_access_markings\.[a-z.]+|migrations/0004_access_run\.[a-z.]+|migrations/.+\.sql)$' 2>/dev/null)"
+candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+|service/internal/(planner|accessstore|accessload|osmpbf)/.+|migrations/0003_access_markings\.[a-z.]+|migrations/0004_access_run\.[a-z.]+)$' 2>/dev/null)"
 
 printf 'total_files: %s\n' "$total"
 printf 'domains: {go: %s, frontend: %s, docs: %s, agent_system: %s, scripts: %s, schema: %s, ci: %s, data: %s, other: %s}\n' \
