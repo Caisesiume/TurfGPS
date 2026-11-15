@@ -2965,3 +2965,997 @@ Affects:        RD-064's edge, superseded; RD-065's first edge, now resting on
                 definitions of a marking are bound by it and not edited in
                 this pass.
 ```
+
+## RD-067 — What does the user get where every connection between locations the user entered crosses a marking?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering `@engineering-lead`'s AskUserQuestion on
+                the question PR #270 left held, relayed by `@engineering-lead`
+                in
+                https://github.com/Caisesiume/TurfGPS/issues/248#issuecomment-6887950670.
+                This entry records a ruling made elsewhere. It decides none of
+                the three edges the ruling leaves open: each is carried in the
+                records below as a proposed reading and is put to the Owner
+                through `@engineering-lead`, and the records resting on one
+                stay `draft` until it is answered.
+Question:       FR-125 refuses a driving leg every drivable connection of
+                which runs along a way, or passes a barrier, that the map data
+                marks as private or access-restricted beyond the run FR-126
+                admits, and the service answers such a journey with a generic
+                502. As the lead put it to the Owner: what does the user get
+                when every route crosses a marking and avoidance finds
+                nothing?
+Interpretation: **A route between locations the user entered is shown warned
+                instead of refused; a stopping position the system chose is
+                held to the rule as before.** The ruling, verbatim: "It should
+                show the route, but the route becomes clearly marked as
+                private, and displayed with warnings that the route should be
+                reconsidered and that this route includes private property."
+                Its scope is the Owner's follow-up answer, which the relay
+                gives in the lead's words and not the Owner's: only
+                user-entered locations (origin, destination, user-chosen
+                stops); the private stretch is highlighted, warning text is
+                shown, and the user must confirm before the route is used;
+                system-chosen stops (zones) behind a marking are still never
+                offered; the wording is delegated to the team, to `DESIGN.md`.
+                So where no drivable connection avoids every marking beyond
+                FR-126's run between two locations the user entered — the
+                journey's origin, its destination, an intermediate destination
+                or a stopping position the user chose (RD-056, RD-061) — the
+                leg joining them is produced as a warned leg (FR-129), every
+                marked stretch on it is identified (FR-131) and shown
+                (FR-132), the user is warned (FR-133), and the journey is not
+                confirmed until the user confirms the warning (FR-134). Where
+                a connection avoids every marking, the leg takes it and is not
+                warned, as FR-125 already obliges: a warned leg replaces a
+                refusal and never a permitted leg. What is refused at a
+                stopping position the system chose stays refused, FR-126's
+                second criterion and FR-127's first unchanged. RD-052 to
+                RD-066 stand, and FR-126's run stays the only marked travel a
+                leg not warned may carry. **The three open edges, each
+                carried as a proposal awaiting the Owner:** (1) a leg is
+                warned only where both its ends are locations the user
+                entered, so a leg with one end at a stopping position the
+                system chose is refused as before (FR-129); (2) a warned leg
+                crosses no marking that a connection crossing no other
+                marking avoids (FR-130); (3) "used" means the journey becoming
+                the confirmed route, which a dispatch and a stored plan both
+                presuppose, and one explicit confirmation covers every warned
+                leg of the journey alternative (FR-134).
+Rung:           n/a for the ruling — Owner ruling, asked by the lead because
+                it changes a safety exclusion, which goes to the Owner
+                whatever the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`). The
+                ladder was run for the three edges and stopped at rung 7, most
+                conservative reasonable interpretation, on each: that rung
+                supplies the proposals and is not taken as authority for them
+                on a safety rule. Rung 1 stands against the ruling as the text
+                is written: `SPECIFICATION.md § Enforceable exclusions` reads
+                "No route may be constructed through areas the map data marks
+                as private or access-restricted" among rules "applied as hard
+                rules", and does not yet carry the ruling. That is raised to
+                `@engineering-lead` and not edited here.
+Affects:        FR-125: statement, `Verification`, third and fourth criteria,
+                `Depends-on`, `Volatility` and `Rationale`; FR-126:
+                `Rationale`; FR-127: `Verification`, third criterion,
+                `Depends-on` and `Rationale`; FR-128: statement, fourth
+                criterion, `Depends-on` and `Rationale`; FR-129 to FR-135,
+                filed. #248's AC10 and AC12, #253's AC5 and AC6 and #256's
+                AC11 refuse a leg between two locations the user entered that
+                this ruling warns instead; the stories filed with it say so,
+                and those stories' text is not edited in this pass.
+```
+
+## RD-068 — How are RD-067's three open edges answered, and does `SPECIFICATION.md § Enforceable exclusions` carry the ruling?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering four AskUserQuestion items put by
+                `@engineering-lead` with the analyst's proposal as the
+                recommendation, relayed by `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6892950713.
+                The Owner's scoping answer behind RD-067, which RD-067 gives
+                in the lead's words, is quoted with its option text verbatim
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6888122871.
+                This entry records rulings made elsewhere; it decides nothing
+                itself and leaves RD-067 standing.
+Question:       RD-067 carried three edges of the Owner's ruling as proposals
+                and raised a fourth matter: (1) which legs are warned;
+                (2) which connection a warned leg takes; (3) what "used"
+                means for the confirmation; (4) whether
+                `SPECIFICATION.md § Enforceable exclusions`, which states the
+                private-and-access-restricted member as a hard rule with no
+                exception, is amended to carry the ruling.
+Interpretation: **All four were answered as recommended.** (1) "Both ends
+                yours": only a leg between two locations the user entered may
+                be warned; a leg touching a stopping position the system
+                chose is refused as before, as FR-129's second criterion
+                tests. (2) "Least private": the warned leg crosses no marking
+                it could have avoided, which FR-130 states over the set of
+                markings crossed. (3) "Before it becomes my route": the
+                confirmation is asked when the alternative becomes the
+                confirmed route, once per alternative, and the alternative
+                may be viewed unconfirmed, as FR-134 states. (4) The section
+                is amended: its last bullet gains the exception that between
+                two locations the user entered a warned route the user has
+                confirmed may cross such an area. The analyst drafted the
+                amended line in PR #274, changing nothing else in the line or
+                the section, and it holds only when the Owner approves it at
+                that PR's merge. The Owner's words in the scoping answer,
+                "Stops the app picks itself (zones) behind private roads are
+                still never offered", are what keep the exception to
+                locations the user entered. The option labels are quoted from
+                the lead's relay as written there.
+Rung:           n/a — four Owner rulings, asked because each changes or
+                bounds a safety exclusion, which goes to the Owner whatever
+                the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`).
+                RD-067 had run the ladder to rung 7, most conservative
+                reasonable interpretation, on each of the three edges and
+                proposed the readings the Owner chose; it stopped short
+                because rung 7 is not authority on a safety rule. On the
+                fourth, rung 1 stood against the ruling as the section was
+                written, and an edit to an approved document is the Owner's.
+Affects:        FR-129, FR-130 and FR-134: `draft` → `to-build`, with their
+                `Volatility` and their `Rationale`'s account of why each was
+                `draft`; FR-134's `Rationale` gains that the alternative may
+                be viewed unconfirmed.
+                `SPECIFICATION.md § Enforceable exclusions`, its last bullet,
+                drafted in PR #274 for the Owner's approval at merge. #271's
+                AC2, AC4 and AC5 and #273's AC5 to AC7, whose readings are now
+                ruled, and both stories' notes open with the Owner, closed.
+                `INDEX.md`'s status rows and counts and `README.md`'s corpus
+                state and ledger move with them.
+```
+
+## RD-069 — Is a stopping position the system offered one the user chose once the user accepts it?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s reading in
+                the cycle-2 remand of PR #274 that the Owner's scoping answer
+                settles it, so no new question is put. Raised as S1 of the
+                safety verdict at PR #274's head `3cf9eeb`
+                (`#issuecomment-6893046515`).
+Question:       FR-126 to FR-129 turn on whether a stopping position is one
+                the user chose, and nothing defines who chose one.
+                `SPECIFICATION.md § What establishes a stopping position` has
+                the user "place the stop there and have it recorded as
+                user-chosen", which an acceptance could be read to satisfy.
+                The sentinel's scenario: the user rejects a zone, the reserve
+                offers a car park behind a private gate, the user accepts it,
+                and the legs to it become warned legs FR-129 admits, so one
+                confirmation sends the driver through the gate for a stop the
+                system picked. Before PR #274, FR-127's third criterion
+                refused every leg to it.
+Interpretation: **No. A stopping position the system offered stays one the
+                system chose after the user accepts it; a stopping position is
+                the user's only where the user placed it.** That holds however
+                the position reached the plan: recommended, offered as a
+                replacement, drawn from the reserve or reinstated by an undo.
+                A required location the user named as a zone
+                (`DESIGN.md § Locations`) is a location the user entered, as
+                before. FR-136 states the rule once, and FR-126's, FR-127's
+                and FR-129's `Rationale` point to it. It removes nothing the
+                cited section keeps: a restricted position stays reachable
+                where the user places the stop there.
+Rung:           4, existing requirements: the Owner's scoping answer, which
+                `DECISIONS.md § RD-068` cites verbatim
+                (`#issuecomment-6888122871`): "Origin, destination and your
+                own stops get a warned route ... Stops the app picks itself
+                (zones) behind private roads are still never offered — the
+                app can just pick another zone." A stop the reserve offers is
+                one the app picked, and the user's acceptance does not change
+                who picked it; RD-061's "Stops the system chose stay strictly
+                excluded" agrees. Rung 1 does not answer, since the cited
+                sentence says what a placed stop is recorded as and not that
+                an acceptance places one. Rung 3 agrees:
+                `DESIGN.md § Reviewing zones one at a time` gives a zone two
+                actions, accept it or ask for a different zone, and neither
+                places a stop. How a user places a stopping position other
+                than as a location of the journey no document yet describes;
+                that is raised to `@engineering-lead` and not decided here.
+Affects:        FR-136, filed; FR-126, FR-127 and FR-129: `Rationale`; #275,
+                filed.
+```
+
+## RD-070 — Is a zone the system chose taken from a location the user entered that only a warned leg reaches?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s reading in
+                the cycle-2 remand of PR #274 that the same scoping answer
+                settles it. Raised as N3 of the safety verdict at PR #274's
+                head `3cf9eeb` (`#issuecomment-6893046515`).
+Question:       FR-127 and FR-129 refuse a leg to a stopping position the
+                system chose behind a marking, but a zone is also taken on
+                foot from a stop
+                (`SPECIFICATION.md § Stops serving several zones`).
+                Nothing stops the planner attaching zones it chose to a stop
+                the user chose behind a marking, reached by a warned leg, and
+                those zones are reached through the private road the user
+                confirmed for their own stop.
+Interpretation: **No. The system offers no zone it chose to be taken from a
+                stop at a location the user entered that a car reaches only
+                along a way, or past a barrier, so marked, beyond FR-126's run
+                there.** The test reads the location, as FR-127's first
+                criterion reads a stopping position "that a car reaches only"
+                so, and not the leg: an end of a warned leg that a connection
+                avoiding every marking also reaches lies behind nothing and
+                keeps its zones, so a public car park the user chose keeps
+                them when the warned leg reaching it started behind a gate. A
+                zone the user named as a location is entered, not chosen by
+                the system. A location reached within FR-126's run is outside
+                the reading, which binds only what a warned leg alone reaches;
+                whether zones are taken from a home on a private driveway is
+                not decided here and is raised to `@engineering-lead`.
+Rung:           4, existing requirements: the Owner's scoping answer quoted
+                under RD-069 — a zone only a warned leg reaches is a zone
+                behind a private road, and those "are still never offered".
+                The location reading rests on rung 4 as well, FR-127's first
+                criterion already stating "behind" so; rung 7 agrees, since a
+                reading on the leg fails either way, as FR-137's `Risk`
+                states.
+Affects:        FR-137, filed; FR-129: `Rationale`; #275, filed.
+```
+
+## RD-071 — Does a change after confirmation that adds a crossing need a fresh confirmation?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s direction
+                in the cycle-2 remand of PR #274. Raised as N4 of the safety
+                verdict at PR #274's head `3cf9eeb`
+                (`#issuecomment-6893046515`).
+Question:       The Owner ruled one confirmation per alternative, asked when
+                the alternative becomes the confirmed route (RD-068). A route
+                changed after confirmation — in the review, which re-checks
+                after every change, or in a later review of its stored plan
+                (FR-096) — can come to hold a warned leg, or a marked stretch,
+                that the confirmed warning never presented. Does the
+                confirmation given cover it?
+Interpretation: **No. A change that makes a confirmed route hold a warned leg
+                or a marked stretch its confirmed warning did not present
+                leaves the changed route unconfirmed, undispatched and
+                unstored until the user confirms its warning afresh.** "Once
+                per alternative" counts the alternative the user was shown,
+                and a change adding a crossing makes another. A change that
+                only removes one asks for nothing. FR-134 gains it as a fourth
+                criterion.
+Rung:           4, existing requirements: FR-134 has the confirmation follow
+                the presentation "so the user confirms what they were shown",
+                and RD-068 ties it to the route becoming the confirmed route;
+                a crossing not shown was not confirmed. Rung 7 agrees.
+Affects:        FR-134: `Verification`, a fourth criterion, `Depends-on`,
+                `Volatility` and `Rationale`; #273 gains AC9, appended without
+                editing its existing text.
+```
+
+## RD-072 — Are zones taken from a location the user entered that a leg reaches along FR-126's run?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead`, relayed with its option text verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6893888013.
+                RD-070 raised the question to `@engineering-lead` rather than
+                deciding it, and the safety verdict at PR #274's head
+                `ba85cff` (`#issuecomment-6893234205`, N5) asked it be framed
+                at the scope FR-137's exception reaches. This entry records a
+                ruling made elsewhere and leaves RD-070 standing.
+Question:       FR-137 offers no zone the system chose from a location the
+                user entered that only a warned leg reaches, and its "other
+                than in the run FR-126 admits there" exempts every location
+                the user entered on a way so marked, or within an area so
+                marked, that FR-126's run reaches: a home on a private
+                driveway, and equally a stop the user chose inside a marked
+                area. Are zones the system chose taken from a stop there?
+Interpretation: **Yes.** The Owner chose "Yes, suggest zones (Recommended)",
+                whose description read: "The driveway is just your own
+                access, not a route through someone's property, so zones are
+                planned from the end of it as normal. Only locations
+                reachable solely by a warned route lose their zone
+                suggestions." The second sentence is the rule and is read at
+                the scope N5 named: every location the user entered that a
+                leg reaches along FR-126's run, with a connection avoiding
+                every marking continuing from that run's end, keeps its
+                zones, the home on a driveway and the stop inside a marked
+                area alike; one reachable solely by a warned leg loses them.
+                A home on a driveway not so marked behind a gate so marked
+                has an empty run under FR-126 and is reachable solely by a
+                warned leg, so it loses them, as FR-137's first criterion
+                states. FR-137 gains the third criterion stating the
+                exemption, and its `Volatility`, `Risk` and `Rationale` cite
+                this entry.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion, which goes to the Owner whatever the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`).
+                RD-070 had run the ladder to rung 4, where FR-126's run
+                already reads the location as reached by the user's own
+                access, and stopped short because the Owner's words, "behind
+                private roads", did not say which side of the run a
+                driveway lies on. The scope reading, that the rule covers
+                every location FR-126's run reaches and not the home alone,
+                is the option description's own second sentence, on
+                `@engineering-lead`'s reading in the cycle-3 remand that the
+                answer settles N5.
+Affects:        FR-137: a third criterion, `Verification`, `Volatility`,
+                `Risk` and `Rationale`; #275 gains AC8, appended without
+                editing its existing text.
+```
+
+## RD-073 — How does a user place a stopping position other than as a location of the journey?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead`, relayed with its option text verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6893888013.
+                RD-069 raised the question to `@engineering-lead` rather than
+                deciding it. This entry records a ruling made elsewhere and
+                leaves RD-069 standing.
+Question:       `SPECIFICATION.md § What establishes a stopping position` has
+                the user "place the stop there and have it recorded as
+                user-chosen", FR-126 to FR-129 and FR-136 turn on a stopping
+                position the user chose, and no document describes how a user
+                places one other than as a location of the journey:
+                `DESIGN.md § Reviewing zones one at a time` gives a zone two
+                actions, and neither places a stop. The safety verdict at PR
+                #274's head `ba85cff` (`#issuecomment-6893234205`, N7) adds
+                that a one-tap "stop here" on an offered candidate would be an
+                acceptance under another name.
+Interpretation: **By placing or moving a stop of their own on the map.** The
+                Owner chose "I want map placement", whose description read:
+                "The analyst files a story now for placing or moving your own
+                stop on the map; DESIGN.md gets the interaction." FR-139
+                obliges that a stop the user places or moves on the map is
+                recorded as one the user chose at its point, and its third
+                criterion carries N7: a stop placed at an offered candidate's
+                point or on its marker is the user's, and the candidate stays
+                the system's. The planning API carries origin, intermediate
+                destinations and destination only
+                (`service/internal/httpapi/journeys.go`), so the work is two
+                stories, the client's and the service's, under the epic for
+                the stopping position. The interaction itself is
+                `DESIGN.md`'s to gain and is drafted in the client story for
+                the Owner's approval at its merge; it is not written here.
+                `SHOULD`: every exclusion holds without it.
+Rung:           n/a — an Owner ruling on product intent no document defined,
+                which `team-protocol § Escalation and human judgement` sends to
+                the Owner. RD-069 had run the ladder to rung 3, where
+                `DESIGN.md § Reviewing zones one at a time` places no stop,
+                and stopped short because the act was undefined rather than
+                ambiguous. That two stories are needed rests on rung 5, the
+                request the service accepts today.
+Affects:        FR-139, filed; FR-136: `Volatility` and `Rationale`; two
+                stories filed under the epic "The stopping position, and the
+                roads a stop may be proposed on".
+```
+
+## RD-074 — Is a stopping position the system chose behind a marking offered and then refused, or never offered?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s direction
+                in the cycle-3 remand of PR #274 that the Owner's "never
+                offered" settles it. Raised as N6 of the safety verdict at PR
+                #274's head `ba85cff` (`#issuecomment-6893234205`).
+Question:       FR-127's first criterion and FR-136's refuse to serve a
+                stopping position the system chose that a car reaches only
+                across a marking; neither refuses to offer it. A reserve
+                candidate behind a private gate can be shown after a
+                rejection, accepted and dropped. The Owner said such stops
+                are "never offered". And
+                `SPECIFICATION.md § What establishes a stopping position`
+                sends a restriction recorded on the stopping feature itself
+                to uncertain, "offered during review", so the user "may still
+                place the stop there". Which positions does "never offered"
+                withhold?
+Interpretation: **A stopping position the system chose that a car reaches
+                only along a way, or past a barrier, so marked that is not the
+                feature establishing the position is offered as no
+                recommended stop, no replacement and no reserve candidate. A
+                position whose own feature carries the marking, and that a
+                car reaches past no other, is offered as the cited section
+                keeps it.** A gated car park, a car park at the end of a
+                private road and one beyond an estate marked on its enclosing
+                area are behind a marking and never shown; a customers-only
+                car park is on its marking, not behind it, and stays in
+                review as uncertain, where accepting it serves nothing
+                (FR-136) and placing a stop there does (FR-139). FR-138
+                states it, at the stopping position and not the zone, and
+                FR-128 carries it into areas; FR-127 and FR-136 point to it
+                and keep refusing service as the layer beneath.
+Rung:           1, explicit specification:
+                `SPECIFICATION.md § What establishes a stopping position`
+                gives an excluded candidate "no presentation, no reserve, no
+                second look", and sends a restriction on the feature itself to
+                uncertain rather than exclusion — "Excluding on a recorded
+                restriction would remove both", the customer's car park and
+                the gated staff one. Rung 4 agrees: the Owner's scoping answer
+                quoted under RD-069, "Stops the app picks itself (zones)
+                behind private roads are still never offered — the app can
+                just pick another zone", reads "behind". A position a
+                connection avoiding every marking reaches, but that a journey
+                could join only by a leg FR-129's second criterion refuses, is
+                behind nothing; whether the review offers it is owed to
+                `Review and replacement` and not decided here.
+Affects:        FR-138, filed; FR-127 and FR-136: `Rationale`; FR-128: its
+                statement's list and `Depends-on` gain FR-138; one story
+                filed under the epic "Drivable legs and journey cost".
+```
+
+## RD-075 — Is a way a car runs along to a stopping position ever the feature establishing it?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (1) S3: "Roads never exempt (Recommended)". A road the
+                car drives along never counts as the stop's own feature; only
+                a dead-end feature like a parking area can be. One narrow
+                fourth cycle is allowed. The relay quotes the option label
+                and gives the sentences after it unquoted. Raised as S3, with
+                N10, by the safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`). This entry supersedes RD-074's
+                reading of "the feature establishing the position" and leaves
+                the rest of RD-074 standing.
+Question:       `SPECIFICATION.md § What establishes a stopping position`
+                names a service road among the features establishing a
+                position and "a service road recorded as access-restricted"
+                among the restrictions recorded against the feature itself.
+                Read so, a position the system found along a private service
+                road is on its own marking, FR-138 offers it, and a stop the
+                user places on its marker is driven the road's length along
+                FR-126's run, warned by nothing. Does a way a car runs along
+                ever count as the feature establishing the position, so that
+                its marking is the position's own?
+Interpretation: **No.** A way a car runs along, a service road included, is
+                never the feature establishing a position for FR-138: a
+                position on such a way so marked, or reached along one, lies
+                behind that marking and is never offered. Only a feature that
+                is not itself a way, a parking area drawn as an area or as a
+                point, carries a marking that is the position's own, and a
+                barrier never does. A way lying within such a feature is
+                exempt only where it carries the marking as that feature's
+                alone, as FR-128 reads an area's marking onto its ways: the
+                aisles of a customers-only car park drawn as an area are its
+                own (N10), and an aisle carrying a marking of its own, or one
+                lying also within a second area so marked, is not. FR-139's
+                "or on its marker" is kept: every marker the review shows is
+                then a position FR-138 offers, reached along no marked way but
+                the parking area's own, so a stop placed on it starts no run
+                along a road, and the Owner's ruling under RD-077 places a
+                stop on exactly such a marker.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion and because PR #274 stayed blocked after its third
+                cycle (`team-protocol § Escalation and human judgement`). Two
+                readings are the team's and rest on the ladder: that a way
+                within the parking area carrying its marking alone is not "a
+                road the car drives along" rests on rung 1, the cited section
+                treating a restriction recorded against the feature itself as
+                the feature's, and on rung 4, FR-128 reading an area's marking
+                onto its ways; that a barrier is never the position's own, and
+                that a lay-by drawn as a way is a way, rest on rung 7, the
+                most conservative reading of "only a dead-end feature like a
+                parking area". **The ruling narrows the cited section's
+                example:** a position on a service road recorded as
+                access-restricted is still not established and is still
+                reachable by the user placing a stop there (FR-139, FR-126's
+                run), but it no longer reaches review as uncertain. That is a
+                difference between `SPECIFICATION.md` and the ruling, raised
+                to `@engineering-lead` and not edited here.
+Affects:        FR-138: statement, first and second criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`; FR-139:
+                `Depends-on`, `Risk`, `Rationale`; FR-136: `Rationale`; #276
+                gains AC5 and AC6, appended.
+```
+
+## RD-076 — Does a location the user entered behind a marked gate on a driveway not so marked keep its zones?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (2) N11: "Yes, keep zones (Recommended)". A home behind a
+                private gate on an untagged driveway keeps its zones; the
+                gate and driveway are the user's own access. Raised as N11 by
+                the safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`). This entry supersedes RD-072's
+                holding that such a home "has an empty run under FR-126 and is
+                reachable solely by a warned leg, so it loses them", and
+                leaves the rest of RD-072 standing.
+Question:       RD-072 keeps the zones of a location the user entered that a
+                leg reaches along FR-126's run, a home on a marked driveway,
+                and FR-137's first criterion took them from a home on a
+                driveway not so marked behind a gate so marked, which has an
+                empty run and is reached only by a warned leg. The Owner's
+                reason, "just your own access", covers both. Does the second
+                keep its zones, and how far does the exemption reach?
+Interpretation: **Yes, and to a barrier standing on the way the location lies
+                on.** FR-137 offers no zone the system chose to be taken from
+                a location the user entered that a car reaches only across a
+                marking other than FR-126's run there or a barrier so marked
+                standing on the way the location lies on; past that barrier a
+                connection avoiding every marking must continue, as it must
+                from the run's end. The scope is every location the user
+                entered, as RD-072 read the driveway ruling, because the
+                system cannot tell a home from another location the user
+                entered. The bound is the gate's analogue of the run and no
+                more: a location beyond a gate standing on another way, a
+                street within an estate entered through a gated road, still
+                loses its zones, and so does one beyond a second marking. A
+                location on a long unmarked road behind a gate on that road
+                keeps them, as one on a long marked road reached along the run
+                does under RD-072. The leg to the location stays a warned leg
+                FR-129 admits; the ruling is about zones only.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion. The scope reading, every location the user entered
+                and not the home alone, rests on rung 4, RD-072's scope. The
+                bound, a barrier on the way the location lies on, rests on
+                rung 4, FR-126's run being the location's own stretch of
+                marked way to the first way not so marked, and on rung 7, the
+                most conservative reading of "the gate and driveway": a
+                driveway mapped as two ways with the gate on the outer one
+                loses its zones, which errs toward the exclusion.
+Affects:        FR-137: statement, first and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`; #275 gains
+                AC10 and withdraws AC4, whose case AC10 decides the other way.
+```
+
+## RD-077 — May the user place a stop on an uncertain restricted candidate's marker before its restriction reason is stated?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (3) N9: "Yes, allow it", against the lead's
+                recommendation. The user may place a stop on a customers-only
+                car park's marker before its restriction reason is known, and
+                the uncertainty label stays visible. Raised as N9 by the
+                safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`), which asked that the restriction
+                reason be stated before FR-139 places anything on such a
+                marker.
+Question:       FR-138 offers, as uncertain, a stopping position the system
+                chose on a parking area whose own feature is marked
+                customers-only, and the review's statement of the restriction
+                it found is owed with the uncertain bucket's other reasons.
+                May the user place a stop on its marker before that reason is
+                stated?
+Interpretation: **Yes.** FR-139 is not conditioned on the restriction reason:
+                a stop the user places on the marker of a candidate the system
+                offered as uncertain is recorded as the user's whether or not
+                the reason is yet stated. The condition the Owner attached is
+                FR-141: the placed stop is shown with the uncertainty the
+                candidate was offered with, so placing it never makes the
+                position look established. The stated reason stays owed with
+                the uncertain bucket's other reasons, as before.
+Rung:           n/a — an Owner ruling on a safety-path presentation, against
+                the lead's recommendation. That "stays visible" binds the
+                placed stop, and not only the candidate left beside it, rests
+                on rung 1, `SPECIFICATION.md § Requirements the data cannot verify`
+                requiring a proposed stop whose legality cannot be established
+                to be labelled as such, which a stop placed at an uncertain
+                position is.
+Affects:        FR-139: `Rationale`; FR-141, filed; #278 gains AC5,
+                appended, and `Resolves:` gains FR-141.
+```
+
+## RD-078 — Does accepting a stopping position the system offered on its own marking serve it?
+
+```
+Date:           2026-11-15
+Question:       RD-074 has accepting a customers-only car park the system
+                offered serve nothing "(FR-136)". The safety verdict at PR
+                #274's head `7272346` (`#issuecomment-6894145362`, N9) shows
+                that FR-136 refuses only a position a car reaches only across
+                a marking: one drawn as a point, with nothing marked between
+                it and the road, is served on acceptance, and one drawn as an
+                area is dropped through its own aisles (FR-128). Which one
+                outcome holds?
+Interpretation: **Accepting it serves it in neither geometry.** FR-140 serves
+                no stopping position the system chose on a feature
+                establishing it that the map data itself marks as private or
+                access-restricted, drawn as a point or as an area; the stop is
+                had only by the user placing one there (FR-139), which the
+                Owner allows on its marker before its reason is stated, its
+                uncertainty shown (RD-077). That the review makes placing, and
+                not accepting, the act on such a candidate is owed with the
+                interaction #278 drafts and the uncertain bucket's stated
+                reasons; FR-140 makes the outcome one, so the review can say
+                it once. This supersedes RD-074's "serves nothing (FR-136)"
+                and leaves the rest of RD-074 standing.
+Rung:           1, explicit specification:
+                `SPECIFICATION.md § What establishes a stopping position`
+                holds that where the data records a restriction against the
+                feature itself "the feature does not establish a position",
+                that the position falls to uncertain "so the user may still
+                place the stop there and have it recorded as user-chosen", and
+                that this paragraph "is what refuses the restricted stop". The
+                section refuses the system's restricted stop and keeps it
+                reachable by the user's placement, and nothing in it turns on
+                how the feature is drawn. Rung 4 agrees: #278's notes already
+                read acceptance as serving nothing and placement as what
+                serves it, and FR-136 holds an accepted position the system's.
+                Rung 7 settles the direction: the other single outcome,
+                serving both, would lift FR-127's and FR-128's refusal for a
+                stop the system chose inside a private area, a loosening of a
+                safety exclusion that is the Owner's alone.
+Affects:        FR-140, filed; FR-138 and FR-136: `Rationale`; #276 gains AC7,
+                appended, and `Resolves:` gains FR-140; #278: notes.
+```
+
+## RD-079 — Are zones the system chose taken along a warned leg a location the user entered requires, a stop of its own on that leg included?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` on S4 of the safety verdict at PR #274's
+                head `ce90ea1` (`#issuecomment-6897526469`), against the
+                lead's recommendation of typed locations only
+                (`#issuecomment-6897549965`), relayed verbatim in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897625223.
+                The answer, verbatim: "To put it clearly. The app never
+                automatically suggest zones and routes along private roads,
+                but if you place a stop or so that requires a private road to
+                get to the placed out stop, then the route is okay to have
+                zones along it (but we will still show a warning about the
+                fact the route requires going on private roads." The follow-up
+                clarification, verbatim, chose the option "Any stop on that
+                route", whose description read: "Zones along the warned route
+                may be added even if the stop for them is on the private
+                stretch you already accepted. Still no detours onto other
+                private roads." This entry records a ruling made elsewhere. It
+                supersedes RD-070's "No", RD-072's "one reachable solely by a
+                warned leg loses them", RD-076's bound to a barrier standing
+                on the way the location lies on, RD-068's first edge where a
+                stop the system chose lies within the warned leg's bound, and
+                RD-074's "never offered" and its owed case there, and leaves
+                the rest of each standing.
+Question:       S4: FR-137 kept the zones of a location the user entered
+                behind a gate standing on its own way and took them from one
+                behind a gate on another, and RD-076 widened the first to
+                every location the user entered on the premise that the system
+                cannot tell a home from another such location, which is false
+                for a stop the user placed. The scenario: a stop placed past a
+                gate marked private on an unsplit service road, one warned leg
+                confirmed, and the planner's own ranked zones hung on that
+                stop. Are zones the system chose taken along a warned leg that
+                a location the user entered or placed requires, and how far
+                does that reach?
+Interpretation: **Yes, along the warned leg and no further, and the warning
+                stays.** Where every connection between two locations the user
+                entered, with none between them, crosses a marking beyond
+                FR-126's run, the system may take zones it chose along the
+                warned leg joining them: from a stop at either location,
+                whoever entered it and however, and from a stopping position
+                it chose along that leg, the private stretch the user confirms
+                included. The legs between the two locations then together
+                cross no marking the warned leg directly joining them would
+                not, and run along no way a car reaches only across a marking
+                other than the ways that leg runs along and the ways within a
+                parking area establishing a stop: a stop behind a second gate,
+                or further into a gated site than the warned leg goes, is a
+                detour onto another private road and is refused. Every leg
+                between them that crosses a marking is a warned leg,
+                identified, shown, warned of and confirmed as FR-131 to FR-134
+                oblige. Off a warned leg nothing changes: in a journey whose
+                locations the user entered need no warned leg, no zone and no
+                stop the system chose behind a marking is proposed, and the
+                run FR-126 admits keeps its zones (RD-072) and admits a stop
+                the system chose only on a warned leg. A stop the system
+                offered stays the system's when accepted (RD-069), so an
+                acceptance never causes a warned leg of its own. A public stop
+                just past an origin behind a gate, which RD-074 left owed to
+                `Review and replacement`, is now joined by warned legs within
+                the bound. FR-129 states the bound once; FR-137 is rewritten
+                to it; FR-125, FR-126, FR-127, FR-128, FR-136 and FR-138
+                except a stop a warned leg FR-129 admits reaches.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion and because PR #274 stayed blocked after its third
+                cycle (`team-protocol § Escalation and human judgement`).
+                Three readings are the team's. That "the warned route" is the
+                warned leg directly joining the two locations, whose markings
+                bound the legs a stop divides it into, rests on rung 4, FR-129
+                and FR-130 already fixing which connection a warned leg takes.
+                That "no detours onto other private roads" also bars a way
+                behind a marking that the leg does not run along, though the
+                map data marks only the gate before it, rests on rung 7: a
+                gate mapped on an unmarked road is the commonest mapping S4
+                names, and without the bound every stop past the same gate
+                would ride on one confirmation. That a stop on FR-126's run is
+                admitted on a warned leg and on no other rests on rung 4,
+                FR-131 naming the run as part of the warned leg the user
+                confirms, and on rung 7, an unwarned run carrying no warning
+                to keep. `SPECIFICATION.md § Enforceable exclusions`, as PR
+                #274 drafts its last bullet, reads true unchanged: the route
+                between the two locations crosses the area only as a warned
+                route, and a stop along it adds no crossing.
+Affects:        FR-137: title, statement, criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-129: statement, second
+                criterion and a new third, `Verification`, `Volatility`,
+                `Risk`, `Rationale`. FR-138: statement, first criterion and a
+                new fourth, `Verification`, `Depends-on`, `Volatility`,
+                `Risk`, `Rationale`. FR-126: statement, second criterion,
+                `Verification`, `Depends-on`, `Volatility`, `Rationale`.
+                FR-125, FR-127, FR-128 and FR-136: one criterion each,
+                `Verification`, and `Rationale` or `Volatility`. The term
+                register's `warned leg`. #271, #275, #276, #256 and #253 gain
+                cycle-5 criteria or readings, appended; #275 withdraws AC3,
+                AC6, AC7 and AC10's second case.
+```
+
+## RD-080 — Is the warned leg's bound measured over ways or the parts driven, over which markings or how often, and against which leg?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `63b8b65`
+                (`#issuecomment-6898179688`) found, as S5, that RD-079's bound
+                and FR-129's statement count way objects, "the ways that
+                warned leg runs along": on an unsplit service road with a gate
+                node on it, the user's stop partway along it and the same way
+                running on into the site, a parking area beside that way past
+                the stop fails neither bound, so the planner drives the user
+                deeper than their stop for a zone it chose. As N16, the bound
+                counts which markings are crossed and not how often, so a
+                journey can leave and re-enter through the gate the user
+                confirmed once. As N18, where FR-130 leaves two connections
+                crossing markings alike, "the warned leg directly joining the
+                two" is not one fixed leg, and the planner could pick the
+                private road carrying its own zones. How is the bound
+                measured?
+Interpretation: **Over the parts of ways driven, over how often, and against
+                the leg produced with no stop.** The legs between two
+                locations the user entered, where a stopping position the
+                system chose divides the warned leg, together pass no barrier
+                so marked, and drive along no part of a way that is so marked
+                or that a car reaches only across such a way or barrier, more
+                times than the warned leg the system would produce joining the
+                two were no stop between them passes that barrier or drives
+                along that part; a part not itself so marked within a parking
+                area establishing a stop is excepted. A part that leg never
+                drives is driven by it zero times, so this one bound carries
+                RD-079's two: no marking the leg would not cross, and no way
+                behind a marking that it does not drive. It holds however the
+                map data splits its ways; it bars leaving and re-entering
+                through the gate the user confirmed; and the leg it compares
+                with is fixed by the two locations alone, so a choice among
+                connections that cross markings alike is never made for a
+                zone. This supersedes RD-079's sentence beginning "The legs
+                between the two locations then together cross no marking" and
+                its second team reading, and leaves the rest of RD-079
+                standing.
+Rung:           4, existing requirements and decisions: RD-079 records the
+                Owner's "the private stretch you already accepted", a part of
+                the route the user drives and not a map object, and FR-131
+                already names a warned leg's "marked stretches" as parts of
+                it; and FR-130's `Rationale` leaves which connection a warned
+                leg takes unobliged, so the bound must read the leg as
+                produced rather than any leg FR-130 admits. Rung 7, the most
+                conservative reading, settles the rest: the Owner's "never
+                automatically suggest zones and routes along private roads"
+                and "no detours onto other private roads" refuse every
+                private driving the user's locations do not cause, and a
+                second pass through the confirmed gate, a part past the
+                user's stop, or a tied connection taken for its zones is
+                each such driving, chosen by the system. No Turf mechanic is
+                read and no constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                title (N19), second and third criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-138: first and fourth
+                criteria, `Verification`, `Volatility`, `Rationale`. #271,
+                #275 and #276 gain cycle-6 criteria, appended.
+```
+
+## RD-081 — Which parking area's unmarked parts does the warned leg's bound except, and on which legs?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `0e1fa56`
+                (`#issuecomment-6898726557`) found, as S6, that the exception
+                RD-080 and FR-129 carry, "a part not itself so marked within a
+                parking area establishing a stop between them", covers every
+                parking area holding any stop, on every leg, with nothing
+                tying it to the stretch the user accepted. The scenario: a
+                gate node on an unmarked site road, the user's stop behind it,
+                a parking area X beside the stretch and a second, Y, reached
+                only through X's aisles, both unmarked. With a stop the system
+                chose in each, the route through X into Y and back passes the
+                gate once and drives each part of the stretch once, every
+                aisle of X and Y is excepted, and FR-129 admits it: the driver
+                is sent deeper into the gated site than the stretch they
+                accepted, for a zone the planner chose. As N20, FR-129's
+                "those legs together" bound only the legs crossing a marking;
+                as N21, its statement did not carry RD-080's "fixed by the two
+                locations alone". Which parking area is excepted, and on which
+                legs?
+Interpretation: **Only the parking area that meets the stretch, and only on
+                the legs to and from its own stop.** A part not itself so
+                marked within the parking area establishing a stop between the
+                two locations the user entered is excepted from the bound only
+                where a driving leg to or from that stop drives it, and only
+                where a part within that parking area meets a part that the
+                warned leg produced with no stop between them drives: a car
+                turns from the one onto the other with no other part between
+                them. A parking area reached only through another's aisles
+                meets no part that leg drives, so its parts count, and that
+                leg drives them zero times; a parking area that meets the
+                stretch, crossed on a leg to some other stop, counts on that
+                leg in full. The bound counts every driving leg between the
+                two locations, not only those crossing a marking (N20), and
+                the leg it compares with is one the two locations alone fix
+                (N21). A parking area joined to the stretch only by a
+                connector way outside it stays refused, the verdict's N22,
+                which refuses more than the ruling needs and is the Owner's to
+                narrow; it is recorded and not changed here. This supersedes
+                RD-080's sentence beginning "a part not itself so marked
+                within a parking area establishing a stop is excepted" and
+                leaves the rest of RD-080 standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: the Owner's "even if the stop for them is on the
+                private stretch you already accepted" serves a stop beside
+                that stretch, and "no detours onto other private roads"
+                refuses any private driving the user's locations do not cause.
+                A parking area reached through another is further into the
+                site than the stretch, and a parking area crossed on the way
+                to a different stop is driving for that other stop and not for
+                its own, so neither is excepted. No Turf mechanic is read and
+                no constant is introduced.
+Affects:        FR-129: statement, second and third criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-137: `Volatility`,
+                `Rationale`. #271 gains cycle-7 criteria, appended.
+```
+
+## RD-082 — What may the legs between two locations the user entered use behind a marking, and which parking area establishes a stop?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `c0dc9d4`
+                (`#issuecomment-6898905785`) found, as S7, that RD-081's
+                test, "a part within that parking area meets a part that the
+                warned leg produced with no stop between them drives", is
+                wider than RD-081's own claim that a parking area reached only
+                through another's aisles meets no part that leg drives: that
+                leg also drives the public road up to the gate, so a staff car
+                park Y whose entrance, before its own marked gate, meets that
+                road "meets" the leg, and with stops in a visitor car park X
+                beside the stretch on both sides of a stop in Y the route runs
+                through X into Y, its aisles excepted; the same holds where
+                Y's own entrance from the stretch is marked. As N23, "the
+                parking area establishing that stop" assumes one, where the
+                map data may nest or overlap parking areas. As N24, FR-138's
+                `Volatility` omitted RD-081. The lead observed that S5, S6 and
+                S7 share a root: the bound is written as exceptions to a
+                count, and each exception leaks. What may the legs use, and
+                which parking area establishes a stop?
+Interpretation: **A list of what the legs may use behind a marking, and
+                nothing else.** Where a stopping position the system chose
+                divides the warned leg between two locations the user entered,
+                the driving legs between them together pass a barrier so
+                marked, or drive along a part of a way that is so marked or
+                that a car reaches only across such a way or barrier, only
+                where (i) the warned leg the system would produce joining the
+                two were no stop between them passes that barrier or drives
+                along that part, and no more times than it does; or (ii) the
+                part is not itself so marked, lies within a parking area
+                establishing a stop between them, is driven on a leg to or
+                from that stop, and that parking area meets the stretch: a car
+                turns directly, past no barrier so marked, onto a part within
+                it not itself so marked from a part that leg drives that is so
+                marked or that a car reaches only across a marking. Meeting a
+                public road that leg drives is not meeting the stretch, nor is
+                meeting it only along a marked part or past a marked barrier
+                of the parking area's own. Where a stop lies within more than
+                one parking area, nested or overlapping, each establishes it
+                and each is tested on its own, so a part is admitted under
+                (ii) only within one of them that meets the stretch (N23).
+                FR-137's and FR-138's `Volatility` cite this entry and RD-081
+                (N24). This supersedes RD-081's sentence beginning "and only
+                where a part within that parking area meets a part" and its
+                claim that a parking area reached only through another's
+                aisles meets no part that leg drives, and leaves the rest of
+                RD-081, the pass count of RD-080 and RD-081's N22 standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: "even if the stop for them is on the private stretch
+                you already accepted" names the stretch, the private part of
+                the route, and not the public road leading to it, and "no
+                detours onto other private roads" refuses a parking area
+                entered through a marking of its own or through another's
+                aisles. Written as what may be used rather than as what is
+                excepted from a count, nothing behind a marking is admitted
+                that the list does not name. N23 rests on rung 1:
+                `SPECIFICATION.md § What establishes a stopping position`
+                makes a position established by "a feature that is itself a
+                place to stop", and nothing in it makes that feature unique,
+                so every parking area containing the position is one; rung 7
+                then admits the parts within any one that meets the stretch
+                and none within one that does not, so the driver never leaves
+                a parking area beside the stretch. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
+                cycle-8 criteria, appended.
+```
+
+## RD-083 — Which unmarked parts within a parking area that meets the stretch may the legs use?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `6ffb2b8`
+                (`#issuecomment-6900595542`) found, as S8, that RD-082's
+                entry (ii) admits every unmarked part within a parking area
+                that meets the stretch, where meeting asks only that a car
+                turn, past no marked barrier, onto some unmarked part within
+                it. The scenario: a staff car park Y whose outline reaches the
+                stretch, its entrance way carrying a gate node marked private
+                a few metres inside the outline, so the metres before the gate
+                are an unmarked part within Y that a car turns onto directly;
+                Y's aisles beyond the gate join a visitor car park X's aisles
+                through an unmarked link. With stops the system chose in X on
+                both sides of one in Y, the route runs from the stretch
+                through X and the link into Y and back, passes no barrier,
+                drives only unmarked parts within X or Y, and FR-129 admits
+                it. As N25, a single parking area drawn around both car parks,
+                with no marking between them, or drawn over a whole site's
+                unmarked roads, is still admitted whole. Which parts within a
+                parking area that meets the stretch may the legs use?
+Interpretation: **The set a car reaches from where it meets, and nothing
+                else.** Under RD-082's (ii), the unmarked parts within a
+                parking area establishing a stop that the legs to and from
+                that stop may use are exactly the part onto which a car turns
+                directly, past no marked barrier, from a part the warned leg
+                with no stop between the two locations drives that is marked
+                or that a car reaches only across a marking, and every part a
+                car reaches from such a part along unmarked parts within that
+                parking area, past no marked barrier. A part within the
+                parking area that a car reaches from there only past a marked
+                barrier, or only along a marked part, or only through parts
+                outside the parking area, is not admitted under (ii), so a
+                gate the map data places inside the outline rather than on it
+                closes the set where it stands, and an open link to another
+                parking area does not reopen it under that parking area. Each
+                parking area establishing a stop is still tested on its own
+                (RD-082's N23). N25 is recorded, not changed: one parking area
+                drawn around two car parks with no marked barrier and no
+                marked part between them is one parking area, and one drawn
+                over a site's unmarked roads admits every part of them a car
+                reaches within it from where it meets the stretch, past no
+                marked barrier, so where Y's gated aisles, the link and X all
+                lie within one larger parking area that meets the stretch, the
+                larger one admits the aisles beyond Y's gate, because nothing
+                in the map data separates what the driver passes; the safety
+                verdict judges it non-blocking. This supersedes RD-082's (ii) in its
+                words "and that parking area meets the stretch" as the whole
+                condition on the part, and leaves the rest of RD-082, RD-081's
+                legs-to-and-from rule and N22, and RD-080's count standing.
+Rung:           7, the most conservative reasonable reading, on rung 4's
+                RD-079: "even if the stop for them is on the private stretch
+                you already accepted" serves the part of a parking area the
+                driver enters from that stretch, and "no detours onto other
+                private roads" refuses the parts of it that lie past a marked
+                barrier of its own, which a set measured from the meeting
+                excludes wherever the barrier stands. N25 rests on rung 2:
+                `Architecture.md § D5` builds the data plane from an OSM
+                extract, which holds nothing that divides one mapped parking
+                area into two where no marking stands, so a division nothing
+                maps cannot be required. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                `Volatility`, `Rationale`. FR-138: `Volatility`. #271 gains
+                cycle-9 criteria, appended, and AC15(b) is read with them.
+```

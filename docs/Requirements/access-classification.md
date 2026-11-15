@@ -843,3 +843,77 @@ Rationale:    The obligation is positive by design. Stated as a prohibition on
               twice.
 Resolved-by:  —
 ```
+
+## FR-139 — Record a stopping position the user places on the map as one the user chose
+
+```
+Statement:    The system shall record a stopping position that the user
+              places at a point on the map, or moves to one, as a stopping
+              position the user chose at that point.
+Category:     Access classification
+Source:       SPECIFICATION.md § What establishes a stopping position
+Priority:     SHOULD
+Verification: test — a stop the user places at a point on the map reaches the
+              plan as a stopping position the user chose at that point, a
+              placed stop the user moves reaches it at the new point and not
+              the old, and a stop the user places at the point of a candidate
+              the system offered, or on its marker, reaches the plan as a
+              stopping position the user chose while the candidate stays one
+              the system chose
+Acceptance:   given the map on which the journey is entered or reviewed, when
+              the user places a stop of their own at a point on it, then the
+              plan holds a stopping position the user chose at that point
+              given a stop the user placed, when the user moves it to another
+              point, then the plan holds a stopping position the user chose at
+              the new point and none at the old
+              given a candidate the system offered — a recommended stop, a
+              replacement or a reserve candidate — when the user places a stop
+              at its point or on its marker, then the plan holds a stopping
+              position the user chose at that point, and the candidate's own
+              position stays one the system chose, accepted or not
+Status:       to-build
+Depends-on:   FR-136; FR-138
+Volatility:   open-question — the interaction, where in the flow a stop is
+              placed and how it is drawn, is owed by `DESIGN.md`, which the
+              Owner directed gain it (`DECISIONS.md § RD-073`); no document
+              yet places it in `DESIGN.md § Entering a journey` or
+              `DESIGN.md § Reviewing the recommended route`
+Risk:         Built as an action on an offered candidate, a placement is an
+              acceptance under another name: a one-tap "stop here" on a
+              candidate reads a stop the system picked as the user's, and
+              every record turning on who chose a stop reads it so. Not built,
+              a position `SPECIFICATION.md § What establishes a stopping position`
+              keeps reachable, a customers-only car park where the driver is
+              a customer, is reachable by no act the product offers. Placed
+              on the marker of a candidate offered along a private service
+              road, a stop the user chose there is driven the road's length
+              along FR-126's run, warned by nothing; FR-138 offers no such
+              candidate, so its marker is never shown.
+Rationale:    The cited section sends a stopping position whose own feature
+              records a restriction to uncertain, "so the user may still place
+              the stop there and have it recorded as user-chosen", and
+              `DESIGN.md § Reviewing zones one at a time` gives a zone two
+              actions, neither of which places a stop. FR-136 holds an offered
+              position the system's however the user accepts it, and the Owner
+              directed that the user be able to place or move a stop of their
+              own on the map (`DECISIONS.md § RD-073`). The third criterion
+              keeps the placement an act on a point: the user's stop at a
+              candidate's point is the user's, as FR-136's second criterion
+              keeps it, and the candidate is not made the user's by it, so
+              the zones the system chose are taken from the placed stop only
+              as FR-137 allows. Moving a placed stop is placing it again, so
+              the old point holds nothing. A placement on a candidate's marker
+              stays in the third criterion because the Owner allows one on a
+              customers-only car park's marker before its restriction reason
+              is known, its uncertainty shown (FR-141,
+              `DECISIONS.md § RD-077`), and it reopens nothing FR-138 closes:
+              no way a car runs along is a position's own feature
+              (`DECISIONS.md § RD-075`), so every marker shown belongs to a
+              position reached along no marked way but its own parking
+              area's, and a stop placed there starts no run along a road.
+              `SHOULD`: every exclusion holds
+              without it, and what it adds is the reach the cited section
+              keeps for a restricted position. No mechanism and no wire shape
+              is named.
+Resolved-by:  #277, #278
+```
