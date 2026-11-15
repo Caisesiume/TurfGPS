@@ -1378,7 +1378,7 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               reaches a driving leg; the walking access path's half stays owed
               with FR-075 until an access path is built. No mechanism is
               named, and a penalty is not an exclusion.
-Resolved-by:  #253
+Resolved-by:  #253, #292, #293
 ```
 
 ## FR-129 — Produce a warned leg where nothing avoids a marking between two locations the user entered
