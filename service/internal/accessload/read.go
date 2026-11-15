@@ -37,7 +37,6 @@ import (
 	"io"
 	"os"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/osmpbf"
@@ -306,7 +305,7 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 		return nil
 	}
 
-	v, carrying := valuesOf(conditionalAsKeys(r.Tags))
+	v, carrying := valuesOf(r.Tags)
 	if !carrying {
 		return nil
 	}
@@ -381,11 +380,6 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 		p.keep(w.Nodes)
 	}
 
-	if av, acarrying := valuesOf(conditionalAsKeys(w.Tags)); isArea(w) && acarrying {
-		p.keep(w.Nodes)
-		p.areaWays = append(p.areaWays, areaWay{id: w.ID, values: av, nodes: slices.Clone(w.Nodes)})
-	}
-
 	v, carrying := valuesOf(w.Tags)
 	if !carrying {
 		return nil
@@ -395,22 +389,11 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 
 	p.ways = append(p.ways, Way{ID: w.ID, Values: v, Nodes: slices.Clone(w.Nodes)})
 
-	return nil
-}
-
-// conditionalAsKeys is RED RUN ONLY: each `:conditional` form as the key it
-// qualifies, its condition cut off, and nothing else.
-func conditionalAsKeys(tags map[string]string) map[string]string {
-	out := map[string]string{}
-
-	for k, v := range tags {
-		if base, ok := strings.CutSuffix(k, ":conditional"); ok {
-			value, _, _ := strings.Cut(v, " @")
-			out[base] = value
-		}
+	if isArea(w) {
+		p.areaWays = append(p.areaWays, areaWay{id: w.ID, values: v, nodes: slices.Clone(w.Nodes)})
 	}
 
-	return out
+	return nil
 }
 
 func (p *waysPass) keep(nodes []int64) {
