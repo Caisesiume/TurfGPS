@@ -213,6 +213,61 @@ func TestAPlanningRequestReturnsItsIntermediateDestinationsInTheEnteredOrder(t *
 	}
 }
 
+// TestAReturnToTheOriginNeedsADistinctIntermediateDestination is #5 AC1, AC2
+// and AC3 (`FR-012`) through the request surface: a request whose destination
+// is its origin returns no journey, and says why, when it names no intermediate
+// destination or only the origin again; through a distinct one it is not
+// refused on that ground, and here — every other ground being met — a journey
+// is returned.
+func TestAReturnToTheOriginNeedsADistinctIntermediateDestination(t *testing.T) {
+	t.Parallel()
+
+	const (
+		home = `{"latitude":59.3293,"longitude":18.0686}`
+		shop = `{"latitude":59.8586,"longitude":17.6389}`
+		why  = "names an intermediate destination other than the origin"
+	)
+
+	for _, tc := range []struct {
+		name          string
+		intermediates string
+		want          int
+	}{
+		{name: "AC1: no intermediates field", want: http.StatusBadRequest},
+		{name: "AC1: an empty list of intermediates", intermediates: `,"intermediates":[]`, want: http.StatusBadRequest},
+		{name: "AC2: the origin again", intermediates: `,"intermediates":[` + home + `]`, want: http.StatusBadRequest},
+		{name: "AC2: the origin again, twice", intermediates: `,"intermediates":[` + home + `,` + home + `]`, want: http.StatusBadRequest},
+		{name: "AC3: a distinct intermediate destination", intermediates: `,"intermediates":[` + shop + `]`, want: http.StatusOK},
+		{name: "AC3: a distinct one beside the origin again", intermediates: `,"intermediates":[` + home + `,` + shop + `]`, want: http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := postJourney(t,
+				`{"origin":`+home+tc.intermediates+`,"destination":`+home+`}`,
+				withFakePlanner(t, straightRouting{}))
+
+			if rec.Code != tc.want {
+				t.Fatalf("status = %d, want %d; body %q", rec.Code, tc.want, rec.Body.String())
+			}
+
+			body := rec.Body.String()
+
+			if tc.want == http.StatusOK {
+				if strings.Contains(body, why) || !strings.Contains(body, `"locations"`) {
+					t.Errorf("body %q, want a journey and no refusal for naming the origin as the destination", body)
+				}
+
+				return
+			}
+
+			if strings.Contains(body, `"locations"`) || !strings.Contains(body, why) {
+				t.Errorf("body %q, want no journey and a message saying it %s", body, why)
+			}
+		})
+	}
+}
+
 func TestAPlanningRequestThatCannotBePlannedIsRefused(t *testing.T) {
 	t.Parallel()
 

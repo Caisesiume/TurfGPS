@@ -123,6 +123,12 @@ func planJourney(plans *planner.Planner, timeout time.Duration) http.HandlerFunc
 			http.Error(w, "a location is not a coordinate", http.StatusBadRequest)
 
 			return
+		// `FR-012`'s refusal (#5): the request is refused on what it names, as
+		// one with no destination is (`FR-005`).
+		case errors.Is(err, planner.ErrReturnToOrigin):
+			http.Error(w, "no journey is planned: a journey ending at its origin names an intermediate destination other than the origin", http.StatusBadRequest)
+
+			return
 		// `FR-033`'s refusal (#33), answered as unavailability: the request is
 		// sound and the service holds no zone data to plan it from. What a user
 		// is shown of it has no source yet; this message is the wire's.
