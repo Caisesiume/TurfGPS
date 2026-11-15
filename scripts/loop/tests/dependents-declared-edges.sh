@@ -7,7 +7,9 @@
 #      blocked its story permanently — #136 was held on a pull request its own reason
 #      merely mentioned, and prose accumulates cross-references as the corpus matures;
 #   2. a declared blocker may BE a pull request — numbers share one sequence — and a
-#      MERGED one had no case, so it read UNKNOWN and blocked forever.
+#      MERGED one had no case, so it read UNKNOWN and blocked forever;
+#   3. a `_Pending …_` placeholder in `## Dependencies` blocks (`team-protocol § Board`)
+#      but yielded no edge, so its story was promoted once its declared gates were done (#295).
 # What must NOT change, and is asserted here too: a DECLARED blocker whose state
 # genuinely cannot be read still counts as blocking, every closed-but-not-completed
 # reason still blocks, and a legacy plain close still satisfies
@@ -30,7 +32,20 @@ mkdir -p "$FIX" "$TMP/bin"
 
 # `gh issue list --json number,body --jq …` — one `<issue> <the whole Blocked by line>`
 # record per hard-blocker line, in body order.
+# The `_Pending` placeholders (#295) open the list: `--all` prints at most twelve
+# still_blocked stories, in body order, and these must be inside that cap.
 cat > "$FIX/list" <<'FIXTURE'
+224 Blocked by: #50 — the declared gate, satisfied
+224 _Pending: the design decision this story's third criterion turns on has not been taken._
+225 _Pending @backlog-dependency-planner._
+226  **_Pending:** the bold form, behind a leading space_
+227 Blocked by: #50 — pending nothing: the word in a reason is prose
+228 Blocked by: #50 — satisfied
+228 Soft dependency: #41 — pending review, and a soft edge never gates
+229 Blocked by: #50 — satisfied
+229 ~~_Pending: the decision, since taken and struck through._~~
+230 Blocked by: #50 — satisfied
+230 _pending: a lowercase placeholder still blocks — ambiguity fails toward blocked_
 136 Blocked by: #37 — `DEPLOYMENT.md` is on `main` as of PR #67, and the residency half of this ruling is stated against the runtime model that document fixes.
 201 Blocked by: #67 — the merged pull request itself, declared as the blocker
 202 Blocked by: #7, #41
@@ -73,6 +88,8 @@ printf '%s/issues/45 CLOSED NOT_PLANNED\n' "$R" > "$FIX/view.45"
 printf '%s/issues/46 CLOSED DUPLICATE\n'   "$R" > "$FIX/view.46"
 printf '%s/issues/47 CLOSED REOPENED\n'    "$R" > "$FIX/view.47"
 printf '%s/issues/48 CLOSED \n'            "$R" > "$FIX/view.48"
+# The placeholders' own satisfied gate (#295), so they join no query the others ask.
+printf '%s/issues/50 CLOSED COMPLETED\n'   "$R" > "$FIX/view.50"
 # no view.999 — the reference cannot be read at all
 
 cat > "$TMP/bin/gh" <<'STUB'
@@ -230,11 +247,35 @@ run 41;  absent "a bare none declares nothing at all"       "#223" "#208 (blocke
 run 999; check  "unreadable declared blocker still blocks"       0 "#205 (blockers: #999 unknown)"
 run 999; check  "and is named on its own line"                   0 "unreadable: #999"
 
+# (vi) The `_Pending …_` placeholder (#295). `team-protocol § Board` says it blocks, and
+# board-sync.sh promotes from `eligible:` alone, so a placeholder that yields no edge
+# promotes its story the moment its declared gates are done — the harm, silent again.
+#   AC1: #224 declares only #50, which is satisfied, and a placeholder; #225 has nothing
+#   but a placeholder; #226 is the ornamented form and #230 the lowercase one. Each must
+#   be still_blocked naming `pending`. Without the change #224 and #230 move to
+#   `eligible:` and #225 and #226 leave the report entirely — the `--all` eligible line
+#   below catches the first pair and these four the second.
+#   AC3: #227's reason says `pending`, #228 carries a `Soft dependency:` reason saying it,
+#   #229 a struck `~~_Pending …_~~`. All three stay eligible. The last two never reach
+#   the awk live — the jq select drops them — so here they prove the awk declines them
+#   too, and the strike-through and the soft label hold in both dialects. A placeholder
+#   OUTSIDE `## Dependencies` is the jq's section cut alone, which a stub cannot run; it
+#   is shown on the live board, and in the PR, not here.
+run --all; check "a placeholder holds a story whose gates are done" 0 "#224 (blockers: pending)"
+run --all; check "a placeholder alone is a blocker"              0 "#225 (blockers: pending)"
+run --all; check "a bold, indented placeholder blocks the same"  0 "#226 (blockers: pending)"
+run --all; check "a lowercase placeholder blocks the same"       0 "#230 (blockers: pending)"
+run 50;    check "asked from its satisfied gate, it still blocks" 0 "#224 (blockers: pending)"
+run 41;    absent "a soft line saying pending gains no edge"      "#228" "#202 (blockers: #41 open)"
+run --all; check "pending in prose, soft or struck holds nothing" 0 "eligible: #227, #228, #229, #136"
+
 # `--all` (#210) asks the same question of every story with a declared blocker, which is
-# what board-sync.sh promotes from. Exactly the six whose declared lists are all satisfied,
-# in body order: a membership filter left on prints none of them, and an over-read edge
-# moves one of them into still_blocked.
-run --all; check "--all: every story whose blockers are all done" 0 "eligible: #136, #201, #206, #212, #216, #217"
+# what board-sync.sh promotes from. Exactly the nine whose declared lists are all satisfied,
+# in body order: a membership filter left on prints none of them, an over-read edge
+# moves one of them into still_blocked, and a placeholder read as nothing moves #224 or
+# #230 out of it.
+run --all; check "--all: every story whose blockers are all done" 0 "eligible: #227, #228, #229, #136, #201, #206, #212, #216, #217
+"
 run --all; check "--all labels the run as all"                   0 "dependents_of: all"
 
 [ "$fails" -eq 0 ] || { printf '\n%s test(s) failed\n' "$fails"; exit 1; }
