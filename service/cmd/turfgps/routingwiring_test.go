@@ -50,6 +50,10 @@ func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossin
 	return nil, nil
 }
 
+func (clearAccess) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
+	return planner.RunMeasure{}, planner.ErrNoLeastRun
+}
+
 func lookupOnly(vars map[string]string) config.LookupFunc {
 	return func(name string) (string, bool) {
 		v, ok := vars[name]
@@ -196,7 +200,7 @@ type deadlineRouting struct {
 	bounded   []bool
 }
 
-func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point) ([]planner.Edge, error) {
+func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point, _ []planner.Point) ([]planner.Edge, error) {
 	deadline, ok := ctx.Deadline()
 
 	d.mu.Lock()
@@ -369,5 +373,33 @@ func TestStartupRefusesAMalformedBarrierTolerance(t *testing.T) {
 		if plans, err := newPlanner(lookupOnly(env), heldZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{}); err == nil || plans != nil {
 			t.Errorf("newPlanner with %v gave %v, %v; want a refusal", env, plans, err)
 		}
+	}
+}
+
+// TestStartupRefusesAMalformedAvoidanceBound (#248): an avoidance bound set
+// without its origin, or not a whole number, stops the service at start; one
+// set with its origin starts it.
+func TestStartupRefusesAMalformedAvoidanceBound(t *testing.T) {
+	t.Parallel()
+
+	for _, env := range []map[string]string{
+		{config.EnvAccessAvoidanceAttempts: "3"},
+		{config.EnvAccessAvoidanceAttempts: "-1", config.EnvAccessAvoidanceAttemptsOrigin: "chosen"},
+	} {
+		env[config.EnvValhallaURL] = "http://127.0.0.1:8002"
+
+		if plans, err := newPlanner(lookupOnly(env), heldZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{}); err == nil || plans != nil {
+			t.Errorf("newPlanner with %v gave %v, %v; want a refusal", env, plans, err)
+		}
+	}
+
+	env := map[string]string{
+		config.EnvValhallaURL:                   "http://127.0.0.1:8002",
+		config.EnvAccessAvoidanceAttempts:       "3",
+		config.EnvAccessAvoidanceAttemptsOrigin: "chosen",
+	}
+
+	if plans, err := newPlanner(lookupOnly(env), heldZoneCopy{}, unwiredAccessMarkings{}, unknownRoutingData{}); err != nil || plans == nil {
+		t.Errorf("newPlanner with a bound and its origin gave %v, %v; want a planner", plans, err)
 	}
 }

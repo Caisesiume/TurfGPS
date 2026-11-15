@@ -173,6 +173,10 @@ func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossin
 	return nil, nil
 }
 
+func (clearAccess) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
+	return planner.RunMeasure{}, planner.ErrNoLeastRun
+}
+
 // joined is the shape of a route's edges, joined as the planner joins them.
 func joined(edges []planner.Edge) []planner.Point {
 	var out []planner.Point
@@ -315,7 +319,7 @@ func TestTheLegIsAskedBetweenItsLocationsInOrder(t *testing.T) {
 	from := planner.Point{Latitude: 57.7036, Longitude: 11.9611}
 	to := planner.Point{Latitude: 57.7052, Longitude: 11.9714}
 
-	edges, err := c.Route(t.Context(), from, to)
+	edges, err := c.Route(t.Context(), from, to, nil)
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -360,7 +364,7 @@ func TestALegNotDrivenByCarIsRefused(t *testing.T) {
 			return http.StatusOK, answer(leg{Shape: shape, Maneuvers: maneuvers})
 		})
 
-		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97})
+		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
 		if !errors.Is(err, ErrNotDriven) {
 			t.Errorf("a leg travelled %s gave %v, %v; want an error wrapping ErrNotDriven", name, got, err)
 		}
@@ -390,7 +394,7 @@ func TestAnAnswerThatIsNotOneLegIsRefused(t *testing.T) {
 	} {
 		_, c := startEngine(t, func(map[string]any) (int, string) { return http.StatusOK, body })
 
-		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97})
+		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
 		if err == nil || got != nil {
 			t.Errorf("an answer with %s gave %v, %v; want an error and no route", name, got, err)
 		}
@@ -414,7 +418,7 @@ func TestAnEngineErrorIsAnError(t *testing.T) {
 	} {
 		_, c := startEngine(t, func(map[string]any) (int, string) { return tc.status, tc.body })
 
-		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97})
+		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
 		if err == nil || got != nil {
 			t.Errorf("an answer of %d gave %v, %v; want an error and no route", tc.status, got, err)
 
@@ -438,7 +442,7 @@ func TestAnOversizedAnswerIsRefused(t *testing.T) {
 		return http.StatusOK, strings.Repeat(" ", maxResponseBytes+1)
 	})
 
-	_, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97})
+	_, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
 	if err == nil || !strings.Contains(err.Error(), "exceeds") {
 		t.Errorf("an answer of %d bytes gave %v, want a refusal for its size", maxResponseBytes+1, err)
 	}
@@ -464,7 +468,7 @@ func TestARedirectIsNotFollowed(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	if _, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}); err == nil {
+	if _, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil); err == nil {
 		t.Error("a redirect was answered as a route, want an error")
 	}
 
@@ -503,7 +507,7 @@ func TestARouteEndsWithItsTimeoutOrItsCaller(t *testing.T) {
 	}
 
 	start := time.Now()
-	if _, err := c.Route(t.Context(), from, to); !errors.Is(err, context.DeadlineExceeded) {
+	if _, err := c.Route(t.Context(), from, to, nil); !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("a silent engine gave %v, want the timeout's deadline", err)
 	}
 
@@ -519,7 +523,7 @@ func TestARouteEndsWithItsTimeoutOrItsCaller(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	time.AfterFunc(100*time.Millisecond, cancel)
 
-	if _, err := patient.Route(ctx, from, to); !errors.Is(err, context.Canceled) {
+	if _, err := patient.Route(ctx, from, to, nil); !errors.Is(err, context.Canceled) {
 		t.Errorf("a cancelled caller gave %v, want its cancellation", err)
 	}
 }
@@ -673,6 +677,73 @@ func TestTheRequestBodyIsTheDocumentedOne(t *testing.T) {
 	}
 
 	const want = `{"locations":[{"lat":57.7036,"lon":11.9611},{"lat":57.7052,"lon":11.9714}],"costing":"auto","directions_type":"maneuvers"}`
+	if string(b) != want {
+		t.Errorf("the route request is\n%s\nwant\n%s", b, want)
+	}
+}
+
+// TestAPlaceToAvoidIsSentAsAnExcludedLocation is the adapter's half of
+// avoidance (#248, `Architecture.md § Avoiding, not only refusing`): each
+// place goes to the route request as an `exclude_locations` entry, by `lat`
+// and `lon`, in the order given, and nothing else is added to either request —
+// no polygon, no costing option — so the car costing is what it was.
+func TestAPlaceToAvoidIsSentAsAnExcludedLocation(t *testing.T) {
+	t.Parallel()
+
+	engine, c := startEngine(t, straightByCar)
+
+	from := planner.Point{Latitude: 57.7036, Longitude: 11.9611}
+	to := planner.Point{Latitude: 57.7052, Longitude: 11.9714}
+	avoid := []planner.Point{{Latitude: 57.7040, Longitude: 11.9650}, {Latitude: 57.7045, Longitude: 11.9680}}
+
+	if _, err := c.Route(t.Context(), from, to, avoid); err != nil {
+		t.Fatalf("Route: %v", err)
+	}
+
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+
+	if len(engine.asked) != 1 || len(engine.traced) != 1 {
+		t.Fatalf("the engine was asked %d routes and %d traces, want one of each", len(engine.asked), len(engine.traced))
+	}
+
+	got, _ := engine.asked[0].Body["exclude_locations"].([]any)
+	if len(got) != len(avoid) {
+		t.Fatalf("the route request excludes %v, want the %d places given", engine.asked[0].Body["exclude_locations"], len(avoid))
+	}
+
+	for i, want := range avoid {
+		m, _ := got[i].(map[string]any)
+		if len(m) != 2 || m["lat"] != want.Latitude || m["lon"] != want.Longitude {
+			t.Errorf("excluded location %d was sent as %v, want lat %v and lon %v alone", i, m, want.Latitude, want.Longitude)
+		}
+	}
+
+	for _, key := range []string{"costing_options", "exclude_polygons", "linear_cost_factors"} {
+		if v, ok := engine.asked[0].Body[key]; ok {
+			t.Errorf("the route request carries %s = %v, want none", key, v)
+		}
+	}
+
+	if _, ok := engine.traced[0].Body["exclude_locations"]; ok {
+		t.Error("the trace request carries the exclusions, want them on the route request alone")
+	}
+}
+
+func TestTheAvoidingRequestBodyIsTheDocumentedOne(t *testing.T) {
+	t.Parallel()
+
+	b, err := json.Marshal(routeRequest{
+		Locations:        []location{{Lat: 57.7036, Lon: 11.9611}, {Lat: 57.7052, Lon: 11.9714}},
+		ExcludeLocations: []location{{Lat: 57.704, Lon: 11.965}},
+		Costing:          costingCar,
+		DirectionsType:   directionsManeuvers,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const want = `{"locations":[{"lat":57.7036,"lon":11.9611},{"lat":57.7052,"lon":11.9714}],"exclude_locations":[{"lat":57.704,"lon":11.965}],"costing":"auto","directions_type":"maneuvers"}`
 	if string(b) != want {
 		t.Errorf("the route request is\n%s\nwant\n%s", b, want)
 	}

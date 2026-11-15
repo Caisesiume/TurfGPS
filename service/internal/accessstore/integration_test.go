@@ -528,7 +528,7 @@ func (fx *fixture) refused(t *testing.T, tc legCase) {
 	unmarkedEnd(t, fx.opl, tc.toWay)
 
 	// The engine's route runs where the case says, before the check.
-	edges, err := fx.routing.Route(t.Context(), tc.from, tc.to)
+	edges, err := fx.routing.Route(t.Context(), tc.from, tc.to, nil)
 	if err != nil {
 		t.Fatalf("the engine routed no leg: %v", err)
 	}
@@ -731,7 +731,7 @@ type everyLegAlong struct {
 	asked int
 }
 
-func (e *everyLegAlong) Route(context.Context, planner.Point, planner.Point) ([]planner.Edge, error) {
+func (e *everyLegAlong) Route(context.Context, planner.Point, planner.Point, []planner.Point) ([]planner.Edge, error) {
 	e.asked++
 
 	return []planner.Edge{{WayID: e.way, Shape: e.shape}}, nil

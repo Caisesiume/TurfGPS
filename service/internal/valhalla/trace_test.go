@@ -56,7 +56,7 @@ func TestTheTraceIsAskedForTheRoutesOwnShape(t *testing.T) {
 	shape := []planner.Point{traceA, traceB, traceC}
 	engine, c := startEngine(t, routeOf(shape))
 
-	if _, err := c.Route(t.Context(), traceA, traceC); err != nil {
+	if _, err := c.Route(t.Context(), traceA, traceC, nil); err != nil {
 		t.Fatalf("Route: %v", err)
 	}
 
@@ -111,7 +111,7 @@ func TestALegIsItsTracedEdges(t *testing.T) {
 			traceEdge{WayID: 33, BeginShapeIndex: 2, EndShapeIndex: 3})
 	}})
 
-	edges, err := c.Route(t.Context(), traceA, traceD)
+	edges, err := c.Route(t.Context(), traceA, traceD, nil)
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestALegWhoseWaysAreNotNamedIsRefused(t *testing.T) {
 	} {
 		c := startFake(t, &fakeEngine{respond: routeOf([]planner.Point{traceA, traceD}), trace: respond})
 
-		got, err := c.Route(t.Context(), traceA, traceD)
+		got, err := c.Route(t.Context(), traceA, traceD, nil)
 		if !errors.Is(err, ErrWaysUnnamed) || got != nil {
 			t.Errorf("%s: Route gave %v, %v; want no route and an error wrapping ErrWaysUnnamed", name, got, err)
 		}

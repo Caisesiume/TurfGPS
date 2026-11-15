@@ -25,6 +25,12 @@ type markingsOn struct {
 	err     error
 }
 
+// Run finds no least run: a run along markedWay is never admitted here, which
+// run_test.go's fakes vary.
+func (m *markingsOn) Run(context.Context, []Edge) (RunMeasure, error) {
+	return RunMeasure{}, ErrNoLeastRun
+}
+
 func (m *markingsOn) ExtractSHA256(context.Context) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -76,7 +82,7 @@ func (d routingData) ExtractSHA256(context.Context) (string, error) { return d.i
 // along markedWay, between two edges along ways not marked.
 type alongMarkedWay struct{ asked int }
 
-func (a *alongMarkedWay) Route(_ context.Context, from, to Point) ([]Edge, error) {
+func (a *alongMarkedWay) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
 	a.asked++
 
 	mid := Point{Latitude: (from.Latitude + to.Latitude) / 2, Longitude: (from.Longitude + to.Longitude) / 2}
@@ -135,7 +141,7 @@ type markedOnLastLeg struct {
 	asked int
 }
 
-func (m *markedOnLastLeg) Route(_ context.Context, from, to Point) ([]Edge, error) {
+func (m *markedOnLastLeg) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
 	m.asked++
 
 	way := int64(m.asked)
@@ -253,7 +259,9 @@ func TestNoJourneyWithoutOneExtract(t *testing.T) {
 // edgesRouting answers every leg with the same edges.
 type edgesRouting struct{ edges []Edge }
 
-func (e edgesRouting) Route(context.Context, Point, Point) ([]Edge, error) { return e.edges, nil }
+func (e edgesRouting) Route(context.Context, Point, Point, []Point) ([]Edge, error) {
+	return e.edges, nil
+}
 
 // TestALegTheCheckCannotReadIsNotProduced holds every provider to the contract
 // RoutingProvider states: a leg with no edges, an edge with no way, an edge of

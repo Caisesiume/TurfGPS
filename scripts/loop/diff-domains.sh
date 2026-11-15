@@ -82,9 +82,11 @@ add $((scripts + ci))        scripts 'correctness, supply chain'
 # routing exclusion (#6). The access-marking check is one too (#255): the
 # migration that spells the rule and the check, the reader and loader that fill
 # the tables from the extract, the store that reads them, and the planner that
-# refuses every leg crossing a marking. Pinned by
+# refuses every leg crossing a marking. So is the migration that measures the
+# run at a location the user entered, the bound a marked leg is held to (#248).
+# Pinned by
 # scripts/loop/tests/diff-domains-safety-floor.sh.
-candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+|service/internal/(planner|accessstore|accessload|osmpbf)/.+|migrations/0003_access_markings\.[a-z.]+)$' 2>/dev/null)"
+candidates="$(printf '%s\n' "$files" | grep -E '^(docs/CalculationSpecification\.md|docs/SPECIFICATION\.md|docs/Requirements/(safety-exclusions|access-classification)\.md|\.claude/skills/safety-path-checklist/SKILL\.md|\.claude/agents/safety-sentinel\.md|service/internal/config/.+|service/internal/ownership/.+|service/internal/valhalla/.+|service/internal/(planner|accessstore|accessload|osmpbf)/.+|migrations/0003_access_markings\.[a-z.]+|migrations/0004_access_run\.[a-z.]+)$' 2>/dev/null)"
 
 printf 'total_files: %s\n' "$total"
 printf 'domains: {go: %s, frontend: %s, docs: %s, agent_system: %s, scripts: %s, schema: %s, ci: %s, data: %s, other: %s}\n' \

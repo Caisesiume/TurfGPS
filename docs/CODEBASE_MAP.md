@@ -8,11 +8,12 @@ path, the ports, the refresh schedule and the API version are cited here and
 repeated nowhere, per `docs/README.md § Conventions`. Which document answers
 which question is `docs/README.md § The documents`, and is not restated either.
 
-**Accurate as of 14 November 2026**, against the tree that lands the scheduled
+**Accurate as of 15 November 2026**, against the tree that lands the scheduled
 zone sync, corridor resolution against the local copy, the review
 session's ownership decisions, the zone feed (#232), the planning entry
 point (#1), the planning gate on the local zone copy (#33), the car
-routing adapter (#6), and the access-marking tables and route check (#255). It
+routing adapter (#6), the access-marking tables and route check (#255), and the
+exclusion of marked ways from driving legs (#248). It
 is maintained by the work that changes the structure:
 a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
@@ -59,12 +60,12 @@ identity can be read (#25).
 
 | Package | What it is for |
 |---|---|
-| `internal/config` | reads the runtime configuration from the process environment |
+| `internal/config` | reads the runtime configuration from the process environment, the access-marking check's barrier tolerance (#255) and avoidance bound (#248) among it, neither with a default |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
 | `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, answers 503 when no routing engine is configured or the zone copy cannot be read — every plan, until #249 — and 504 when a plan outlives the deadline the composition root sets below the server's write timeout (#6) |
-| `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1); the port's contract is a route a car can drive (#6), returned as the OpenStreetMap ways it runs along, and every leg is checked against the `AccessMarkings` port it declares and refused where it crosses a marking, while the markings and the `RoutingData` port report one extract (#255); it plans from whatever local zone copy is held and refuses only where none is, through the `ZoneCopy` port it declares (#33) |
-| `internal/valhalla` | the Valhalla adapter behind `internal/planner`'s port, routing every leg for a car (#6) and naming its ways through the engine's `trace_attributes` (#255); its integration tests run under the `valhalla` build tag against an engine CI builds from the OpenStreetMap extract in `testdata/`, which is ODbL-licensed data and not code — its README says so, and how to regenerate it |
-| `internal/accessstore` | the PostGIS adapter behind `internal/planner`'s `AccessMarkings`: reads the current load's extract and calls the migration's route check (#255); its integration tests run under the `valhalla` tag, against the engine and the tables loaded from the same extract |
+| `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1); the port's contract is a route a car can drive (#6), returned as the OpenStreetMap ways it runs along, and every leg is checked against the `AccessMarkings` port it declares and refused where it crosses a marking in transit, while the markings and the `RoutingData` port report one extract (#255); the run at a location the user entered is read in `run.go`, and a refused leg is asked for again avoiding what it crossed, up to a configured bound (#248); it plans from whatever local zone copy is held and refuses only where none is, through the `ZoneCopy` port it declares (#33) |
+| `internal/valhalla` | the Valhalla adapter behind `internal/planner`'s port, routing every leg for a car (#6), naming its ways through the engine's `trace_attributes` (#255), and sending the places a leg is to avoid as `exclude_locations` (#248); its integration tests run under the `valhalla` build tag against an engine CI builds from the OpenStreetMap extract in `testdata/`, which is ODbL-licensed data and not code — its README says so, and how to regenerate it |
+| `internal/accessstore` | the PostGIS adapter behind `internal/planner`'s `AccessMarkings`: reads the current load's extract and calls the migration's route check (#255), and measures the run at a location the user entered against the least from the lengths `0004_access_run.sql` gives (`run.go`, #248); its integration tests run under the `valhalla` tag, against the engine and the tables loaded from the same extract |
 | `internal/accessload` | the loader that fills the access-marking tables from an extract in one transaction and records the load (#255); nothing the request surface imports reaches it |
 | `internal/osmpbf` | reads an OpenStreetMap `.osm.pbf` file whole, or refuses it — the loader's reader (#255) |
 | `internal/ownership` | the review session's ownership decisions — whether the user holds a zone, whether they hold a region lordship anywhere, and a zone record's ownership fields carried as absent where the API omits them — through the two reads it declares as its ports, never the Turf adapter (#22, #23, #24) |
@@ -158,8 +159,9 @@ there rather than inside the module is the opening of `migrations/README.md`,
 which is the directory's front door and carries the rest of what a reader
 needs: the file convention, `migrations/README.md § Applying one`, the ingest
 field mapping the sync writes against, what the worker owes the run record,
-the zone feed's own state (`0002_zone_feed.sql`), and the access-marking tables
-and route check (`0003_access_markings.sql`, #255).
+the zone feed's own state (`0002_zone_feed.sql`), the access-marking tables
+and route check (`0003_access_markings.sql`, #255), and the statements the run
+at a location the user entered is measured by (`0004_access_run.sql`, #248).
 
 The schema and the write path themselves are `Architecture.md § The schema` and
 `Architecture.md § The sync write path`. Neither this file nor
