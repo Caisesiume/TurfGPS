@@ -94,8 +94,13 @@ const (
 // the meridian radius M(φ) and the prime-vertical radius N(φ), which bounds
 // N(φ)·cos φ, are each at most c at every latitude, reaching it at the poles.
 // The geodesic is no longer than that path, and the distance from the node to
-// a shape through its vertex is no longer than the distance to the vertex. A
-// node moved by at most d degrees on each axis therefore lies within
+// a shape through its vertex is no longer than the distance to the vertex.
+// Where PostGIS geography ST_DWithin measures to the point P of the shape
+// nearest on the sphere rather than the spheroid, it is still bounded by
+// c·√2·d·π/180: the spheroid distance to P is at most c·θ(node, P), θ the angle
+// on the unit sphere at the same (φ, λ), whose element √(dφ² + cos²φ·dλ²) the
+// one above is at most c times, and θ(node, P) ≤ θ(node, V) ≤ √2·d·π/180 for the
+// vertex V. A node moved by at most d degrees on each axis therefore lies within
 // √2·c·d·π/180 metres of the shape, at any latitude and longitude, and that is
 // the floor.
 const BarrierToleranceFloorMetres = math.Sqrt2 * wgs84PolarRadiusOfCurvatureMetres * nodeDisplacementDegrees * math.Pi / 180

@@ -77,8 +77,10 @@ func TestABarrierToleranceAtOrAboveTheFloorIsTakenUnchanged(t *testing.T) {
 // TestTheFloorCoversTheShapeEncodingAtEveryLatitude (#265 AC3): the floor is at
 // least the farthest the shape encoding's rounding alone can move a point, at
 // every latitude, measured with the spheroid's own radii rather than the bound
-// the derivation uses for them. It checks the bound against one of its terms;
-// the derivation is on the constant.
+// the derivation uses for them; and at least the farthest the whole chain of
+// roundings can, steps 1 to 4 summed per axis from their quanta here rather
+// than read from nodeDisplacementDegrees, so a step dropped from that sum
+// fails here. The derivation is on the constant.
 func TestTheFloorCoversTheShapeEncodingAtEveryLatitude(t *testing.T) {
 	t.Parallel()
 
@@ -87,6 +89,8 @@ func TestTheFloorCoversTheShapeEncodingAtEveryLatitude(t *testing.T) {
 	f := 1 / wgs84InverseFlattening
 	e2 := f * (2 - f)
 	half := legShapeQuantumDegrees / 2 * math.Pi / 180
+	whole := (osmiumQuantumDegrees + osmNodeQuantumDegrees/2 +
+		tileShapeQuantumDegrees/2 + legShapeQuantumDegrees/2) * math.Pi / 180
 
 	for q := -360; q <= 360; q++ {
 		phi := float64(q) / 4 * math.Pi / 180
@@ -95,6 +99,10 @@ func TestTheFloorCoversTheShapeEncodingAtEveryLatitude(t *testing.T) {
 
 		if d := math.Hypot(meridian*half, primeVertical*math.Cos(phi)*half); d > BarrierToleranceFloorMetres {
 			t.Errorf("at %v° the encoding's rounding moves a point %v m, beyond the floor of %v m", float64(q)/4, d, BarrierToleranceFloorMetres)
+		}
+
+		if d := math.Hypot(meridian*whole, primeVertical*math.Cos(phi)*whole); d > BarrierToleranceFloorMetres {
+			t.Errorf("at %v° the four roundings, steps 1 to 4, move a node %v m, beyond the floor of %v m", float64(q)/4, d, BarrierToleranceFloorMetres)
 		}
 	}
 }
