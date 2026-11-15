@@ -9,12 +9,17 @@ package accessstore_test
 //
 // EACH TEST ESTABLISHES ITS PREMISE FROM THE EXTRACT FIRST: that the marked way
 // or barrier is there with its marking and no other access key, that the ends
-// lie on ways the reading leaves unmarked, that the avoiding connection the
-// case names is in the file, and — through the engine itself, asked with
-// `ignore_access`, so that what a marking costs or forbids is set aside — that
-// the quickest drivable connection between the ends runs along the marked way
-// or past the marked node. A run against an extract that no longer holds the
-// case fails there rather than passing vacuously.
+// lie on ways the reading leaves unmarked, that the marking lies on a
+// connection between them, and that any avoiding connection the case names is
+// in the file and longer, along ways of the same class, so the connection
+// along the marking is the quickest. A run against an extract that no longer
+// holds the case fails there rather than passing vacuously.
+//
+// The quickest connection is read from the file's geometry, not asked of the
+// engine: Valhalla 3.9.1 keeps off a destination-only way or a private gate on
+// its first pass whatever `ignore_access` says (CI's first run of #248, PR
+// #270), so no request names the quickest connection with the marking's cost
+// set aside. Each test logs which way the engine itself first went.
 //
 // Most cases are synthetic (`testdata/README.md` § The synthetic cases): each
 // criterion names a road layout — a marking with a way around it, a home on a
@@ -24,17 +29,13 @@ package accessstore_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/planner"
 )
@@ -199,115 +200,60 @@ func (fx *fixture) casePremise(t *testing.T, tc transitCase, wantMarked bool) {
 		t.Fatalf("the premise does not hold: the independent reading gives marked=%v for %v, want %v", marked(tags), tags, wantMarked)
 	}
 
-	n := fx.opl.nodes[tc.middle()]
-	if !fx.quickestPasses(t, tc.from(), tc.to(), n.lat, n.lon) {
-		t.Fatalf("the premise does not hold: the quickest drivable connection between the ends, access set aside, does not pass node %d of the case way", tc.middle())
+	if tc.detour {
+		fx.shorter(t, []int64{tc.caseWay()}, []int64{synWay(tc.c, 4), synWay(tc.c, 5), synWay(tc.c, 6)})
+	}
+
+	if edges, err := fx.routing.Route(t.Context(), tc.from(), tc.to(), nil); err == nil {
+		t.Logf("the engine's own route, nothing avoided, runs along %v", wayIDs(edges))
 	}
 }
 
-// quickestPasses reports whether the engine's quickest connection between two
-// points, access set aside (`ignore_access`, the `auto` costing's documented
-// option at 3.9.1), passes within a shape vertex of the position. It is the
-// premise "whose quickest drivable connection runs along" a marking, asked of
-// the engine without the marking's cost; the service never sends it.
-func (fx *fixture) quickestPasses(t *testing.T, from, to planner.Point, lat, lon float64) bool {
+// length is the length in metres, by PostGIS on geography, of the synthetic
+// ways as the independent reading draws them.
+func (fx *fixture) length(t *testing.T, ways ...int64) float64 {
 	t.Helper()
 
-	body, err := json.Marshal(map[string]any{
-		"locations":       []map[string]float64{{"lat": from.Latitude, "lon": from.Longitude}, {"lat": to.Latitude, "lon": to.Longitude}},
-		"costing":         "auto",
-		"costing_options": map[string]any{"auto": map[string]any{"ignore_access": true}},
-		"directions_type": "maneuvers",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	var total float64
 
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
+	for _, id := range ways {
+		ft := fx.opl.ways[id]
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(input(t, envValhalla), "/")+"/route", strings.NewReader(string(body)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("the premise could not be asked: the engine answered %d, %s, %v", resp.StatusCode, raw, err)
-	}
-
-	var r struct {
-		Trip struct {
-			Legs []struct {
-				Shape string `json:"shape"`
-			} `json:"legs"`
-		} `json:"trip"`
-	}
-
-	if err := json.Unmarshal(raw, &r); err != nil || len(r.Trip.Legs) != 1 {
-		t.Fatalf("the premise could not be read: %s, %v", raw, err)
-	}
-
-	for _, p := range decodePolyline6(t, r.Trip.Legs[0].Shape) {
-		// Six decimal places round a vertex by at most half a millionth of a
-		// degree on each axis.
-		if math.Abs(p.Latitude-lat) <= 1e-6 && math.Abs(p.Longitude-lon) <= 1e-6 {
-			return true
+		points := make([]string, len(ft.nodes))
+		for i, n := range ft.nodes {
+			points[i] = fmt.Sprintf("%.7f %.7f", fx.opl.nodes[n].lon, fx.opl.nodes[n].lat)
 		}
+
+		var m float64
+		if err := fx.pool.QueryRow(t.Context(), `SELECT ST_Length(ST_GeogFromText('SRID=4326;LINESTRING(' || $1 || ')'))`,
+			strings.Join(points, ",")).Scan(&m); err != nil {
+			t.Fatal(err)
+		}
+
+		total += m
 	}
 
-	return false
+	return total
 }
 
-// decodePolyline6 decodes an encoded polyline at six decimal places
-// (docs/docs/api/decoding.md at 3.9.1), written again here rather than taken
-// from the adapter it tests.
-func decodePolyline6(t *testing.T, s string) []planner.Point {
+// shorter fails the test unless the connection along the first ways is
+// shorter than the one along the second, every way of both of one class: the
+// first is then the quickest.
+func (fx *fixture) shorter(t *testing.T, along, around []int64) {
 	t.Helper()
 
-	var (
-		out      []planner.Point
-		lat, lon int64
-	)
-
-	next := func(i *int) int64 {
-		var result, shift int64
-
-		for {
-			if *i >= len(s) {
-				t.Fatalf("the shape %q ends inside a value", s)
-			}
-
-			b := int64(s[*i]) - 63
-			*i++
-			result |= (b & 0x1f) << shift
-			shift += 5
-
-			if b < 0x20 {
-				break
-			}
+	class := fx.opl.ways[along[0]].tags["highway"]
+	for _, id := range append(slices.Clone(along), around...) {
+		if c := fx.opl.ways[id].tags["highway"]; c != class {
+			t.Fatalf("the premise does not hold: way %d is highway=%s, want every way of both connections %s", id, c, class)
 		}
-
-		if result&1 != 0 {
-			return ^(result >> 1)
-		}
-
-		return result >> 1
 	}
 
-	for i := 0; i < len(s); {
-		lat += next(&i)
-		lon += next(&i)
-		out = append(out, planner.Point{Latitude: float64(lat) / 1e6, Longitude: float64(lon) / 1e6})
+	if a, b := fx.length(t, along...), fx.length(t, around...); !(a < b) {
+		t.Fatalf("the premise does not hold: the connection along the marking is %.1f m and the one round it %.1f m, want it the shorter", a, b)
+	} else {
+		t.Logf("the connection along the marking is %.1f m, the one round it %.1f m", a, b)
 	}
-
-	return out
 }
 
 // --- what is measured -------------------------------------------------------
@@ -826,15 +772,13 @@ func TestAC6TheRunCarriesNoMoreMarkedTravelThanTheLeast(t *testing.T) {
 
 	fx.plainWay(t, synWay(farCase, 6), x2, synNode(farCase, 7))
 
-	// The quickest leg leaves by the far side.
-	far := fx.opl.nodes[x2]
-	if !fx.quickestPasses(t, home, dest, far.lat, far.lon) {
-		t.Fatal("the premise does not hold: the quickest drivable connection from the home to the destination does not leave by B")
+	// The quickest leg leaves by the far side: the engine's own route does.
+	edges, err := fx.routing.Route(t.Context(), home, dest, nil)
+	if err != nil || !slices.Contains(wayIDs(edges), wayB) {
+		t.Fatalf("the premise does not hold: the engine's own route from the home, nothing avoided, runs along %v (%v), not by B", wayIDs(edges), err)
 	}
 
-	if edges, err := fx.routing.Route(t.Context(), home, dest, nil); err == nil {
-		t.Logf("the engine's own route, nothing avoided, runs along %v", wayIDs(edges))
-	}
+	t.Logf("the engine's own route, nothing avoided, runs along %v", wayIDs(edges))
 
 	near := fx.opl.nodes[x1]
 	least := fx.distance(t, home, planner.Point{Latitude: near.lat, Longitude: near.lon})
@@ -902,15 +846,27 @@ func TestAC12BeyondTheRunALegIsHeldToTheRuleInTransit(t *testing.T) {
 		dest := planner.Point{Latitude: lat + 0.002, Longitude: 11.710}
 
 		synthetic248(t, fx.opl.ways, "way", synWay(c, 1), map[string]string{"access": "private"})
-		gate := synthetic248(t, fx.opl.nodes, "node", synNode(c, 5), map[string]string{"barrier": "lift_gate", "access": "residents"})
+		synthetic248(t, fx.opl.nodes, "node", synNode(c, 5), map[string]string{"barrier": "lift_gate", "access": "residents"})
 
-		if !fx.quickestPasses(t, home, dest, gate.lat, gate.lon) {
-			t.Fatalf("the premise does not hold: the quickest drivable connection in case %d does not pass the lift_gate", c)
+		if gate := fx.opl.ways[synWay(c, 4)]; !slices.Contains(gate.nodes, synNode(c, 5)) || carries(gate.tags) {
+			t.Fatalf("the premise does not hold: way %d does not carry the lift_gate, or is itself marked", synWay(c, 4))
+		}
+
+		for _, k := range []int{2, 3, 5} {
+			fx.plainWay(t, synWay(c, k), fx.opl.ways[synWay(c, k)].nodes[0], fx.opl.ways[synWay(c, k)].nodes[1])
 		}
 
 		_, bypass := fx.opl.ways[synWay(c, 6)]
 		if bypass != (c == beyondCase) {
 			t.Fatalf("the premise does not hold: case %d has a way round the gate: %v", c, bypass)
+		}
+
+		if bypass {
+			fx.shorter(t, []int64{synWay(c, 4)}, []int64{synWay(c, 6), synWay(c, 7), synWay(c, 8)})
+		}
+
+		if edges, err := fx.routing.Route(t.Context(), home, dest, nil); err == nil {
+			t.Logf("case %d: the engine's own route, nothing avoided, runs along %v", c, wayIDs(edges))
 		}
 	}
 
