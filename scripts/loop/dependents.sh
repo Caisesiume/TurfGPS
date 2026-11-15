@@ -12,11 +12,6 @@
 # are the graph — the grammar is stated in `team-protocol § Board`, and every shape of
 # it is pinned by scripts/loop/tests/dependents-declared-edges.sh. Until #210 its full
 # table was `turfgps-board-ops § The dependency representation`; git history keeps it.
-# A `_Pending …_` placeholder there is a hard blocker too, because `team-protocol § Board`
-# says it blocks (#295). It names no issue, so it is read as one blocker called `pending`
-# that nothing satisfies except removing the line. Only a line OPENING `_Pending` (after
-# spaces or `*`) counts: a `pending` in some line's reason, a struck `~~_Pending …_~~`
-# and a placeholder outside `## Dependencies` hold nothing.
 # `Soft dependency:` lines are deliberately NOT read here: a soft edge never blocks
 # readiness, so counting one would manufacture a blocker and hold work the board
 # never intended to hold.
@@ -50,7 +45,7 @@
 # That is unchanged; it now reaches only references that were actually declared.
 #
 # Usage: scripts/loop/dependents.sh <issue-number>
-#        scripts/loop/dependents.sh --all      every open story with a declared blocker or placeholder
+#        scripts/loop/dependents.sh --all      every open story with a declared blocker
 # Exit:  0  read the board (prints `none` when nothing depended on #N)
 #        2  no argument, or GitHub could not be read at all
 
@@ -67,7 +62,7 @@ GH="${GH:-/c/Program Files/GitHub CLI/gh.exe}"
 
 # One board read. `gh --jq` uses the jq engine compiled into gh; standalone jq is
 # NOT installed on this machine. Emits one `<issue> <the whole Blocked by line>`
-# record per hard-blocker line, `_Pending` placeholders included — the raw line, because which of the references on
+# record per hard-blocker line — the raw line, because which of the references on
 # it are DECLARED is decided below, in the shell, where it can be tested against
 # fixtures without a network.
 #
@@ -93,7 +88,7 @@ lines="$("$GH" issue list --state open --limit 1000 --json number,body --jq '
                  | if length > 1 then (.[1] | split("\n## ")[0]) else "" end)}
   | .n as $n
   | .dep | split("\n")[]
-  | select(test("^ *\\**(Blocked by|_[Pp]ending)"))
+  | select(test("^ *\\**Blocked by"))
   | "\($n) \(.)"
 ' 2>/dev/null)"
 
@@ -114,14 +109,9 @@ lines="$("$GH" issue list --state open --limit 1000 --json number,body --jq '
 # THE LABEL PREFIX IS EXPRESSED TWICE, in two dialects — the jq `select` above and
 # the strip below. A grammar extension made in only one of them stays green: the
 # suite stubs `gh`, so a fixture reaches the awk without passing the jq, and an
-# awk-only change therefore passes every test and then sees no live line. The
-# placeholder (#295) is one such extension: `_[Pp]ending` in the select's alternation
-# and `^ *[*]*_[Pp]ending` beside the strip. Its sentinel `pending` can never equal a
-# number, so the single-issue membership scan below is untouched by it.
+# awk-only change therefore passes every test and then sees no live line.
 pairs="$(printf '%s\n' "$lines" | awk '
   { dependent = $1; rest = substr($0, index($0, " ") + 1); list = ""
-    if (rest ~ /^ *[*]*_[Pp]ending/)         # a placeholder blocks as itself (#295),
-      { list = "pending"; rest = "" }        # and its prose declares nothing
     if (rest ~ /^[^#]*(—|–|--)/)             # the reason first, but only where its
       sub(/(—|–|--).*$/, "", rest)           # dash comes before every `#`
     sub(/^ *[*]*Blocked by[^#]*/, "", rest)  # then the label and any ornamentation
@@ -193,10 +183,6 @@ while IFS=' ' read -r issue blockers; do
   [ -n "$issue" ] || continue
   remaining=""
   for blocker in $(printf '%s' "$blockers" | tr ',' ' '); do
-    if [ "$blocker" = pending ]; then         # a placeholder: no state to read, never done
-      [ -n "$remaining" ] && remaining="$remaining, "
-      remaining="${remaining}pending"; continue
-    fi
     st="$(state_of "$blocker")"
     [ "$st" = "DONE" ] && continue
     [ -n "$remaining" ] && remaining="$remaining, "
