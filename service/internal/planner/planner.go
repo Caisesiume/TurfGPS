@@ -659,11 +659,8 @@ func (p *Planner) oneExtract(ctx context.Context) (string, error) {
 // (`FR-012`): none at all, or only that location again. Two points are one
 // location exactly where their coordinates are equal, as the package doc
 // gives.
-// redRun neutralises the guard. RED RUN, not for merge (#5 AC1, AC2).
-var redRun = true
-
 func returnsWithNowhereBetween(req Request) bool {
-	if redRun || req.Origin != req.Destination {
+	if req.Origin != req.Destination {
 		return false
 	}
 
