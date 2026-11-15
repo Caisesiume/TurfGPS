@@ -57,7 +57,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 		run    = [2][]int{}
 	)
 
-	for side, entered := range []bool{false && ends.fromEntered, false && ends.toEntered} { // RED RUN: no run
+	for side, entered := range []bool{ends.fromEntered, ends.toEntered} {
 		if !entered {
 			continue
 		}
