@@ -119,8 +119,10 @@
 //   - Zone selection, scoring, and the time budget, which later stories own.
 //     Nothing builds an Alternative holding a Turf stop yet; zone selection
 //     is what will.
-//   - The time spent at a stop, which AdditionalTime does not charge yet
-//     (`FR-009`, #8).
+//   - Pricing the time spent at a stop by its access class
+//     (`CalculationSpecification.md § Stop time`). AdditionalTime charges the
+//     time a Stop carries (`FR-009`, #8) and refuses one carrying none; what
+//     sets it is the stop model, which later stories own.
 //   - The absolute additional-time ceiling (`FR-044`, #44), and the whole
 //     additional time it tests (`FR-061`). When it lands it reads the
 //     Durations the legs carry, which for an avoided leg are the avoided

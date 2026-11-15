@@ -76,21 +76,29 @@ func randomJourneyRequest(r *rand.Rand) Request {
 	return req
 }
 
+// someStops is one to three stops at random points, each carrying a random
+// time spent at it of up to an hour, and never none.
 func someStops(r *rand.Rand) []Stop {
 	stops := make([]Stop, 1+r.IntN(3))
 	for i := range stops {
-		stops[i] = Stop{At: randomPoint(r)}
+		stops[i] = Stop{At: randomPoint(r), Time: someStopTime(r)}
 	}
 
 	return stops
 }
 
+// someStopTime is a random time spent at a stop, of up to an hour and more
+// than none. It is no figure of `CalculationSpecification.md § Stop time`.
+func someStopTime(r *rand.Rand) time.Duration {
+	return 1 + time.Duration(r.Int64N(int64(time.Hour)))
+}
+
 // TestAnAlternativeIsChargedItsDurationLessItsBase is AC1: an alternative
 // holding at least one Turf stop costs its estimated duration less the
-// estimated duration of the journey it is built on, each the sum of the
-// times the routing provider answered for the legs that journey was planned
-// from — whichever of the two is the longer, and whatever the journey's
-// shape.
+// estimated duration of the journey it is built on — the alternative's the
+// sum of the times the routing provider answered for its legs and of the
+// times its stops carry (`FR-009`, #8), the base's the sum of its legs' —
+// whichever of the two is the longer, and whatever the journey's shape.
 func TestAnAlternativeIsChargedItsDurationLessItsBase(t *testing.T) {
 	t.Parallel()
 
@@ -111,9 +119,9 @@ func TestAnAlternativeIsChargedItsDurationLessItsBase(t *testing.T) {
 			t.Fatalf("AdditionalTime of an alternative with %d stops: %v", len(alt.Stops), err)
 		}
 
-		if want := sum(altRouting.answered) - sum(baseRouting.answered); got != want {
-			t.Fatalf("an alternative whose legs were answered as taking %v in all, built on a journey whose legs took %v, was charged %v; want the difference, %v",
-				sum(altRouting.answered), sum(baseRouting.answered), got, want)
+		if want := sum(altRouting.answered) + alt.StopTime() - sum(baseRouting.answered); got != want {
+			t.Fatalf("an alternative whose legs were answered as taking %v in all, with %v at its stops, built on a journey whose legs took %v, was charged %v; want the difference, %v",
+				sum(altRouting.answered), alt.StopTime(), sum(baseRouting.answered), got, want)
 		}
 
 		if want := alt.Duration() - base.DrivingTime(); got != want {
@@ -262,7 +270,7 @@ func TestAnAlternativeIsCostedOnlyAgainstTheJourneyItIsBuiltOn(t *testing.T) {
 		"with nothing at all":                 {},
 		"with a leg fewer than its locations": {Locations: through.Locations, Legs: through.Legs[:1]},
 	} {
-		for _, stops := range [][]Stop{nil, {{At: c}}} {
+		for _, stops := range [][]Stop{nil, {{At: c, Time: someStopTime(r)}}} {
 			got, err := Alternative{Journey: journey, Stops: stops, Base: base}.AdditionalTime()
 			if !errors.Is(err, ErrNotCorresponding) {
 				t.Errorf("a base %s, with %d stops, gave %v, %v; want an error wrapping ErrNotCorresponding", name, len(stops), got, err)
@@ -327,13 +335,15 @@ func TestAnAvoidedLegIsCostedAtTheAnswerThatPassed(t *testing.T) {
 
 	base := plannedThrough(t, &timedRouting{took: func(_, _ Point) time.Duration { return refusedTook }}, req)
 
-	got, err := Alternative{Journey: journey, Stops: []Stop{{At: shops}}, Base: base}.AdditionalTime()
+	stop := Stop{At: shops, Time: refusedTook}
+
+	got, err := Alternative{Journey: journey, Stops: []Stop{stop}, Base: base}.AdditionalTime()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if want := journey.DrivingTime() - base.DrivingTime(); got != want || got == 0 {
-		t.Fatalf("an alternative carrying the avoided leg, on a base answered as the refused leg's time, was charged %v; want %v, the avoided leg's time less the base's", got, want)
+	if want := journey.DrivingTime() + stop.Time - base.DrivingTime(); got != want || got == stop.Time {
+		t.Fatalf("an alternative carrying the avoided leg and a stop of %v, on a base answered as the refused leg's time, was charged %v; want %v, the avoided leg's time and the stop's less the base's", stop.Time, got, want)
 	}
 }
 

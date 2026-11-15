@@ -26,6 +26,13 @@ import (
 // Plan returns carries the estimate of the answer checkedLeg accepted, so an
 // avoided leg is costed at the avoided answer's time, never the refused
 // answer's.
+//
+// The duration it is taken from holds the time spent at each Turf stop as well
+// as the time driven (`FR-009`, #8): a routing provider returns driving time
+// only, so a cost read off its answers alone prices a zone on the road already
+// driven at nothing. What a stop's time is, by its access class, is
+// `CalculationSpecification.md § Stop time`'s, and is priced before a Stop
+// reaches an Alternative; this file charges it and does not price it.
 
 // ErrNotCorresponding is the error AdditionalTime wraps where an alternative's
 // Base is not a journey it can be built on: Base does not visit the
@@ -34,12 +41,24 @@ import (
 // no Turf stop and its Journey is not its Base.
 var ErrNotCorresponding = errors.New("the base is not the journey without Turf stops that the alternative corresponds to")
 
+// ErrUnpricedStop is the error AdditionalTime wraps where a Turf stop the
+// alternative holds carries no time spent at it: a Time of zero, which is
+// what a Stop nobody priced holds, or less. Every model under
+// `CalculationSpecification.md § Stop time` takes the zone, and takeover time
+// is a component of each of them, so no stop takes no time; charged as it
+// stands, such a stop would be the free roadside stop `FR-009` forbids.
+var ErrUnpricedStop = errors.New("a Turf stop carries no time spent at it")
+
 // Stop is a Turf stop a journey alternative holds: a place it stops at to
-// capture a zone. It names where, and nothing yet of what stopping there
-// costs, which is `FR-009`'s (#8), or of how the place is chosen, which is
-// #256's.
+// capture a zone, and the time spent there. How the place is chosen is #256's.
 type Stop struct {
 	At Point
+
+	// Time is the time spent at the stop, beyond the driving its journey's
+	// legs carry: the stop time `CalculationSpecification.md § Stop time`
+	// prices by the stop's access class, for this journey in its direction.
+	// It is priced before the Stop is built, never here.
+	Time time.Duration
 }
 
 // Alternative is a journey alternative: the journey as it would be driven,
@@ -71,20 +90,32 @@ func (j Journey) DrivingTime() time.Duration {
 	return total
 }
 
-// Duration returns the alternative's estimated duration. Today that is the
-// driving time of its journey alone: the time spent at each stop, which a
-// routing provider does not return, is the other term of the duration
-// `CalculationSpecification.md § Additional journey time` composes, and it
-// lands with `FR-009` (#8) here, so that AdditionalTime charges it with no
-// change of its own.
+// StopTime returns the time the alternative spends at its Turf stops: the
+// sum of each stop's Time.
+func (a Alternative) StopTime() time.Duration {
+	var total time.Duration
+
+	for _, s := range a.Stops {
+		total += s.Time
+	}
+
+	return total
+}
+
+// Duration returns the alternative's estimated duration: the driving time of
+// its journey and the time spent at its Turf stops, the two terms
+// `CalculationSpecification.md § Additional journey time` composes it from.
+// The second is the one a routing provider does not return (`FR-009`).
 func (a Alternative) Duration() time.Duration {
-	return a.Journey.DrivingTime()
+	return a.Journey.DrivingTime() + a.StopTime()
 }
 
 // AdditionalTime returns the alternative's cost (`FR-008`): its estimated
-// duration less that of the corresponding journey without Turf stops, its
-// Base. An alternative holding no Turf stop is the general route offered as it
-// is, so its Journey is its Base and it is charged nothing.
+// duration, the time spent at its Turf stops included, less that of the
+// corresponding journey without Turf stops, its Base. A stop on the road the
+// Base already drives changes no driving time and is still charged its time
+// (`FR-009`). An alternative holding no Turf stop is the general route offered
+// as it is, so its Journey is its Base and it is charged nothing.
 //
 // An alternative whose Base does not correspond to it is refused with an error
 // wrapping ErrNotCorresponding, rather than costed against the wrong origin,
@@ -92,7 +123,9 @@ func (a Alternative) Duration() time.Duration {
 // Turf stop whose Journey is not its Base — re-planned apart from it, along
 // other ways or taking another time: charged nothing, the whole additional
 // time would read the Base while the journey served is another, and costed
-// the difference, it would be charged for a Turf stop it does not hold.
+// the difference, it would be charged for a Turf stop it does not hold. And so
+// is one holding a stop that carries no time spent at it, with an error
+// wrapping ErrUnpricedStop, rather than charged as though stopping were free.
 func (a Alternative) AdditionalTime() (time.Duration, error) {
 	if err := a.corresponds(); err != nil {
 		return 0, err
@@ -104,6 +137,12 @@ func (a Alternative) AdditionalTime() (time.Duration, error) {
 		}
 
 		return 0, nil
+	}
+
+	for i, s := range a.Stops {
+		if s.Time <= 0 {
+			return 0, fmt.Errorf("%w: stop %d of %d carries %v", ErrUnpricedStop, i+1, len(a.Stops), s.Time)
+		}
 	}
 
 	return a.Duration() - a.Base.DrivingTime(), nil
