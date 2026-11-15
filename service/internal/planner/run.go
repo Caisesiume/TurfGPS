@@ -110,7 +110,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 			switch {
 			case slices.Contains(order[:k], c.Edge) && c.Kind != "area":
 				admitted[j] = true
-			case c.Edge == after && c.Kind == "barrier" && passes(crossings, last, c.OSMID):
+			case c.Edge == after && c.Kind == "barrier" && measure.Exit != 0 && c.OSMID == measure.Exit && passes(crossings, last, c.OSMID):
 				admitted[j] = true
 			}
 		}
