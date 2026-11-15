@@ -3386,3 +3386,213 @@ Affects:        FR-138, filed; FR-127 and FR-136: `Rationale`; FR-128: its
                 statement's list and `Depends-on` gain FR-138; one story
                 filed under the epic "Drivable legs and journey cost".
 ```
+
+## RD-075 — Is a way a car runs along to a stopping position ever the feature establishing it?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (1) S3: "Roads never exempt (Recommended)". A road the
+                car drives along never counts as the stop's own feature; only
+                a dead-end feature like a parking area can be. One narrow
+                fourth cycle is allowed. The relay quotes the option label
+                and gives the sentences after it unquoted. Raised as S3, with
+                N10, by the safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`). This entry supersedes RD-074's
+                reading of "the feature establishing the position" and leaves
+                the rest of RD-074 standing.
+Question:       `SPECIFICATION.md § What establishes a stopping position`
+                names a service road among the features establishing a
+                position and "a service road recorded as access-restricted"
+                among the restrictions recorded against the feature itself.
+                Read so, a position the system found along a private service
+                road is on its own marking, FR-138 offers it, and a stop the
+                user places on its marker is driven the road's length along
+                FR-126's run, warned by nothing. Does a way a car runs along
+                ever count as the feature establishing the position, so that
+                its marking is the position's own?
+Interpretation: **No.** A way a car runs along, a service road included, is
+                never the feature establishing a position for FR-138: a
+                position on such a way so marked, or reached along one, lies
+                behind that marking and is never offered. Only a feature that
+                is not itself a way, a parking area drawn as an area or as a
+                point, carries a marking that is the position's own, and a
+                barrier never does. A way lying within such a feature is
+                exempt only where it carries the marking as that feature's
+                alone, as FR-128 reads an area's marking onto its ways: the
+                aisles of a customers-only car park drawn as an area are its
+                own (N10), and an aisle carrying a marking of its own, or one
+                lying also within a second area so marked, is not. FR-139's
+                "or on its marker" is kept: every marker the review shows is
+                then a position FR-138 offers, reached along no marked way but
+                the parking area's own, so a stop placed on it starts no run
+                along a road, and the Owner's ruling under RD-077 places a
+                stop on exactly such a marker.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion and because PR #274 stayed blocked after its third
+                cycle (`team-protocol § Escalation and human judgement`). Two
+                readings are the team's and rest on the ladder: that a way
+                within the parking area carrying its marking alone is not "a
+                road the car drives along" rests on rung 1, the cited section
+                treating a restriction recorded against the feature itself as
+                the feature's, and on rung 4, FR-128 reading an area's marking
+                onto its ways; that a barrier is never the position's own, and
+                that a lay-by drawn as a way is a way, rest on rung 7, the
+                most conservative reading of "only a dead-end feature like a
+                parking area". **The ruling narrows the cited section's
+                example:** a position on a service road recorded as
+                access-restricted is still not established and is still
+                reachable by the user placing a stop there (FR-139, FR-126's
+                run), but it no longer reaches review as uncertain. That is a
+                difference between `SPECIFICATION.md` and the ruling, raised
+                to `@engineering-lead` and not edited here.
+Affects:        FR-138: statement, first and second criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`; FR-139:
+                `Depends-on`, `Risk`, `Rationale`; FR-136: `Rationale`; #276
+                gains AC5 and AC6, appended.
+```
+
+## RD-076 — Does a location the user entered behind a marked gate on a driveway not so marked keep its zones?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (2) N11: "Yes, keep zones (Recommended)". A home behind a
+                private gate on an untagged driveway keeps its zones; the
+                gate and driveway are the user's own access. Raised as N11 by
+                the safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`). This entry supersedes RD-072's
+                holding that such a home "has an empty run under FR-126 and is
+                reachable solely by a warned leg, so it loses them", and
+                leaves the rest of RD-072 standing.
+Question:       RD-072 keeps the zones of a location the user entered that a
+                leg reaches along FR-126's run, a home on a marked driveway,
+                and FR-137's first criterion took them from a home on a
+                driveway not so marked behind a gate so marked, which has an
+                empty run and is reached only by a warned leg. The Owner's
+                reason, "just your own access", covers both. Does the second
+                keep its zones, and how far does the exemption reach?
+Interpretation: **Yes, and to a barrier standing on the way the location lies
+                on.** FR-137 offers no zone the system chose to be taken from
+                a location the user entered that a car reaches only across a
+                marking other than FR-126's run there or a barrier so marked
+                standing on the way the location lies on; past that barrier a
+                connection avoiding every marking must continue, as it must
+                from the run's end. The scope is every location the user
+                entered, as RD-072 read the driveway ruling, because the
+                system cannot tell a home from another location the user
+                entered. The bound is the gate's analogue of the run and no
+                more: a location beyond a gate standing on another way, a
+                street within an estate entered through a gated road, still
+                loses its zones, and so does one beyond a second marking. A
+                location on a long unmarked road behind a gate on that road
+                keeps them, as one on a long marked road reached along the run
+                does under RD-072. The leg to the location stays a warned leg
+                FR-129 admits; the ruling is about zones only.
+Rung:           n/a — an Owner ruling, asked because it bounds a safety
+                exclusion. The scope reading, every location the user entered
+                and not the home alone, rests on rung 4, RD-072's scope. The
+                bound, a barrier on the way the location lies on, rests on
+                rung 4, FR-126's run being the location's own stretch of
+                marked way to the first way not so marked, and on rung 7, the
+                most conservative reading of "the gate and driveway": a
+                driveway mapped as two ways with the gate on the outer one
+                loses its zones, which errs toward the exclusion.
+Affects:        FR-137: statement, first and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`; #275 gains
+                AC10 and withdraws AC4, whose case AC10 decides the other way.
+```
+
+## RD-077 — May the user place a stop on an uncertain restricted candidate's marker before its restriction reason is stated?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6894152233,
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6897254865
+                as: (3) N9: "Yes, allow it", against the lead's
+                recommendation. The user may place a stop on a customers-only
+                car park's marker before its restriction reason is known, and
+                the uncertainty label stays visible. Raised as N9 by the
+                safety verdict at PR #274's head `7272346`
+                (`#issuecomment-6894145362`), which asked that the restriction
+                reason be stated before FR-139 places anything on such a
+                marker.
+Question:       FR-138 offers, as uncertain, a stopping position the system
+                chose on a parking area whose own feature is marked
+                customers-only, and the review's statement of the restriction
+                it found is owed with the uncertain bucket's other reasons.
+                May the user place a stop on its marker before that reason is
+                stated?
+Interpretation: **Yes.** FR-139 is not conditioned on the restriction reason:
+                a stop the user places on the marker of a candidate the system
+                offered as uncertain is recorded as the user's whether or not
+                the reason is yet stated. The condition the Owner attached is
+                FR-141: the placed stop is shown with the uncertainty the
+                candidate was offered with, so placing it never makes the
+                position look established. The stated reason stays owed with
+                the uncertain bucket's other reasons, as before.
+Rung:           n/a — an Owner ruling on a safety-path presentation, against
+                the lead's recommendation. That "stays visible" binds the
+                placed stop, and not only the candidate left beside it, rests
+                on rung 1, `SPECIFICATION.md § Requirements the data cannot verify`
+                requiring a proposed stop whose legality cannot be established
+                to be labelled as such, which a stop placed at an uncertain
+                position is.
+Affects:        FR-139: `Rationale`; FR-141, filed; #278 gains AC5,
+                appended, and `Resolves:` gains FR-141.
+```
+
+## RD-078 — Does accepting a stopping position the system offered on its own marking serve it?
+
+```
+Date:           2026-11-15
+Question:       RD-074 has accepting a customers-only car park the system
+                offered serve nothing "(FR-136)". The safety verdict at PR
+                #274's head `7272346` (`#issuecomment-6894145362`, N9) shows
+                that FR-136 refuses only a position a car reaches only across
+                a marking: one drawn as a point, with nothing marked between
+                it and the road, is served on acceptance, and one drawn as an
+                area is dropped through its own aisles (FR-128). Which one
+                outcome holds?
+Interpretation: **Accepting it serves it in neither geometry.** FR-140 serves
+                no stopping position the system chose on a feature
+                establishing it that the map data itself marks as private or
+                access-restricted, drawn as a point or as an area; the stop is
+                had only by the user placing one there (FR-139), which the
+                Owner allows on its marker before its reason is stated, its
+                uncertainty shown (RD-077). That the review makes placing, and
+                not accepting, the act on such a candidate is owed with the
+                interaction #278 drafts and the uncertain bucket's stated
+                reasons; FR-140 makes the outcome one, so the review can say
+                it once. This supersedes RD-074's "serves nothing (FR-136)"
+                and leaves the rest of RD-074 standing.
+Rung:           1, explicit specification:
+                `SPECIFICATION.md § What establishes a stopping position`
+                holds that where the data records a restriction against the
+                feature itself "the feature does not establish a position",
+                that the position falls to uncertain "so the user may still
+                place the stop there and have it recorded as user-chosen", and
+                that this paragraph "is what refuses the restricted stop". The
+                section refuses the system's restricted stop and keeps it
+                reachable by the user's placement, and nothing in it turns on
+                how the feature is drawn. Rung 4 agrees: #278's notes already
+                read acceptance as serving nothing and placement as what
+                serves it, and FR-136 holds an accepted position the system's.
+                Rung 7 settles the direction: the other single outcome,
+                serving both, would lift FR-127's and FR-128's refusal for a
+                stop the system chose inside a private area, a loosening of a
+                safety exclusion that is the Owner's alone.
+Affects:        FR-140, filed; FR-138 and FR-136: `Rationale`; #276 gains AC7,
+                appended, and `Resolves:` gains FR-140; #278: notes.
+```

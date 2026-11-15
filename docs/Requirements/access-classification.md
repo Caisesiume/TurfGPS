@@ -872,7 +872,7 @@ Acceptance:   given the map on which the journey is entered or reviewed, when
               position the user chose at that point, and the candidate's own
               position stays one the system chose, accepted or not
 Status:       to-build
-Depends-on:   FR-136
+Depends-on:   FR-136; FR-138
 Volatility:   open-question — the interaction, where in the flow a stop is
               placed and how it is drawn, is owed by `DESIGN.md`, which the
               Owner directed gain it (`DECISIONS.md § RD-073`); no document
@@ -884,7 +884,11 @@ Risk:         Built as an action on an offered candidate, a placement is an
               every record turning on who chose a stop reads it so. Not built,
               a position `SPECIFICATION.md § What establishes a stopping position`
               keeps reachable, a customers-only car park where the driver is
-              a customer, is reachable by no act the product offers.
+              a customer, is reachable by no act the product offers. Placed
+              on the marker of a candidate offered along a private service
+              road, a stop the user chose there is driven the road's length
+              along FR-126's run, warned by nothing; FR-138 offers no such
+              candidate, so its marker is never shown.
 Rationale:    The cited section sends a stopping position whose own feature
               records a restriction to uncertain, "so the user may still place
               the stop there and have it recorded as user-chosen", and
@@ -898,7 +902,16 @@ Rationale:    The cited section sends a stopping position whose own feature
               keeps it, and the candidate is not made the user's by it, so
               the zones the system chose are taken from the placed stop only
               as FR-137 allows. Moving a placed stop is placing it again, so
-              the old point holds nothing. `SHOULD`: every exclusion holds
+              the old point holds nothing. A placement on a candidate's marker
+              stays in the third criterion because the Owner allows one on a
+              customers-only car park's marker before its restriction reason
+              is known, its uncertainty shown (FR-141,
+              `DECISIONS.md § RD-077`), and it reopens nothing FR-138 closes:
+              no way a car runs along is a position's own feature
+              (`DECISIONS.md § RD-075`), so every marker shown belongs to a
+              position reached along no marked way but its own parking
+              area's, and a stop placed there starts no run along a road.
+              `SHOULD`: every exclusion holds
               without it, and what it adds is the reach the cited section
               keeps for a restricted position. No mechanism and no wire shape
               is named.

@@ -402,3 +402,57 @@ Rationale:    FR-132 and FR-133 test that the stretch is distinguished and
               standard short of the Owner's own words exists to test against.
 Resolved-by:  #273
 ```
+
+## FR-141 — Show a stop the user places on an uncertain candidate's marker as uncertain
+
+```
+Statement:    The system shall show a stop the user places at the point of a
+              candidate it offered as uncertain, or on that candidate's
+              marker, as uncertain, whether or not the candidate's stated
+              reason is yet available.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Requirements the data cannot verify;
+              SPECIFICATION.md § What establishes a stopping position
+Priority:     SHOULD
+Verification: test — a stop the user places on the marker of a candidate
+              offered as uncertain, a parking area marked customers-only,
+              with no stated reason yet available, is shown as uncertain
+              wherever the placed stop is shown, and a stop the user places
+              at a point no candidate offered as uncertain occupies is shown
+              as uncertain by no act of this record
+Acceptance:   given a candidate the system offered as uncertain — a parking
+              area marked customers-only — whose stated reason is not yet
+              available, when the user places a stop on its marker or at its
+              point, then the placed stop is shown as uncertain wherever it
+              is shown
+              given a stop the user places at a point that no candidate the
+              system offered as uncertain occupies, when it is shown, then
+              this record shows it as uncertain nowhere
+Status:       to-build
+Depends-on:   FR-139
+Volatility:   open-question — how an uncertain stop is drawn, and the stated
+              reason it carries, are owed by `DESIGN.md` and the review batch
+              with the uncertain bucket's other reasons; the obligation is
+              the Owner's in `DECISIONS.md § RD-077`
+Risk:         Shown as an ordinary stop once placed, a customers-only car
+              park the user tapped looks like a stop the system established:
+              the uncertainty the review stated disappears at the moment the
+              user acts on it, and the driver arrives at a barrier or a
+              warden with nothing in the plan having said it might not be
+              theirs to use.
+Rationale:    The Owner allowed the user to place a stop on a customers-only
+              car park's marker before its restriction reason is known, with
+              "the uncertainty label stays visible" as the condition
+              (`DECISIONS.md § RD-077`).
+              `SPECIFICATION.md § Requirements the data cannot verify`
+              requires a proposed stop whose legality cannot be established
+              to be labelled as such and never presented with the confidence
+              of a mapped parking area, and a stop placed at an uncertain
+              position is such a stop whoever placed it: placing it decides
+              who chose it (FR-139), not whether it is established. The
+              second criterion keeps the label meaning one thing, so a build
+              that marks every placed stop uncertain fails. `SHOULD`, because
+              it exists only where FR-139 is built. This category owns what
+              is said about a stop and not how it looks.
+Resolved-by:  #278
+```
