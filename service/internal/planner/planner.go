@@ -660,7 +660,6 @@ func (p *Planner) oneExtract(ctx context.Context) (string, error) {
 // location exactly where their coordinates are equal, as the package doc
 // gives.
 func returnsWithNowhereBetween(req Request) bool {
-	return false // RED RUN: the guard neutralised (#5 AC1, AC2)
 	if req.Origin != req.Destination {
 		return false
 	}
