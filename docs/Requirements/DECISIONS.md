@@ -3696,3 +3696,66 @@ Affects:        FR-137: title, statement, criteria, `Verification`,
                 cycle-5 criteria or readings, appended; #275 withdraws AC3,
                 AC6, AC7 and AC10's second case.
 ```
+
+## RD-080 — Is the warned leg's bound measured over ways or the parts driven, over which markings or how often, and against which leg?
+
+```
+Date:           2026-11-15
+Question:       The safety verdict at PR #274's head `63b8b65`
+                (`#issuecomment-6898179688`) found, as S5, that RD-079's bound
+                and FR-129's statement count way objects, "the ways that
+                warned leg runs along": on an unsplit service road with a gate
+                node on it, the user's stop partway along it and the same way
+                running on into the site, a parking area beside that way past
+                the stop fails neither bound, so the planner drives the user
+                deeper than their stop for a zone it chose. As N16, the bound
+                counts which markings are crossed and not how often, so a
+                journey can leave and re-enter through the gate the user
+                confirmed once. As N18, where FR-130 leaves two connections
+                crossing markings alike, "the warned leg directly joining the
+                two" is not one fixed leg, and the planner could pick the
+                private road carrying its own zones. How is the bound
+                measured?
+Interpretation: **Over the parts of ways driven, over how often, and against
+                the leg produced with no stop.** The legs between two
+                locations the user entered, where a stopping position the
+                system chose divides the warned leg, together pass no barrier
+                so marked, and drive along no part of a way that is so marked
+                or that a car reaches only across such a way or barrier, more
+                times than the warned leg the system would produce joining the
+                two were no stop between them passes that barrier or drives
+                along that part; a part not itself so marked within a parking
+                area establishing a stop is excepted. A part that leg never
+                drives is driven by it zero times, so this one bound carries
+                RD-079's two: no marking the leg would not cross, and no way
+                behind a marking that it does not drive. It holds however the
+                map data splits its ways; it bars leaving and re-entering
+                through the gate the user confirmed; and the leg it compares
+                with is fixed by the two locations alone, so a choice among
+                connections that cross markings alike is never made for a
+                zone. This supersedes RD-079's sentence beginning "The legs
+                between the two locations then together cross no marking" and
+                its second team reading, and leaves the rest of RD-079
+                standing.
+Rung:           4, existing requirements and decisions: RD-079 records the
+                Owner's "the private stretch you already accepted", a part of
+                the route the user drives and not a map object, and FR-131
+                already names a warned leg's "marked stretches" as parts of
+                it; and FR-130's `Rationale` leaves which connection a warned
+                leg takes unobliged, so the bound must read the leg as
+                produced rather than any leg FR-130 admits. Rung 7, the most
+                conservative reading, settles the rest: the Owner's "never
+                automatically suggest zones and routes along private roads"
+                and "no detours onto other private roads" refuse every
+                private driving the user's locations do not cause, and a
+                second pass through the confirmed gate, a part past the
+                user's stop, or a tied connection taken for its zones is
+                each such driving, chosen by the system. No Turf mechanic is
+                read and no constant is introduced.
+Affects:        FR-129: statement, second and third criteria,
+                `Verification`, `Volatility`, `Risk`, `Rationale`. FR-137:
+                title (N19), second and third criteria, `Verification`,
+                `Volatility`, `Risk`, `Rationale`. FR-138: first and fourth
+                criteria, `Verification`, `Volatility`, `Rationale`. #271,
+                #275 and #276 gain cycle-6 criteria, appended.
+```

@@ -1371,11 +1371,13 @@ Statement:    Where every drivable connection between two locations the user
               run FR-126 admits at either, the system shall produce as a
               warned leg, rather than refuse the journey, each driving leg
               between them that runs along or passes such a way or barrier,
-              where those legs together run along and pass no such way or
-              barrier that the warned leg directly joining the two would not,
-              and run along no way a car reaches only across one other than
-              the ways that warned leg runs along and the ways within a
-              parking area establishing a stop between them.
+              where those legs together pass no such barrier, and drive along
+              no part of a way that is so marked or that a car reaches only
+              across such a way or barrier, more times than the warned leg
+              the system would produce joining the two, were no stop between
+              them, passes that barrier or drives along that part, other than
+              a part not itself so marked within a parking area establishing
+              a stop between them.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -1383,18 +1385,26 @@ Verification: test — against routing data built from a test extract, a leg
               between two locations the user entered every drivable connection
               between which crosses a marked way or barrier beyond FR-126's
               run is produced and identified as warned; with a parking area
-              the system chose beside the private road that leg runs along,
-              and separately a stop the system chose on a public road beyond
-              the marked gate it passes, between them, each leg between the
-              two locations that crosses a marking is produced and identified
-              as warned; a leg to a parking area the system chose behind a
-              second marked gate off that private road, to one further along
-              the gated road than the warned leg runs, or to one behind a
-              marked gate between two locations the user entered that a
-              connection avoiding every marking joins, is produced neither
-              warned nor otherwise; and a leg between two locations the user
-              entered that a connection avoiding every marking joins is
-              produced on such a connection and not identified as warned
+              the system chose beside the part of the private road that leg
+              drives, and separately a stop the system chose on a public road
+              beyond the marked gate it passes, between them, each leg between
+              the two locations that crosses a marking is produced and
+              identified as warned; with one stop the system chose behind that
+              gate and one outside it, the legs between the two locations pass
+              the gate no more times than the warned leg joining them with no
+              stop between them does; a leg to a parking area the system chose
+              behind a second marked gate off that private road, to one beside
+              a single unsplit way past the location the user entered that the
+              warned leg reaches along that way, where a gate node stands on
+              the way with an unmarked part of it before the gate, to one
+              beside the other of two connections that cross markings alike
+              where the warned leg with no stop between them takes the first,
+              or to one behind a marked gate between two locations the user
+              entered that a connection avoiding every marking joins, is
+              produced neither warned nor otherwise; and a leg between two
+              locations the user entered that a connection avoiding every
+              marking joins is produced on such a connection and not
+              identified as warned
 Acceptance:   given two locations the user entered — each the journey's
               origin, its destination, an intermediate destination or a
               stopping position the user chose — that one driving leg joins,
@@ -1408,27 +1418,39 @@ Acceptance:   given two locations the user entered — each the journey's
               barrier beyond any run FR-126 admits, where a drivable
               connection avoiding every such way and barrier joins the
               locations the user entered on either side of the stop, or where
-              every connection to the stop runs along or passes such a way or
-              barrier that the warned leg directly joining them would not, or
-              along a way a car reaches only across one that the warned leg
-              does not run along — a parking area behind a second gate off
-              that leg's private road, or one further along a gated road than
-              that leg runs — when the journey is planned, then that leg is
-              not produced, warned or not, and the journey includes no stop
-              there
-              given a stopping position the system chose between two locations
+              every pair of connections joining the stop to those two
+              locations together passes such a barrier, or drives along a
+              part of a way so marked or that a car reaches only across such
+              a way or barrier, more times than the warned leg the system
+              would produce joining the two were no stop between them, a part
+              not itself so marked within a parking area establishing the
+              stop excepted — a parking area behind a second gate off that
+              leg's private road;
+              one beside a single unsplit way past the location the user
+              entered that the warned leg reaches along it, beyond a gate
+              standing on that way; or, of two connections that cross
+              markings alike, one beside the connection that warned leg does
+              not take — when the journey is planned, then that leg is not
+              produced, warned or not, and the journey includes no stop there
+              given stopping positions the system chose between two locations
               the user entered, every drivable connection between which runs
               along such a way or passes such a barrier beyond the run FR-126
-              admits at either, that a car reaches from either across no such
-              way or barrier the warned leg directly joining them would not
-              cross, and along no way a car reaches only across one other than
-              that leg's ways and the ways within the parking area
-              establishing it — a parking area beside the private road that
-              leg runs along, or one on a public road beyond the gate it
+              admits at either, that a car reaches from the two locations by
+              legs that together pass no such barrier, and drive along no
+              part of a way so marked or that a car reaches only across such a
+              way or barrier, more times than the warned leg the system would
+              produce joining the two were no stop between them, a part not
+              itself so marked within a parking area establishing a stop
+              excepted — a parking area beside the part of the private road
+              that leg drives, or one on a public road beyond the gate it
               passes — when the journey is planned, then each driving leg
               between the two locations that runs along such a way or passes
-              such a barrier is produced and identified as a warned leg, and
-              the journey is not refused for it
+              such a barrier is produced and identified as a warned leg, the
+              journey is not refused for it, and those legs together pass no
+              such barrier, and drive along no such part, more times than
+              that warned leg does, so that a journey holding one such stop
+              behind the gate and one outside it passes the gate no more
+              times than that warned leg passes it
               given two locations the user entered that one driving leg
               joins, between which a drivable connection avoiding every such
               way and barrier beyond FR-126's run exists, when the journey is
@@ -1443,7 +1465,8 @@ Volatility:   open-question — the markings are FR-125's, read as
               entered, the Owner's in `DECISIONS.md § RD-068`, superseded
               along the warned leg by the Owner's ruling in
               `DECISIONS.md § RD-079`, whose "no detours onto other private
-              roads" the statement's bound reads; the exception in
+              roads" the statement's bound reads, measured as
+              `DECISIONS.md § RD-080` decides; the exception in
               `SPECIFICATION.md § Enforceable exclusions` is the amendment PR
               #274 drafts for the Owner's approval at merge
 Risk:         Read wider than the warned leg, to every stop behind the marking
@@ -1451,6 +1474,12 @@ Risk:         Read wider than the warned leg, to every stop behind the marking
               confirms the gate their own location lies behind, and the
               planner sends the driver deeper into the gated site, or through
               a second gate, for a stop it picked, which the Owner ruled out.
+              Measured over the ways the warned leg runs along rather than
+              the part of each it drives, the bound turns on how the map data
+              splits its ways, and an unsplit road past the user's stop
+              carries the driver on into the site; measured over which
+              markings are crossed and not how often, the planner leaves and
+              re-enters through the gate the user confirmed once.
               Read as both ends the user's, a parking area beside the private
               stretch the user confirmed cannot serve the zones along it,
               which the Owner ruled it may. Built as the refusal it replaces,
@@ -1476,13 +1505,23 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               warning kept (`DECISIONS.md § RD-079`). A stopping position the
               system chose between the two locations divides the warned leg
               into legs, so the statement warns each that crosses a marking
-              and bounds them together by the warned leg directly joining the
-              two: no marking that leg would not cross, and no way behind a
-              marking that it does not run along, the ways of a parking area
-              establishing a stop excepted. The second bound is what a gate
-              mapped on an unmarked road needs: the ways past it carry no
-              marking, and without the bound every stop past the same gate
-              rides on the user's confirmation. The second criterion holds the
+              and bounds them together by the warned leg the system would
+              produce joining the two with no stop between them: no marked
+              barrier passed, and no part of a way driven that is marked or
+              that a car reaches only across a marking, more times than that
+              leg passes or drives it, the unmarked ways of a parking area
+              establishing a stop excepted (`DECISIONS.md § RD-080`). Reaching
+              a part only across a marking is what a gate mapped on an
+              unmarked road needs: the ways past it carry no marking, and
+              without it every stop past the same gate rides on the user's
+              confirmation. The bound is over parts of ways and not ways, so
+              that it holds however the map data splits them; over how often
+              and not only which, so that the legs never leave and re-enter
+              through the marking the user confirmed once; and against the
+              leg produced with no stop, so that where markings tie the
+              planner never picks the private road carrying its own zones,
+              the route being the one the user's locations cause and not one
+              the system chose for a zone. The second criterion holds the
               bound at its edges, the journey that needs no warned leg among
               them, where a stop the system chose behind a marking is still
               never reached; the third holds the ruling, a stop beside the
@@ -1720,7 +1759,7 @@ Rationale:    The Owner's scope gives "your own stops" a warned route and
 Resolved-by:  #275
 ```
 
-## FR-137 — Offer no zone taken from a stop behind a marking that no warned leg reaches
+## FR-137 — Offer no zone taken from a stop behind a marking that no warned leg FR-129 admits reaches
 
 ```
 Statement:    The system shall offer no zone it chose to be taken from a stop
@@ -1740,14 +1779,15 @@ Verification: test — against routing data built from a test extract, the
               the user chose past a marked gate on the unmarked road it lies
               on, a destination on a driveway itself marked reached along
               FR-126's run, and a parking area the system chose beside the
-              private road a warned leg runs along, each with a zone a short
-              walk away, are refused no zone by this record; while a parking
-              area the system chose behind a second marked gate off that road,
-              one further along a gated road than the warned leg runs, and one
-              behind a marked gate in a journey whose locations the user
-              entered a connection avoiding every marking joins, each with a
-              zone a short walk away, have no zone the system chose offered to
-              be taken from a stop there
+              part of the private road a warned leg drives, each with a zone a
+              short walk away, are refused no zone by this record; while a
+              parking area the system chose behind a second marked gate off
+              that road, one beside a single unsplit way past the location the
+              user entered that the warned leg reaches along it, beyond a gate
+              node on that way, and one behind a marked gate in a journey
+              whose locations the user entered a connection avoiding every
+              marking joins, each with a zone a short walk away, have no zone
+              the system chose offered to be taken from a stop there
 Acceptance:   given a location the user entered — the journey's origin, its
               destination, an intermediate destination or a stopping position
               the user chose — that a car reaches only by running along a way,
@@ -1761,22 +1801,24 @@ Acceptance:   given a location the user entered — the journey's origin, its
               from a stop there, and a leg reaching it across a marking beyond
               that run is still a warned leg
               given a stopping position the system chose that a warned leg
-              FR-129 admits reaches — a parking area beside the private road
-              that the warned leg between two locations the user entered runs
-              along — with a zone a walk from it could take, when the journey
-              is planned, then this record refuses no zone taken from a stop
-              there
+              FR-129 admits reaches — a parking area beside the part of the
+              private road that the warned leg between two locations the user
+              entered drives — with a zone a walk from it could take, when the
+              journey is planned, then this record refuses no zone taken from
+              a stop there
               given a stop that a car reaches only by running along a way, or
               passing a barrier, so marked, that no warned leg FR-129 admits
               reaches and that is at no location the user entered reached
               along FR-126's run — a parking area behind a second gate off the
-              private road a warned leg runs along, one further along a gated
-              road than that leg runs, or one behind a gate so marked in a
-              journey whose locations the user entered a connection avoiding
-              every such way and barrier joins — with a zone a walk from it
-              could take, when the journey is planned, then no zone the system
-              chose is offered to be taken from a stop there, in the journey,
-              as a replacement or as a reserve candidate
+              private road a warned leg runs along, one beside a single
+              unsplit way past the location the user entered that the warned
+              leg reaches along it, beyond a gate standing on that way, or one
+              behind a gate so marked in a journey whose locations the user
+              entered a connection avoiding every such way and barrier joins
+              — with a zone a walk from it could take, when the journey is
+              planned, then no zone the system chose is offered to be taken
+              from a stop there, in the journey, as a replacement or as a
+              reserve candidate
 Status:       to-build
 Depends-on:   FR-126; FR-129; FR-136
 Volatility:   open-question — the markings are FR-125's, read as
@@ -1784,8 +1826,9 @@ Volatility:   open-question — the markings are FR-125's, read as
               zones are taken along a warned leg a location the user entered
               or placed requires, and from no stop off it behind a marking, is
               the Owner's in `DECISIONS.md § RD-079`, bounded as FR-129
-              states; that a location reached along FR-126's run keeps its
-              zones is the Owner's in `DECISIONS.md § RD-072`
+              states and measured as `DECISIONS.md § RD-080` decides; that a
+              location reached along FR-126's run keeps its zones is the
+              Owner's in `DECISIONS.md § RD-072`
 Risk:         Built on the exclusion this record replaced, a user whose home
               or placed stop lies behind a private gate is stripped of the
               zones around it after confirming the warned route there, which
@@ -1796,6 +1839,9 @@ Risk:         Built on the exclusion this record replaced, a user whose home
               the Owner ruled out. Built on the warned leg's two ends alone, a
               parking area beside the private stretch the user confirmed
               cannot serve the zones along it, which the Owner ruled it may.
+              Built on the ways the warned leg runs along rather than the part
+              of each it drives, a stop past the user's own on an unsplit
+              private road keeps the zones the planner picked there.
 Rationale:    The Owner ruled that the app never on its own suggests zones and
               routes along private roads, and that where a stop the user
               places needs one, "the route is okay to have zones along it",
@@ -1814,9 +1860,11 @@ Rationale:    The Owner ruled that the app never on its own suggests zones and
               and so on how the map data splits its ways, are superseded where
               they took zones away. A stop the system chose is held to the
               warned leg's bound, stated once in FR-129: the legs between the
-              two locations the user entered cross no marking the warned leg
-              directly joining them would not, and run along no way behind a
-              marking that it does not, a parking area's own ways excepted.
+              two locations the user entered pass no marked barrier, and drive
+              along no part of a way that is marked or lies behind a marking,
+              more times than the warned leg the system would produce joining
+              them with no stop between them, a parking area's own unmarked
+              ways excepted (`DECISIONS.md § RD-080`).
               The second criterion tests a stop beside the private stretch,
               and the third the detour, a second gate or a stop deeper behind
               the first, and the journey that needs no warned leg at all,
@@ -1858,24 +1906,29 @@ Verification: test — against routing data built from a test extract, a parking
               a connection avoiding every marking joins, is offered as no
               recommended stop, no replacement and no reserve candidate,
               before a rejection or after one, nor is a parking area behind a
-              second marked gate off the private road a warned leg runs along;
-              while a parking area whose own feature is marked customers-only,
-              drawn as a point and separately as an area whose ways carry no
-              marking of their own, reached along no other marked way or
-              barrier, a position a connection avoiding every marking reaches,
-              and a parking area beside the private road a warned leg FR-129
-              admits runs along, are withheld from no offer by this record
+              second marked gate off the private road a warned leg runs along,
+              nor one beside a single unsplit way past the location the user
+              entered that the warned leg reaches along it, beyond a gate node
+              on that way; while a parking area whose own feature is marked
+              customers-only, drawn as a point and separately as an area whose
+              ways carry no marking of their own, reached along no other
+              marked way or barrier, a position a connection avoiding every
+              marking reaches, and a parking area beside the part of the
+              private road a warned leg FR-129 admits drives, are withheld
+              from no offer by this record
 Acceptance:   given a stopping position the system chose that a car reaches
               only by passing a barrier so marked, or by running along a way
               so marked that does not lie within a parking area establishing
               the position, and that no warned leg FR-129 admits reaches — a
               parking area not itself so marked behind a gate so marked, a
               position on a service road itself so marked, a parking area
-              beyond an area so marked on an area feature enclosing it, or one
+              beyond an area so marked on an area feature enclosing it, one
               behind a second gate off the private road a warned leg runs
-              along — when the journey is planned and when the user asks for a
-              different zone, then the position is offered as no recommended
-              stop, no replacement and no reserve candidate
+              along, or one beside a single unsplit way past the location the
+              user entered that the warned leg reaches along it, beyond a gate
+              standing on that way — when the journey is planned and when the
+              user asks for a different zone, then the position is offered as
+              no recommended stop, no replacement and no reserve candidate
               given a stopping position the system chose in a parking area
               whose own feature is so marked — a parking area marked
               customers-only, drawn as a point, or as an area whose ways carry
@@ -1889,11 +1942,11 @@ Acceptance:   given a stopping position the system chose that a car reaches
               journey is planned and when the user asks for a different zone,
               then this record withholds the position from no offer
               given a stopping position the system chose that a warned leg
-              FR-129 admits reaches — a parking area beside the private road
-              that the warned leg between two locations the user entered runs
-              along — when the journey is planned and when the user asks for a
-              different zone, then this record withholds the position from no
-              offer
+              FR-129 admits reaches — a parking area beside the part of the
+              private road that the warned leg between two locations the user
+              entered drives — when the journey is planned and when the user
+              asks for a different zone, then this record withholds the
+              position from no offer
 Status:       to-build
 Depends-on:   FR-127; FR-129; FR-136
 Volatility:   open-question — the markings are FR-125's, read as
@@ -1905,7 +1958,8 @@ Volatility:   open-question — the markings are FR-125's, read as
               runs along is the position's own feature is the Owner's in
               `DECISIONS.md § RD-075`; that a position a warned leg FR-129
               admits reaches is offered is the Owner's in
-              `DECISIONS.md § RD-079`
+              `DECISIONS.md § RD-079`, bounded as FR-129 states and measured
+              as `DECISIONS.md § RD-080` decides
 Risk:         Built as a refusal of service alone, a reserve candidate
               behind a private gate is shown to a user who has just rejected a
               zone, accepted, and silently dropped from the plan: the Owner's
@@ -1964,8 +2018,10 @@ Rationale:    The Owner keeps "Stops the app picks itself (zones) behind
               (`DECISIONS.md § RD-079`): a position a warned leg FR-129 admits
               reaches, within the bound that record sets, is offered, which
               the fourth criterion tests, and one behind a marking that leg
-              does not cross, or deeper behind one than it runs, is not, which
-              the first tests. A position that a connection avoiding every
+              does not cross, or along a part of a way behind one that it does
+              not drive, though the map data draws that part and the leg's as
+              one way (`DECISIONS.md § RD-080`), is not, which the first
+              tests. A position that a connection avoiding every
               marking reaches lies behind nothing and is outside this record,
               and the legs joining it to a location the user entered behind a
               marking are warned legs FR-129 admits. Stated over a stopping

@@ -223,7 +223,7 @@ Acceptance:   given a request naming a single location as both its origin and
               destination distinct from that location, when the user attempts
               to start planning, then the request is not refused for having
               named its origin as its destination
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   FR-002
 Risk:         Admitted, such a request has a zero-length journey to price
               against, so every minute driven counts as additional time, and
