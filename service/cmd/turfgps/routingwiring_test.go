@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -389,13 +390,19 @@ func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
 }
 
 // TestStartupRefusesAMalformedBarrierTolerance (#255): a barrier tolerance set
-// without its origin, or not a number of metres, stops the service at start.
+// without its origin, or not a number of metres, stops the service at start,
+// and so does one below the floor, zero included (#265 AC1), so no car leg is
+// served.
 func TestStartupRefusesAMalformedBarrierTolerance(t *testing.T) {
 	t.Parallel()
+
+	belowFloor := strconv.FormatFloat(math.Nextafter(config.BarrierToleranceFloorMetres, 0), 'g', -1, 64)
 
 	for _, env := range []map[string]string{
 		{config.EnvAccessBarrierTolerance: "2"},
 		{config.EnvAccessBarrierTolerance: "-2", config.EnvAccessBarrierToleranceOrigin: "measured"},
+		{config.EnvAccessBarrierTolerance: "0", config.EnvAccessBarrierToleranceOrigin: "measured"},
+		{config.EnvAccessBarrierTolerance: belowFloor, config.EnvAccessBarrierToleranceOrigin: "measured"},
 	} {
 		env[config.EnvValhallaURL] = "http://127.0.0.1:8002"
 
