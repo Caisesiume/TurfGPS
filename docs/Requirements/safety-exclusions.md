@@ -1123,7 +1123,8 @@ Rationale:    The member admits no route through a marked area, and the
               there, and bound the run that does it (`DECISIONS.md § RD-056`,
               `DECISIONS.md § RD-057`). A stopping position the user chose is
               such a location, and one the system chose is not
-              (`DECISIONS.md § RD-061`). The three bounds are one record
+              (`DECISIONS.md § RD-061`), one the system offered and the user
+              accepted included (FR-136). The three bounds are one record
               because together they are the run, and each is a criterion
               because each closes one way the run becomes transit: the first
               keeps it to the stretch between the location and the first way
@@ -1219,7 +1220,9 @@ Rationale:    FR-125 keeps a leg to a stopping position off such ways and
               the driver closes the gap by driving it. The rule binds every
               stopping position a leg ends short of. One the system chose is
               outside the Owner's exception (`DECISIONS.md § RD-052`), which
-              the first criterion tests. One the user chose is a location the
+              the first criterion tests, and one the system offered and the
+              user accepted is one the system chose (FR-136,
+              `DECISIONS.md § RD-069`). One the user chose is a location the
               user entered (`DECISIONS.md § RD-061`): on a way so marked,
               FR-126's run reaches it and ends at it, never short of it; on a
               way not so marked, its run is empty, so a marking between it and
@@ -1401,7 +1404,13 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               refusal and never a leg FR-125 admits, so a build that warns
               where it could avoid fails. The cited section carries the
               exception on the amendment the Owner approves at PR #274's merge
-              (`DECISIONS.md § RD-068`). No mechanism and no wire shape is
+              (`DECISIONS.md § RD-068`). The Owner's words bound the warned
+              leg twice more: a stopping position the system offered stays
+              one the system chose after the user accepts it (FR-136,
+              `DECISIONS.md § RD-069`), so an acceptance never makes the first
+              criterion's location the user's; and no zone the system chose
+              is taken from a location only a warned leg reaches (FR-137,
+              `DECISIONS.md § RD-070`). No mechanism and no wire shape is
               named.
 Resolved-by:  #271
 ```
@@ -1480,7 +1489,9 @@ Priority:     MUST
 Verification: test — a presented journey alternative holding a warned leg
               becomes the confirmed route, and has a portion dispatched or is
               stored, only after the user's explicit confirmation of its
-              warning, and an alternative holding no warned leg asks for none
+              warning, an alternative holding no warned leg asks for none,
+              and a change after confirmation that adds a marked stretch asks
+              again
 Acceptance:   given a presented journey alternative holding a warned leg
               whose warning the user has not confirmed, when the user accepts
               the alternative, then it does not become the confirmed route, no
@@ -1491,13 +1502,20 @@ Acceptance:   given a presented journey alternative holding a warned leg
               given a presented journey alternative holding no warned leg,
               when the user accepts it, then no confirmation of a warning is
               asked for
+              given a route whose warning the user confirmed, when a change to
+              it, in the review or in a later review of its stored plan, makes
+              it hold a warned leg or a marked stretch that the confirmed
+              warning did not present, then the changed route does not become
+              the confirmed route, no portion of it is dispatched and it is
+              not stored until the user confirms its warning afresh
 Status:       to-build
-Depends-on:   FR-132; FR-133
+Depends-on:   FR-131; FR-132; FR-133
 Volatility:   open-question — where the step sits in the review is owed by
               `DESIGN.md § Reviewing the recommended route`; what "used"
               means, and that one confirmation covers every warned leg of an
               alternative, the third edge `DECISIONS.md § RD-067` carried, is
-              the Owner's in `DECISIONS.md § RD-068`
+              the Owner's in `DECISIONS.md § RD-068`; that a change adding a
+              crossing asks again is `DECISIONS.md § RD-071`'s reading of it
 Risk:         A warning the user can pass without acting on it is a warning in
               name: the route goes to the navigation app, which shows no
               marking, and the driver meets the gate with the plan's
@@ -1519,6 +1537,149 @@ Rationale:    The Owner's scope has the user confirm before the route is used
               back the confirmed route and nothing before it. The
               third criterion keeps the step to the warned journey, so a
               build that asks on every route, and so trains the user to
-              confirm without reading, fails.
+              confirm without reading, fails. The fourth keeps the
+              confirmation to what was shown: a change in the review, or in
+              a later review re-solved from what FR-096 retains, that brings
+              a crossing the confirmed warning never presented makes a route
+              the user did not confirm, and "once per alternative" counts the
+              alternative shown (`DECISIONS.md § RD-071`).
 Resolved-by:  #273
+```
+
+## FR-136 — Hold a stopping position the system offered as the system's once the user accepts it
+
+```
+Statement:    The system shall hold a stopping position it offered — the
+              position of a recommended stop, of a replacement or of a reserve
+              candidate — as a stopping position the system chose, and not as
+              one the user chose, after the user accepts it.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              SPECIFICATION.md § What establishes a stopping position
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a
+              reserve candidate whose stopping position a car reaches only
+              past a marked gate, or only along a marked way, offered after a
+              rejection and accepted, is served by no driving leg, warned or
+              not, while a stopping position the user placed at the same point
+              is not refused by this record
+Acceptance:   given a stopping position the system offered — a recommended
+              stop, a replacement or a reserve candidate — that a car reaches
+              only by running along a way, or passing a barrier, that the map
+              data marks as private or access-restricted — a parking area
+              behind a gate so marked, or one on a service road so marked —
+              when the user accepts it and the journey is planned, then no
+              driving leg ends at it or short of it, warned or not, and the
+              journey includes no stop there
+              given a stopping position the user placed at the same point,
+              when the journey is planned, then this record refuses neither
+              the leg reaching it nor the stop
+Status:       to-build
+Depends-on:   FR-127; FR-129
+Volatility:   open-question — the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; who
+              chose a stop rests on the Owner's scoping answer as
+              `DECISIONS.md § RD-069` reads it; how a user places a stopping
+              position other than as a location of the journey no document
+              yet describes
+Risk:         Read as the user's once accepted, the exception becomes the
+              price of a zone: the reserve offers a car park behind a private
+              gate, the user accepts it, and one confirmation sends the driver
+              through the gate for a stop the system picked, every check
+              reading a location the user entered.
+Rationale:    The Owner's scope gives "your own stops" a warned route and
+              keeps "Stops the app picks itself (zones) behind private roads"
+              never offered, since "the app can just pick another zone"
+              (`DECISIONS.md § RD-069`). Nothing said who chose a stop, and
+              `SPECIFICATION.md § What establishes a stopping position` has
+              the user "place the stop there and have it recorded as
+              user-chosen", which an acceptance could be read to satisfy. The
+              offer settles it: the system picked the position, and accepting
+              it judges that pick and places nothing, as
+              `DESIGN.md § Reviewing zones one at a time` gives a zone two
+              actions, accept it or ask for a different zone. A position so
+              stays the system's however it reached the plan — recommended,
+              replaced, drawn from the reserve or reinstated by an undo — and
+              is the user's only where the user placed it; a required
+              location named as a zone (`DESIGN.md § Locations`) is a location
+              the user entered, as before. Stated once here, the rule binds
+              every record turning on who chose a stop: FR-126's run, FR-127's
+              gap, FR-128's area and FR-129's warned leg, and FR-126, FR-127
+              and FR-129 point to it. It removes nothing the cited section
+              keeps, which reaches a restricted position by the user placing
+              the stop there; the second criterion keeps the record to the
+              offer, so a build that refuses every stop at such a point
+              fails.
+Resolved-by:  #275
+```
+
+## FR-137 — Offer no zone taken from a location the user entered that only a warned leg reaches
+
+```
+Statement:    The system shall offer no zone it chose to be taken from a stop
+              at a location the user entered that a car reaches only by
+              running along a way, or passing a barrier, that the map data
+              marks as private or access-restricted, other than in the run
+              FR-126 admits there.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a
+              stopping position the user chose on a way not so marked behind
+              a marked gate, and a destination in the same position, each with
+              a zone a short walk away, have no zone the system chose offered
+              to be taken from a stop there, while a stopping position the
+              user chose that a connection avoiding every marking reaches,
+              joined by a warned leg to an origin behind such a gate, is
+              refused no zone by this record
+Acceptance:   given a stopping position the user chose, on a way not so
+              marked behind a gate so marked that every drivable connection
+              to it passes, with a zone a walk from it could take, when the
+              journey is planned, then no zone the system chose is offered to
+              be taken from a stop there, in the journey, as a replacement or
+              as a reserve candidate
+              given the journey's destination in the same position — a home
+              on a driveway not so marked behind such a gate — with a zone a
+              walk from it could take, when the journey is planned, then no
+              zone the system chose is offered to be taken from a stop there
+              given a stopping position the user chose that a drivable
+              connection avoiding every such way and barrier reaches, joined
+              by a warned leg to an origin behind such a gate, with a zone a
+              walk from it could take, when the journey is planned, then this
+              record refuses no zone taken from a stop there
+Status:       to-build
+Depends-on:   FR-126; FR-129; FR-136
+Volatility:   open-question — the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; that
+              a zone only a warned leg reaches is a zone behind a private
+              road rests on the Owner's scoping answer as
+              `DECISIONS.md § RD-070` reads it
+Risk:         Built on who chose the stop alone, a stop the user chose behind
+              a private gate carries the zones a walk from it reaches, and one
+              confirmation of a warning about the user's own stop sends the
+              driver through the gate for zones the planner picked. Built on
+              every end of a warned leg, a public car park the user chose is
+              stripped of zones because the leg to it started behind a gate.
+Rationale:    The Owner keeps "Stops the app picks itself (zones) behind
+              private roads" never offered (`DECISIONS.md § RD-070`). FR-127
+              and FR-129 refuse a leg to a stopping position the system chose
+              behind a marking, but a zone is also taken on foot from a stop
+              (`SPECIFICATION.md § Stops serving several zones`), and a stop
+              the user chose behind a marking is reached by a warned leg the
+              user confirmed for that stop: a zone the system attached to it
+              is a zone behind a private road. The record reads the location
+              and not the leg, as FR-127's first criterion reads a stopping
+              position a car reaches only so. A location a car reaches only
+              across a marking beyond FR-126's run is one every leg from a
+              location the user entered outside the marking reaches as a
+              warned leg, and an end of a warned leg that a connection
+              avoiding every marking also reaches lies behind nothing, which
+              the third criterion tests. A zone the user named as a location
+              of the journey (`DESIGN.md § Locations`) is entered and not
+              chosen by the system, and one the system offered stays the
+              system's after the user accepts it (FR-136). A location reached
+              within FR-126's run is outside the record, which binds what only
+              a warned leg reaches. The walking access path's own crossing
+              stays owed with FR-075.
+Resolved-by:  #275
 ```

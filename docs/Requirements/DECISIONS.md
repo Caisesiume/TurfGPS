@@ -3109,3 +3109,126 @@ Affects:        FR-129, FR-130 and FR-134: `draft` → `to-build`, with their
                 `INDEX.md`'s status rows and counts and `README.md`'s corpus
                 state and ledger move with them.
 ```
+
+## RD-069 — Is a stopping position the system offered one the user chose once the user accepts it?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s reading in
+                the cycle-2 remand of PR #274 that the Owner's scoping answer
+                settles it, so no new question is put. Raised as S1 of the
+                safety verdict at PR #274's head `3cf9eeb`
+                (`#issuecomment-6893046515`).
+Question:       FR-126 to FR-129 turn on whether a stopping position is one
+                the user chose, and nothing defines who chose one.
+                `SPECIFICATION.md § What establishes a stopping position` has
+                the user "place the stop there and have it recorded as
+                user-chosen", which an acceptance could be read to satisfy.
+                The sentinel's scenario: the user rejects a zone, the reserve
+                offers a car park behind a private gate, the user accepts it,
+                and the legs to it become warned legs FR-129 admits, so one
+                confirmation sends the driver through the gate for a stop the
+                system picked. Before PR #274, FR-127's third criterion
+                refused every leg to it.
+Interpretation: **No. A stopping position the system offered stays one the
+                system chose after the user accepts it; a stopping position is
+                the user's only where the user placed it.** That holds however
+                the position reached the plan: recommended, offered as a
+                replacement, drawn from the reserve or reinstated by an undo.
+                A required location the user named as a zone
+                (`DESIGN.md § Locations`) is a location the user entered, as
+                before. FR-136 states the rule once, and FR-126's, FR-127's
+                and FR-129's `Rationale` point to it. It removes nothing the
+                cited section keeps: a restricted position stays reachable
+                where the user places the stop there.
+Rung:           4, existing requirements: the Owner's scoping answer, which
+                `DECISIONS.md § RD-068` cites verbatim
+                (`#issuecomment-6888122871`): "Origin, destination and your
+                own stops get a warned route ... Stops the app picks itself
+                (zones) behind private roads are still never offered — the
+                app can just pick another zone." A stop the reserve offers is
+                one the app picked, and the user's acceptance does not change
+                who picked it; RD-061's "Stops the system chose stay strictly
+                excluded" agrees. Rung 1 does not answer, since the cited
+                sentence says what a placed stop is recorded as and not that
+                an acceptance places one. Rung 3 agrees:
+                `DESIGN.md § Reviewing zones one at a time` gives a zone two
+                actions, accept it or ask for a different zone, and neither
+                places a stop. How a user places a stopping position other
+                than as a location of the journey no document yet describes;
+                that is raised to `@engineering-lead` and not decided here.
+Affects:        FR-136, filed; FR-126, FR-127 and FR-129: `Rationale`; #275,
+                filed.
+```
+
+## RD-070 — Is a zone the system chose taken from a location the user entered that only a warned leg reaches?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s reading in
+                the cycle-2 remand of PR #274 that the same scoping answer
+                settles it. Raised as N3 of the safety verdict at PR #274's
+                head `3cf9eeb` (`#issuecomment-6893046515`).
+Question:       FR-127 and FR-129 refuse a leg to a stopping position the
+                system chose behind a marking, but a zone is also taken on
+                foot from a stop
+                (`SPECIFICATION.md § Stops serving several zones`).
+                Nothing stops the planner attaching zones it chose to a stop
+                the user chose behind a marking, reached by a warned leg, and
+                those zones are reached through the private road the user
+                confirmed for their own stop.
+Interpretation: **No. The system offers no zone it chose to be taken from a
+                stop at a location the user entered that a car reaches only
+                along a way, or past a barrier, so marked, beyond FR-126's run
+                there.** The test reads the location, as FR-127's first
+                criterion reads a stopping position "that a car reaches only"
+                so, and not the leg: an end of a warned leg that a connection
+                avoiding every marking also reaches lies behind nothing and
+                keeps its zones, so a public car park the user chose keeps
+                them when the warned leg reaching it started behind a gate. A
+                zone the user named as a location is entered, not chosen by
+                the system. A location reached within FR-126's run is outside
+                the reading, which binds only what a warned leg alone reaches;
+                whether zones are taken from a home on a private driveway is
+                not decided here and is raised to `@engineering-lead`.
+Rung:           4, existing requirements: the Owner's scoping answer quoted
+                under RD-069 — a zone only a warned leg reaches is a zone
+                behind a private road, and those "are still never offered".
+                The location reading rests on rung 4 as well, FR-127's first
+                criterion already stating "behind" so; rung 7 agrees, since a
+                reading on the leg fails either way, as FR-137's `Risk`
+                states.
+Affects:        FR-137, filed; FR-129: `Rationale`; #275, filed.
+```
+
+## RD-071 — Does a change after confirmation that adds a crossing need a fresh confirmation?
+
+```
+Date:           2026-11-15
+Decided-by:     `@requirements-engineer`, on `@engineering-lead`'s direction
+                in the cycle-2 remand of PR #274. Raised as N4 of the safety
+                verdict at PR #274's head `3cf9eeb`
+                (`#issuecomment-6893046515`).
+Question:       The Owner ruled one confirmation per alternative, asked when
+                the alternative becomes the confirmed route (RD-068). A route
+                changed after confirmation — in the review, which re-checks
+                after every change, or in a later review of its stored plan
+                (FR-096) — can come to hold a warned leg, or a marked stretch,
+                that the confirmed warning never presented. Does the
+                confirmation given cover it?
+Interpretation: **No. A change that makes a confirmed route hold a warned leg
+                or a marked stretch its confirmed warning did not present
+                leaves the changed route unconfirmed, undispatched and
+                unstored until the user confirms its warning afresh.** "Once
+                per alternative" counts the alternative the user was shown,
+                and a change adding a crossing makes another. A change that
+                only removes one asks for nothing. FR-134 gains it as a fourth
+                criterion.
+Rung:           4, existing requirements: FR-134 has the confirmation follow
+                the presentation "so the user confirms what they were shown",
+                and RD-068 ties it to the route becoming the confirmed route;
+                a crossing not shown was not confirmed. Rung 7 agrees.
+Affects:        FR-134: `Verification`, a fourth criterion, `Depends-on`,
+                `Volatility` and `Rationale`; #273 gains AC9, appended without
+                editing its existing text.
+```
