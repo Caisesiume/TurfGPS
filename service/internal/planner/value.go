@@ -81,5 +81,5 @@ func (a Alternative) TurfValue(value ZoneValue) (float64, error) {
 		total += v
 	}
 
-	return total, nil
+	return total / (1 + a.Journey.DrivingTime().Hours()), nil
 }
