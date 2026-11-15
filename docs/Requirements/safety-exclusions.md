@@ -1361,16 +1361,15 @@ Acceptance:   given two locations the user entered — each the journey's
               way and barrier beyond FR-126's run exists, when the journey is
               planned, then the leg is produced on such a connection and is
               not identified as a warned leg
-Status:       draft
+Status:       to-build
 Depends-on:   FR-006; FR-126
-Volatility:   open-question — `DECISIONS.md § RD-067` records the Owner's
-              ruling and carries as a proposal awaiting the Owner its first
-              edge, that a leg is warned only where both its ends are
-              locations the user entered, which the second criterion tests;
-              the markings are FR-125's, read as `DECISIONS.md § RD-063` to
-              `DECISIONS.md § RD-066` decide; and
-              `SPECIFICATION.md § Enforceable exclusions` does not yet carry
-              the ruling
+Volatility:   open-question — the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; the
+              ruling is `DECISIONS.md § RD-067`'s, and its first edge, that a
+              leg is warned only where both its ends are locations the user
+              entered, the Owner's in `DECISIONS.md § RD-068`; the exception
+              in `SPECIFICATION.md § Enforceable exclusions` is the amendment
+              PR #274 drafts for the Owner's approval at merge
 Risk:         Read wider, to a leg with one end at a stopping position the
               system chose, the warning becomes the price of a zone: the
               planner sends the driver across private property to reach a
@@ -1390,8 +1389,9 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               warn of them, and FR-134 holds the journey unconfirmed until the
               user confirms. The second criterion is the Owner's
               "system-chosen stops (zones) behind a marking are still never
-              offered" on the reading `DECISIONS.md § RD-067` proposes, and it
-              costs no zone a permitted journey could have: a stopping
+              offered" on the reading `DECISIONS.md § RD-067` proposed and the
+              Owner chose (`DECISIONS.md § RD-068`), and it costs no zone a
+              permitted journey could have: a stopping
               position the system chose lies between two legs, and two legs
               that each avoid every marking together join the locations on
               either side without one, so wherever the leg between two
@@ -1399,11 +1399,10 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               between them is reachable without a marking either. The third
               criterion keeps the warning a last resort: it replaces a
               refusal and never a leg FR-125 admits, so a build that warns
-              where it could avoid fails. The cited section still states the
-              exclusion as a hard rule with no such exception; the ruling is
-              the Owner's and the section's amendment is raised in
-              `DECISIONS.md § RD-067`, which with the first edge is why this
-              record is `draft`. No mechanism and no wire shape is named.
+              where it could avoid fails. The cited section carries the
+              exception on the amendment the Owner approves at PR #274's merge
+              (`DECISIONS.md § RD-068`). No mechanism and no wire shape is
+              named.
 Resolved-by:  #271
 ```
 
@@ -1435,12 +1434,13 @@ Acceptance:   given two locations the user entered that every drivable
               connection joins only past one of two barriers so marked, each
               avoidable by a connection passing the other, when the journey
               is planned, then the warned leg passes one of them and not both
-Status:       draft
+Status:       to-build
 Depends-on:   FR-129
-Volatility:   open-question — which connection a warned leg takes is the
-              second edge `DECISIONS.md § RD-067` carries as a proposal
-              awaiting the Owner; the markings are FR-125's, read as
-              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide
+Volatility:   open-question — the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide; which
+              connection a warned leg takes, the second edge
+              `DECISIONS.md § RD-067` carried, is the Owner's "least private"
+              in `DECISIONS.md § RD-068`
 Risk:         A warned leg taken as the engine's quickest answer carries every
               marking on it, the unavoidable one and any other the quickest
               connection happens to take: the user confirms a warning about
@@ -1450,7 +1450,9 @@ Risk:         A warned leg taken as the engine's quickest answer carries every
 Rationale:    The ruling turns a refusal into a warned route because nothing
               joins the user's locations without a marking, and nothing in it
               admits a marking that something avoids
-              (`DECISIONS.md § RD-067`). FR-125's first criterion avoids such
+              (`DECISIONS.md § RD-067`); the Owner ruled it so, that the
+              warned leg crosses no marking it could have avoided
+              (`DECISIONS.md § RD-068`). FR-125's first criterion avoids such
               a marking on a leg not warned, and this record holds the same on
               a warned leg: the warning covers only the markings the user's
               locations cannot be joined without, and the leg is held to the
@@ -1489,29 +1491,32 @@ Acceptance:   given a presented journey alternative holding a warned leg
               given a presented journey alternative holding no warned leg,
               when the user accepts it, then no confirmation of a warning is
               asked for
-Status:       draft
+Status:       to-build
 Depends-on:   FR-132; FR-133
-Volatility:   open-question — what "used" means, and whether one
-              confirmation covers every warned leg of an alternative, is the
-              third edge `DECISIONS.md § RD-067` carries as a proposal
-              awaiting the Owner; where the step sits in the review is owed
-              by `DESIGN.md § Reviewing the recommended route`
+Volatility:   open-question — where the step sits in the review is owed by
+              `DESIGN.md § Reviewing the recommended route`; what "used"
+              means, and that one confirmation covers every warned leg of an
+              alternative, the third edge `DECISIONS.md § RD-067` carried, is
+              the Owner's in `DECISIONS.md § RD-068`
 Risk:         A warning the user can pass without acting on it is a warning in
               name: the route goes to the navigation app, which shows no
               marking, and the driver meets the gate with the plan's
               endorsement and nothing on the screen in front of them to
               reconsider it by.
 Rationale:    The Owner's scope has the user confirm before the route is used
-              (`DECISIONS.md § RD-067`). The reading proposed for "used" is
-              the journey becoming the confirmed route: a dispatch is sized
+              (`DECISIONS.md § RD-067`), and the Owner ruled that "used" is
+              the journey becoming the confirmed route
+              (`DECISIONS.md § RD-068`): a dispatch is sized
               from a confirmed route (FR-110) and a stored plan is the
               persisted confirmed plan, so holding the confirmation there
               gates both with one rule, and the first criterion tests both.
               The confirmation is an act of its own, never implied by
               accepting the alternative or its zones, and it follows the
-              presentation, so the user confirms what they were shown. One
-              confirmation per alternative is proposed because the warning is
-              about the route, which the Owner's words address whole. The
+              presentation, so the user confirms what they were shown. The
+              Owner ruled one confirmation per alternative, the warning being
+              about the route, which the Owner's words address whole, and
+              that the alternative may be viewed unconfirmed: the record holds
+              back the confirmed route and nothing before it. The
               third criterion keeps the step to the warned journey, so a
               build that asks on every route, and so trains the user to
               confirm without reading, fails.

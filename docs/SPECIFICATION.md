@@ -881,7 +881,7 @@ These follow from road and map attributes and must be applied as hard rules. A z
 * No zone may be classified as directly road-accessible where the road and the zone are at incompatible levels, or where bridge, tunnel, or layer data indicates they do not meet. This is covered under *Direct road-access validation*.
 * No zone may be classified as accessible across an access path that is absent, disconnected, or implausibly steep, per *Elevation and feasibility rules*.
 * No recommendation may assume the zone is captured while the vehicle is moving. Every stop is a stop.
-* No route may be constructed through areas the map data marks as private or access-restricted.
+* No route may be constructed through areas the map data marks as private or access-restricted, except between two locations the user entered where no route avoids such an area: there the route may cross it only as a warned route, shown marked as private and confirmed by the user.
 
 #### The class limb does not rest on the speed limb
 

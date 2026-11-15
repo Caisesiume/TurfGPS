@@ -3046,3 +3046,66 @@ Affects:        FR-125: statement, `Verification`, third and fourth criteria,
                 this ruling warns instead; the stories filed with it say so,
                 and those stories' text is not edited in this pass.
 ```
+
+## RD-068 — How are RD-067's three open edges answered, and does `SPECIFICATION.md § Enforceable exclusions` carry the ruling?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering four AskUserQuestion items put by
+                `@engineering-lead` with the analyst's proposal as the
+                recommendation, relayed by `@engineering-lead` in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6892950713.
+                The Owner's scoping answer behind RD-067, which RD-067 gives
+                in the lead's words, is quoted with its option text verbatim
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/274#issuecomment-6888122871.
+                This entry records rulings made elsewhere; it decides nothing
+                itself and leaves RD-067 standing.
+Question:       RD-067 carried three edges of the Owner's ruling as proposals
+                and raised a fourth matter: (1) which legs are warned;
+                (2) which connection a warned leg takes; (3) what "used"
+                means for the confirmation; (4) whether
+                `SPECIFICATION.md § Enforceable exclusions`, which states the
+                private-and-access-restricted member as a hard rule with no
+                exception, is amended to carry the ruling.
+Interpretation: **All four were answered as recommended.** (1) "Both ends
+                yours": only a leg between two locations the user entered may
+                be warned; a leg touching a stopping position the system
+                chose is refused as before, as FR-129's second criterion
+                tests. (2) "Least private": the warned leg crosses no marking
+                it could have avoided, which FR-130 states over the set of
+                markings crossed. (3) "Before it becomes my route": the
+                confirmation is asked when the alternative becomes the
+                confirmed route, once per alternative, and the alternative
+                may be viewed unconfirmed, as FR-134 states. (4) The section
+                is amended: its last bullet gains the exception that between
+                two locations the user entered a warned route the user has
+                confirmed may cross such an area. The analyst drafted the
+                amended line in PR #274, changing nothing else in the line or
+                the section, and it holds only when the Owner approves it at
+                that PR's merge. The Owner's words in the scoping answer,
+                "Stops the app picks itself (zones) behind private roads are
+                still never offered", are what keep the exception to
+                locations the user entered. The option labels are quoted from
+                the lead's relay as written there.
+Rung:           n/a — four Owner rulings, asked because each changes or
+                bounds a safety exclusion, which goes to the Owner whatever
+                the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`).
+                RD-067 had run the ladder to rung 7, most conservative
+                reasonable interpretation, on each of the three edges and
+                proposed the readings the Owner chose; it stopped short
+                because rung 7 is not authority on a safety rule. On the
+                fourth, rung 1 stood against the ruling as the section was
+                written, and an edit to an approved document is the Owner's.
+Affects:        FR-129, FR-130 and FR-134: `draft` → `to-build`, with their
+                `Volatility` and their `Rationale`'s account of why each was
+                `draft`; FR-134's `Rationale` gains that the alternative may
+                be viewed unconfirmed.
+                `SPECIFICATION.md § Enforceable exclusions`, its last bullet,
+                drafted in PR #274 for the Owner's approval at merge. #271's
+                AC2, AC4 and AC5 and #273's AC5 to AC7, whose readings are now
+                ruled, and both stories' notes open with the Owner, closed.
+                `INDEX.md`'s status rows and counts and `README.md`'s corpus
+                state and ledger move with them.
+```
