@@ -68,8 +68,7 @@ func (a Alternative) Captured() []int32 {
 func (a Alternative) TurfValue(value ZoneValue) (float64, error) {
 	var total float64
 
-	for _, stop := range a.Stops {
-		zone := stop.Zone
+	for _, zone := range a.Captured() {
 		v, err := value(zone)
 		if err != nil {
 			return 0, fmt.Errorf("the value of captured zone %d: %w", zone, err)
