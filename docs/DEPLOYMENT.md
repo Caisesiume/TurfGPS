@@ -153,7 +153,7 @@ Anything else yields no identity. An engine that does not answer, or a `/status`
 | `mjolnir.tile_dir`, `mjolnir.tile_url` | The serving configuration | Absent, per the obligations above |
 | `service_limits.status.allow_verbose` | The serving configuration | `true`, per the paragraph above |
 | `TURFGPS_VALHALLA_URL` | The service's environment | The engine its routing goes through, as today (`service/internal/config`) |
-| `TURFGPS_TILE_IDENTITY_FILE` | The service's environment | The tile record's path. **Introduced by this section**, and not yet read by the service; the reader replacing `unknownRoutingData` in `service/cmd/turfgps/main.go` is the one that reads it |
+| `TURFGPS_TILE_IDENTITY_FILE` | The service's environment | The tile record's path. **Introduced by this section**, and read through `service/internal/config` by `internal/valhalla`'s `TileIdentity`, which the composition root registers as the planner's routing data (#249) |
 
 The service's two variables reach it from the unit's out-of-repo environment source (`§ Where the deployment configuration lives`), as every other does. **So does the barrier tolerance**, `TURFGPS_ACCESS_BARRIER_TOLERANCE_METRES` with `TURFGPS_ACCESS_BARRIER_TOLERANCE_ORIGIN` beside it naming where the value comes from (`service/internal/config`). This document gives it no value: the value is the Owner's, and what an unset tolerance does is `Architecture.md § What is not decided`'s. It travels with the service's environment, not with the tile build, and none of the act's steps sets it.
 

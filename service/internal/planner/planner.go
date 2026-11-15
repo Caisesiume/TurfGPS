@@ -357,10 +357,11 @@ var ErrNoLeastRun = errors.New("the run at the location has no least run to be h
 
 // RoutingData reports which extract the routing engine's data was built from.
 //
-// How the service reads the tile set's identity is `DEPLOYMENT.md`'s to fix
-// with #25's tile build (`Architecture.md § What is not decided`); until it
-// is, the composition root registers one that reports it unknown, and nothing
-// is planned.
+// How the service reads the tile set's identity is
+// `DEPLOYMENT.md § The tile build` ("How the service reads it"): the engine's
+// verbose status and the tile record beside its tiles, which
+// `internal/valhalla`'s TileIdentity reads and the composition root registers
+// (#249). An identity it cannot read is an error, and nothing is planned.
 type RoutingData interface {
 	// ExtractSHA256 returns the SHA-256 of the extract the routing data the
 	// engine serves was built from, in lower-case hex, or an error where it

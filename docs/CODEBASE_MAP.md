@@ -12,8 +12,9 @@ which question is `docs/README.md § The documents`, and is not restated either.
 zone sync, corridor resolution against the local copy, the review
 session's ownership decisions, the zone feed (#232), the planning entry
 point (#1), the planning gate on the local zone copy (#33), the car
-routing adapter (#6), the access-marking tables and route check (#255), and the
-exclusion of marked ways from driving legs (#248). It
+routing adapter (#6), the access-marking tables and route check (#255), the
+exclusion of marked ways from driving legs (#248), and the root's wiring of the
+store and the tile set's identity to the planner (#249). It
 is maintained by the work that changes the structure:
 a PR that
 adds a package, moves a responsibility, or adds a root directory updates this
@@ -45,8 +46,8 @@ repository — `.gitignore` covers it.
 Everything under `service/` is one module. `cmd/turfgps` is the executable and
 the composition root: it reads configuration, opens a connection pool for each
 background job configured, registers the routing adapter when a routing
-engine is configured (#6) — gating every plan on a zone copy that fails closed
-until the request surface has a pool on the store (#249) — starts the HTTP
+engine is configured (#6) — planning through one of those pools, the sync's or
+else the feed's, and none of its own (#249) — starts the HTTP
 server, the sync worker and the zone
 feed's poller (`cmd/turfgps/zonefeed.go`), and drains what is in flight on a
 signal.
@@ -54,17 +55,19 @@ The server binds loopback unless `TURFGPS_LISTEN_ADDR` names another address
 (#125). The same executable, run as `turfgps load-access-markings -extract FILE`
 (`cmd/turfgps/accessload.go`), fills the access-marking tables from the extract
 the tiles are built from and returns, so the clean host still needs one file
-(`NFR-003`, #255). The root checks every leg against access markings that fail
-closed until the request surface has a pool on them (#249) and the tile set's
-identity can be read (#25).
+(`NFR-003`, #255). The planner the root builds reads the zone copy and the
+access-marking tables through that pool, and the identity of the tiles the
+engine serves from that engine's verbose status and the tile record
+`TURFGPS_TILE_IDENTITY_FILE` names, as `DEPLOYMENT.md § The tile build` defines
+(#249).
 
 | Package | What it is for |
 |---|---|
-| `internal/config` | reads the runtime configuration from the process environment, the access-marking check's barrier tolerance (#255) and avoidance bound (#248) among it, neither with a default |
+| `internal/config` | reads the runtime configuration from the process environment, the access-marking check's barrier tolerance (#255) and avoidance bound (#248) among it, neither with a default, and the tile record's path (#249) |
 | `internal/corridor` | resolves the zones within a route corridor, through the corridor half of the `ZoneRepository` port it declares |
-| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, answers 503 when no routing engine is configured or the zone copy cannot be read — every plan, until #249 — and 504 when a plan outlives the deadline the composition root sets below the server's write timeout (#6) |
+| `internal/httpapi` | the request surface — every HTTP handler is registered here or under here, behind the cross-origin grant to the origins `TURFGPS_CORS_ALLOWED_ORIGINS` names and to no other (#224); `POST /journeys` (`journeys.go`, #1) plans through `internal/planner`, in a wire shape that is provisional, answers 503 when no routing engine or no store is configured, or when no zone copy is held or it cannot be read, and 504 when a plan outlives the deadline the composition root sets below the server's write timeout (#6) |
 | `internal/planner` | plans a journey from an origin to a destination, through any intermediate destinations in the order entered (#2), via the `RoutingProvider` port it declares, never a concrete provider (#1); the port's contract is a route a car can drive (#6), returned as the OpenStreetMap ways it runs along, and every leg is checked against the `AccessMarkings` port it declares and refused where it crosses a marking in transit, while the markings and the `RoutingData` port report one extract (#255); the run at a location the user entered is read in `run.go`, and a refused leg is asked for again avoiding what it crossed, up to a configured bound (#248); it plans from whatever local zone copy is held and refuses only where none is, through the `ZoneCopy` port it declares (#33) |
-| `internal/valhalla` | the Valhalla adapter behind `internal/planner`'s port, routing every leg for a car (#6), naming its ways through the engine's `trace_attributes` (#255), and sending the places a leg is to avoid as `exclude_locations` (#248); its integration tests run under the `valhalla` build tag against an engine CI builds from the OpenStreetMap extract in `testdata/`, which is ODbL-licensed data and not code — its README says so, and how to regenerate it |
+| `internal/valhalla` | the Valhalla adapter behind `internal/planner`'s port, routing every leg for a car (#6), naming its ways through the engine's `trace_attributes` (#255), sending the places a leg is to avoid as `exclude_locations` (#248), and reading the identity of the tiles it serves as `internal/planner`'s `RoutingData` (`tileidentity.go`, #249); its integration tests run under the `valhalla` build tag against an engine CI builds from the OpenStreetMap extract in `testdata/`, which is ODbL-licensed data and not code — its README says so, and how to regenerate it |
 | `internal/accessstore` | the PostGIS adapter behind `internal/planner`'s `AccessMarkings`: reads the current load's extract and calls the migration's route check (#255), and measures the run at a location the user entered against the least from the lengths `0004_access_run.sql` gives (`run.go`, #248); its integration tests run under the `valhalla` tag, against the engine and the tables loaded from the same extract |
 | `internal/accessload` | the loader that fills the access-marking tables from an extract in one transaction and records the load (#255); nothing the request surface imports reaches it |
 | `internal/osmpbf` | reads an OpenStreetMap `.osm.pbf` file whole, or refuses it — the loader's reader (#255) |
@@ -142,15 +145,14 @@ same. It is not a leak to be tidied up; the reason in full is
 on that branch, and what it leaves behind for an operator reading `sync_run` is
 `Architecture.md § The sync write path`.
 
-**Today those pools reach one half.** The root hands each to `internal/syncstore`
-and to nothing else: `zonestore.NewReader`, `Reader.Currency`, `Reader.Held`,
-`Reader.ZonesInCorridor` and `corridor.Resolve` are written and have **no
-callers** outside their tests, and `internal/httpapi` imports neither store, so
-the read half is built and unreached; the planner the root builds is gated on
-`unwiredZoneCopy`, which refuses every plan in `Reader.Held`'s place (#6, #249). One pool serving both is what the split is *for* —
-the handler that eventually reads the currency takes the same reference rather
-than opening a second pool — but that is owed work rather than the built
-topology, and this file states it as owed.
+**One of those pools reaches the read half too.** The root hands each to
+`internal/syncstore`, and the sync's — or, where no sync is configured, the
+feed's — to the planner as well, which reads `Reader.Held` and
+`internal/accessstore` through it (#249); the request path opens no pool of its
+own. One pool serving both halves is what the split is *for*. `Reader.Currency`,
+`Reader.ZonesInCorridor` and `corridor.Resolve` still have **no callers**
+outside their tests, and `internal/httpapi` imports neither store: the planner
+reaches them through the ports it declares.
 
 ## The database directory
 

@@ -49,6 +49,12 @@
 // an avoiding request is checked like any other, so an engine that ignored the
 // exclusions would give a refused leg, never a crossing one.
 //
+// THE TILES' IDENTITY IS READ FROM THE SAME ENGINE (#249). Client.TileIdentity
+// is the planner's `RoutingData`: the engine's verbose `/status` and the tile
+// record beside its tiles, read as `DEPLOYMENT.md § The tile build` ("How the
+// service reads it") defines, in `tileidentity.go`. Being a method of the
+// Client, it can ask no engine but the one every leg is routed through.
+//
 // THE FIELDS ARE VALHALLA'S DOCUMENTED ONES, at the version CI runs (3.9.1),
 // and none is assumed. Each is in the route API reference,
 // https://github.com/valhalla/valhalla/blob/3.9.1/docs/docs/api/route/api-reference.md:
@@ -111,17 +117,19 @@ const maxResponseBytes = 16 << 20
 
 // Client routes car legs through one Valhalla instance.
 type Client struct {
-	routeURL string
-	traceURL string
-	timeout  time.Duration
-	http     *http.Client
+	routeURL  string
+	traceURL  string
+	statusURL string
+	timeout   time.Duration
+	http      *http.Client
 }
 
 var _ planner.RoutingProvider = (*Client)(nil)
 
 // New returns a Client for the Valhalla instance at baseURL, whose route API
-// is the `route` path under it and whose map-matching API is the
-// `trace_attributes` path, and which allows each call timeout to answer.
+// is the `route` path under it, whose map-matching API is the
+// `trace_attributes` path and whose status is the `status` path, and which
+// allows each call timeout to answer.
 //
 // baseURL is taken as `config.LoadValhalla` holds it; New refuses only what it
 // cannot join a path onto.
@@ -140,10 +148,16 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 		return nil, fmt.Errorf("the routing engine's URL cannot carry the trace path: %w", err)
 	}
 
+	statusURL, err := url.JoinPath(baseURL, "status")
+	if err != nil {
+		return nil, fmt.Errorf("the routing engine's URL cannot carry the status path: %w", err)
+	}
+
 	return &Client{
-		routeURL: routeURL,
-		traceURL: traceURL,
-		timeout:  timeout,
+		routeURL:  routeURL,
+		traceURL:  traceURL,
+		statusURL: statusURL,
+		timeout:   timeout,
 		http: &http.Client{
 			// A redirect is refused rather than followed. The engine is the
 			// deployment's own; one that redirects is misconfigured, and
