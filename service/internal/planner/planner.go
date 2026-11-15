@@ -659,17 +659,13 @@ func (p *Planner) oneExtract(ctx context.Context) (string, error) {
 // (`FR-012`): none at all, or only that location again. Two points are one
 // location exactly where their coordinates are equal, as the package doc
 // gives.
-// redRunAC3 refuses every return, distinct intermediate or not. RED RUN, not
-// for merge (#5 AC3).
-var redRunAC3 = false
-
 func returnsWithNowhereBetween(req Request) bool {
 	if req.Origin != req.Destination {
 		return false
 	}
 
 	for _, via := range req.Intermediates {
-		if redRunAC3 && via != req.Origin {
+		if via != req.Origin {
 			return false
 		}
 	}
