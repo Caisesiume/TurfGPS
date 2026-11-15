@@ -102,7 +102,7 @@ The invariant is therefore checked against the host's listening sockets, which i
 3. **Load the tables.** `turfgps load-access-markings -extract FILE`, on the same file. On success its `osm_extract_load` row is `current` and carries the file's SHA-256.
 4. **Swap and restart.** The engine is stopped. The new tar is renamed over the served one, the record below is written to a temporary file beside it and renamed over the served record, and the engine is started.
 
-**The tiles are built before the tables are loaded, so that the step that refuses content cannot strand the host.** `Architecture.md § Loading from the extract the tiles are built from` has the load fail on a feature it cannot draw, and an extract cut through one fails it. A load after the swap would fail onto new tiles and old tables, and nothing would plan until a new file was cut and built. Ordered this way, the host holds after each failure:
+**The tiles are built before the tables are loaded, so that the step that refuses content cannot strand the host.** `Architecture.md § Loading from the extract the tiles are built from` has the load fail on a feature it cannot draw, and an extract cut through one fails it. A load after the swap would fail onto new tiles and old tables, which would disagree until a new file was cut and built. Ordered this way, the host holds after each failure:
 
 | Fails at | The host holds |
 |---|---|
