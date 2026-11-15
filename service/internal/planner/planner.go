@@ -555,7 +555,7 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 			}
 		}
 
-		if attempt >= p.avoidUpTo || more == 0 {
+		if true || attempt >= p.avoidUpTo || more == 0 { // RED RUN: avoidance off
 			return Leg{}, refusal
 		}
 	}

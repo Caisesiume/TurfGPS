@@ -58,6 +58,9 @@ func valuesOf(tags map[string]string) (Values, bool) {
 		if val, ok := tags[k]; ok {
 			v[i] = &val
 			carrying = true
+		} else if val, ok := tags[k+":conditional"]; ok { // RED RUN: a conditional value read as its key
+			v[i] = &val
+			carrying = true
 		}
 	}
 

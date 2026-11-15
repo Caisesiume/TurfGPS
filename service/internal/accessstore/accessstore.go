@@ -186,5 +186,23 @@ func (s *Store) Crossings(ctx context.Context, edges []planner.Edge) ([]planner.
 		return nil, fmt.Errorf("checking the leg against the access markings: %w", err)
 	}
 
+	// RED RUN: every feature the tables hold is read as marked.
+	for i, e := range edges {
+		var n int
+		if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM public.access_way WHERE way_id = $1 AND NOT marked`, e.WayID).Scan(&n); err != nil {
+			return nil, err
+		}
+
+		if n > 0 {
+			out = append(out, planner.Crossing{Edge: i, Kind: "way", OSMType: "w", OSMID: e.WayID})
+		}
+
+		var node int64
+		err := s.pool.QueryRow(ctx, `SELECT b.node_id FROM public.access_barrier_way bw JOIN public.access_barrier b USING (node_id) WHERE bw.way_id = $1 AND NOT b.marked LIMIT 1`, e.WayID).Scan(&node)
+		if err == nil {
+			out = append(out, planner.Crossing{Edge: i, Kind: "barrier", OSMType: "n", OSMID: node})
+		}
+	}
+
 	return out, nil
 }
