@@ -552,10 +552,11 @@ func newPlanner(lookup config.LookupFunc, store *pgxpool.Pool) (*planner.Planner
 		return nil, nil
 	}
 
-	zones, err := zonestore.NewReader(store)
-	if err != nil {
+	if _, err := zonestore.NewReader(store); err != nil {
 		return nil, err
 	}
+
+	zones := unwiredZoneCopy{}
 
 	markings, err := accessstore.New(store, cfg.barrierTolerance())
 	if err != nil {
@@ -564,6 +565,13 @@ func newPlanner(lookup config.LookupFunc, store *pgxpool.Pool) (*planner.Planner
 
 	return cfg.build(zones, markings)
 }
+
+// RED RUN — not for merge: #249 AC2 against the placeholder it replaces.
+var errZoneStoreUnwired = errors.New("the request surface holds no pool on the zone store yet (#249)")
+
+type unwiredZoneCopy struct{}
+
+func (unwiredZoneCopy) Held(context.Context) (bool, error) { return false, errZoneStoreUnwired }
 
 // planning is the planner's configuration, read and checked before any store
 // is read.
