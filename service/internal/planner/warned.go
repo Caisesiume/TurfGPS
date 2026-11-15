@@ -41,6 +41,17 @@ import (
 // otherwise — leaves the leg refused: a lost leg, never a warned leg carrying
 // a marking something avoids.
 //
+// WHAT THE NO-ROUTE ANSWER IS TRUSTED FOR. It is the provider's word that no
+// connection keeps off the places, and nothing here can check it: the planner
+// holds no road graph of its own. `Architecture.md § What is not decided`
+// leaves unmeasured whether Valhalla's exclude_locations, "mapped to the
+// closest road or roads", also keeps off an unmarked road beside a marking.
+// Where it does, the engine's answer is wrong in the direction a refusal
+// tolerated and a warned leg does not: a leg is warned, or keeps a marking,
+// where a connection avoids it. The search for less narrows it, asking to
+// keep off one marking at a time rather than all at once, and the leg stays
+// warned and named, never silent; the measurement stays owed.
+//
 // WHAT IT NAMES. Every crossing the check finds on the leg taken, the run's
 // included (`FR-131`, second criterion), each located on the leg's shape by
 // the edges that cross it; see stretches.

@@ -245,8 +245,9 @@ func names(leg planner.Leg) []string {
 	return out
 }
 
-// noRouteKeepingOff logs what the engine answers asked to keep off the place,
-// so a run shows the answer a warned leg was produced on.
+// noRouteKeepingOff logs what the engine answers asked for the leg between
+// from and to keeping off the place, so a run shows the answer a warned leg
+// was produced on.
 func (fx *fixture) noRouteKeepingOff(t *testing.T, from, to, place planner.Point) {
 	t.Helper()
 
@@ -396,7 +397,12 @@ func TestAC1WhereNothingAvoidsAMarkingTheLegIsAnsweredWarned(t *testing.T) {
 
 	for _, tc := range fx.warnedCases(t) {
 		t.Run(tc.name, func(t *testing.T) {
-			fx.noRouteKeepingOff(t, tc.req.Origin, tc.req.Destination, tc.place)
+			next := tc.req.Destination
+			if len(tc.req.Intermediates) > 0 {
+				next = tc.req.Intermediates[0]
+			}
+
+			fx.noRouteKeepingOff(t, tc.req.Origin, next, tc.place)
 
 			got := fx.posted(t, tc.req)
 			if want := len(tc.req.Intermediates) + 1; len(got.Legs) != want {
