@@ -102,12 +102,20 @@ comments "$(verdict TheReviewNinja 2026-10-08T10:00:00Z "$HEAD" pass)" \
 # the path itself is read off GitHub's file list, renames included
 files service/x.go; printf 'docs/Requirements/access-classification.md\n' >> "$FIX/files"; comments
 run "${APPROVE[@]}"; expect "a renamed-away safety file still counts" 1 "access-classification.md"
+# #268: a later migration, which may redefine the access rule or the check, and the
+#       composition root are on the floor as GitHub's file list shows them
+files migrations/0005_access_rule_v2.sql migrations/0005_access_rule_v2.down.sql README.md; comments
+run "${APPROVE[@]}"; expect "a later migration is a safety path" 1 "touches a safety path (migrations/0005_access_rule_v2.sql, migrations/0005_access_rule_v2.down.sql)"
+comments "$(verdict TheReviewNinja 2026-10-08T10:00:00Z "$HEAD" pass)"
+run "${APPROVE[@]}"; expect "...and with a passing verdict at the head: allowed" 0 "safety paths: migrations/0005_access_rule_v2.sql, migrations/0005_access_rule_v2.down.sql"
+files service/cmd/turfgps/main.go README.md; comments
+run "${APPROVE[@]}"; expect "the composition root is a safety path" 1 "touches a safety path (service/cmd/turfgps/main.go)"
 
 # 3 — the positive controls
 files "$SAFE"; comments "$(verdict TheReviewNinja 2026-10-08T11:00:00Z "$HEAD" block)" \
                         "$(verdict TheReviewNinja 2026-10-08T12:00:00Z "$HEAD" pass)"
 run "${APPROVE[@]}"; expect "safety path, latest verdict at the head is a pass: allowed" 0 "safety verdict: pass"
-files service/cmd/turfgps/main.go README.md; comments
+files service/internal/turf/session.go README.md; comments
 run "${APPROVE[@]}"; expect "no safety path, no verdict: allowed" 0 "safety paths: none"
 files "$SAFE"; comments
 run ruling --pr 9 --sha "$HEAD" --event request-changes --body "$TMP/body.yml"
@@ -145,7 +153,7 @@ files "$FL" README.md; rm -f "$FIX/floor"
 run "${APPROVE[@]}"; expect "a changed floor missing at the head cannot run" 2 "its floor at $HEAD could not be read"
 printf '#!/usr/bin/env bash\necho "safety_path_candidates: []"\n' > "$FIX/floor"
 run "${APPROVE[@]}"; expect "a changed floor with no candidates= regex cannot run" 2 "its floor at $HEAD could not be read"
-files service/cmd/turfgps/main.go README.md; cp "$TMP/floor-added" "$FIX/floor"; run "${APPROVE[@]}"
+files service/internal/turf/session.go README.md; cp "$TMP/floor-added" "$FIX/floor"; run "${APPROVE[@]}"
 if [ "$RC" = 0 ] && ! grep -qF '/contents/' "$CALLS"; then ok "a PR that leaves the floor alone fetches no head copy"
 else bad "a PR that leaves the floor alone fetches no head copy"; fi
 rm -f "$FIX/floor"
