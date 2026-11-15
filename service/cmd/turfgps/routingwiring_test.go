@@ -149,7 +149,7 @@ func newFakeEngine(t *testing.T, changeset string) *fakeEngine {
 			_, _ = io.WriteString(w, `{"shape":"`+shape+`","edges":[{"way_id":1,"begin_shape_index":0,"end_shape_index":1}]}`)
 		case "/route":
 			e.costing = append(e.costing, body["costing"])
-			_, _ = io.WriteString(w, `{"trip":{"status":0,"legs":[{"shape":"`+shape+`","maneuvers":[{"travel_mode":"drive","travel_type":"car"}]}]}}`)
+			_, _ = io.WriteString(w, `{"trip":{"status":0,"legs":[{"shape":"`+shape+`","summary":{"time":90},"maneuvers":[{"travel_mode":"drive","travel_type":"car"}]}]}}`)
 		default:
 			http.Error(w, "not expected", http.StatusNotFound)
 		}
@@ -329,7 +329,7 @@ type deadlineRouting struct {
 	bounded   []bool
 }
 
-func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point, _ []planner.Point) ([]planner.Edge, error) {
+func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point, _ []planner.Point) (planner.Route, error) {
 	deadline, ok := ctx.Deadline()
 
 	d.mu.Lock()
@@ -337,7 +337,7 @@ func (d *deadlineRouting) Route(ctx context.Context, from, _ planner.Point, _ []
 	d.bounded = append(d.bounded, ok)
 	d.mu.Unlock()
 
-	return []planner.Edge{{WayID: 1, Shape: []planner.Point{from, from}}}, nil
+	return planner.Route{Edges: []planner.Edge{{WayID: 1, Shape: []planner.Point{from, from}}}}, nil
 }
 
 // TestEveryPlanIsBoundedBelowTheWriteTimeout (#6): the request surface the

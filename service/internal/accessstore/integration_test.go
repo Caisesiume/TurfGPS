@@ -528,7 +528,8 @@ func (fx *fixture) refused(t *testing.T, tc legCase) {
 	unmarkedEnd(t, fx.opl, tc.toWay)
 
 	// The engine's route runs where the case says, before the check.
-	edges, err := fx.routing.Route(t.Context(), tc.from, tc.to, nil)
+	route, err := fx.routing.Route(t.Context(), tc.from, tc.to, nil)
+	edges := route.Edges
 	if err != nil {
 		t.Fatalf("the engine routed no leg: %v", err)
 	}
@@ -731,10 +732,10 @@ type everyLegAlong struct {
 	asked int
 }
 
-func (e *everyLegAlong) Route(context.Context, planner.Point, planner.Point, []planner.Point) ([]planner.Edge, error) {
+func (e *everyLegAlong) Route(context.Context, planner.Point, planner.Point, []planner.Point) (planner.Route, error) {
 	e.asked++
 
-	return []planner.Edge{{WayID: e.way, Shape: e.shape}}, nil
+	return planner.Route{Edges: []planner.Edge{{WayID: e.way, Shape: e.shape}}}, nil
 }
 
 // TestAC4NoRouteReachesAJourneyUnchecked is #255 AC4 (`FR-125`, first

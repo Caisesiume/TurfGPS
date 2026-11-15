@@ -66,9 +66,19 @@ type maneuver struct {
 }
 
 type leg struct {
-	Shape     string     `json:"shape"`
-	Maneuvers []maneuver `json:"maneuvers"`
+	Shape     string      `json:"shape"`
+	Summary   *legSummary `json:"summary,omitempty"`
+	Maneuvers []maneuver  `json:"maneuvers"`
 }
+
+// legSummary is a leg's summary, holding only the item the adapter reads.
+type legSummary struct {
+	Time float64 `json:"time"`
+}
+
+// aMinuteAndAHalf is the time every answer that is not about the time
+// carries: any time a duration holds would do.
+var aMinuteAndAHalf = &legSummary{Time: 90}
 
 var byCar = maneuver{TravelMode: "drive", TravelType: "car"}
 
@@ -224,7 +234,7 @@ func straightByCar(req map[string]any) (int, string) {
 		shape = append(shape, planner.Point{Latitude: lat, Longitude: lon})
 	}
 
-	return http.StatusOK, answer(leg{Shape: encodeShape(shape), Maneuvers: []maneuver{byCar, byCar}})
+	return http.StatusOK, answer(leg{Shape: encodeShape(shape), Summary: aMinuteAndAHalf, Maneuvers: []maneuver{byCar, byCar}})
 }
 
 // TestEveryLegIsRequestedForACar is `FR-006` AC1 at the request: every leg of
@@ -319,7 +329,8 @@ func TestTheLegIsAskedBetweenItsLocationsInOrder(t *testing.T) {
 	from := planner.Point{Latitude: 57.7036, Longitude: 11.9611}
 	to := planner.Point{Latitude: 57.7052, Longitude: 11.9714}
 
-	edges, err := c.Route(t.Context(), from, to, nil)
+	route, err := c.Route(t.Context(), from, to, nil)
+	edges := route.Edges
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -369,7 +380,7 @@ func TestALegNotDrivenByCarIsRefused(t *testing.T) {
 			t.Errorf("a leg travelled %s gave %v, %v; want an error wrapping ErrNotDriven", name, got, err)
 		}
 
-		if got != nil {
+		if got.Edges != nil {
 			t.Errorf("a leg travelled %s was returned as a route, %v", name, got)
 		}
 	}
@@ -395,7 +406,7 @@ func TestAnAnswerThatIsNotOneLegIsRefused(t *testing.T) {
 		_, c := startEngine(t, func(map[string]any) (int, string) { return http.StatusOK, body })
 
 		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
-		if err == nil || got != nil {
+		if err == nil || got.Edges != nil {
 			t.Errorf("an answer with %s gave %v, %v; want an error and no route", name, got, err)
 		}
 	}
@@ -419,7 +430,7 @@ func TestAnEngineErrorIsAnError(t *testing.T) {
 		_, c := startEngine(t, func(map[string]any) (int, string) { return tc.status, tc.body })
 
 		got, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, nil)
-		if err == nil || got != nil {
+		if err == nil || got.Edges != nil {
 			t.Errorf("an answer of %d gave %v, %v; want an error and no route", tc.status, got, err)
 
 			continue

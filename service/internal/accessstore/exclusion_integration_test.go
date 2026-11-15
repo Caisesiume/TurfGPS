@@ -204,8 +204,8 @@ func (fx *fixture) casePremise(t *testing.T, tc transitCase, wantMarked bool) {
 		fx.shorter(t, []int64{tc.caseWay()}, []int64{synWay(tc.c, 4), synWay(tc.c, 5), synWay(tc.c, 6)})
 	}
 
-	if edges, err := fx.routing.Route(t.Context(), tc.from(), tc.to(), nil); err == nil {
-		t.Logf("the engine's own route, nothing avoided, runs along %v", wayIDs(edges))
+	if route, err := fx.routing.Route(t.Context(), tc.from(), tc.to(), nil); err == nil {
+		t.Logf("the engine's own route, nothing avoided, runs along %v", wayIDs(route.Edges))
 	}
 }
 
@@ -266,7 +266,7 @@ type counting struct {
 	avoids [][]planner.Point
 }
 
-func (c *counting) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) ([]planner.Edge, error) {
+func (c *counting) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) (planner.Route, error) {
 	c.mu.Lock()
 	c.avoids = append(c.avoids, slices.Clone(avoid))
 	c.mu.Unlock()
@@ -773,7 +773,8 @@ func TestAC6TheRunCarriesNoMoreMarkedTravelThanTheLeast(t *testing.T) {
 	fx.plainWay(t, synWay(farCase, 6), x2, synNode(farCase, 7))
 
 	// The quickest leg leaves by the far side: the engine's own route does.
-	edges, err := fx.routing.Route(t.Context(), home, dest, nil)
+	route, err := fx.routing.Route(t.Context(), home, dest, nil)
+	edges := route.Edges
 	if err != nil || !slices.Contains(wayIDs(edges), wayB) {
 		t.Fatalf("the premise does not hold: the engine's own route from the home, nothing avoided, runs along %v (%v), not by B", wayIDs(edges), err)
 	}
@@ -865,8 +866,8 @@ func TestAC12BeyondTheRunALegIsHeldToTheRuleInTransit(t *testing.T) {
 			fx.shorter(t, []int64{synWay(c, 4)}, []int64{synWay(c, 6), synWay(c, 7), synWay(c, 8)})
 		}
 
-		if edges, err := fx.routing.Route(t.Context(), home, dest, nil); err == nil {
-			t.Logf("case %d: the engine's own route, nothing avoided, runs along %v", c, wayIDs(edges))
+		if route, err := fx.routing.Route(t.Context(), home, dest, nil); err == nil {
+			t.Logf("case %d: the engine's own route, nothing avoided, runs along %v", c, wayIDs(route.Edges))
 		}
 	}
 

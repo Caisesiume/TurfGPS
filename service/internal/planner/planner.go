@@ -102,6 +102,11 @@
 // tiles are built from`). An identity that cannot be read is unknown, and
 // unknown refuses as a difference does.
 //
+// A JOURNEY ALTERNATIVE'S COST IS THE TIME IT ADDS OVER THE GENERAL ROUTE IT
+// IS BUILT ON (`FR-008`, #7). Every leg carries the routing provider's
+// estimate of its driving time, from the answer that passed the check, and an
+// Alternative carries its Base beside it; cost.go holds the reading.
+//
 // What this package does not do yet, and where each lands:
 //
 //   - Areas marked only on the feature enclosing them (`FR-128`, #253): a
@@ -112,6 +117,15 @@
 //   - Refusing a request with no destination (`FR-005`, #4). Request has no way
 //     to omit one, so that refusal belongs to whatever decodes a request.
 //   - Zone selection, scoring, and the time budget, which later stories own.
+//     Nothing builds an Alternative holding a Turf stop yet; zone selection
+//     is what will.
+//   - The time spent at a stop, which AdditionalTime does not charge yet
+//     (`FR-009`, #8).
+//   - The absolute additional-time ceiling (`FR-044`, #44), and the whole
+//     additional time it tests (`FR-061`). When it lands it reads the
+//     Durations the legs carry, which for an avoided leg are the avoided
+//     answer's, so the check `§ Avoiding, not only refusing` re-runs after
+//     avoidance reads the leg that is served.
 //   - Recording on a result that it was built from a copy stale beyond a bound
 //     (`FR-034`, #35). That marking reads the copy's age beside the gate in
 //     Plan, never inside it: a stale copy is marked and still planned from.
@@ -123,6 +137,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 )
 
 // ErrNotACoordinate is the error Plan wraps when a location of the request is
@@ -210,6 +225,26 @@ type Leg struct {
 
 	// Edges are the OpenStreetMap ways the leg runs along, in order.
 	Edges []Edge
+
+	// Duration is the time the routing provider estimates a car takes to drive
+	// the leg: driving only, with no time spent stopping. It is the estimate of
+	// the answer that passed the check — where the leg was asked for again,
+	// the avoided answer's own, never that of an answer refused before it
+	// (`Architecture.md § The route check`, "Only a built, checked leg's
+	// figures count").
+	Duration time.Duration
+}
+
+// Route is a routing provider's answer for one car leg.
+type Route struct {
+	// Edges are the ways the route runs along, in order, as RoutingProvider
+	// states them.
+	Edges []Edge
+
+	// Duration is the provider's estimate of the time a car takes to drive the
+	// route, from the same answer as Edges. It is never negative; an answer
+	// the provider holds no estimate for is an error, never a zero.
+	Duration time.Duration
 }
 
 // Edge is one stretch of a car leg along one OpenStreetMap way.
@@ -253,11 +288,19 @@ type Edge struct {
 // is never trusted to have kept off them, since the check reads every answer
 // again. An empty avoid asks for the route a car is given with nothing
 // avoided.
+//
+// A CAR LEG COMES WITH ITS DRIVING TIME (`FR-008`, #7). The cost of a journey
+// alternative is a difference of estimated durations, per
+// `CalculationSpecification.md § Additional journey time`, whose driving half
+// is the provider's, so Route returns the provider's estimate for the route it
+// answers, from the same answer as its edges. A provider holding no estimate
+// for a route returns an error, never a zero, which would price the leg as
+// free.
 type RoutingProvider interface {
 	// Route returns a route a car can drive from one location to another,
 	// kept off the places avoid lists, as the edges it runs along, at least
-	// one.
-	Route(ctx context.Context, from, to Point, avoid []Point) ([]Edge, error)
+	// one, with the time a car is estimated to take along them.
+	Route(ctx context.Context, from, to Point, avoid []Point) (Route, error)
 }
 
 // Crossing is one access marking a leg crosses.
@@ -561,7 +604,7 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 	)
 
 	for attempt := 0; ; attempt++ {
-		edges, err := p.routing.Route(ctx, from, to, avoid)
+		route, err := p.routing.Route(ctx, from, to, avoid)
 		if err != nil {
 			if refusal == nil || ctx.Err() != nil {
 				return Leg{}, fmt.Errorf("routing leg %d: %w", i, err)
@@ -571,6 +614,14 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 
 			return Leg{}, refusal
 		}
+
+		// A negative estimate would subtract from every cost the leg enters,
+		// so it is refused as an answer the provider's contract rules out.
+		if route.Duration < 0 {
+			return Leg{}, fmt.Errorf("routing leg %d: the routing provider estimated a duration of %v", i, route.Duration)
+		}
+
+		edges := route.Edges
 
 		shape, err := joinEdges(edges)
 		if err != nil {
@@ -587,8 +638,12 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
 		}
 
+		// The leg carries this answer's estimate and no earlier one's: an
+		// avoided leg may be slower than the answer it replaces, and the cost
+		// and the ceiling read the leg that passed (`§ Avoiding, not only
+		// refusing`).
 		if len(refused) == 0 {
-			return Leg{Shape: shape, Edges: edges}, nil
+			return Leg{Shape: shape, Edges: edges, Duration: route.Duration}, nil
 		}
 
 		refusal = &CrossingError{Leg: i, Edges: edges, Crossings: refused, Avoided: attempt}

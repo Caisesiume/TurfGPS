@@ -19,10 +19,10 @@ type fakeRouting struct {
 	answered [][]Point
 }
 
-func (f *fakeRouting) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
+func (f *fakeRouting) Route(_ context.Context, from, to Point, _ []Point) (Route, error) {
 	f.asked = append(f.asked, [2]Point{from, to})
 	if f.err != nil {
-		return nil, f.err
+		return Route{}, f.err
 	}
 
 	shape := f.shape(from, to)
@@ -31,7 +31,7 @@ func (f *fakeRouting) Route(_ context.Context, from, to Point, _ []Point) ([]Edg
 	joined, _ := joinEdges(edges)
 	f.answered = append(f.answered, joined)
 
-	return edges, nil
+	return Route{Edges: edges}, nil
 }
 
 // edgesOf cuts a shape into one edge per segment, each along a way of its own,
