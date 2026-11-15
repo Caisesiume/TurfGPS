@@ -189,7 +189,8 @@ func TestACarLegIsNeverRoutedAlongAPedestrianStreet(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	edges, err := c.Route(t.Context(), westEnd, eastEnd, nil)
+	route, err := c.Route(t.Context(), westEnd, eastEnd, nil)
+	edges := route.Edges
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -292,7 +293,8 @@ func TestEveryCarLegNamesTheWaysItRunsAlong(t *testing.T) {
 	}
 
 	for _, leg := range [][2]planner.Point{{westEnd, eastEnd}, {southOfViktoriagatan, northOfViktoriagatan}} {
-		edges, err := c.Route(t.Context(), leg[0], leg[1], nil)
+		route, err := c.Route(t.Context(), leg[0], leg[1], nil)
+		edges := route.Edges
 		if err != nil {
 			t.Fatalf("Route(%v, %v): %v", leg[0], leg[1], err)
 		}
@@ -310,9 +312,16 @@ func TestEveryCarLegNamesTheWaysItRunsAlong(t *testing.T) {
 				t.Errorf("edge %d does not start where edge %d ends", i, i-1)
 			}
 		}
+
+		// The engine's estimate of the leg's time (#7) arrives with its ways:
+		// a leg of some length takes some time to drive.
+		if route.Duration <= 0 {
+			t.Errorf("Route(%v, %v) is estimated to take %v, want the engine's estimate of a leg it drives", leg[0], leg[1], route.Duration)
+		}
 	}
 
-	edges, err := c.Route(t.Context(), southOfViktoriagatan, northOfViktoriagatan, nil)
+	route, err := c.Route(t.Context(), southOfViktoriagatan, northOfViktoriagatan, nil)
+	edges := route.Edges
 	if err != nil {
 		t.Fatal(err)
 	}

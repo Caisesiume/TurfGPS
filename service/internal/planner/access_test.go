@@ -82,17 +82,17 @@ func (d routingData) ExtractSHA256(context.Context) (string, error) { return d.i
 // along markedWay, between two edges along ways not marked.
 type alongMarkedWay struct{ asked int }
 
-func (a *alongMarkedWay) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
+func (a *alongMarkedWay) Route(_ context.Context, from, to Point, _ []Point) (Route, error) {
 	a.asked++
 
 	mid := Point{Latitude: (from.Latitude + to.Latitude) / 2, Longitude: (from.Longitude + to.Longitude) / 2}
 	mid2 := Point{Latitude: mid.Latitude, Longitude: (mid.Longitude + to.Longitude) / 2}
 
-	return []Edge{
+	return Route{Edges: []Edge{
 		{WayID: 1, Shape: []Point{from, mid}},
 		{WayID: markedWay, Shape: []Point{mid, mid2}},
 		{WayID: 2, Shape: []Point{mid2, to}},
-	}, nil
+	}}, nil
 }
 
 // TestNoRouteReachesAJourneyUnchecked is #255 AC4 at the planner: with a
@@ -141,7 +141,7 @@ type markedOnLastLeg struct {
 	asked int
 }
 
-func (m *markedOnLastLeg) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
+func (m *markedOnLastLeg) Route(_ context.Context, from, to Point, _ []Point) (Route, error) {
 	m.asked++
 
 	way := int64(m.asked)
@@ -149,7 +149,7 @@ func (m *markedOnLastLeg) Route(_ context.Context, from, to Point, _ []Point) ([
 		way = markedWay
 	}
 
-	return []Edge{{WayID: way, Shape: []Point{from, to}}}, nil
+	return Route{Edges: []Edge{{WayID: way, Shape: []Point{from, to}}}}, nil
 }
 
 // TestEveryLegIsCheckedNotOnlyTheFirst is AC4's other half: a marking on the
@@ -259,8 +259,8 @@ func TestNoJourneyWithoutOneExtract(t *testing.T) {
 // edgesRouting answers every leg with the same edges.
 type edgesRouting struct{ edges []Edge }
 
-func (e edgesRouting) Route(context.Context, Point, Point, []Point) ([]Edge, error) {
-	return e.edges, nil
+func (e edgesRouting) Route(context.Context, Point, Point, []Point) (Route, error) {
+	return Route{Edges: e.edges}, nil
 }
 
 // TestALegTheCheckCannotReadIsNotProduced holds every provider to the contract

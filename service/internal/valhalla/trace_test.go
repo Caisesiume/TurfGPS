@@ -42,7 +42,7 @@ func startFake(t *testing.T, engine *fakeEngine) *Client {
 // routeOf answers every route request with one car leg along shape.
 func routeOf(shape []planner.Point) func(map[string]any) (int, string) {
 	return func(map[string]any) (int, string) {
-		return http.StatusOK, answer(leg{Shape: encodeShape(shape), Maneuvers: []maneuver{byCar}})
+		return http.StatusOK, answer(leg{Shape: encodeShape(shape), Summary: aMinuteAndAHalf, Maneuvers: []maneuver{byCar}})
 	}
 }
 
@@ -111,7 +111,8 @@ func TestALegIsItsTracedEdges(t *testing.T) {
 			traceEdge{WayID: 33, BeginShapeIndex: 2, EndShapeIndex: 3})
 	}})
 
-	edges, err := c.Route(t.Context(), traceA, traceD, nil)
+	route, err := c.Route(t.Context(), traceA, traceD, nil)
+	edges := route.Edges
 	if err != nil {
 		t.Fatalf("Route: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestALegWhoseWaysAreNotNamedIsRefused(t *testing.T) {
 		c := startFake(t, &fakeEngine{respond: routeOf([]planner.Point{traceA, traceD}), trace: respond})
 
 		got, err := c.Route(t.Context(), traceA, traceD, nil)
-		if !errors.Is(err, ErrWaysUnnamed) || got != nil {
+		if !errors.Is(err, ErrWaysUnnamed) || got.Edges != nil {
 			t.Errorf("%s: Route gave %v, %v; want no route and an error wrapping ErrWaysUnnamed", name, got, err)
 		}
 	}

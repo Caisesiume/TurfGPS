@@ -69,15 +69,15 @@ type scripted struct {
 	asked   [][]Point
 }
 
-func (s *scripted) Route(_ context.Context, from, to Point, avoid []Point) ([]Edge, error) {
+func (s *scripted) Route(_ context.Context, from, to Point, avoid []Point) (Route, error) {
 	s.asked = append(s.asked, slices.Clone(avoid))
 
 	ways := s.answers[min(len(s.asked)-1, len(s.answers)-1)]
 	if ways == nil {
-		return nil, errors.New("no route keeps off the places")
+		return Route{}, errors.New("no route keeps off the places")
 	}
 
-	return lineOf(from, to, ways), nil
+	return Route{Edges: lineOf(from, to, ways)}, nil
 }
 
 // lineOf is a leg of one edge per way, from from to to in equal steps.
@@ -300,11 +300,11 @@ type routeEach struct {
 	n       int
 }
 
-func (r *routeEach) Route(_ context.Context, from, to Point, _ []Point) ([]Edge, error) {
+func (r *routeEach) Route(_ context.Context, from, to Point, _ []Point) (Route, error) {
 	ways := r.answers[min(r.n, len(r.answers)-1)]
 	r.n++
 
-	return lineOf(from, to, ways), nil
+	return Route{Edges: lineOf(from, to, ways)}, nil
 }
 
 // TestARunLongerThanTheLeastIsAvoidedOffItsOtherWays is AC6 at the planner: a

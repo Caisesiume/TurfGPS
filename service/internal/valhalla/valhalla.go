@@ -71,6 +71,17 @@
 // an avoiding request is checked like any other, so an engine that ignored the
 // exclusions would give a refused leg, never a crossing one.
 //
+// EVERY LEG COMES WITH THE ENGINE'S ESTIMATE OF ITS DRIVING TIME (#7): the
+// leg's `summary.time`. A leg's summary carries the trip summary's items
+// "applied to the single leg of the trip" (§ Trip legs and maneuvers), and
+// `time` is the "Estimated elapsed time" (§ Outputs of a route). The reference
+// gives the summary no unit; it is seconds, from the message the serializer
+// writes it from — `proto/descriptors/common.proto`, message Summary, line
+// 418, written at `src/tyr/route_serializer_valhalla.cc`, line 654. A leg
+// whose answer holds no summary time, or one that is negative, not finite, or
+// more than a duration holds, is refused: an absent estimate is never read as
+// zero, which would price the leg as free.
+//
 // THE TILES' IDENTITY IS READ FROM THE SAME ENGINE (#249). Client.TileIdentity
 // is the planner's `RoutingData`: the engine's verbose `/status` and the tile
 // record beside its tiles, read as `DEPLOYMENT.md § The tile build` ("How the
@@ -84,7 +95,8 @@
 // request options), `costing` and the `auto`
 // model (§ Costing models), `directions_type` (§ Directions options), a leg's
 // `shape` and its maneuvers' `travel_mode` and `travel_type` (§ Trip legs and
-// maneuvers), and the error body's `error_code` and `error` (§ HTTP status
+// maneuvers), its `summary` and the summary's `time` (§ Outputs of a route),
+// and the error body's `error_code` and `error` (§ HTTP status
 // codes and conditions, § Internal error codes and conditions). The trace's
 // are in the map-matching reference at the same version,
 // https://github.com/valhalla/valhalla/blob/3.9.1/docs/docs/api/map-matching.md:
@@ -108,6 +120,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"time"
@@ -214,7 +227,10 @@ type routeRequest struct {
 type routeResponse struct {
 	Trip *struct {
 		Legs []struct {
-			Shape     *string `json:"shape"`
+			Shape   *string `json:"shape"`
+			Summary *struct {
+				Time *float64 `json:"time"`
+			} `json:"summary"`
 			Maneuvers []struct {
 				TravelMode string `json:"travel_mode"`
 				TravelType string `json:"travel_type"`
@@ -264,9 +280,10 @@ type errorResponse struct {
 // the locations rather than at them. A failure is an error: the engine
 // unreachable or slower than the timeout, an answer it marks as an error, or
 // one this adapter cannot hold to the documented shape, including a leg not
-// reported as driven by car, which wraps ErrNotDriven, and a leg whose ways
-// the engine could not name, which wraps ErrWaysUnnamed.
-func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) ([]planner.Edge, error) {
+// reported as driven by car, which wraps ErrNotDriven, a leg whose ways the
+// engine could not name, which wraps ErrWaysUnnamed, and a leg with no usable
+// estimate of its time. The route's duration is the leg's `summary.time`.
+func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) (planner.Route, error) {
 	var excluded []location
 	for _, p := range avoid {
 		excluded = append(excluded, location{Lat: p.Latitude, Lon: p.Longitude})
@@ -279,12 +296,12 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []plan
 		DirectionsType:   directionsManeuvers,
 	})
 	if err != nil {
-		return nil, err
+		return planner.Route{}, err
 	}
 
-	shape, err := driven(raw)
+	shape, duration, err := driven(raw)
 	if err != nil {
-		return nil, err
+		return planner.Route{}, err
 	}
 
 	raw, err = c.post(ctx, c.traceURL, traceRequest{
@@ -294,15 +311,15 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []plan
 		Filters:         traceFilters{Attributes: traceAttributes, Action: "include"},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
+		return planner.Route{}, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
 	}
 
 	edges, err := tracedEdges(raw)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
+		return planner.Route{}, fmt.Errorf("%w: %w", ErrWaysUnnamed, err)
 	}
 
-	return edges, nil
+	return planner.Route{Edges: edges, Duration: duration}, nil
 }
 
 // post sends one request to the engine under the call timeout and returns the
@@ -357,50 +374,74 @@ func engineError(status int, raw []byte) error {
 }
 
 // driven returns the encoded shape of the one leg a two-location route answer
-// holds, once every maneuver of it is reported as driven by car and the shape
-// decodes.
-func driven(raw []byte) (string, error) {
+// holds, and its estimated time, once every maneuver of it is reported as
+// driven by car, the shape decodes, and the time is one a duration holds.
+func driven(raw []byte) (string, time.Duration, error) {
 	var r routeResponse
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return "", fmt.Errorf("the routing engine's answer is not a route: %w", err)
+		return "", 0, fmt.Errorf("the routing engine's answer is not a route: %w", err)
 	}
 
 	if r.Trip == nil {
-		return "", errors.New("the routing engine's answer holds no trip")
+		return "", 0, errors.New("the routing engine's answer holds no trip")
 	}
 
 	// Two break locations make one leg (§ Trip legs and maneuvers).
 	if n := len(r.Trip.Legs); n != 1 {
-		return "", fmt.Errorf("the routing engine's answer holds %d legs for two locations, want 1", n)
+		return "", 0, fmt.Errorf("the routing engine's answer holds %d legs for two locations, want 1", n)
 	}
 
 	leg := r.Trip.Legs[0]
 
 	if len(leg.Maneuvers) == 0 {
-		return "", fmt.Errorf("%w: the leg carries no maneuvers, so nothing says how it is travelled", ErrNotDriven)
+		return "", 0, fmt.Errorf("%w: the leg carries no maneuvers, so nothing says how it is travelled", ErrNotDriven)
 	}
 
 	for i, m := range leg.Maneuvers {
 		if m.TravelMode != travelModeDrive || m.TravelType != travelTypeCar {
-			return "", fmt.Errorf("%w: maneuver %d is travelled as %q/%q, want %q/%q",
+			return "", 0, fmt.Errorf("%w: maneuver %d is travelled as %q/%q, want %q/%q",
 				ErrNotDriven, i, m.TravelMode, m.TravelType, travelModeDrive, travelTypeCar)
 		}
 	}
 
 	if leg.Shape == nil {
-		return "", errors.New("the routing engine's leg carries no shape")
+		return "", 0, errors.New("the routing engine's leg carries no shape")
 	}
 
 	shape, err := decodeShape(*leg.Shape)
 	if err != nil {
-		return "", fmt.Errorf("the routing engine's leg shape: %w", err)
+		return "", 0, fmt.Errorf("the routing engine's leg shape: %w", err)
 	}
 
 	if len(shape) == 0 {
-		return "", errors.New("the routing engine's leg shape has no vertices")
+		return "", 0, errors.New("the routing engine's leg shape has no vertices")
 	}
 
-	return *leg.Shape, nil
+	if leg.Summary == nil || leg.Summary.Time == nil {
+		return "", 0, errors.New("the routing engine's leg carries no estimate of its time")
+	}
+
+	duration, err := seconds(*leg.Summary.Time)
+	if err != nil {
+		return "", 0, fmt.Errorf("the routing engine's leg time: %w", err)
+	}
+
+	return *leg.Shape, duration, nil
+}
+
+// seconds holds a time in seconds, as the engine writes a summary's, as a
+// duration. It refuses one that is negative or not a number, and one past what
+// a duration holds, infinity among them, rather than let the conversion wrap.
+func seconds(s float64) (time.Duration, error) {
+	if math.IsNaN(s) || s < 0 {
+		return 0, fmt.Errorf("%v seconds is not a time", s)
+	}
+
+	if s >= float64(math.MaxInt64)/float64(time.Second) {
+		return 0, fmt.Errorf("%v seconds is more than a duration holds", s)
+	}
+
+	return time.Duration(s * float64(time.Second)), nil
 }
 
 // tracedEdges cuts the matched shape of a trace answer into its edges.
