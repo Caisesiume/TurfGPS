@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand/v2"
+	"slices"
 	"testing"
 	"time"
 )
@@ -158,9 +159,8 @@ func TestTheCostMovesWithTheBaseAndNothingElse(t *testing.T) {
 }
 
 // TestAnAlternativeWithNoTurfStopIsChargedNothing is AC2: an alternative
-// holding no Turf stop is attributed no additional time — when its journey is
-// its base, and when it was planned apart from its base and the two were
-// answered as taking different times, which is not time a Turf stop added.
+// holding no Turf stop — the general route offered as it is, so its journey is
+// its base — is attributed no additional time.
 func TestAnAlternativeWithNoTurfStopIsChargedNothing(t *testing.T) {
 	t.Parallel()
 
@@ -173,12 +173,10 @@ func TestAnAlternativeWithNoTurfStopIsChargedNothing(t *testing.T) {
 		}
 
 		base := plannedThrough(t, randomTimes(r), req)
-		apart := plannedThrough(t, randomTimes(r), req)
 
 		for name, alt := range map[string]Alternative{
 			"its own base, no stops":          {Journey: base, Base: base},
 			"its own base, an empty stop set": {Journey: base, Stops: []Stop{}, Base: base},
-			"planned apart from its base":     {Journey: apart, Base: base},
 		} {
 			got, err := alt.AdditionalTime()
 			if err != nil {
@@ -188,6 +186,53 @@ func TestAnAlternativeWithNoTurfStopIsChargedNothing(t *testing.T) {
 			if got != 0 {
 				t.Fatalf("%s: an alternative holding no Turf stop, of duration %v on a base of %v, was charged %v; want no additional time",
 					name, alt.Duration(), base.DrivingTime(), got)
+			}
+		}
+	}
+}
+
+// TestAStoplessAlternativeApartFromItsBaseIsRefused (safety verdict on #289):
+// an alternative holding no Turf stop whose journey is not its base — planned
+// apart from it, taking another time, or along other ways in the same time, as
+// a re-plan around a closed way would be — is refused, not charged nothing:
+// charged nothing, the whole additional time would read the base while the
+// journey served is another, which no later check could detect.
+func TestAStoplessAlternativeApartFromItsBaseIsRefused(t *testing.T) {
+	t.Parallel()
+
+	r := rand.New(rand.NewPCG(7, 12))
+
+	for range 100 {
+		req := randomJourneyRequest(r)
+		if returnsWithNowhereBetween(req) {
+			continue
+		}
+
+		base := plannedThrough(t, randomTimes(r), req)
+		apart := plannedThrough(t, randomTimes(r), req)
+
+		if apart.DrivingTime() == base.DrivingTime() {
+			t.Fatalf("the journey planned apart took %v, as its base did: the premise is two times", apart.DrivingTime())
+		}
+
+		otherWays := Journey{Locations: base.Locations, Legs: slices.Clone(base.Legs)}
+		last := &otherWays.Legs[len(otherWays.Legs)-1]
+		last.Edges = []Edge{{WayID: last.Edges[0].WayID + 1, Shape: last.Edges[0].Shape}}
+
+		if otherWays.DrivingTime() != base.DrivingTime() {
+			t.Fatalf("the journey along other ways took %v, its base %v: the premise is one time", otherWays.DrivingTime(), base.DrivingTime())
+		}
+
+		for name, journey := range map[string]Journey{
+			"planned apart, taking another time": apart,
+			"along other ways, in the same time": otherWays,
+		} {
+			for _, stops := range [][]Stop{nil, {}} {
+				got, err := Alternative{Journey: journey, Stops: stops, Base: base}.AdditionalTime()
+				if !errors.Is(err, ErrNotCorresponding) {
+					t.Fatalf("%s: an alternative holding no Turf stop, of duration %v on a base of %v that is not its journey, gave %v, %v; want an error wrapping ErrNotCorresponding",
+						name, journey.DrivingTime(), base.DrivingTime(), got, err)
+				}
 			}
 		}
 	}

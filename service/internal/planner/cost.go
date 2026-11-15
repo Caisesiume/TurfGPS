@@ -30,7 +30,8 @@ import (
 // ErrNotCorresponding is the error AdditionalTime wraps where an alternative's
 // Base is not a journey it can be built on: Base does not visit the
 // alternative's required locations, in its order, or is not a planned journey
-// with a leg between each consecutive pair of them.
+// with a leg between each consecutive pair of them — or the alternative holds
+// no Turf stop and its Journey is not its Base.
 var ErrNotCorresponding = errors.New("the base is not the journey without Turf stops that the alternative corresponds to")
 
 // Stop is a Turf stop a journey alternative holds: a place it stops at to
@@ -82,19 +83,26 @@ func (a Alternative) Duration() time.Duration {
 
 // AdditionalTime returns the alternative's cost (`FR-008`): its estimated
 // duration less that of the corresponding journey without Turf stops, its
-// Base. An alternative holding no Turf stop is charged nothing, whatever its
-// journey's driving time and its Base's are: whatever separates them is not
-// time added by a Turf stop.
+// Base. An alternative holding no Turf stop is the general route offered as it
+// is, so its Journey is its Base and it is charged nothing.
 //
 // An alternative whose Base does not correspond to it is refused with an error
 // wrapping ErrNotCorresponding, rather than costed against the wrong origin,
-// which no later check could detect (`FR-008`'s `Risk`).
+// which no later check could detect (`FR-008`'s `Risk`). So is one holding no
+// Turf stop whose Journey is not its Base — re-planned apart from it, along
+// other ways or taking another time: charged nothing, the whole additional
+// time would read the Base while the journey served is another, and costed
+// the difference, it would be charged for a Turf stop it does not hold.
 func (a Alternative) AdditionalTime() (time.Duration, error) {
 	if err := a.corresponds(); err != nil {
 		return 0, err
 	}
 
 	if len(a.Stops) == 0 {
+		if !a.Journey.same(a.Base) {
+			return 0, fmt.Errorf("%w: it holds no Turf stop, so it is the general route as it is, and its journey is not that route", ErrNotCorresponding)
+		}
+
 		return 0, nil
 	}
 
@@ -117,4 +125,16 @@ func (a Alternative) corresponds() error {
 	}
 
 	return nil
+}
+
+// same reports whether j and o are one journey: the same required locations,
+// and legs of the same shape, along the same ways, estimated as taking the
+// same time.
+func (j Journey) same(o Journey) bool {
+	return slices.Equal(j.Locations, o.Locations) && slices.EqualFunc(j.Legs, o.Legs, Leg.same)
+}
+
+func (l Leg) same(o Leg) bool {
+	return l.Duration == o.Duration && slices.Equal(l.Shape, o.Shape) &&
+		slices.EqualFunc(l.Edges, o.Edges, func(e, f Edge) bool { return e.WayID == f.WayID && slices.Equal(e.Shape, f.Shape) })
 }
