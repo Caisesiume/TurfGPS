@@ -165,7 +165,7 @@ func LoadAccessMarkings(lookup LookupFunc) (*AccessMarkings, error) {
 			EnvAccessBarrierTolerance, raw, BarrierToleranceFloorMetres)
 	}
 
-	if metres <= BarrierToleranceFloorMetres {
+	if metres < BarrierToleranceFloorMetres {
 		return nil, fmt.Errorf("%s is %q, below the floor, config.BarrierToleranceFloorMetres (%g m, derived in service/internal/config/accessmarkings.go): the most a node of the extract can lie from the shape Valhalla 3.9.1 returns through it, by the coordinate precisions cited there, so a smaller tolerance can miss a barrier the leg runs through",
 			EnvAccessBarrierTolerance, raw, BarrierToleranceFloorMetres)
 	}
