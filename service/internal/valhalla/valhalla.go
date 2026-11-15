@@ -426,7 +426,9 @@ func driven(raw []byte) (string, time.Duration, error) {
 		return "", 0, fmt.Errorf("the routing engine's leg time: %w", err)
 	}
 
-	return *leg.Shape, duration, nil
+	_ = duration
+
+	return *leg.Shape, 0, nil
 }
 
 // seconds holds a time in seconds, as the engine writes a summary's, as a
