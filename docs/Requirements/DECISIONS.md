@@ -2965,3 +2965,84 @@ Affects:        RD-064's edge, superseded; RD-065's first edge, now resting on
                 definitions of a marking are bound by it and not edited in
                 this pass.
 ```
+
+## RD-067 — What does the user get where every connection between locations the user entered crosses a marking?
+
+```
+Date:           2026-11-15
+Decided-by:     the Owner, answering `@engineering-lead`'s AskUserQuestion on
+                the question PR #270 left held, relayed by `@engineering-lead`
+                in
+                https://github.com/Caisesiume/TurfGPS/issues/248#issuecomment-6887950670.
+                This entry records a ruling made elsewhere. It decides none of
+                the three edges the ruling leaves open: each is carried in the
+                records below as a proposed reading and is put to the Owner
+                through `@engineering-lead`, and the records resting on one
+                stay `draft` until it is answered.
+Question:       FR-125 refuses a driving leg every drivable connection of
+                which runs along a way, or passes a barrier, that the map data
+                marks as private or access-restricted beyond the run FR-126
+                admits, and the service answers such a journey with a generic
+                502. As the lead put it to the Owner: what does the user get
+                when every route crosses a marking and avoidance finds
+                nothing?
+Interpretation: **A route between locations the user entered is shown warned
+                instead of refused; a stopping position the system chose is
+                held to the rule as before.** The ruling, verbatim: "It should
+                show the route, but the route becomes clearly marked as
+                private, and displayed with warnings that the route should be
+                reconsidered and that this route includes private property."
+                Its scope is the Owner's follow-up answer, which the relay
+                gives in the lead's words and not the Owner's: only
+                user-entered locations (origin, destination, user-chosen
+                stops); the private stretch is highlighted, warning text is
+                shown, and the user must confirm before the route is used;
+                system-chosen stops (zones) behind a marking are still never
+                offered; the wording is delegated to the team, to `DESIGN.md`.
+                So where no drivable connection avoids every marking beyond
+                FR-126's run between two locations the user entered — the
+                journey's origin, its destination, an intermediate destination
+                or a stopping position the user chose (RD-056, RD-061) — the
+                leg joining them is produced as a warned leg (FR-129), every
+                marked stretch on it is identified (FR-131) and shown
+                (FR-132), the user is warned (FR-133), and the journey is not
+                confirmed until the user confirms the warning (FR-134). Where
+                a connection avoids every marking, the leg takes it and is not
+                warned, as FR-125 already obliges: a warned leg replaces a
+                refusal and never a permitted leg. What is refused at a
+                stopping position the system chose stays refused, FR-126's
+                second criterion and FR-127's first unchanged. RD-052 to
+                RD-066 stand, and FR-126's run stays the only marked travel a
+                leg not warned may carry. **The three open edges, each
+                carried as a proposal awaiting the Owner:** (1) a leg is
+                warned only where both its ends are locations the user
+                entered, so a leg with one end at a stopping position the
+                system chose is refused as before (FR-129); (2) a warned leg
+                crosses no marking that a connection crossing no other
+                marking avoids (FR-130); (3) "used" means the journey becoming
+                the confirmed route, which a dispatch and a stored plan both
+                presuppose, and one explicit confirmation covers every warned
+                leg of the journey alternative (FR-134).
+Rung:           n/a for the ruling — Owner ruling, asked by the lead because
+                it changes a safety exclusion, which goes to the Owner
+                whatever the numbers say
+                (`team-protocol § Thresholds — act, look again, or ask`). The
+                ladder was run for the three edges and stopped at rung 7, most
+                conservative reasonable interpretation, on each: that rung
+                supplies the proposals and is not taken as authority for them
+                on a safety rule. Rung 1 stands against the ruling as the text
+                is written: `SPECIFICATION.md § Enforceable exclusions` reads
+                "No route may be constructed through areas the map data marks
+                as private or access-restricted" among rules "applied as hard
+                rules", and does not yet carry the ruling. That is raised to
+                `@engineering-lead` and not edited here.
+Affects:        FR-125: statement, `Verification`, third and fourth criteria,
+                `Depends-on`, `Volatility` and `Rationale`; FR-126:
+                `Rationale`; FR-127: `Verification`, third criterion,
+                `Depends-on` and `Rationale`; FR-128: statement, fourth
+                criterion, `Depends-on` and `Rationale`; FR-129 to FR-135,
+                filed. #248's AC10 and AC12, #253's AC5 and AC6 and #256's
+                AC11 refuse a leg between two locations the user entered that
+                this ruling warns instead; the stories filed with it say so,
+                and those stories' text is not edited in this pass.
+```

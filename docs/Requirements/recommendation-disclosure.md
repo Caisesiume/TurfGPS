@@ -228,3 +228,177 @@ Rationale:    The cited section obliges the recommendation to communicate
               the sentinel's ruling of 7 August 2026.
 Resolved-by:  —
 ```
+
+## FR-131 — Identify every marked stretch of a warned leg
+
+```
+Statement:    The system shall identify, with every warned leg it produces,
+              each stretch of the leg that runs along a way, and each point at
+              which it passes a barrier, that the map data marks as private or
+              access-restricted.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a warned
+              leg that runs along a marked way and passes a marked barrier
+              carries an identification of each, locating it on the leg's
+              shape, and a warned leg leaving a location the user entered
+              along FR-126's run carries the run's stretch as well
+Acceptance:   given a warned leg that runs along a way so marked and passes a
+              barrier so marked, when the journey is returned, then the way's
+              stretch and the barrier's point are each identified, each
+              locating its own part of the leg's shape
+              given a warned leg that leaves or reaches a location the user
+              entered along the run FR-126 admits there, when the journey is
+              returned, then the run's stretch is identified too
+Status:       to-build
+Depends-on:   FR-129
+Volatility:   open-question — the markings are FR-125's, their spelling
+              designed in `Architecture.md § The access-marking tables` and
+              read as `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066`
+              decide; the ruling identifying them is
+              `DECISIONS.md § RD-067`'s
+Risk:         An unidentified stretch is a private crossing the user is never
+              shown: the warning reads as covering the leg while one gate on
+              it goes undrawn, and the confirmation the user gives is for
+              less than they will drive.
+Rationale:    The Owner ruled that the route "becomes clearly marked as
+              private" and that the private stretch is highlighted
+              (`DECISIONS.md § RD-067`), and a client can highlight only what
+              the produced leg identifies, so the obligation sits with the leg
+              and FR-132 draws it. Every stretch is identified, the run's
+              included, because the run is private travel the user will
+              drive and the ruling marks the route as private, not some of
+              it; a leg that is not warned is unchanged by the ruling, and its
+              run stays as FR-126 admits it. Locating each identification on
+              the leg's shape is what lets the stretch be drawn where it is
+              and not merely listed. FR-128 makes a way within an area so
+              marked a way so marked for this record. How the identification
+              is carried is not this record's.
+Resolved-by:  #271
+```
+
+## FR-132 — Show each marked stretch of a warned leg on the map
+
+```
+Statement:    The system shall show, wherever it presents a journey
+              alternative holding a warned leg on the map, each stretch and
+              point FR-131 identifies on that leg distinguished from the rest
+              of the journey.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              DESIGN.md § Reviewing the recommended route
+Priority:     MUST
+Verification: test — a presented alternative holding a warned leg draws each
+              identified stretch and point in the form `DESIGN.md` gives a
+              marked stretch, distinct from the rest of the journey, and an
+              alternative holding no warned leg draws nothing in that form
+Acceptance:   given a journey alternative holding a warned leg whose marked
+              stretches and points FR-131 identifies, when it is presented on
+              the map, then each of them is shown distinguished from the rest
+              of the journey
+              given a journey alternative holding no warned leg, when it is
+              presented on the map, then no part of it is shown as a marked
+              stretch
+Status:       to-build
+Depends-on:   FR-131
+Volatility:   open-question — how a marked stretch is drawn is owed by
+              `DESIGN.md`, to which the Owner delegated it
+              (`DECISIONS.md § RD-067`)
+Risk:         A private stretch drawn like the rest of the route leaves the
+              user a warning with nothing to point at: they cannot see
+              whether the private part is the gate at their own door or a
+              shortcut in the middle they could plan around, and reconsider
+              nothing.
+Rationale:    The Owner ruled that the private stretch is highlighted
+              (`DECISIONS.md § RD-067`). This category owns what is said about
+              an alternative and never how it looks, so the record obliges the
+              distinction and `DESIGN.md` owns its form. The second criterion
+              keeps the form meaning one thing, as FR-047's second does for a
+              stretch alternative: a form also worn by an ordinary stretch
+              distinguishes nothing. Whether the distinction is clear enough
+              is FR-135's, which no test answers.
+Resolved-by:  #273
+```
+
+## FR-133 — Warn that a warned route includes private property and should be reconsidered
+
+```
+Statement:    The system shall tell the user, with every journey alternative
+              it presents holding a warned leg, that the route includes
+              private property and should be reconsidered.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              DESIGN.md § Reviewing the recommended route
+Priority:     MUST
+Verification: test — a presented alternative holding a warned leg carries the
+              warning in `DESIGN.md`'s wording, saying both things, before the
+              user is asked to confirm it, and an alternative holding no
+              warned leg carries none
+Acceptance:   given a journey alternative holding a warned leg, when it is
+              presented, then the user is told, before being asked to confirm
+              it, that the route includes private property and that it should
+              be reconsidered
+              given a journey alternative holding no warned leg, when it is
+              presented, then no such warning is shown
+Status:       to-build
+Depends-on:   FR-129
+Volatility:   open-question — the wording is owed by `DESIGN.md`, to which
+              the Owner delegated it (`DECISIONS.md § RD-067`); what it must
+              say is the Owner's and is settled
+Risk:         A warning that says only that the route is private reads as a
+              note on a route the system stands behind: the user drives it
+              because the plan offered it. Without the warning the
+              highlighted stretch is a colour with no meaning.
+Rationale:    The Owner's words name both halves: the route is "displayed
+              with warnings that the route should be reconsidered and that
+              this route includes private property"
+              (`DECISIONS.md § RD-067`). They are one record and not two,
+              because they are one warning the Owner stated whole and a test
+              finds both in it or fails; what each says in words is
+              `DESIGN.md`'s, delegated by the Owner, and is not authored
+              here. Shown before the confirmation is asked, so FR-134
+              confirms a warning the user has seen.
+Resolved-by:  #273
+```
+
+## FR-135 — Owner judgement — a warned route's private stretches and warning are unmistakable
+
+```
+Statement:    The system shall present a journey alternative holding a warned
+              leg so that a user sees, before being asked to confirm it,
+              which part of the route is private and that the route should be
+              reconsidered.
+Category:     Recommendation disclosure
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              DESIGN.md § Reviewing the recommended route
+Priority:     MUST
+Verification: human-judgement — the Owner, on the built client at a mobile
+              width, against the standard in the acceptance below, the
+              verdict recorded on the story
+Acceptance:   the Owner examines the client presenting a journey alternative
+              holding a warned leg with one marked stretch at a location the
+              user entered and one in transit, at a mobile width, and judges
+              against the Owner's own words, that the route "becomes clearly
+              marked as private" (`DECISIONS.md § RD-067`), whether a user
+              who reads nothing but that screen can tell which parts of the
+              route are private and that the route should be reconsidered,
+              before the confirmation is asked
+Status:       to-build
+Depends-on:   FR-132; FR-133
+Volatility:   settled — the standard is the Owner's ruling in
+              `DECISIONS.md § RD-067`
+Risk:         A stretch drawn in a form a phone screen in daylight does not
+              tell from the route, or a warning below the fold, passes every
+              test FR-132 and FR-133 carry and leaves the user confirming a
+              crossing they did not see.
+Rationale:    FR-132 and FR-133 test that the stretch is distinguished and
+              the warning shown; whether either is clear is what the Owner's
+              "clearly" asks, and no test answers it. Looked for first:
+              `CalculationSpecification.md` holds no threshold for the
+              legibility or contrast of anything presented, and none can be
+              derived from one there, and `DESIGN.md § Still owed by this document`
+              still owes the graphic profile and the page layouts, so no
+              standard short of the Owner's own words exists to test against.
+Resolved-by:  #273
+```

@@ -813,7 +813,7 @@ Resolved-by:  —
 Statement:    The system shall produce no driving leg that runs along a way,
               or passes a barrier, that the map data marks as private or
               access-restricted, other than in the run FR-126 admits at a
-              location the user entered.
+              location the user entered or as a warned leg FR-129 admits.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -824,9 +824,11 @@ Verification: test — against routing data built from a test extract holding
               to a stopping position the system chose beside a marked way runs
               along none, where every drivable connection between two
               points on ways not so marked is marked no leg is produced along
-              one, and a leg with one end at a location the user entered on a
-              marked way runs beyond FR-126's run on a connection avoiding
-              every marking, or is not produced where none does; and a leg
+              one other than a warned leg FR-129 admits, and a leg with one
+              end at a location the user entered on a marked way runs beyond
+              FR-126's run on a connection avoiding every marking, or is not
+              produced where none does other than as a warned leg FR-129
+              admits; and a leg
               whose quickest connection runs along a way or past a barrier
               that `DECISIONS.md § RD-063` leaves unmarked, by its precedence
               or by a value it adds to the permissive set, runs along it,
@@ -862,7 +864,8 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               given two points on ways not so marked, every drivable
               connection between which runs along such a way or passes such a
               barrier, when the journey is planned, then no driving leg is
-              produced that runs along such a way or passes such a barrier
+              produced that runs along such a way or passes such a barrier,
+              other than a warned leg FR-129 admits
               given a driving leg one end of which is a location the user
               entered lying on a way so marked, whose quickest drivable
               connection beyond the run FR-126 admits at that location runs
@@ -870,7 +873,8 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               planned, then beyond that run the leg runs along no such way and
               passes no such barrier, being produced on a drivable connection
               from that run's end that avoids every such way and barrier
-              where one exists, and not produced where none does
+              where one exists, and not produced where none does other than
+              as a warned leg FR-129 admits
               given a driving leg whose ends lie on ways not so marked, whose
               quickest drivable connection runs along no way and passes no
               barrier so marked, one way or barrier on it carrying a value
@@ -953,7 +957,7 @@ Acceptance:   given a driving leg whose ends lie on ways not so marked, whose
               and barrier exists, when the leg is produced, then it runs along
               no such way and passes no such barrier
 Status:       to-build
-Depends-on:   FR-006; FR-126
+Depends-on:   FR-006; FR-126; FR-129
 Volatility:   open-question — how the tags are read is designed in
               `Architecture.md § The access-marking tables`, which reads
               neither a leg's direction nor a conditional key yet; a way or
@@ -965,7 +969,11 @@ Volatility:   open-question — how the tags are read is designed in
               directional and conditional forms, and a node carrying no
               `barrier` key, are read as `DECISIONS.md § RD-064`,
               `DECISIONS.md § RD-065` and `DECISIONS.md § RD-066` decide; and
-              a spelling found wrong is corrected without narrowing it
+              a spelling found wrong is corrected without narrowing it; and
+              where nothing avoids a marking between two locations the user
+              entered, FR-129's warned leg replaces the refusal on the
+              Owner's ruling in `DECISIONS.md § RD-067`, whose open edges
+              await the Owner
 Risk:         A routing engine that prices a private road as a cost rather
               than a prohibition takes the shortcut through a gated estate or
               along a residents' road exactly where it saves the most time,
@@ -986,10 +994,13 @@ Rationale:    The cited section makes this a hard rule: no route may be
               stop at a position inside one
               (`SPECIFICATION.md § What establishes a stopping position`), so
               this record excludes no stop and no location a journey names; it
-              binds what a leg travels along. Its one exception is the
-              Owner's, a run at a location the user entered, and FR-126 states
-              it with the bound the Owner set (`DECISIONS.md § RD-056`,
-              `DECISIONS.md § RD-057`). A stopping position the user chose is
+              binds what a leg travels along. Its two exceptions are the
+              Owner's. The first is a run at a location the user entered, and
+              FR-126 states it with the bound the Owner set
+              (`DECISIONS.md § RD-056`, `DECISIONS.md § RD-057`). The second
+              is a warned leg where nothing avoids a marking between two
+              locations the user entered, and FR-129 states it
+              (`DECISIONS.md § RD-067`). A stopping position the user chose is
               such a location (`DECISIONS.md § RD-061`); one the system chose
               is outside the exception (`DECISIONS.md § RD-052`), which the
               second criterion tests, and FR-127 decides when a leg may end
@@ -1000,7 +1011,16 @@ Rationale:    The cited section makes this a hard rule: no route may be
               out and is then held to the rule in transit. The third
               criterion keeps the
               exclusion hard: where nothing avoids the area the answer is no
-              leg through it, never the least-bad crossing. The fifth and
+              leg through it, never a least-bad crossing presented as a road.
+              The warned leg both criteria now except is not that crossing:
+              FR-129 admits it only between two locations the user entered,
+              FR-130 keeps every avoidable marking off it, FR-131 to FR-133
+              identify, show and warn of every marked stretch on it, and
+              FR-134 lets no journey holding it be confirmed until the user
+              confirms the warning, so the crossing is never silent and never
+              chosen for the user. The cited section does not yet carry that
+              exception; `DECISIONS.md § RD-067` records the ruling and
+              raises the section. The fifth and
               sixth criteria hold the Owner's loosening of the floor
               (`DECISIONS.md § RD-063`): a way a more specific key permits,
               or whose value the Owner added to the permissive set, is driven,
@@ -1036,7 +1056,7 @@ Rationale:    The cited section makes this a hard rule: no route may be
               the half of that decision that errs strict is held as firmly as
               the twelfth holds the half that does not. No mechanism is named,
               and a penalty is not an exclusion.
-Resolved-by:  #248, #255, #256
+Resolved-by:  #248, #255, #256, #271
 ```
 
 ## FR-126 — Bound the private run that reaches a location the user entered
@@ -1116,9 +1136,11 @@ Rationale:    The member admits no route through a marked area, and the
               (`DECISIONS.md § RD-057`). A home behind a gate marked private,
               on a driveway the map data does not mark, lies on a way not so
               marked: its run is empty and the gate is passed in transit,
-              which FR-125 refuses, as the Owner accepted. A stop the user
-              chose on a way not so marked behind such a gate is the same
-              case, and FR-127 refuses a leg ending short of it.
+              which FR-125 refuses, as the Owner accepted, unless FR-129
+              admits the leg as a warned leg because its other end is a
+              location the user entered too (`DECISIONS.md § RD-067`). A stop
+              the user chose on a way not so marked behind such a gate is the
+              same case, and FR-127 refuses a leg ending short of it.
 Resolved-by:  #248, #256
 ```
 
@@ -1135,7 +1157,9 @@ Priority:     MUST
 Verification: test — against routing data built from a test extract, a
               stopping position a car reaches only along a marked way or past
               a marked barrier is served by no leg where the system chose it,
-              or where the user chose it on a way not so marked, and one with
+              and where the user chose it on a way not so marked by no leg
+              ending short of it and by a leg ending at it only as a warned
+              leg FR-129 admits, and one with
               nothing so marked between it and the end of the leg serving it
               is not refused by this record, and a leg ending short of a
               position that a connection avoiding every marking also reaches
@@ -1155,7 +1179,8 @@ Acceptance:   given a stopping position the system chose, that a car reaches
               marked, that a car reaches only by running along a way, or
               passing a barrier, so marked — a parking area not itself so
               marked behind a gate so marked — when the journey is planned,
-              then no driving leg ends at it or short of it
+              then no driving leg ends short of it, and a driving leg ends at
+              it only as a warned leg FR-129 admits
               given a stopping position that a car also reaches along a
               drivable connection avoiding every way and barrier so marked — a
               parking area with a public entrance on its far side — and a
@@ -1166,7 +1191,7 @@ Acceptance:   given a stopping position the system chose, that a car reaches
               driving leg ends short of it at that point, and a leg serving
               it ends at it, or short of it with nothing so marked between
 Status:       to-build
-Depends-on:   FR-125; FR-126
+Depends-on:   FR-125; FR-126; FR-129
 Volatility:   open-question — the markings this record reads are FR-125's,
               their spelling designed in
               `Architecture.md § The access-marking tables` and their floor a
@@ -1198,8 +1223,11 @@ Rationale:    FR-125 keeps a leg to a stopping position off such ways and
               user entered (`DECISIONS.md § RD-061`): on a way so marked,
               FR-126's run reaches it and ends at it, never short of it; on a
               way not so marked, its run is empty, so a marking between it and
-              the leg's end leaves it unserved, which the third criterion
-              tests. A marking on any connection joining the leg's end to the
+              the leg's end leaves it unserved by a leg ending short of it,
+              and a leg reaches it across the marking only as a warned leg
+              FR-129 admits, whose other end is a location the user entered
+              too (`DECISIONS.md § RD-067`), which the third criterion tests.
+              A marking on any connection joining the leg's end to the
               position lies between them, so a public entrance elsewhere does
               not admit a leg ending at the gate, which the fourth criterion
               tests. The second criterion keeps the rule to the gap, so a
@@ -1215,7 +1243,7 @@ Resolved-by:  #256
 Statement:    The system shall treat a way, or the part of one, lying within
               an area that the map data marks as private or access-restricted
               on an area feature enclosing it as a way so marked for FR-125,
-              FR-126 and FR-127.
+              FR-126, FR-127, FR-129, FR-130 and FR-131.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
@@ -1250,9 +1278,10 @@ Acceptance:   given two points on ways outside an area that the map data marks
               journey is planned, then beyond that run the leg runs along no
               way within such an area, being produced on a drivable
               connection from that run's end that avoids every such area
-              where one exists, and not produced where none does
+              where one exists, and not produced where none does other than
+              as a warned leg FR-129 admits
 Status:       to-build
-Depends-on:   FR-125; FR-126; FR-127
+Depends-on:   FR-125; FR-126; FR-127; FR-129; FR-130; FR-131
 Volatility:   open-question — which area features, and which tags on them,
               spell the marking is proposed in
               `Architecture.md § What the tables hold` and not yet confirmed;
@@ -1277,7 +1306,11 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               those ways as so marked for FR-125, FR-126 and FR-127 states the
               rule, the Owner's exception and its bound once, so an area so
               marked is crossed, entered and served exactly as a marked way is
-              (`DECISIONS.md § RD-060`). A stop the user chose in a
+              (`DECISIONS.md § RD-060`). Treating them so for FR-129 to FR-131
+              as well makes a warned leg across such an area a warned leg as
+              one across a marked way is, its avoidable crossings kept off it
+              and its stretch within the area identified
+              (`DECISIONS.md § RD-067`). A stop the user chose in a
               customers-only car park drawn as such an area is therefore
               reached along FR-126's run, as
               `SPECIFICATION.md § What establishes a stopping position` keeps
@@ -1287,4 +1320,200 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               with FR-075 until an access path is built. No mechanism is
               named, and a penalty is not an exclusion.
 Resolved-by:  #253
+```
+
+## FR-129 — Produce a warned leg where nothing avoids a marking between two locations the user entered
+
+```
+Statement:    Where every drivable connection between two locations the user
+              entered that one driving leg joins runs along a way, or passes a
+              barrier, that the map data marks as private or
+              access-restricted, other than in the run FR-126 admits at
+              either, the system shall produce that leg as a warned leg rather
+              than refuse the journey.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a leg
+              between two locations the user entered every drivable
+              connection between which crosses a marked way or barrier beyond
+              FR-126's run is produced and identified as warned, a leg with
+              one end at a stopping position the system chose in the same
+              position is produced neither warned nor otherwise, and a leg
+              between two locations the user entered that a connection
+              avoiding every marking joins is produced on such a connection
+              and not identified as warned
+Acceptance:   given two locations the user entered — each the journey's
+              origin, its destination, an intermediate destination or a
+              stopping position the user chose — that one driving leg joins,
+              every drivable connection between which runs along such a way
+              or passes such a barrier beyond the run FR-126 admits at
+              either, when the journey is planned, then that leg is produced
+              and identified as a warned leg, and the journey is not refused
+              for it
+              given a driving leg one end of which is a stopping position the
+              system chose, every drivable connection between whose ends runs
+              along such a way or passes such a barrier beyond any run
+              FR-126 admits, when the journey is planned, then no driving leg
+              between them is produced, warned or not
+              given two locations the user entered that one driving leg
+              joins, between which a drivable connection avoiding every such
+              way and barrier beyond FR-126's run exists, when the journey is
+              planned, then the leg is produced on such a connection and is
+              not identified as a warned leg
+Status:       draft
+Depends-on:   FR-006; FR-126
+Volatility:   open-question — `DECISIONS.md § RD-067` records the Owner's
+              ruling and carries as a proposal awaiting the Owner its first
+              edge, that a leg is warned only where both its ends are
+              locations the user entered, which the second criterion tests;
+              the markings are FR-125's, read as `DECISIONS.md § RD-063` to
+              `DECISIONS.md § RD-066` decide; and
+              `SPECIFICATION.md § Enforceable exclusions` does not yet carry
+              the ruling
+Risk:         Read wider, to a leg with one end at a stopping position the
+              system chose, the warning becomes the price of a zone: the
+              planner sends the driver across private property to reach a
+              stop it picked, which the Owner ruled is never offered. Built as
+              the refusal it replaces, a user whose home lies behind a private
+              gate gets a routing error and no journey, which the Owner ruled
+              against. Built as an ordinary leg without the identification, a
+              client draws a private crossing as a road the driver may take,
+              and nothing in the result says so.
+Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
+              Owner ruled that between locations the user entered the route
+              is shown instead, warned (`DECISIONS.md § RD-067`): the user has
+              a reason to be at each end (`DECISIONS.md § RD-056`) and decides
+              whether to drive it. The identification is what every later
+              record reads: FR-130 keeps the avoidable markings off the leg,
+              FR-131 names its marked stretches, FR-132 and FR-133 show and
+              warn of them, and FR-134 holds the journey unconfirmed until the
+              user confirms. The second criterion is the Owner's
+              "system-chosen stops (zones) behind a marking are still never
+              offered" on the reading `DECISIONS.md § RD-067` proposes, and it
+              costs no zone a permitted journey could have: a stopping
+              position the system chose lies between two legs, and two legs
+              that each avoid every marking together join the locations on
+              either side without one, so wherever the leg between two
+              locations the user entered is warned, no stop the system chose
+              between them is reachable without a marking either. The third
+              criterion keeps the warning a last resort: it replaces a
+              refusal and never a leg FR-125 admits, so a build that warns
+              where it could avoid fails. The cited section still states the
+              exclusion as a hard rule with no such exception; the ruling is
+              the Owner's and the section's amendment is raised in
+              `DECISIONS.md § RD-067`, which with the first edge is why this
+              record is `draft`. No mechanism and no wire shape is named.
+Resolved-by:  #271
+```
+
+## FR-130 — Keep every avoidable marking off a warned leg
+
+```
+Statement:    The system shall produce no warned leg that runs along a way,
+              or passes a barrier, that the map data marks as private or
+              access-restricted where another drivable connection between the
+              leg's ends avoids that way or barrier and runs along and passes
+              no such way or barrier that the warned leg does not.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a warned
+              leg whose ends every drivable connection joins only past one
+              marked barrier, and whose quickest connection also runs along a
+              marked way further on that a connection past that barrier alone
+              avoids, runs along no such way; and a warned leg whose ends
+              every connection joins past one of two marked barriers passes
+              one and not both
+Acceptance:   given two locations the user entered that every drivable
+              connection joins only past a barrier so marked, whose quickest
+              drivable connection also runs along a way so marked further on
+              that a connection passing that barrier alone avoids, when the
+              journey is planned, then the warned leg passes that barrier and
+              runs along no such way
+              given two locations the user entered that every drivable
+              connection joins only past one of two barriers so marked, each
+              avoidable by a connection passing the other, when the journey
+              is planned, then the warned leg passes one of them and not both
+Status:       draft
+Depends-on:   FR-129
+Volatility:   open-question — which connection a warned leg takes is the
+              second edge `DECISIONS.md § RD-067` carries as a proposal
+              awaiting the Owner; the markings are FR-125's, read as
+              `DECISIONS.md § RD-063` to `DECISIONS.md § RD-066` decide
+Risk:         A warned leg taken as the engine's quickest answer carries every
+              marking on it, the unavoidable one and any other the quickest
+              connection happens to take: the user confirms a warning about
+              the gate their home lies behind and is sent along a residents'
+              road further on that a short way round avoids, which no leg not
+              warned would ever run along.
+Rationale:    The ruling turns a refusal into a warned route because nothing
+              joins the user's locations without a marking, and nothing in it
+              admits a marking that something avoids
+              (`DECISIONS.md § RD-067`). FR-125's first criterion avoids such
+              a marking on a leg not warned, and this record holds the same on
+              a warned leg: the warning covers only the markings the user's
+              locations cannot be joined without, and the leg is held to the
+              rule everywhere else. It is stated over the set of markings
+              crossed, never over length or time, because a set is what
+              avoiding a marking changes and what the warning lists: a
+              shorter or quicker connection that trades one marking for
+              another is no less a crossing. Which connection the leg then
+              takes among those the record leaves is not obliged; the ruling's
+              "show the route" names none.
+Resolved-by:  #271
+```
+
+## FR-134 — Confirm no journey holding a warned leg until the user confirms its warning
+
+```
+Statement:    The system shall let no journey alternative holding a warned
+              leg become the confirmed route until the user, after its marked
+              stretches and its warning were presented, has explicitly
+              confirmed taking it.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              DESIGN.md § Reviewing the recommended route
+Priority:     MUST
+Verification: test — a presented journey alternative holding a warned leg
+              becomes the confirmed route, and has a portion dispatched or is
+              stored, only after the user's explicit confirmation of its
+              warning, and an alternative holding no warned leg asks for none
+Acceptance:   given a presented journey alternative holding a warned leg
+              whose warning the user has not confirmed, when the user accepts
+              the alternative, then it does not become the confirmed route, no
+              portion of it is dispatched and it is not stored
+              given the same alternative, when the user explicitly confirms
+              its warning, then it may become the confirmed route as the
+              review otherwise allows
+              given a presented journey alternative holding no warned leg,
+              when the user accepts it, then no confirmation of a warning is
+              asked for
+Status:       draft
+Depends-on:   FR-132; FR-133
+Volatility:   open-question — what "used" means, and whether one
+              confirmation covers every warned leg of an alternative, is the
+              third edge `DECISIONS.md § RD-067` carries as a proposal
+              awaiting the Owner; where the step sits in the review is owed
+              by `DESIGN.md § Reviewing the recommended route`
+Risk:         A warning the user can pass without acting on it is a warning in
+              name: the route goes to the navigation app, which shows no
+              marking, and the driver meets the gate with the plan's
+              endorsement and nothing on the screen in front of them to
+              reconsider it by.
+Rationale:    The Owner's scope has the user confirm before the route is used
+              (`DECISIONS.md § RD-067`). The reading proposed for "used" is
+              the journey becoming the confirmed route: a dispatch is sized
+              from a confirmed route (FR-110) and a stored plan is the
+              persisted confirmed plan, so holding the confirmation there
+              gates both with one rule, and the first criterion tests both.
+              The confirmation is an act of its own, never implied by
+              accepting the alternative or its zones, and it follows the
+              presentation, so the user confirms what they were shown. One
+              confirmation per alternative is proposed because the warning is
+              about the route, which the Owner's words address whole. The
+              third criterion keeps the step to the warned journey, so a
+              build that asks on every route, and so trains the user to
+              confirm without reading, fails.
+Resolved-by:  #273
 ```
