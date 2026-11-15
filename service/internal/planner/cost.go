@@ -107,7 +107,7 @@ func (a Alternative) StopTime() time.Duration {
 // `CalculationSpecification.md § Additional journey time` composes it from.
 // The second is the one a routing provider does not return (`FR-009`).
 func (a Alternative) Duration() time.Duration {
-	return a.Journey.DrivingTime()
+	return a.Journey.DrivingTime() + a.StopTime()
 }
 
 // AdditionalTime returns the alternative's cost (`FR-008`): its estimated
