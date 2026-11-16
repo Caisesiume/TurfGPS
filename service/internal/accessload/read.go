@@ -29,6 +29,13 @@
 // relation, linework whose ends do not close into rings, or a closed way with
 // too few nodes to enclose anything. Node members are not linework and are
 // passed over: they enclose nothing under any reading.
+//
+// AN OLD-STYLE AREA RELATION FAILS THE READ (#301, `RD-087`). In the older
+// tagging an area relation carries only `type` and the feature's tags sit on
+// its ring's ways. Where those are ways this reader does not take as areas, the
+// marking would be read as a way's and the area the relation draws as no area
+// at all, so the unmarked ways inside it would route as public road. The read
+// fails instead, naming each such relation and member way (oldStyleTags).
 package accessload
 
 import (
@@ -38,6 +45,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/osmpbf"
@@ -151,17 +159,22 @@ type Extract struct {
 // must hash to the same SHA-256, so a file replaced between them fails the
 // read.
 func ReadFile(path string) (*Extract, error) {
-	rels := &relationsPass{members: map[int64]bool{}}
+	rels := &relationsPass{members: map[int64]bool{}, oldStyle: map[int64][]oldStyleRelation{}}
 
 	sha, err := readHashed(path, rels)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s for its relations: %w", path, err)
 	}
 
-	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}}
+	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}, oldStyle: rels.oldStyle}
 
 	if err := readAgain(path, sha, "ways", first); err != nil {
 		return nil, err
+	}
+
+	if len(first.oldStyleFound) != 0 {
+		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation carry the marking of the area the relation draws, which would be loaded as unmarked (#301, RD-087): %s",
+			path, len(first.oldStyleFound), strings.Join(first.oldStyleFound, "; "))
 	}
 
 	second := &nodesPass{
@@ -285,11 +298,44 @@ func (o *order) at(kind int, what string) error {
 var areaRelationTypes = map[string]bool{"multipolygon": true, "boundary": true}
 
 // relationsPass collects the area relations carrying any of the keys, and the
-// ways they name.
+// ways they name, and the old-style area relations, by the ways they name.
 type relationsPass struct {
 	order
 	areas   []areaRelation
 	members map[int64]bool
+
+	// oldStyle holds, for each way an old-style area relation names, the
+	// relations naming it, in the order they were read.
+	oldStyle map[int64][]oldStyleRelation
+}
+
+// oldStyleRelation is an area relation of the older tagging: its id and type.
+type oldStyleRelation struct {
+	id   int64
+	kind string
+}
+
+// oldStyleTags reports whether an area relation's tags are those of the older
+// tagging, which puts the feature's tags on its ring's ways (`RD-087`): no tag
+// but `type`, `name` and its `name:*` forms, and the housekeeping keys
+// `created_by`, `source`, `source:*`, `note`, `note:*`, `fixme` and `FIXME`.
+// Such a relation describes no feature of its own, so a member way carrying an
+// access key and taken as no area itself marks the area the relation draws,
+// and the read fails on it (waysPass.Way). The list is a floor: adding a key
+// to it makes more relations old-style and fails more loads, and removing one
+// is a change to a safety rule (`Architecture.md § Loading from the extract the
+// tiles are built from`).
+func oldStyleTags(tags map[string]string) bool {
+	for k := range tags {
+		switch {
+		case k == "type", k == "name", k == "created_by", k == "source", k == "note", k == "fixme", k == "FIXME":
+		case strings.HasPrefix(k, "name:"), strings.HasPrefix(k, "source:"), strings.HasPrefix(k, "note:"):
+		default:
+			return false
+		}
+	}
+
+	return true
 }
 
 // areaRelation is an area relation carrying any of the keys: its type, its
@@ -319,6 +365,15 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 
 	v, carrying := valuesOf(r.Tags)
 	if !carrying {
+		// The guard reads no member role, as the area reader reads none.
+		if oldStyleTags(r.Tags) {
+			for _, m := range r.Members {
+				if m.Type == osmpbf.MemberWay {
+					p.oldStyle[m.Ref] = append(p.oldStyle[m.Ref], oldStyleRelation{id: r.ID, kind: kind})
+				}
+			}
+		}
+
 		return nil
 	}
 
@@ -356,6 +411,12 @@ type waysPass struct {
 	areaWays    []areaWay
 	members     map[int64]bool
 	memberNodes map[int64][]int64
+
+	// oldStyle is the relations pass's; oldStyleFound names each old-style
+	// area relation and member way that carries a key and is no area, in the
+	// order the ways were read.
+	oldStyle      map[int64][]oldStyleRelation
+	oldStyleFound []string
 }
 
 // areaWay is a closed way that is an area carrying any of the keys.
@@ -414,6 +475,14 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 
 	if isArea(w) {
 		p.areaWays = append(p.areaWays, areaWay{id: w.ID, values: v, nodes: slices.Clone(w.Nodes)})
+
+		return nil
+	}
+
+	for _, r := range p.oldStyle[w.ID] {
+		p.oldStyleFound = append(p.oldStyleFound, fmt.Sprintf(
+			"relation %d is a type=%s relation carrying no tag but its type, names and housekeeping keys, and its member way %d carries an access key and is no area itself",
+			r.id, r.kind, w.ID))
 	}
 
 	return nil
