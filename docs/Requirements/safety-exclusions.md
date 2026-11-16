@@ -2301,10 +2301,11 @@ Depends-on:   FR-125; FR-126; FR-127; FR-128; FR-129; FR-130; FR-131; FR-137;
               FR-138; FR-140
 Volatility:   settled — the Owner ruled that a site relation so marked marks
               what it groups (`DECISIONS.md § RD-089`) and that a member's own
-              access keys lift the marking it lends (`DECISIONS.md § RD-090`);
-              the access keys are the twelve of
-              `Architecture.md § What the tables hold`, and the marking is
-              read as FR-128's is, by `DECISIONS.md § RD-063` to
+              access keys lift the marking it lends (`DECISIONS.md § RD-090`)
+              and that the lift never reaches the area its perimeter member
+              encloses (`DECISIONS.md § RD-091`); the access keys are the
+              twelve of `Architecture.md § What the tables hold`, and the
+              marking is read as FR-128's is, by `DECISIONS.md § RD-063` to
               `DECISIONS.md § RD-066`; which members the loader can draw,
               which it passes over, and what fails its load, is
               `Architecture.md § What the tables hold`'s and
@@ -2331,17 +2332,20 @@ Rationale:    `SPECIFICATION.md § Enforceable exclusions` forbids a route
               relation's access keys beside its own, so its own key wins on
               any key both carry, a more specific key the relation carries
               still governs, and a directional permission lifts no plain
-              marking, as `DECISIONS.md § RD-066` holds of one feature. The
-              lift reaches only the marking the relation lends a member: the
-              perimeter's area keeps the relation's marking, and a way within
-              it lies within an area so marked, whose marking a way's own keys
-              never lift (`DECISIONS.md § RD-060`). A relation member the
-              loader does not read as an area is passed over and the rest
-              loads, as the Owner ruled. A node member is not read, because a
-              site's node is usually its entrance and marking it would refuse
-              the leg that reaches it, save a parking area drawn as a point,
-              which FR-143 reads for FR-140 alone; no hull is drawn round a
-              site without a perimeter member, so no ground the mapper did not
+              marking, as `DECISIONS.md § RD-066` holds of one feature, a
+              precedence the lead accepted on `DECISIONS.md § RD-063`
+              (`DECISIONS.md § RD-091`). The lift reaches only the marking the
+              relation lends a member: the perimeter's area keeps the
+              relation's marking, as the Owner ruled
+              (`DECISIONS.md § RD-091`), and a way within it lies within an
+              area so marked, whose marking a way's own keys never lift
+              (`DECISIONS.md § RD-060`). A relation member the loader does not
+              read as an area is passed over and the rest loads, as the Owner
+              ruled. A node member is not read, because a site's node is
+              usually its entrance and marking it would refuse the leg that
+              reaches it, save a parking area drawn as a point, which FR-143
+              withholds from the offer alone; no hull is drawn round a site
+              without a perimeter member, so no ground the mapper did not
               group is marked. The record reaches a driving leg; the walking
               access path's half stays owed with FR-075, as FR-128's does. The
               criteria test the leg and what is left unmarked; that a feature
@@ -2351,75 +2355,96 @@ Rationale:    `SPECIFICATION.md § Enforceable exclusions` forbids a route
 Resolved-by:  #303
 ```
 
-## FR-143 — Treat a parking area drawn as a point that a marked site relation names as marked for FR-140 alone
+## FR-143 — Offer no stopping position the system chose at a parking area drawn as a point that a marked site relation names
 
 ```
-Statement:    The system shall treat a parking area drawn as a point that a
-              site relation the map data marks as private or access-restricted
-              names as a member, unless the node's own access keys, read with
-              each that relation carries and the node does not, leave it
-              unmarked, as a parking area whose own feature is so marked for
-              FR-140 alone.
+Statement:    The system shall offer no stopping position it chose — the
+              position of a recommended stop, of a replacement or of a reserve
+              candidate — that a parking area drawn as a point establishes
+              where a site relation the map data marks as private or
+              access-restricted names that node as a member, unless the node's
+              own access keys, read with each that relation carries and the
+              node does not, leave it unmarked.
 Category:     Safety exclusions
-Source:       SPECIFICATION.md § What establishes a stopping position
+Source:       SPECIFICATION.md § Enforceable exclusions;
+              SPECIFICATION.md § What establishes a stopping position
 Priority:     MUST
-Verification: test — against routing data built from a test extract, a
-              stopping position the system offered at a parking area drawn as
-              a point beside a way not so marked, carrying none of the access
-              keys, that a site relation marked customers-only names as a
-              member, accepted by the user, is served by no driving leg,
-              warned or not; while a leg running over that node is produced
-              along it, and the same node carrying a permissive key of its own
-              is served
-Acceptance:   given a stopping position the system offered — a recommended
-              stop, a replacement or a reserve candidate — at a parking area
-              drawn as a point beside a way not so marked, carrying none of
-              the access keys, that a site relation the map data marks as
-              private or access-restricted names as a member, when the user
-              accepts it and the journey is planned, then no driving leg ends
-              at it or short of it, warned or not, and the journey includes no
-              stop there
+Verification: test — against routing data built from a test extract, a parking
+              area drawn as a point beside a way not so marked, carrying none
+              of the access keys, that a site relation marked customers-only
+              names as a member, the only stopping position of a zone in a
+              journey whose locations the user entered a connection avoiding
+              every marking joins, is offered as no recommended stop, no
+              replacement and no reserve candidate, before a rejection or
+              after one, nor is the same node within the area that relation's
+              perimeter member encloses, beside the part of a way within it
+              that a warned leg FR-129 admits drives; while a leg whose
+              quickest connection runs over that node is produced over it, and
+              neither the same node carrying a permissive key of its own nor a
+              stop the user places at the node is withheld from an offer or
+              refused by this record
+Acceptance:   given a stopping position the system chose that a parking area
+              drawn as a point beside a way not so marked establishes, the
+              node carrying none of the access keys, that a site relation the
+              map data marks as private or access-restricted names as a
+              member, when the journey is planned and when the user asks for a
+              different zone, then the position is offered as no recommended
+              stop, no replacement and no reserve candidate
               given such a node lying on a drivable way, between two points
               whose quickest drivable connection runs over it, when the leg is
               produced, then it runs over that node, and no leg is refused,
               warned or produced on another connection on its account
               given such a node carrying an access key of its own whose value,
               read with each that relation carries and the node does not,
-              leaves it unmarked, when the user accepts the position offered
-              there and the journey is planned, then this record refuses
-              neither the leg reaching it nor the stop
+              leaves it unmarked, and separately a stop the user places at
+              such a node carrying none of the access keys, when the journey
+              is planned and when the user asks for a different zone, then
+              this record withholds the position from no offer and refuses
+              neither the leg reaching the stop nor the stop
 Status:       to-build
-Depends-on:   FR-140; FR-142
-Volatility:   open-question — the Owner ruled that such a node is so marked
-              for stop offers only and never blocks driving
-              (`DECISIONS.md § RD-090`); the access keys and the marking are
-              read as FR-142 reads a member's; which features are parking
-              areas is owed with the OSM-derived feature tables
-              `SPECIFICATION.md § What establishes a stopping position` names,
-              as FR-140's `Volatility` records
-Risk:         A customers-only car park mapped as a point that a site relation
-              carrying the marking names, with no marking of its own, is
-              served on acceptance as the system's, and the car is sent into a
-              car park the data closes to it. Built as a barrier instead, the
-              node refuses or warns every leg that passes it, which the Owner
-              ruled out.
+Depends-on:   FR-142
+Volatility:   open-question — the Owner ruled that such a node is never
+              offered as a suggestion and never blocks driving
+              (`DECISIONS.md § RD-090`, `DECISIONS.md § RD-091`); the access
+              keys and the marking are read as FR-142 reads a member's; which
+              features are parking areas is owed with the OSM-derived feature
+              tables `SPECIFICATION.md § What establishes a stopping position`
+              names, as FR-140's `Volatility` records
+Risk:         Built as FR-140's refusal once accepted, a customers-only car
+              park drawn as a point that a marked site names is shown to the
+              user as a stop, and accepting it drops it from the plan: the
+              user loses the zone they took, where the Owner ruled the point
+              is never shown. Built without it, the point is offered and
+              served as the system's, and the car is sent into a car park the
+              data closes to it. Built as a barrier, the node refuses or warns
+              every leg that passes it, which the Owner ruled out.
 Rationale:    FR-142 reads no node member, because a site's node is usually
               its entrance and marking it would refuse the leg that reaches
               it. The Owner ruled on PR #305 that a parking node member of a
               site so marked is private for stop offers only and never blocks
-              driving like a gate (`DECISIONS.md § RD-090`). This record
-              treats it as FR-140 treats a parking area marked on its own
-              feature, which serves no position the system chose there once
-              accepted while a stop the user places there is not refused
-              (FR-139), and for no other record, so the node is never a
-              barrier, whatever `DECISIONS.md § RD-064` reads of a node
-              carrying a marking of its own. Its own access keys are read with
-              the relation's as FR-142 reads a member way's, so a permission
-              on the node lifts the marking the relation lends it, as the
-              Owner ruled for a member road. The Owner's option read "Don't
-              offer it" on a question asking whether such a node counts as
-              marked for FR-140; whether the review shows such a candidate as
-              uncertain is owed with #278, as it is for every parking area on
-              its own marking. No mechanism is named.
+              driving like a gate (`DECISIONS.md § RD-090`), and then that it
+              is never shown as a suggestion, the same as FR-138, rather than
+              offered and refused once accepted as FR-140 refuses
+              (`DECISIONS.md § RD-091`). This record withholds it from the
+              offer as FR-138 withholds a position behind a marking, and is
+              read by no other record's check, so the node is never a barrier,
+              whatever `DECISIONS.md § RD-064` reads of a node carrying a
+              marking of its own; a position never offered is never accepted,
+              so FR-140 has nothing of it to refuse. The withholding admits no
+              warned leg: FR-138 offers a position a warned leg FR-129 admits
+              reaches because there the marking lies between the road and the
+              position, while this marking lies on the position
+              (`DECISIONS.md § RD-091`). The node's own access keys are read
+              with the relation's as FR-142 reads a member way's, so a
+              permission on the node lifts the marking the relation lends it.
+              The record reaches only the system's choice, so a stop the user
+              places there is had as FR-139 records it. It differs from a
+              parking area marked on its own feature, which
+              `SPECIFICATION.md § What establishes a stopping position` sends
+              to uncertain, and from a parking area drawn as an area that a
+              marked site names, which FR-142 hands to FR-140: the Owner ruled
+              on the node alone. Stated over a stopping position and not over
+              a zone, because a zone with a second position may be offered
+              from that one. No mechanism is named.
 Resolved-by:  #276, #303
 ```

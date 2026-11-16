@@ -4363,3 +4363,116 @@ Affects:        RD-089's second and fourth edges, superseded, and its fifth
                 `Architecture.md § What the tables hold`, edited by the PR
                 closing #303 (its AC5), which reads this entry with RD-089.
 ```
+
+## RD-091 — Do RD-090's first, second and fourth ladder edges stand? (supersedes RD-090's fourth ladder edge where it reads "Don't offer it" as FR-140)
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering two AskUserQuestion items put by
+                `@engineering-lead` on PR #305 on two of the four edges RD-090
+                read on the ladder, and `@engineering-lead`, accepting a third
+                without putting it, in
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6919463842,
+                relayed by `@engineering-lead`. The relay, verbatim: "Owner
+                decisions (AskUserQuestion, 2026-11-16), verbatim options. (a)
+                **"No, area stays closed"**: a member road's own 'yes' reopens
+                it only where the site has no outline; inside a private
+                outline the road stays refused. This matches the analyst's
+                reading (2). (b) **"Leave it out (Recommended)"**: a private
+                site's parking-node member is never shown as a suggestion, the
+                same as FR-138. This corrects the analyst's reading (3), which
+                read it as FR-140, refused once accepted. Lead: reading (1) is
+                accepted on the precedence ladder: a more specific key on the
+                site, such as motorcar=private, still governs over a member's
+                access=yes (RD-063 most-specific-key)." This entry records a
+                ruling made elsewhere; it supersedes RD-090's fourth ladder
+                edge where that edge reads the option "Don't offer it" as
+                FR-140, and with it RD-090's interpretation where it holds the
+                node "so marked for FR-140 alone"; it records RD-090's second
+                ladder edge as the Owner's and its first as the lead's; and it
+                leaves RD-090 otherwise standing, with two edges the ruling
+                leaves open decided on the ladder below.
+Question:       RD-090 read four edges of the Owner's answers on RD-089's
+                edges on the ladder, and the lead took up three, naming them
+                the analyst's readings (1) to (3): (1), RD-090's first ladder
+                edge, that a key the site carries more specific than any the
+                member carries still governs, so under a site carrying
+                `motorcar=private` a member carrying `access=yes` stays
+                marked; (2), its second, that the lift reaches only the
+                marking the site lends a member, so a member way within the
+                area the site's perimeter member encloses lies within an area
+                so marked whatever its own keys; (3), its fourth, that the
+                option "Don't offer it" reads FR-140, which serves no position
+                the system chose at a parking node member once accepted. The
+                relay quotes the options and not the questions, which are read
+                from it. Do the three stand?
+Interpretation: **Readings (1) and (2) stand, and reading (3) is superseded: a
+                parking area drawn as a point that a marked site names
+                establishes no stopping position the system offers, as FR-138
+                withholds a position, and it is still never a barrier.**
+                Reading (2) now rests on the Owner's "No, area stays closed"
+                and no longer on the ladder: within the area a marked site's
+                perimeter member encloses, a member way's own permission
+                reopens nothing. Reading (1) rests on the ladder, accepted by
+                the lead and not put to the Owner. Reading (3) is replaced by
+                the Owner's "Leave it out (Recommended)": FR-143 is restated
+                to withhold such a position from every offer, as a recommended
+                stop, a replacement or a reserve candidate, before a rejection
+                or after one, and no longer as FR-140's refusal of a position
+                once accepted; a position never offered is never accepted, so
+                no FR-140 layer is stated for the node. RD-090's fourth ladder
+                edge stands where it reads the node's own access keys with the
+                site's, so a permission on the node lifts the marking the site
+                lends it, and the Owner's answer in RD-090 that such a node
+                "never blocks driving like a gate" stands. Two edges are read
+                on the ladder. First, the relay's gloss on (a) has a member's
+                own 'yes' reopen it "only where the site has no outline"; read
+                alone, a site with a perimeter member would reopen no member,
+                even one lying outside the area that perimeter encloses. It is
+                read as the option names it, "area stays closed", and as the
+                relay says it matches reading (2): what bars the lift is lying
+                within the area so marked, so a member way of a site with a
+                perimeter member that lies within no area so marked is
+                reopened by its own keys, as FR-142's third criterion holds,
+                and the gloss is read as describing the case put, a member
+                inside the outline. Second, "never shown as a suggestion"
+                admits no warned leg: FR-138 offers a position a warned leg
+                FR-129 admits reaches because there the marking lies between
+                the road and the position, while the Owner puts this marking
+                on the position, so the node is withheld whether or not a
+                warned leg reaches it. A stop the user places there is not
+                refused by FR-143, which reaches only the system's choice
+                (FR-139), and with no barrier and no marked way at the node,
+                no leg to it is refused or warned on its account.
+Rung:           n/a for (a) and (b) — Owner ruling, put by the lead because
+                reading (2) reads a safety rule and reading (3) read an option
+                naming the offer on a question naming FR-140: RD-090 had
+                rested (2) on rung 2 with rung 4, and (3) on rung 4 with rung
+                7, and the Owner kept the first and chose against the second.
+                Reading (1) rests on rung 4, existing requirements,
+                `DECISIONS.md § RD-063`'s most-specific-key precedence and
+                `DECISIONS.md § RD-066`, as RD-090 held it; the lead accepted
+                it on its own authority, the ladder answering it before the
+                Owner's is reached. The first ladder edge rests on rung 4,
+                reading (2) as the Owner now holds it and FR-142's third
+                criterion, with the option's own words; rung 7 was weighed and
+                passed over, since closing every member of a site with a
+                perimeter member would lift fewer markings but would read the
+                relay's gloss over the option the Owner chose and over the
+                reading the relay says it matches. The second rests on rung 4,
+                FR-138's `Rationale`, which offers a warned leg's position
+                because the marking lies between it and the road, with rung 7:
+                the Owner's "never" read whole withholds more stops the system
+                chose and lifts no safety exclusion. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        RD-090's fourth ladder edge, superseded where it reads "Don't
+                offer it" as FR-140, and its interpretation's "so marked for
+                FR-140 alone"; RD-090's first and second ladder edges,
+                recorded as the lead's and the Owner's; FR-143's title,
+                `Statement`, `Source`, `Verification`, criteria, `Depends-on`,
+                `Volatility`, `Risk` and `Rationale`; FR-142's `Volatility`
+                and `Rationale`; #303, gaining AC15, superseding AC14, and a
+                `Basis` line; #276, gaining AC12, superseding AC11, and a
+                `Basis` line; `INDEX.md`, `TRACEABILITY.md` and `README.md`,
+                following the records.
+```
