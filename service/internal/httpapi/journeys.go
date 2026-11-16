@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -114,16 +115,25 @@ var errPlanTimedOut = errors.New("the plan outlived its deadline")
 // planJourney answers `POST /journeys`: it plans the journey the request names
 // and returns it.
 //
-// NOTHING HERE LOGS, for the reason `NewHandler` gives and one more: the
-// request carries the user's origin, which is frequently their home
-// (`Architecture.md § Personal data`), and a routing error may quote it. Each
-// failure is answered with a status and a fixed message, never the error.
+// NOTHING HERE LOGS A REQUEST OR AN ERROR, for the reason `NewHandler` gives
+// and one more: the request carries the user's origin, which is frequently
+// their home (`Architecture.md § Personal data`), and a routing error may
+// quote it. Each failure is answered with a status and a fixed message, never
+// the error.
+//
+// One refusal is logged, by its fields alone: a leg whose end the provider
+// placed beyond the end tolerance (#250). The deployment measures the
+// tolerance's value from those refusals (`DEPLOYMENT.md`), and nothing else
+// would surface them. The line names the leg, the end, its distance from its
+// location and the tolerance, read off planner.EndBeyondToleranceError, which
+// holds no location; it never writes the error's text, the request, or a
+// coordinate.
 //
 // A positive timeout bounds the whole of it, as WithPlanTimeout describes. The
 // deadline is taken before the body is read, not after: the server's write
 // budget is already running by then, and a deadline started after a slow body
 // would be measured from a later instant than the budget it protects.
-func planJourney(plans *planner.Planner, timeout time.Duration) http.HandlerFunc {
+func planJourney(plans *planner.Planner, timeout time.Duration, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if plans == nil {
 			http.Error(w, "journey planning is unavailable: no routing provider is configured", http.StatusServiceUnavailable)
@@ -147,6 +157,8 @@ func planJourney(plans *planner.Planner, timeout time.Duration) http.HandlerFunc
 
 		journey, err := plans.Plan(ctx, req)
 
+		var beyond *planner.EndBeyondToleranceError
+
 		switch {
 		case errors.Is(err, planner.ErrNotACoordinate):
 			http.Error(w, "a location is not a coordinate", http.StatusBadRequest)
@@ -167,6 +179,20 @@ func planJourney(plans *planner.Planner, timeout time.Duration) http.HandlerFunc
 			return
 		case errors.Is(err, planner.ErrZoneCopyUnreadable):
 			http.Error(w, "no journey is planned: the local copy of the zone set could not be read", http.StatusServiceUnavailable)
+
+			return
+		// An unset end tolerance is the deployment's, as no routing provider
+		// is: no leg is served until it is configured (#250), whatever the
+		// request names.
+		case errors.Is(err, planner.ErrNoEndTolerance):
+			http.Error(w, "no journey is planned: no end tolerance is configured", http.StatusServiceUnavailable)
+
+			return
+		case errors.As(err, &beyond):
+			log.Warn("a leg was refused: the routing provider placed its end beyond the end tolerance",
+				"leg", beyond.Leg, "end", beyond.End,
+				"distance_metres", beyond.DistanceMetres, "tolerance_metres", beyond.ToleranceMetres)
+			http.Error(w, "the journey could not be routed", http.StatusBadGateway)
 
 			return
 		case err != nil && errors.Is(context.Cause(ctx), errPlanTimedOut):

@@ -38,8 +38,43 @@ import (
 var ErrNoEndTolerance = errors.New("no end tolerance is configured, so no leg's ends are checked (TURFGPS_LEG_END_TOLERANCE_METRES)")
 
 // ErrEndBeyondTolerance is the error a leg is refused with where the provider
-// placed an end of it farther from its location than the end tolerance.
+// placed an end of it farther from its location than the end tolerance. The
+// refusal is an *EndBeyondToleranceError, which wraps it.
 var ErrEndBeyondTolerance = errors.New("a leg's end lies farther from its location than the end tolerance")
+
+// EndBeyondToleranceError is a leg's refusal for an end placed beyond the end
+// tolerance: which leg, which end, how far that end lay from its location and
+// the tolerance it was held to. These are what the deployment reads to measure
+// the tolerance's value against the tiles it serves (`DEPLOYMENT.md`), and the
+// request surface logs them.
+//
+// IT HOLDS NO LOCATION, and its message names none. The location an end is
+// measured from may be one the user entered, frequently their home
+// (`Architecture.md § Personal data`), so the refusal carries the distance and
+// never the coordinates either side of it.
+type EndBeyondToleranceError struct {
+	// Leg is the leg's index in the journey, from zero.
+	Leg int
+
+	// End is "first vertex", the end the leg leaves its location from, or
+	// "last vertex", the end it reaches its location at.
+	End string
+
+	// DistanceMetres is endDistance from that end to its location: never less
+	// than the WGS 84 geodesic between them.
+	DistanceMetres float64
+
+	// ToleranceMetres is the end tolerance the leg was held to.
+	ToleranceMetres float64
+}
+
+func (e *EndBeyondToleranceError) Error() string {
+	return fmt.Sprintf("leg %d: %v: its %s lies %.1f m from its location, beyond the end tolerance of %v m",
+		e.Leg, ErrEndBeyondTolerance, e.End, e.DistanceMetres, e.ToleranceMetres)
+}
+
+// Unwrap returns ErrEndBeyondTolerance, so the refusal is told by errors.Is.
+func (e *EndBeyondToleranceError) Unwrap() error { return ErrEndBeyondTolerance }
 
 // EndsWithin sets the end tolerance, in metres: how far an answer's first
 // vertex may lie from the location the leg leaves, and its last from the
@@ -60,8 +95,8 @@ func EndsWithin(metres float64) Option {
 }
 
 // endsHeld refuses an answer whose shape does not start and end within the
-// end tolerance of the locations from and to, or any answer while no
-// tolerance is set.
+// end tolerance of the locations from and to, with an
+// *EndBeyondToleranceError, or any answer while no tolerance is set.
 func (p *Planner) endsHeld(i int, shape []Point, from, to Point) error {
 	if p.endTolerance == nil {
 		return fmt.Errorf("leg %d: %w", i, ErrNoEndTolerance)
@@ -77,8 +112,7 @@ func (p *Planner) endsHeld(i int, shape []Point, from, to Point) error {
 		{"last vertex", shape[len(shape)-1], to},
 	} {
 		if d := endDistance(end.at, end.want); !(d <= tolerance) {
-			return fmt.Errorf("leg %d: %w: its %s lies %.1f m from (%v, %v), beyond the end tolerance of %v m",
-				i, ErrEndBeyondTolerance, end.name, d, end.want.Latitude, end.want.Longitude, tolerance)
+			return &EndBeyondToleranceError{Leg: i, End: end.name, DistanceMetres: d, ToleranceMetres: tolerance}
 		}
 	}
 
