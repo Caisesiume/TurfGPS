@@ -223,8 +223,11 @@ func ringCase(c int, rel map[string]string, members []int, wayTags map[int]map[s
 
 // TestAnOldStyleAreaRelationFailsTheRead holds #301's AC1 and AC2 (`RD-087`):
 // an area relation carrying no key that defines a feature, one of whose member
-// ways carries an access key and is no area itself, fails the read with a
-// message naming both; the N1 cases are the sentinel's on PR #306. ReadFile is the
+// ways carries an access key and is neither an area nor a road, fails the
+// read with a message naming both; the N1 cases are the sentinel's on PR #306.
+// AC2's third case, a marked open `highway=service` member, reads since the
+// Owner's decision on PR #306 and is held in
+// TestAnOldStyleAreaRelationWhoseMarkedMembersAreRoadsIsRead. ReadFile is the
 // loader's first act and returns no extract, so nothing is staged or swapped,
 // and the previous load stays current, or none is: `turfgps
 // load-access-markings` reads the file before it opens the store. Each case's
@@ -247,8 +250,6 @@ func TestAnOldStyleAreaRelationFailsTheRead(t *testing.T) {
 			1, map[string]string{"type": "boundary"}, private},
 		{"AC2: a multipolygon also carrying name, note, source:geometry and fixme",
 			2, map[string]string{"type": "multipolygon", "name": "Kundparkering", "note": "outer ring tagged", "source:geometry": "survey", "fixme": "move tags to the relation"}, private},
-		{"AC2: a multipolygon whose marked member is an open highway=service way",
-			3, map[string]string{"type": "multipolygon"}, map[string]string{"highway": "service", "access": "private"}},
 		// The sentinel's N1 on PR #306: a key that defines no feature hides
 		// no marking.
 		{"N1: a multipolygon also carrying area=yes",
@@ -360,6 +361,109 @@ func TestAnAreaRelationThatIsNotOldStyleIsRead(t *testing.T) {
 			t.Errorf("the areas read are %+v from %d features, want no relation among them", ex.Areas, ex.AreaFeatures)
 		}
 	})
+}
+
+// TestAnOldStyleAreaRelationWhoseMarkedMembersAreRoadsIsRead holds the
+// Owner's decision on PR #306, which settles the developer's F1: a marked
+// member way that is itself a road, carrying `highway`, keeps its marking as a
+// road's, read into access_way where the route reads it, and does not make
+// the relation old-style. Case 15 is relation 14945917's shape (Luleå,
+// `name=Skoterförbudsområde`): a multipolygon carrying `snowmobile=no`, an
+// access key outside the twelve, whose open outer ways are an ice road tagged
+// `highway=pedestrian` and `motor_vehicle=no`. Case 3 is AC2's third case, an
+// open `highway=service` member carrying `access=private`, which the decision
+// reverses. In each the road is read marked, and the relation draws no area.
+func TestAnOldStyleAreaRelationWhoseMarkedMembersAreRoadsIsRead(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name    string
+		c       int
+		rel     map[string]string
+		road    map[string]string
+		key     string
+		members []int
+	}{
+		{"F1: relation 14945917's shape, an ice road of highway=pedestrian and motor_vehicle=no",
+			15, map[string]string{"type": "multipolygon", "name": "Skoterförbudsområde", "snowmobile": "no"},
+			map[string]string{"highway": "pedestrian", "motor_vehicle": "no"}, "motor_vehicle", []int{1, 2}},
+		{"AC2's third case: an open highway=service member carrying access=private",
+			3, map[string]string{"type": "multipolygon"},
+			map[string]string{"highway": "service", "access": "private"}, "access", []int{1}},
+	} {
+		wayTags := map[int]map[string]string{}
+		for _, k := range tc.members {
+			wayTags[k] = tc.road
+		}
+
+		e := ringCase(tc.c, tc.rel, []int{1, 2}, wayTags)
+
+		ex, err := ReadFile(e.write(t))
+		if err != nil {
+			t.Errorf("%s: the extract is refused, want it read: %v", tc.name, err)
+
+			continue
+		}
+
+		for _, k := range tc.members {
+			i := slices.IndexFunc(ex.Ways, func(w Way) bool { return w.ID == way301(tc.c, k) })
+			if i < 0 {
+				t.Errorf("%s: the road %d is not read among the ways carrying an access key, want it in access_way", tc.name, way301(tc.c, k))
+
+				continue
+			}
+
+			got := ex.Ways[i].Values[slices.Index(Keys[:], tc.key)]
+			if got == nil || *got != tc.road[tc.key] {
+				t.Errorf("%s: the road %d is read with %s=%v, want %s=%s, its marking", tc.name, way301(tc.c, k), tc.key, got, tc.key, tc.road[tc.key])
+			}
+		}
+
+		if slices.ContainsFunc(ex.Areas, func(a Area) bool { return a.Type == 'r' }) || ex.AreaFeatures != int64(len(ex.Areas)) {
+			t.Errorf("%s: the areas read are %+v from %d features, want no relation among them", tc.name, ex.Areas, ex.AreaFeatures)
+		}
+	}
+}
+
+// TestARoadBesideAMarkedNonRoadMemberFailsTheRead holds the other half of the
+// Owner's decision on PR #306: only a marked member that is no road makes the
+// check. Case 16's relation, carrying only `type`, names a road carrying
+// `highway=pedestrian` and `motor_vehicle=no` and an open way carrying
+// `access=private` and no `highway` key. The read fails, naming the relation
+// and the open way, and not the road. The same relation whose second way
+// carries no key is read, so the failure is the non-road member's.
+func TestARoadBesideAMarkedNonRoadMemberFailsTheRead(t *testing.T) {
+	t.Parallel()
+
+	road := map[string]string{"highway": "pedestrian", "motor_vehicle": "no"}
+	rel := map[string]string{"type": "multipolygon"}
+
+	if _, err := ReadFile(ringCase(16, rel, []int{1, 2}, map[int]map[string]string{1: road}).write(t)); err != nil {
+		t.Fatalf("the premise does not hold: the relation naming the road and an unmarked way is refused: %v", err)
+	}
+
+	e := ringCase(16, rel, []int{1, 2}, map[int]map[string]string{1: road, 2: {"access": "private"}})
+
+	ex, err := ReadFile(e.write(t))
+	if err == nil {
+		t.Fatalf("the extract is read, with %d areas and %d ways, want it refused on member way %d", len(ex.Areas), len(ex.Ways), way301(16, 2))
+	}
+
+	t.Logf("%v", err)
+
+	if ex != nil {
+		t.Errorf("a refused read returned an extract, which a load could write")
+	}
+
+	for _, want := range []string{fmt.Sprintf("relation %d ", rel301(16)), fmt.Sprintf("member way %d ", way301(16, 2)), "1 member way(s)"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the read fails with %q, which does not name %q", err, strings.TrimSpace(want))
+		}
+	}
+
+	if strings.Contains(err.Error(), fmt.Sprintf("way %d ", way301(16, 1))) {
+		t.Errorf("the read fails with %q, which names the road %d, whose marking is its own", err, way301(16, 1))
+	}
 }
 
 // TestAnOldStyleAreaRelationMissingAMemberFailsTheRead holds the lead's

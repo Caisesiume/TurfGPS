@@ -32,11 +32,13 @@
 //
 // AN OLD-STYLE AREA RELATION FAILS THE READ (#301, `RD-087`). In the older
 // tagging an area relation carries no key that defines a feature and the
-// feature's tags sit on its ring's ways. Where those are ways this reader does
-// not take as areas, the marking would be read as a way's and the area the
-// relation draws as no area at all, so the unmarked ways inside it would route
-// as public road. The read fails instead, naming each such relation and member
-// way (oldStyleTags). It fails too on an old-style relation naming a way the
+// feature's tags sit on its ring's ways. Where those are ways this reader
+// takes neither as areas nor as roads, the marking would be read as a way's
+// and the area the relation draws as no area at all, so the unmarked ways
+// inside it would route as public road. The read fails instead, naming each
+// such relation and member way (oldStyleTags). A member carrying `highway`
+// keeps its marking as a road's and fails nothing (the Owner's decision on PR
+// #306). It fails too on an old-style relation naming a way the
 // file does not hold, as one clipped at the extract's edge may, or naming a
 // relation: neither's ways are checked, and one may carry the marking.
 package accessload
@@ -377,7 +379,9 @@ var featureKeys = map[string]bool{
 // tagging, which puts the feature's tags on its ring's ways (`RD-087`): it
 // carries no key that defines a feature (featureKeys). Such a relation
 // describes no feature of its own, so a member way carrying an access key and
-// taken as no area itself marks the area the relation draws, and the read
+// taken neither as an area nor as a road (one carrying `highway`, whose
+// marking is its own, the Owner's decision on PR #306) marks the area the
+// relation draws, and the read
 // fails on it (waysPass.Way); so does a member relation, whose ways the guard
 // does not check (relationsPass.Relation). The test is the lead's ruling on
 // PR #306, cycle 2: a key the list does not name, `area=yes` or `wikidata`,
@@ -477,7 +481,8 @@ type waysPass struct {
 	memberNodes map[int64][]int64
 
 	// oldStyle is the relations pass's; oldStyleFound names each old-style
-	// area relation and member way that carries a key and is no area, in the
+	// area relation and member way that carries a key and is neither an area
+	// nor a road, in the
 	// order the ways were read; oldStyleSeen holds every member way of an
 	// old-style relation the file holds, carrying a key or not.
 	oldStyle      map[int64][]oldStyleRelation
@@ -549,9 +554,17 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 		return nil
 	}
 
+	// A road keeps its marking as a road's: it is in access_way, where the
+	// route reads it, and it does not make the relation old-style (the
+	// Owner's decision on PR #306). Only a marked member that is neither an
+	// area nor a road can hold the marking of the area the relation draws.
+	if _, road := w.Tags["highway"]; road {
+		return nil
+	}
+
 	for _, r := range p.oldStyle[w.ID] {
 		p.oldStyleFound = append(p.oldStyleFound, fmt.Sprintf(
-			"relation %d is a type=%s relation carrying no key that defines a feature, and its member way %d carries an access key and is no area itself",
+			"relation %d is a type=%s relation carrying no key that defines a feature, and its member way %d carries an access key and is neither an area nor a road",
 			r.id, r.kind, w.ID))
 	}
 
