@@ -4476,3 +4476,123 @@ Affects:        RD-090's fourth ladder edge, superseded where it reads "Don't
                 `Basis` line; `INDEX.md`, `TRACEABILITY.md` and `README.md`,
                 following the records.
 ```
+
+## RD-092 — Does a site with an outline reopen a member outside it, does a parking node member's own permission lift FR-143, and is a parking area a marked site names as an area withheld as the point is? (supersedes RD-091's first ladder edge, RD-090's fourth ladder edge where it reads a parking node member's own access keys, and RD-089's fifth edge where it leaves the area to FR-140 alone)
+
+```
+Date:           2026-11-16
+Decided-by:     `@engineering-lead`, ruling on the remand of PR #305 at
+                `11854b2`, its third cycle, on the safety verdict
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6926886895,
+                which blocked on two findings and raised a third as
+                non-blocking; the rulings were carried in the lead's dispatch
+                to the analyst and settle the findings without a new Owner
+                question, the first two reading the Owner's answers in
+                `DECISIONS.md § RD-091` literally and the third as the lead's
+                own reading, for the Owner to see at merge. The rulings,
+                verbatim: "B1: follow the Owner's chosen option text literally
+                ('The \"yes\" reopens the road only where the site has no
+                outline. Inside a private outline the road stays refused.'),
+                rung 7: a site that has an outline reopens no member; a
+                member's own 'yes' reopens it only for a site with no outline.
+                Restate FR-142 criterion 3 and supersede RD-091's first ladder
+                edge by a new append-only entry"; "B2: remove the
+                node's-own-permissive-key exception from FR-143 and
+                RD-090/RD-091 — the Owner ruled 'never shown as a suggestion'
+                with no exception"; "N2 (lead, strict reading, consistent with
+                'Leave it out'): a parking area drawn as an area that a marked
+                site names is withheld from offers too, the same as the point;
+                record it as the lead's reading for the Owner to see at
+                merge". This entry records rulings made elsewhere, with two
+                edges they leave open decided on the ladder below.
+Question:       The safety verdict at `11854b2` found two readings of the
+                Owner's answers looser than the Owner's words, and an
+                asymmetry between two drawings of one place. B1: RD-091's
+                first ladder edge reopens a member way of a site with a
+                perimeter member, by the member's own permission, wherever it
+                lies outside the area that member encloses, where the Owner's
+                option has a member's own 'yes' reopen it only where the site
+                has no outline. B2: RD-090's fourth ladder edge, left standing
+                by RD-091, lets a parking node member's own access keys lift
+                the marking the site lends it, where the Owner's answer has
+                such a node never shown as a suggestion. N2: a parking area
+                drawn as an area that a marked site names is offered, shown as
+                uncertain and refused once accepted (FR-140), while the same
+                place drawn as a point is withheld. Do the two readings stand,
+                and is the area withheld as the point is?
+Interpretation: **Neither reading stands, and the area is withheld as the
+                point is: a marked site relation that names a member in the
+                role `perimeter` reopens no member by that member's own access
+                keys, inside the area the perimeter member encloses or outside
+                it; and a parking area that a marked site relation names
+                establishes no stopping position the system offers, drawn as a
+                point or as an area, whatever its own access keys.** RD-091's
+                first ladder edge is superseded: the Owner's option is read as
+                its text says, so a member's own access keys, read with the
+                site's as RD-090 reads them, lift the marking the site lends
+                the member only where the site names no member in the role
+                `perimeter`, and FR-142 is restated so. RD-090's first ladder
+                edge, a more specific key the site carries governing, stands
+                where a member's keys are still read, a site with no perimeter
+                member. RD-090's fourth ladder edge is superseded where it
+                reads a parking node member's own access keys with the site's,
+                and RD-091's interpretation where it holds that part standing:
+                the site's marking alone decides, and a parking node member
+                carrying `access=yes` is withheld as one carrying none of the
+                keys is; that the node is never a barrier stands, the Owner's
+                answer in RD-090. RD-089's fifth edge, which RD-090 left
+                standing for the area, is superseded where it leaves a parking
+                area a marked site names as an area to FR-140 alone: FR-143 is
+                restated to withhold the position such a parking area
+                establishes from every offer, as a recommended stop, a
+                replacement or a reserve candidate, before a rejection or
+                after one, whether or not a warned leg reaches it, drawn as a
+                point or as an area, whatever its own access keys. The area
+                stays marked for FR-140 where FR-142 marks it, as RD-089 held,
+                and FR-140 now has nothing of it the system offered to refuse.
+                A stop the user places at either is not refused by FR-143
+                (FR-139). Two edges are read on the ladder. First, a site has
+                an outline where it names any member in the role `perimeter`,
+                whether or not that member is a closed way or an area relation
+                the loader draws an area from, so a perimeter member that
+                encloses nothing still bars every member's own permission.
+                Second, the area's withholding admits no exception the point's
+                does not, so a parking area drawn as an area that a marked
+                site with no perimeter member names, carrying `access=yes`, is
+                withheld from every offer though FR-142 leaves it unmarked for
+                the leg; and the site names the parking area where it names as
+                a member, in any role, the node, the closed way or the area
+                relation that draws it. A parking area lying within a
+                perimeter's area that the site does not name is FR-138's, a
+                position behind a marking, and not this entry's.
+Rung:           n/a for the three rulings — rulings of `@engineering-lead` on
+                the safety verdict, none put to the Owner on this pass. RD-091
+                had read B1 on rung 4 and passed rung 7 over, which the lead
+                ruled against on rung 7, reading the Owner's option text over
+                the relay's gloss; RD-090 had read the node's keys on rung 4
+                with rung 7, which the lead ruled against on the Owner's
+                "never" read with no exception; the third is the lead's own
+                reading, on rung 7, since withholding the area as the point is
+                withheld lifts no safety exclusion and only withholds more
+                stops the system chose. The first ladder edge rests on rung 7:
+                the Owner's words name no shape of outline, and reading any
+                perimeter member as one lifts the fewest markings. The second
+                rests on rung 7 with rung 4: the lead's "the same as the
+                point" and FR-143 as B2 restates it, which admit no exception
+                for the node's own keys; and RD-089's (a) and (b), which read
+                a member's geometry and not its role, for what the site names.
+                No Turf mechanic is read and no constant is introduced.
+Affects:        RD-091's first ladder edge, superseded; RD-090's fourth ladder
+                edge where it reads a parking node member's own access keys,
+                and RD-091's interpretation where it holds that part standing,
+                superseded; RD-089's fifth edge where it leaves a parking area
+                a marked site names as an area to FR-140 alone, superseded;
+                FR-142's `Statement`, `Verification`, first and third
+                criteria, `Volatility`, `Risk` and `Rationale`; FR-143's
+                title, `Statement`, `Verification`, criteria, `Volatility`,
+                `Risk` and `Rationale`; #303, gaining AC17 to AC19,
+                superseding AC12, AC15 and AC16, and a `Basis` line; #276,
+                gaining AC13, superseding AC12, and a `Basis` line;
+                `INDEX.md`, `TRACEABILITY.md` and `README.md`, following the
+                records.
+```
