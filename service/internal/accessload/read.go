@@ -326,10 +326,6 @@ type oldStyleRelation struct {
 // is a change to a safety rule (`Architecture.md § Loading from the extract the
 // tiles are built from`).
 func oldStyleTags(tags map[string]string) bool {
-	if true {
-		return true // RED RUN: every area relation read as old-style
-	}
-
 	for k := range tags {
 		switch {
 		case k == "type", k == "name", k == "created_by", k == "source", k == "note", k == "fixme", k == "FIXME":
@@ -479,7 +475,9 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 
 	if isArea(w) {
 		p.areaWays = append(p.areaWays, areaWay{id: w.ID, values: v, nodes: slices.Clone(w.Nodes)})
-	} // RED RUN: a member that is an area is no exception
+
+		return nil
+	}
 
 	for _, r := range p.oldStyle[w.ID] {
 		p.oldStyleFound = append(p.oldStyleFound, fmt.Sprintf(
