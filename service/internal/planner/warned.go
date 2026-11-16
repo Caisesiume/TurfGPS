@@ -164,12 +164,6 @@ func barrierWays(edges []Edge, crossings []Crossing, node int64) []int64 {
 // it may not be; any other error, that the plan ended. checkedLeg alone calls
 // it, as shown, with the provider the leg is routed through.
 func noRouteShown(ctx context.Context, routing RoutingProvider, av avoidance) error {
-	// RED RUN — not for merge: the guard neutralised, every no-route answer
-	// believed as before it (PR #297, S1).
-	if routing != nil {
-		return nil
-	}
-
 	ex, ok := routing.(Exclusions)
 	if !ok {
 		return fmt.Errorf("%w: the routing provider cannot say what it keeps a route off", errUnproven)
