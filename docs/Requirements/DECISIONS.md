@@ -4471,8 +4471,10 @@ Affects:        RD-090's fourth ladder edge, superseded where it reads "Don't
                 recorded as the lead's and the Owner's; FR-143's title,
                 `Statement`, `Source`, `Verification`, criteria, `Depends-on`,
                 `Volatility`, `Risk` and `Rationale`; FR-142's `Volatility`
-                and `Rationale`; #303, gaining AC15, superseding AC14, and a
-                `Basis` line; #276, gaining AC12, superseding AC11, and a
+                and `Rationale`; #303, gaining AC15, superseding AC14, and
+                AC16, testing the edge read on the ladder for (a), both since
+                superseded by AC17 and AC18 (RD-092), and a `Basis` line;
+                #276, gaining AC12, superseding AC11, and a
                 `Basis` line; `INDEX.md`, `TRACEABILITY.md` and `README.md`,
                 following the records.
 ```
@@ -4486,25 +4488,28 @@ Decided-by:     `@engineering-lead`, ruling on the remand of PR #305 at
                 https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6926886895,
                 which blocked on two findings and raised a third as
                 non-blocking; the rulings were carried in the lead's dispatch
-                to the analyst and settle the findings without a new Owner
-                question, the first two reading the Owner's answers in
+                to the analyst and posted by the lead on PR #305,
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6927568570,
+                and settle the findings without a new Owner question, the
+                first two reading the Owner's answers in
                 `DECISIONS.md § RD-091` literally and the third as the lead's
                 own reading, for the Owner to see at merge. The rulings,
-                verbatim: "B1: follow the Owner's chosen option text literally
-                ('The \"yes\" reopens the road only where the site has no
-                outline. Inside a private outline the road stays refused.'),
-                rung 7: a site that has an outline reopens no member; a
-                member's own 'yes' reopens it only for a site with no outline.
-                Restate FR-142 criterion 3 and supersede RD-091's first ladder
-                edge by a new append-only entry"; "B2: remove the
-                node's-own-permissive-key exception from FR-143 and
-                RD-090/RD-091 — the Owner ruled 'never shown as a suggestion'
-                with no exception"; "N2 (lead, strict reading, consistent with
+                verbatim as posted: "B1: follow the Owner's chosen option text
+                literally ('The \"yes\" reopens the road only where the site
+                has no outline. Inside a private outline the road stays
+                refused.'), rung 7, so a site that has an outline reopens no
+                member. B2: the node's own permissive key is no exception to
+                FR-143; the Owner ruled 'never shown as a suggestion' with no
+                exception. N2 (the lead's strict reading, consistent with
                 'Leave it out'): a parking area drawn as an area that a marked
-                site names is withheld from offers too, the same as the point;
-                record it as the lead's reading for the Owner to see at
-                merge". This entry records rulings made elsewhere, with two
-                edges they leave open decided on the ladder below.
+                site names is withheld from offers too, the same as the point.
+                The Owner sees it at merge." The dispatch also directed the
+                records' changes: `FR-142`'s third criterion restated, RD-091's
+                first ladder edge superseded by a new entry rather than
+                edited, and the exception removed from `FR-143` and from
+                RD-090's and RD-091's readings. This entry records rulings
+                made elsewhere, with two edges they leave open decided on the
+                ladder below.
 Question:       The safety verdict at `11854b2` found two readings of the
                 Owner's answers looser than the Owner's words, and an
                 asymmetry between two drawings of one place. B1: RD-091's
