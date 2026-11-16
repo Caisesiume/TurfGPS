@@ -22,8 +22,8 @@ This file is a derivative database of OpenStreetMap. It is licensed under the
 ODbL, and **not** under this repository's `LICENSE`, which covers the code. Anything
 derived from it is subject to the ODbL's share-alike terms.
 
-**Not everything in it is from OpenStreetMap.** 383 ways, 516 nodes and one
-relation are synthetic, written for #255's, #248's and #253's tests: every
+**Not everything in it is from OpenStreetMap.** 411 ways, 555 nodes and two
+relations are synthetic, written for #255's, #248's and #253's tests: every
 object with an id of 9,000,000,000,000,000,000 or above. *The synthetic cases*,
 below, says which and why.
 
@@ -33,7 +33,7 @@ below, says which and why.
 |---|---|
 | Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 56.80–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the box's area features carrying an access key (#253), with the member ways and nodes they reference; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 209,197 bytes; SHA-256 `7fd5c62d55d17eb680b945e43c49e8d70d57f47e744b059a37d97ed3c401d885` — 14,705 nodes, 4,336 ways, 63 relations |
+| Size | 209,480 bytes; SHA-256 `fbb19417dcc0c40dc72e93172f406aff1f3dd76b0d5c22382ed3a4a78e78269f` — 14,744 nodes, 4,364 ways, 64 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z; the box's areas: `osm_base` 2026-11-15T22:56:51Z; each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, the box's areas on 15 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; the box's areas: `access-area-cases.overpassql`; all beside this file. The synthetic cases are `access-marking-synthetic.osm` and `access-area-synthetic.osm`, beside it too |
@@ -53,13 +53,20 @@ bytes, SHA-256
 `6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113`; adding the
 box's areas and #253's synthetic cases changed none of its 17,921 objects and
 added 1,183, compared object by object. 35 of the objects the areas' query
-returned were already in that file, each identical to it.
+returned were already in that file, each identical to it. With #253's first
+cases and before the cases of its safety review (PR #296: S1 and S2, cases 21
+to 23), the file was 209,197 bytes, SHA-256
+`7fd5c62d55d17eb680b945e43c49e8d70d57f47e744b059a37d97ed3c401d885`; adding
+them changed none of its 19,104 objects and added 68, compared object by
+object.
 
 ## The box's areas (#253)
 
 `access_area` takes every closed way without a `highway` key, every closed way
-tagged `area=yes`, and every `type=multipolygon` relation, carrying any of the
-twelve access keys (`Architecture.md § What the tables hold`). The box as first
+tagged `area=yes`, every closed way whose `highway` value is only ever an area
+(`rest_area`, `services`, `trailhead`, `turntable`), and every
+`type=multipolygon` and `type=boundary` relation, carrying any of the twelve
+access keys (`Architecture.md § What the tables hold`). The box as first
 fetched held only its streets, so `access-area-cases.overpassql` fetches every
 such feature whose box it meets, with the member ways and nodes they
 reference: 61 closed ways and 5 multipolygon relations, 15 of the 66 marked by
@@ -67,7 +74,13 @@ the rule, car parks marked `private`, `customers` or `no` among them, such as
 way 1088367799 (`amenity=parking`, `access=customers`). The 5 relations, a
 multi-storey car park, a surface car park, a playground, a sports centre and a
 library, each marked `access=yes`, are how the loader's assembly of a
-multipolygon is tested on OpenStreetMap's own data. None of the features is a
+multipolygon is tested on OpenStreetMap's own data. The box holds no
+`type=boundary` relation carrying a key and no closed `highway` way of the
+four area-only values, so the query's clauses for them, added after PR #296's
+safety review, returned nothing new (Overpass, `osm_base`
+2026-11-16T00:08:02Z); the nearest instances, relation 18457526 (Vårdsätra
+naturpark, near Uppsala) and ways 1360754381 and 1360754385 (by the E6 at
+56.79 N 12.81 E), lie outside it, so their cases are synthetic. None of the features is a
 `highway` way, so they add nothing to the routing graph; a node of theirs that
 carries an access key, such as a shop's entrance marked `access=customers`, is
 a barrier to `access_barrier` as any such node is.
@@ -204,7 +217,10 @@ what a regeneration keeps:
   11.7020 to 11.7070 E. The leg's ends are points at 11.7010 and 11.7080 E.
 - **The car park is a closed way** (k = 10), except in case 12, where it is a
   multipolygon relation whose outer ring is two ways (k = 10, 11) and whose
-  inner ring, a third (k = 12), lies inside it south of the road.
+  inner ring, a third (k = 12), lies inside it south of the road. In case 21
+  the area is a nature reserve, a `type=boundary` relation whose outer ring is
+  two ways (k = 10, 11); in cases 22 and 23 it is a closed `highway=rest_area`
+  and `highway=services` way, neither tagged `area=yes`.
 
 | Case | The car park's tags | Round it | Criterion |
 |---|---|---|---|
@@ -218,6 +234,8 @@ what a regeneration keeps:
 | 17, 18 | only `motor_vehicle:backward=no`; `motorcar=yes` `motor_vehicle:backward=no` | yes | AC7 |
 | 19 | only `access:conditional=private @ (Mo-Fr 08:00-18:00)` | no | AC8 |
 | 20 | `access=private` `motor_vehicle:conditional=yes @ (Mo-Fr 08:00-18:00)` | yes | AC9 |
+| 21 | `access=no`, on a `type=boundary` relation, `boundary=protected_area` `leisure=nature_reserve` | yes | AC2; S1 on PR #296 |
+| 22, 23 | `access=private`, on a closed `highway=rest_area`; on a closed `highway=services`; neither with `area=yes` | yes | AC2; S2 on PR #296 |
 
 Each test establishes its case from the file before measuring it, and asks the
 engine, with `ignore_access`, whether the quickest connection between the ends
@@ -293,7 +311,7 @@ python -c "import osmium, sys; r = osmium.MergeInputReader(); [r.add_file(f) for
 
 #253's areas and synthetic cases were merged the same way into the file before
 them, which holds the box and #255's and #248's cases, with the same result on
-two runs.
+two runs; so were cases 21 to 23, into the file holding the rest of #253's.
 
 where `box.osm.pbf` is the box converted as above, under that name. Delete
 `access-marking-cases.osm`, `access-area-cases.osm`, the box's `.osm` and

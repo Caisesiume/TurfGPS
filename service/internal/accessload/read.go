@@ -17,13 +17,14 @@
 // IT IS NEVER ON A REQUEST PATH. `cmd/accessload` runs it; nothing the request
 // surface imports reaches it.
 //
-// THE AREA FEATURES (`access_area`, #253, `FR-128`) are the most inclusive set
-// `Architecture.md § What the tables hold` proposes: every closed way without a
-// `highway` key, every closed way tagged `area=yes`, and every
-// `type=multipolygon` relation, carrying any of the twelve keys. The reader
-// takes each one's linework — the closed way, or every way the relation names
-// as a member, whatever its role — and PostGIS draws the area from it as the
-// rows enter the table (write.go). An area this reader cannot take whole fails
+// THE AREA FEATURES (`access_area`, #253, `FR-128`) are the set `Architecture.md
+// § What the tables hold` names: every closed way without a `highway` key, every
+// closed way tagged `area=yes`, every closed way whose `highway` value is one
+// OpenStreetMap documents on areas and never on ways (areaOnlyHighway), and
+// every relation of a type OpenStreetMap draws as an area (areaRelationTypes),
+// carrying any of the twelve keys. The reader takes each one's linework — the
+// closed way, or every way the relation names as a member, whatever its role —
+// and PostGIS draws the area from it as the rows enter the table (write.go). An area this reader cannot take whole fails
 // the read: a member way or node the file does not hold, a relation naming a
 // relation, linework whose ends do not close into rings, or a closed way with
 // too few nodes to enclose anything. Node members are not linework and are
@@ -98,7 +99,7 @@ type Pair struct{ Way, Node int64 }
 // Area is a row of access_area, before PostGIS draws it: the feature, its
 // values, and its linework.
 type Area struct {
-	// Type is 'w' for a closed way and 'r' for a multipolygon relation, as
+	// Type is 'w' for a closed way and 'r' for a relation, as
 	// access_area.osm_type spells them.
 	Type byte
 	ID   int64
@@ -145,7 +146,7 @@ type Extract struct {
 }
 
 // ReadFile reads the extract at path. The file is read three times — the
-// multipolygon relations decide which member ways' nodes are kept, and the
+// area relations decide which member ways' nodes are kept, and the
 // ways the tables take decide which node coordinates are — and every read
 // must hash to the same SHA-256, so a file replaced between them fails the
 // read.
@@ -211,7 +212,7 @@ func ReadFile(path string) (*Extract, error) {
 	for _, r := range rels.areas {
 		area, err := second.relationArea(r, first.memberNodes)
 		if err != nil {
-			return nil, fmt.Errorf("relation %d is a multipolygon carrying an access key and %w, so its area cannot be drawn", r.id, err)
+			return nil, fmt.Errorf("relation %d is a type=%s relation carrying an access key and %w, so its area cannot be drawn", r.id, r.kind, err)
 		}
 
 		ex.Areas = append(ex.Areas, area)
@@ -274,18 +275,28 @@ func (o *order) at(kind int, what string) error {
 	return nil
 }
 
-// relationsPass collects the multipolygon relations carrying any of the keys,
-// and the ways they name.
+// areaRelationTypes are the relation types OpenStreetMap defines as areas: a
+// multipolygon (wiki `Relation:multipolygon`) and a boundary, which the wiki's
+// `Relation:boundary` says is "defined in a similar manner as multipolygons:
+// they must contain at least one outer way". A relation of another type — a
+// route, a site, a restriction — is not one, and is passed over. Narrowing
+// this set is a change to a safety rule (`Architecture.md § What the tables
+// hold`).
+var areaRelationTypes = map[string]bool{"multipolygon": true, "boundary": true}
+
+// relationsPass collects the area relations carrying any of the keys, and the
+// ways they name.
 type relationsPass struct {
 	order
 	areas   []areaRelation
 	members map[int64]bool
 }
 
-// areaRelation is a multipolygon relation carrying any of the keys: its
+// areaRelation is an area relation carrying any of the keys: its type, its
 // values and the ways it names, in member order.
 type areaRelation struct {
 	id     int64
+	kind   string
 	values Values
 	ways   []int64
 }
@@ -301,7 +312,8 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 		return err
 	}
 
-	if r.Tags["type"] != "multipolygon" {
+	kind := r.Tags["type"]
+	if !areaRelationTypes[kind] {
 		return nil
 	}
 
@@ -310,7 +322,7 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 		return nil
 	}
 
-	a := areaRelation{id: r.ID, values: v}
+	a := areaRelation{id: r.ID, kind: kind, values: v}
 
 	for _, m := range r.Members {
 		switch m.Type {
@@ -318,14 +330,14 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 			a.ways = append(a.ways, m.Ref)
 			p.members[m.Ref] = true
 		case osmpbf.MemberRelation:
-			return fmt.Errorf("relation %d is a multipolygon carrying an access key and names relation %d as a member, whose linework this reader does not take, so its area cannot be drawn whole", r.ID, m.Ref)
+			return fmt.Errorf("relation %d is a type=%s relation carrying an access key and names relation %d as a member, whose linework this reader does not take, so its area cannot be drawn whole", r.ID, kind, m.Ref)
 		case osmpbf.MemberNode:
 			// A node encloses nothing: it adds no area under any reading.
 		}
 	}
 
 	if len(a.ways) == 0 {
-		return fmt.Errorf("relation %d is a multipolygon carrying an access key and names no way, so its area cannot be drawn", r.ID)
+		return fmt.Errorf("relation %d is a type=%s relation carrying an access key and names no way, so its area cannot be drawn", r.ID, kind)
 	}
 
 	p.areas = append(p.areas, a)
@@ -334,7 +346,7 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 }
 
 // waysPass collects the ways carrying any of the keys, the closed ways that
-// are areas carrying them, the nodes of the multipolygons' member ways, and
+// are areas carrying them, the nodes of the area relations' member ways, and
 // the nodes of all three.
 type waysPass struct {
 	order
@@ -353,17 +365,28 @@ type areaWay struct {
 	nodes  []int64
 }
 
+// areaOnlyHighway are the `highway` values OpenStreetMap documents on areas
+// and never on ways: each value's wiki page (`Tag:highway=<value>`) states
+// `onWay = no` and `onArea = yes`. Read on 16 November 2026 over every `highway`
+// value taginfo lists among the 300 most used with a wiki page; PR #296 records
+// the query. A closed way carrying one is an area whether or not it is tagged
+// `area=yes`, as `highway=rest_area` and `highway=services` are found without it.
+// Narrowing this set is a change to a safety rule (`Architecture.md § What the
+// tables hold`).
+var areaOnlyHighway = map[string]bool{"rest_area": true, "services": true, "trailhead": true, "turntable": true}
+
 // isArea reports whether a way is one of the area features access_area takes
 // (`Architecture.md § What the tables hold`): closed, and either without a
-// `highway` key or tagged `area=yes`.
+// `highway` key, tagged `area=yes`, or carrying a `highway` value that is
+// only ever an area.
 func isArea(w osmpbf.Way) bool {
 	if len(w.Nodes) < 2 || w.Nodes[0] != w.Nodes[len(w.Nodes)-1] {
 		return false
 	}
 
-	_, highway := w.Tags["highway"]
+	highway, ok := w.Tags["highway"]
 
-	return !highway || w.Tags["area"] == "yes"
+	return !ok || w.Tags["area"] == "yes" || areaOnlyHighway[highway]
 }
 
 func (p *waysPass) Header(osmpbf.Header) error { return nil }
@@ -511,7 +534,7 @@ func (p *nodesPass) wayArea(a areaWay) (Area, error) {
 	return Area{Type: 'w', ID: a.id, Values: a.values, Lines: []Line{{Way: a.id, Lons: lons, Lats: lats}}}, nil
 }
 
-// relationArea gathers a multipolygon's linework, and refuses it unless every
+// relationArea gathers an area relation's linework, and refuses it unless every
 // member way is in the file with all its nodes and the linework closes: each
 // node at which a member way ends must be an end of an even number of them,
 // counting both ends of a way, so every way lies on a closed ring and PostGIS

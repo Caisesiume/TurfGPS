@@ -235,6 +235,12 @@ func TestTheReaderTakesTheAreaFeatures(t *testing.T) {
 		{'r', 10476740, map[string]string{"access": "yes"}, []int64{16239958, 758459162, 758459164, 758459161}},
 		{'w', synArea(0), map[string]string{"access": "customers"}, []int64{synArea(0)}},
 		{'r', synRelation(12), map[string]string{"access": "private"}, []int64{synArea(12), synArea(12) + 1, synArea(12) + 2}},
+		// S1 on PR #296: a type=boundary relation, as Vårdsätra naturpark is.
+		{'r', synRelation(21), map[string]string{"access": "no"}, []int64{synArea(21), synArea(21) + 1}},
+		// S2 on PR #296: closed highway=rest_area and highway=services ways
+		// without area=yes.
+		{'w', synArea(22), map[string]string{"access": "private"}, []int64{synArea(22)}},
+		{'w', synArea(23), map[string]string{"access": "private"}, []int64{synArea(23)}},
 	} {
 		a, ok := areas[[2]int64{int64(tc.typ), tc.id}]
 		if !ok {
@@ -268,9 +274,10 @@ func TestTheReaderTakesTheAreaFeatures(t *testing.T) {
 }
 
 // TestWhichWaysAreAreas holds the reader to the area features `Architecture.md
-// § What the tables hold` proposes: a closed way without a `highway` key, and
-// a closed way tagged `area=yes`; a closed `highway` way without it is a way,
-// and an open way is never an area.
+// § What the tables hold` names: a closed way without a `highway` key, a closed
+// way tagged `area=yes`, and a closed way whose `highway` value is only ever an
+// area (S2 on PR #296); another closed `highway` way without `area=yes` is a
+// way, and an open way is never an area.
 func TestWhichWaysAreAreas(t *testing.T) {
 	t.Parallel()
 
@@ -287,6 +294,12 @@ func TestWhichWaysAreAreas(t *testing.T) {
 		{"a closed highway way tagged area=yes", ring, map[string]string{"highway": "pedestrian", "area": "yes"}, true},
 		{"a closed highway way, a loop road", ring, map[string]string{"highway": "service"}, false},
 		{"a closed highway way tagged area=no", ring, map[string]string{"highway": "service", "area": "no"}, false},
+		{"a closed highway=rest_area way without area=yes", ring, map[string]string{"highway": "rest_area", "access": "private"}, true},
+		{"a closed highway=services way without area=yes", ring, map[string]string{"highway": "services"}, true},
+		{"a closed highway=trailhead way without area=yes", ring, map[string]string{"highway": "trailhead"}, true},
+		{"a closed highway=turntable way without area=yes", ring, map[string]string{"highway": "turntable"}, true},
+		{"a closed highway=rest_area way tagged area=no", ring, map[string]string{"highway": "rest_area", "area": "no"}, true},
+		{"an open highway=rest_area way", open, map[string]string{"highway": "rest_area"}, false},
 		{"an open way without a highway key", open, map[string]string{"amenity": "parking"}, false},
 	} {
 		if got := isArea(osmpbf.Way{ID: 1, Nodes: tc.nodes, Tags: tc.tags}); got != tc.want {
@@ -347,13 +360,17 @@ func TestAnAreaThatCannotBeTakenWholeIsRefused(t *testing.T) {
 	rels := &relationsPass{members: map[int64]bool{}}
 
 	for name, r := range map[string]osmpbf.Relation{
+		"a boundary naming a relation, a subarea": {ID: 7, Tags: map[string]string{"type": "boundary", "access": "no"},
+			Members: []osmpbf.Member{{Type: osmpbf.MemberWay, Ref: 10}, {Type: osmpbf.MemberRelation, Ref: 70, Role: "subarea"}}},
+		"a boundary naming no way": {ID: 7, Tags: map[string]string{"type": "boundary", "vehicle": "no"},
+			Members: []osmpbf.Member{{Type: osmpbf.MemberNode, Ref: 1, Role: "label"}}},
 		"a relation member": {ID: 7, Tags: map[string]string{"type": "multipolygon", "access": "private"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberWay, Ref: 10}, {Type: osmpbf.MemberRelation, Ref: 70}}},
 		"no way member": {ID: 7, Tags: map[string]string{"type": "multipolygon", "access": "private"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberNode, Ref: 1}}},
 	} {
 		if err := rels.Relation(r); err == nil {
-			t.Errorf("a multipolygon carrying an access key with %s was taken", name)
+			t.Errorf("an area relation carrying an access key with %s was taken", name)
 		}
 	}
 
@@ -361,6 +378,8 @@ func TestAnAreaThatCannotBeTakenWholeIsRefused(t *testing.T) {
 		"a multipolygon carrying no access key": {ID: 8, Tags: map[string]string{"type": "multipolygon", "access:conditional": "private @ (Mo-Fr 08:00-18:00)"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberRelation, Ref: 70}}},
 		"a route relation carrying one": {ID: 9, Tags: map[string]string{"type": "route", "access": "private"},
+			Members: []osmpbf.Member{{Type: osmpbf.MemberRelation, Ref: 70}}},
+		"a site relation carrying one": {ID: 10, Tags: map[string]string{"type": "site", "access": "customers"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberRelation, Ref: 70}}},
 	} {
 		if err := rels.Relation(r); err != nil {
@@ -370,5 +389,42 @@ func TestAnAreaThatCannotBeTakenWholeIsRefused(t *testing.T) {
 
 	if len(rels.areas) != 0 {
 		t.Errorf("the relations taken are %+v, want none", rels.areas)
+	}
+}
+
+// TestWhichRelationsAreAreas holds the reader to the area relations
+// `Architecture.md § What the tables hold` names (S1 on PR #296): a
+// type=multipolygon and a type=boundary relation carrying a key are each taken,
+// with every way it names, and a node member, a boundary's label, passed over.
+func TestWhichRelationsAreAreas(t *testing.T) {
+	t.Parallel()
+
+	members := []osmpbf.Member{
+		{Type: osmpbf.MemberWay, Ref: 10, Role: "outer"},
+		{Type: osmpbf.MemberNode, Ref: 1, Role: "label"},
+		{Type: osmpbf.MemberWay, Ref: 11, Role: "outer"},
+	}
+
+	for _, kind := range []string{"multipolygon", "boundary"} {
+		rels := &relationsPass{members: map[int64]bool{}}
+
+		r := osmpbf.Relation{ID: 7, Tags: map[string]string{"type": kind, "boundary": "protected_area", "access": "no"}, Members: members}
+		if err := rels.Relation(r); err != nil {
+			t.Fatalf("a type=%s relation carrying access=no: %v", kind, err)
+		}
+
+		if len(rels.areas) != 1 || rels.areas[0].id != 7 || len(rels.areas[0].ways) != 2 || rels.areas[0].ways[0] != 10 || rels.areas[0].ways[1] != 11 {
+			t.Errorf("a type=%s relation carrying access=no is taken as %+v, want relation 7 drawn from ways 10 and 11", kind, rels.areas)
+
+			continue
+		}
+
+		if got, _ := value(rels.areas[0].values, "access"); got != "no" {
+			t.Errorf("a type=%s relation's access is read as %q, want no", kind, got)
+		}
+
+		if !rels.members[10] || !rels.members[11] {
+			t.Errorf("a type=%s relation's member ways are not kept for the ways pass: %v", kind, rels.members)
+		}
 	}
 }

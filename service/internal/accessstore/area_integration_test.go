@@ -46,7 +46,7 @@ const syntheticNote253 = "synthetic, not from OpenStreetMap: TurfGPS #253 test c
 // The synthetic area cases' ids and places, as the generator wrote them: case
 // c's nodes are syntheticBase + 20000 + 100c + k, its ways syntheticBase + 3000
 // + 20c + k, its relation, where it has one, syntheticBase + 100 + c, and it
-// lies along 56.800 + 0.006c ° N.
+// lies along 56.800 + 0.006c ° N. Cases 21 to 23 are S1's and S2's on PR #296.
 func areaNode(c, k int) int64 { return syntheticBase + 20000 + int64(c)*100 + int64(k) }
 func areaWay(c, k int) int64  { return syntheticBase + 3000 + int64(c)*20 + int64(k) }
 func areaRel(c int) int64     { return syntheticBase + 100 + int64(c) }
@@ -55,14 +55,24 @@ func areaLat(c int) float64   { return 56.800 + float64(c)*0.006 }
 // areaCase is a road of five ways east — two outside the area, one entering
 // it, the way inside it, one leaving it, and one outside again — between
 // points on the first and the last, and, where detour is set, three ways round
-// the area to the north. The area is a car park, a closed way or a
-// multipolygon relation, enclosing the middle way.
+// the area to the north. The area is a closed way or a relation, of type
+// relType, multipolygon where it is empty, enclosing the middle way; a car park
+// unless its tags say what else.
 type areaCase struct {
 	c        int
 	name     string
 	tags     map[string]string
 	detour   bool
 	relation bool
+	relType  string
+}
+
+func (ac areaCase) relationType() string {
+	if ac.relType == "" {
+		return "multipolygon"
+	}
+
+	return ac.relType
 }
 
 func (ac areaCase) from() planner.Point {
@@ -104,6 +114,10 @@ var (
 		{c: 10, name: "access=private with bicycle=yes and foot=yes", tags: map[string]string{"access": "private", "bicycle": "yes", "foot": "yes"}, detour: true},
 		{c: 11, name: "motor_vehicle=private with psv=yes", tags: map[string]string{"motor_vehicle": "private", "psv": "yes"}, detour: true},
 		{c: 12, name: "access=private on a multipolygon relation", tags: map[string]string{"access": "private"}, detour: true, relation: true},
+		{c: 21, name: "access=no on a type=boundary relation, a nature reserve", tags: map[string]string{"access": "no", "boundary": "protected_area", "leisure": "nature_reserve"},
+			detour: true, relation: true, relType: "boundary"},
+		{c: 22, name: "access=private on a closed highway=rest_area way without area=yes", tags: map[string]string{"access": "private", "highway": "rest_area"}, detour: true},
+		{c: 23, name: "access=private on a closed highway=services way without area=yes", tags: map[string]string{"access": "private", "highway": "services"}, detour: true},
 	}
 	permittedArea = areaCase{c: 15, name: "access=no with motor_vehicle=yes", tags: map[string]string{"access": "no", "motor_vehicle": "yes"}}
 	ac5Area       = areaCase{c: 16, name: "access=private, with no connection round it", tags: map[string]string{"access": "private"}}
@@ -124,24 +138,27 @@ type areaKey struct {
 }
 
 // oplAreas is the area features the extract holds carrying any of the twelve
-// keys, read from the OPL as `Architecture.md § What the tables hold` proposes
-// them, and each one's linework: every closed way without a `highway` key, or
-// tagged `area=yes`, and every `type=multipolygon` relation, whatever its
-// members' roles.
+// keys, read from the OPL as `Architecture.md § What the tables hold` names
+// them, and each one's linework: every closed way without a `highway` key,
+// tagged `area=yes`, or whose `highway` value the OpenStreetMap wiki documents
+// on areas and never on ways, and every `type=multipolygon` and
+// `type=boundary` relation, whatever its members' roles.
 func oplAreas(opl *oplExtract) map[areaKey]feature {
 	out := map[areaKey]feature{}
 
+	areaOnly := map[string]bool{"rest_area": true, "services": true, "trailhead": true, "turntable": true}
+
 	for id, ft := range opl.ways {
-		_, highway := ft.tags["highway"]
+		highway, ok := ft.tags["highway"]
 		closed := len(ft.nodes) >= 2 && ft.nodes[0] == ft.nodes[len(ft.nodes)-1]
 
-		if closed && carries(ft.tags) && (!highway || ft.tags["area"] == "yes") {
+		if closed && carries(ft.tags) && (!ok || ft.tags["area"] == "yes" || areaOnly[highway]) {
 			out[areaKey{"w", id}] = ft
 		}
 	}
 
 	for id, ft := range opl.relations {
-		if ft.tags["type"] == "multipolygon" && carries(ft.tags) {
+		if (ft.tags["type"] == "multipolygon" || ft.tags["type"] == "boundary") && carries(ft.tags) {
 			out[areaKey{"r", id}] = ft
 		}
 	}
@@ -261,8 +278,8 @@ func (fx *fixture) areaPremise(t *testing.T, ac areaCase, wantMarked bool) {
 
 	if ac.relation {
 		ft = synthetic253(t, fx.opl.relations, "relation", id, ac.tags)
-		if ft.tags["type"] != "multipolygon" {
-			t.Fatalf("the premise does not hold: relation %d is type=%q, want multipolygon", id, ft.tags["type"])
+		if ft.tags["type"] != ac.relationType() {
+			t.Fatalf("the premise does not hold: relation %d is type=%q, want %s", id, ft.tags["type"], ac.relationType())
 		}
 
 		for _, m := range ft.members {
@@ -276,8 +293,12 @@ func (fx *fixture) areaPremise(t *testing.T, ac areaCase, wantMarked bool) {
 			t.Fatalf("the premise does not hold: way %d runs %v, want a closed way", id, ft.nodes)
 		}
 
-		if _, ok := ft.tags["highway"]; ok {
-			t.Fatalf("the premise does not hold: the area way %d carries highway=%s", id, ft.tags["highway"])
+		if got, ok := ft.tags["highway"]; ok && got != ac.tags["highway"] {
+			t.Fatalf("the premise does not hold: the area way %d carries highway=%s, want %q", id, got, ac.tags["highway"])
+		}
+
+		if _, ok := ft.tags["area"]; ok {
+			t.Fatalf("the premise does not hold: the area way %d carries area=%s, want no area key", id, ft.tags["area"])
 		}
 
 		outer = ft.nodes
@@ -446,6 +467,9 @@ func TestTheAreaTableHoldsExactlyTheExtractsAreaFeatures(t *testing.T) {
 	premise(t, fx.opl.ways, "way", 1088367799, map[string]string{"access": "customers", "amenity": "parking"})
 	premise(t, fx.opl.relations, "relation", 10476740, map[string]string{"type": "multipolygon", "access": "yes"})
 	synthetic253(t, fx.opl.relations, "relation", areaRel(12), map[string]string{"type": "multipolygon", "access": "private"})
+	synthetic253(t, fx.opl.relations, "relation", areaRel(21), map[string]string{"type": "boundary", "access": "no"})
+	synthetic253(t, fx.opl.ways, "way", areaWay(22, 10), map[string]string{"highway": "rest_area", "access": "private"})
+	synthetic253(t, fx.opl.ways, "way", areaWay(23, 10), map[string]string{"highway": "services", "access": "private"})
 	synthetic253(t, fx.opl.ways, "way", areaWay(ac8Area.c, 10), ac8Area.tags)
 
 	areas := oplAreas(fx.opl)

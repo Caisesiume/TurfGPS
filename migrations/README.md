@@ -37,8 +37,9 @@ load record `osm_extract_load`; the rule, `access_marked` and
 calls; and the route check, `access_crossings`, the one statement
 `internal/accessstore` serves. It touches nothing 0001 or 0002 created. The
 tables are filled by `turfgps load-access-markings` from the extract the tiles
-are built from, never by a migration; `access_area` takes the closed ways and
-multipolygon relations carrying the keys, drawn as they are loaded (#253), and
+are built from, never by a migration; `access_area` takes the closed ways and the
+multipolygon and boundary relations that are areas and carry the keys
+(`Architecture.md § What the tables hold`), drawn as they are loaded (#253), and
 the load record counts them. A change to the rule is a change to a safety
 rule.
 
