@@ -80,9 +80,10 @@ type osmWay struct {
 }
 
 type osmRelation struct {
-	id   int64
-	tags map[string]string
-	ways []int64
+	id        int64
+	tags      map[string]string
+	ways      []int64
+	relations []int64
 }
 
 // constructed is an extract built in a test: its nodes, ways and relations,
@@ -147,6 +148,10 @@ func (e constructed) write(t *testing.T) string {
 		var prev int64
 		for _, w := range r.ways {
 			roles, refs, types, prev = append(roles, str("outer")), append(refs, pbZig(w-prev)), append(types, 1), w
+		}
+
+		for _, m := range r.relations {
+			roles, refs, types, prev = append(roles, str("")), append(refs, pbZig(m-prev)), append(types, 2), m
 		}
 
 		msg := append(pbUint(1, uint64(r.id)), tagFields(r.tags)...)
@@ -217,9 +222,9 @@ func ringCase(c int, rel map[string]string, members []int, wayTags map[int]map[s
 }
 
 // TestAnOldStyleAreaRelationFailsTheRead holds #301's AC1 and AC2 (`RD-087`):
-// an area relation carrying no tag but its type, its names and the
-// housekeeping keys, one of whose member ways carries an access key and is no
-// area itself, fails the read with a message naming both. ReadFile is the
+// an area relation carrying no key that defines a feature, one of whose member
+// ways carries an access key and is no area itself, fails the read with a
+// message naming both; the N1 cases are the sentinel's on PR #306. ReadFile is the
 // loader's first act and returns no extract, so nothing is staged or swapped,
 // and the previous load stays current, or none is: `turfgps
 // load-access-markings` reads the file before it opens the store. Each case's
@@ -244,6 +249,18 @@ func TestAnOldStyleAreaRelationFailsTheRead(t *testing.T) {
 			2, map[string]string{"type": "multipolygon", "name": "Kundparkering", "note": "outer ring tagged", "source:geometry": "survey", "fixme": "move tags to the relation"}, private},
 		{"AC2: a multipolygon whose marked member is an open highway=service way",
 			3, map[string]string{"type": "multipolygon"}, map[string]string{"highway": "service", "access": "private"}},
+		// The sentinel's N1 on PR #306: a key that defines no feature hides
+		// no marking.
+		{"N1: a multipolygon also carrying area=yes",
+			7, map[string]string{"type": "multipolygon", "area": "yes"}, private},
+		{"N1: a multipolygon also carrying layer=-1",
+			8, map[string]string{"type": "multipolygon", "layer": "-1"}, private},
+		{"N1: a multipolygon also carrying alt_name",
+			9, map[string]string{"type": "multipolygon", "alt_name": "Kundparkering"}, private},
+		{"N1: a multipolygon also carrying old_name",
+			10, map[string]string{"type": "multipolygon", "old_name": "Kundparkering"}, private},
+		{"N1: a multipolygon also carrying wikidata",
+			11, map[string]string{"type": "multipolygon", "wikidata": "Q1"}, private},
 	} {
 		e := ringCase(tc.c, tc.rel, []int{1, 2}, map[int]map[string]string{1: tc.way1})
 
@@ -305,6 +322,22 @@ func TestAnAreaRelationThatIsNotOldStyleIsRead(t *testing.T) {
 
 		if slices.ContainsFunc(ex.Areas, func(a Area) bool { return a.Type == 'r' }) || ex.AreaFeatures != int64(len(ex.Areas)) {
 			t.Errorf("the areas read are %+v from %d features, want no relation among them", ex.Areas, ex.AreaFeatures)
+		}
+	})
+
+	t.Run("a multipolygon carrying area:highway, a top-level key of a dependent element", func(t *testing.T) {
+		t.Parallel()
+
+		e := ringCase(14, map[string]string{"type": "multipolygon", "area:highway": "pedestrian"}, []int{1, 2},
+			map[int]map[string]string{1: {"highway": "residential", "vehicle": "no"}})
+
+		ex, err := ReadFile(e.write(t))
+		if err != nil {
+			t.Fatalf("the extract is refused: %v", err)
+		}
+
+		if !slices.ContainsFunc(ex.Ways, func(w Way) bool { return w.ID == way301(14, 1) }) {
+			t.Errorf("way %d is not read among the ways carrying an access key, want it in access_way", way301(14, 1))
 		}
 	})
 
@@ -371,9 +404,69 @@ func TestAnOldStyleAreaRelationMissingAMemberFailsTheRead(t *testing.T) {
 	}
 }
 
-// TestWhichRelationsAreOldStyle holds the list of tags `RD-087` sets aside:
-// `type`, `name` and `name:*`, and `created_by`, `source`, `source:*`,
-// `note`, `note:*`, `fixme` and `FIXME`; any other tag describes a feature.
+// TestAnOldStyleAreaRelationNamingARelationFailsTheRead holds the sentinel's
+// N2 on PR #306 and the lead's ruling on it: an old-style area relation naming
+// a relation as a member fails the read, naming both, as a relation carrying a
+// key does. The guard checks the ways an old-style relation names, not a
+// member relation's, and a marking on those may be the area's. Case 12's
+// relation names relation 9×10¹⁸ + 3,013, a `type=collection` naming case 12's
+// ways, so the marking sits on a way of the member relation's; no case 13 is
+// built. The extract without case 12's relation, and with it describing a
+// feature of its own, are each read, so the failure is the old-style rule's.
+func TestAnOldStyleAreaRelationNamingARelationFailsTheRead(t *testing.T) {
+	t.Parallel()
+
+	sub := osmRelation{id: rel301(13), tags: map[string]string{"type": "collection"}, ways: []int64{way301(12, 1), way301(12, 2)}}
+
+	with := func(tags map[string]string) constructed {
+		e := ringCase(12, nil, nil, map[int]map[string]string{1: {"access": "private"}})
+		if tags != nil {
+			e.rels = append(e.rels, osmRelation{id: rel301(12), tags: tags, relations: []int64{rel301(13)}})
+		}
+
+		e.rels = append(e.rels, sub)
+
+		return e
+	}
+
+	alone, err := ReadFile(with(nil).write(t))
+	if err != nil {
+		t.Fatalf("the premise does not hold: the extract without relation %d is refused: %v", rel301(12), err)
+	}
+
+	if !slices.ContainsFunc(alone.Ways, func(w Way) bool { return w.ID == way301(12, 1) }) {
+		t.Fatalf("the premise does not hold: way %d is not read as a way carrying an access key", way301(12, 1))
+	}
+
+	if _, err := ReadFile(with(map[string]string{"type": "multipolygon", "landuse": "residential"}).write(t)); err != nil {
+		t.Fatalf("the premise does not hold: the extract with relation %d describing a feature is refused: %v", rel301(12), err)
+	}
+
+	ex, err := ReadFile(with(map[string]string{"type": "multipolygon"}).write(t))
+	if err == nil {
+		t.Fatalf("the extract whose old-style relation %d names relation %d is read, with %d areas and %d ways, want it refused",
+			rel301(12), rel301(13), len(ex.Areas), len(ex.Ways))
+	}
+
+	t.Logf("%v", err)
+
+	if ex != nil {
+		t.Errorf("a refused read returned an extract, which a load could write")
+	}
+
+	for _, want := range []string{fmt.Sprintf("relation %d ", rel301(12)), fmt.Sprintf("names relation %d as a member", rel301(13))} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the read fails with %q, which does not name %q", err, strings.TrimSpace(want))
+		}
+	}
+}
+
+// TestWhichRelationsAreOldStyle holds the test the lead's ruling on PR #306
+// sets: an area relation is old-style unless it carries a key of featureKeys,
+// the top-level keys of the wiki's `Top-level tag`. Every other key, names,
+// housekeeping, `area`, `layer`, `wikidata` and a lifecycle prefix among them,
+// leaves it old-style. A relation carrying an access key never reaches the
+// test: it is read as an area of its own.
 func TestWhichRelationsAreOldStyle(t *testing.T) {
 	t.Parallel()
 
@@ -384,14 +477,23 @@ func TestWhichRelationsAreOldStyle(t *testing.T) {
 		{map[string]string{"type": "multipolygon"}, true},
 		{map[string]string{"type": "multipolygon", "name": "x", "name:en": "x", "created_by": "JOSM", "source": "survey", "source:date": "2020"}, true},
 		{map[string]string{"type": "boundary", "note": "x", "note:sv": "x", "fixme": "x", "FIXME": "x"}, true},
+		{map[string]string{"type": "multipolygon", "area": "yes", "layer": "-1", "alt_name": "x", "old_name": "x", "wikidata": "Q1"}, true},
+		{map[string]string{"type": "multipolygon", "name_1": "x", "notes": "x", "wikipedia": "sv:x", "ref": "1"}, true},
+		{map[string]string{"type": "multipolygon", "disused:amenity": "parking", "surface": "asphalt"}, true},
+		{map[string]string{"type": "multipolygon", "snowmobile": "no"}, true},
 		{map[string]string{"type": "multipolygon", "landuse": "residential"}, false},
-		{map[string]string{"type": "multipolygon", "amenity": "parking"}, false},
-		{map[string]string{"type": "multipolygon", "access": "private"}, false},
-		{map[string]string{"type": "multipolygon", "name_1": "x"}, false},
-		{map[string]string{"type": "multipolygon", "notes": "x"}, false},
+		{map[string]string{"type": "multipolygon", "amenity": "parking", "area": "yes"}, false},
+		{map[string]string{"type": "boundary", "boundary": "administrative", "admin_level": "8"}, false},
+		{map[string]string{"type": "multipolygon", "area:highway": "pedestrian"}, false},
+		{map[string]string{"type": "multipolygon", "building:part": "yes"}, false},
+		{map[string]string{"type": "multipolygon", "piste:type": "nordic"}, false},
 	} {
 		if got := oldStyleTags(tc.tags); got != tc.want {
 			t.Errorf("oldStyleTags(%v) is %v, want %v", tc.tags, got, tc.want)
 		}
+	}
+
+	if len(featureKeys) != 50 {
+		t.Errorf("featureKeys holds %d keys, want the 50 the wiki's Top-level tag lists at revision 2875567: 33 for standalone elements and 17 for dependent ones", len(featureKeys))
 	}
 }

@@ -375,7 +375,9 @@ func TestAnAreaThatCannotBeTakenWholeIsRefused(t *testing.T) {
 	}
 
 	for name, r := range map[string]osmpbf.Relation{
-		"a multipolygon carrying no access key": {ID: 8, Tags: map[string]string{"type": "multipolygon", "access:conditional": "private @ (Mo-Fr 08:00-18:00)"},
+		// It describes a feature, so it is not old-style, whose relation
+		// members fail the read (#301, oldstyle_test.go).
+		"a multipolygon carrying no access key": {ID: 8, Tags: map[string]string{"type": "multipolygon", "landuse": "retail", "access:conditional": "private @ (Mo-Fr 08:00-18:00)"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberRelation, Ref: 70}}},
 		"a route relation carrying one": {ID: 9, Tags: map[string]string{"type": "route", "access": "private"},
 			Members: []osmpbf.Member{{Type: osmpbf.MemberRelation, Ref: 70}}},
