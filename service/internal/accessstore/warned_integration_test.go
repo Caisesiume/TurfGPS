@@ -795,11 +795,9 @@ func TestANoRouteAnswerToAnExclusionReachingAJunctionWarnsNoLeg(t *testing.T) {
 				for k, leg := range journey.Legs {
 					if leg.Warned || len(fx.markingsOn(leg.Edges)) > 0 {
 						t.Errorf("leg %d runs along %v, warned=%v naming %+v, though the way round avoids the %s %d (`FR-129`, fourth criterion): the engine's no-route answer was to an exclusion reaching the public road %d at the junction", k, wayIDs(leg.Edges), leg.Warned, leg.Marked, b.kind, b.marking, b.public)
+					} else {
+						t.Logf("leg %d runs along %v, the way round, not warned", k, wayIDs(leg.Edges))
 					}
-				}
-
-				for k, leg := range journey.Legs {
-					t.Logf("leg %d runs along %v, not warned", k, wayIDs(leg.Edges))
 				}
 			}
 		})
