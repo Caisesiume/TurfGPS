@@ -109,6 +109,13 @@
 // crossings of the last answer checked — a lost leg, never an unsafe one. Only
 // the answer that passed reaches the journey, never one that was refused.
 //
+// EVERY ANSWER'S ENDS ARE HELD TO THE END TOLERANCE (#250). The provider
+// places a leg's ends on its own graph, and an answer whose first vertex lies
+// farther from the location the leg leaves, or whose last lies farther from
+// the location it reaches, than the configured tolerance refuses the leg, the
+// answers to avoidance and the warned leg's search included; with no
+// tolerance configured no leg is served. ends.go holds the reading.
+//
 // THE MARKINGS AND THE ROUTING DATA MUST COME FROM ONE EXTRACT, or nothing is
 // planned. A way absent from the markings reads as unmarked, which is true only
 // of the extract the tables were loaded from, so the planner reads the SHA-256
@@ -252,7 +259,7 @@ type Leg struct {
 	// its first point with the last point of the one before, so it is exactly
 	// the geometry the check read. Its first and last vertices are where the
 	// engine placed the leg's ends, which need not be the locations
-	// themselves.
+	// themselves, and lie within the end tolerance of them (EndsWithin).
 	Shape []Point
 
 	// Edges are the OpenStreetMap ways the leg runs along, in order.
@@ -565,6 +572,11 @@ type Planner struct {
 	// avoidUpTo is how many times a refused leg is asked for again; zero
 	// unless AvoidUpTo sets it.
 	avoidUpTo int
+
+	// endTolerance is how far, in metres, an answer's ends may lie from the
+	// leg's locations; nil unless EndsWithin sets it, which refuses every
+	// leg (ends.go).
+	endTolerance *float64
 }
 
 // Option configures a Planner beyond what New requires.
@@ -770,7 +782,7 @@ func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends le
 			return answer{}, &routeFailure{err: err}
 		}
 
-		return p.read(ctx, i, route, ends)
+		return p.read(ctx, i, route, from, to, ends)
 	}
 
 	shown := func(av avoidance) error { return noRouteShown(ctx, p.routing, av) }
@@ -867,9 +879,11 @@ func (a answer) leg() Leg {
 	return Leg{Shape: a.shape, Edges: a.edges, Duration: a.duration}
 }
 
-// read checks one routing answer. An error means the answer could not be
-// held to the provider's contract or checked, and the leg is not served.
-func (p *Planner) read(ctx context.Context, i int, route Route, ends legEnds) (answer, error) {
+// read checks one routing answer for the leg from one location to another.
+// An error means the answer could not be held to the provider's contract or
+// checked, or its ends lie beyond the end tolerance of the locations
+// (endsHeld), and the leg is not served.
+func (p *Planner) read(ctx context.Context, i int, route Route, from, to Point, ends legEnds) (answer, error) {
 	// A negative estimate would subtract from every cost the leg enters, so
 	// it is refused as an answer the provider's contract rules out.
 	if route.Duration < 0 {
@@ -881,6 +895,12 @@ func (p *Planner) read(ctx context.Context, i int, route Route, ends legEnds) (a
 	shape, err := joinEdges(edges)
 	if err != nil {
 		return answer{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+	}
+
+	// Before the markings are read: the run at a location the user entered
+	// is read from where the provider placed the leg's end (#250).
+	if err := p.endsHeld(i, shape, from, to); err != nil {
+		return answer{}, err
 	}
 
 	crossings, err := p.markings.Crossings(ctx, edges)

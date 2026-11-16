@@ -50,7 +50,7 @@ func TestALegCarriesTheEnginesTime(t *testing.T) {
 			t.Errorf("a leg whose summary time is %v s was returned taking %v, want %v", secs, route.Duration, want)
 		}
 
-		p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{})
+		p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{}, planner.EndsWithin(endsAnywhere))
 		if err != nil {
 			t.Fatalf("planner.New: %v", err)
 		}

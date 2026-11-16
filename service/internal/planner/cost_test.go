@@ -52,7 +52,7 @@ func randomTimes(r *rand.Rand) *timedRouting {
 func plannedThrough(t *testing.T, routing RoutingProvider, req Request) Journey {
 	t.Helper()
 
-	p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
+	p, err := New(routing, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ func TestAnAvoidedLegIsCostedAtTheAnswerThatPassed(t *testing.T) {
 func TestANegativeEstimateIsRefused(t *testing.T) {
 	t.Parallel()
 
-	p, err := New(&timedRouting{took: func(_, _ Point) time.Duration { return -time.Second }}, copyHeld, clearAccess{}, clearAccess{})
+	p, err := New(&timedRouting{took: func(_, _ Point) time.Duration { return -time.Second }}, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 	if err != nil {
 		t.Fatal(err)
 	}

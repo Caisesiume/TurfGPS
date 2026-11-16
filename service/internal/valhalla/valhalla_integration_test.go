@@ -23,6 +23,7 @@ package valhalla
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"net/http"
@@ -220,7 +221,7 @@ func TestEveryLegOfAJourneyIsRoutedForACar(t *testing.T) {
 	rec := &recordingTransport{next: http.DefaultTransport}
 	c.http.Transport = rec
 
-	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{})
+	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{}, planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -392,4 +393,66 @@ func (r *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error
 	r.answers = append(r.answers, rec)
 
 	return resp, nil
+}
+
+// northOfTheExtract is 32 km north of every road in the extract. Valhalla 3.9.1
+// places a leg's end there on the extract's nearest road, within its own
+// search cutoff: #246's critic measured the first vertex of a leg from here
+// 32,053 m away (`#issuecomment-6335653959`, N1).
+var northOfTheExtract = planner.Point{Latitude: 58.0, Longitude: 11.967}
+
+// testEndTolerance is this test's end tolerance, in metres, and no
+// deployment's (#250: the deployment sets its own, with its origin). It is
+// wide enough for the engine's placement of a location on the street a car
+// may use, and narrow beside 32 km.
+const testEndTolerance = 100.0
+
+// TestALegWhoseEndDriftsBeyondTheToleranceIsRefused is #250's criterion
+// against the engine built from the committed extract: a leg from, or to, a
+// location the engine places 32 km away is refused with
+// planner.ErrEndBeyondTolerance and never served, while the leg between two
+// locations on the extract's streets, under the same tolerance, is.
+func TestALegWhoseEndDriftsBeyondTheToleranceIsRefused(t *testing.T) {
+	base := engineUnderTest(t)
+
+	c, err := New(base, 30*time.Second)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{}, planner.EndsWithin(testEndTolerance))
+	if err != nil {
+		t.Fatalf("planner.New: %v", err)
+	}
+
+	served, err := p.Plan(t.Context(), planner.Request{Origin: westEnd, Destination: eastEnd})
+	if err != nil {
+		t.Fatalf("the premise does not hold: the leg between two locations on the extract's streets was refused under %v m: %v", testEndTolerance, err)
+	}
+
+	shape := served.Legs[0].Shape
+	t.Logf("the served leg's first vertex lies %.1f m from its origin and its last %.1f m from its destination",
+		metresFrom(westEnd, shape[:1]), metresFrom(eastEnd, shape[len(shape)-1:]))
+
+	for _, req := range []planner.Request{
+		{Origin: northOfTheExtract, Destination: eastEnd},
+		{Origin: westEnd, Destination: northOfTheExtract},
+	} {
+		journey, err := p.Plan(t.Context(), req)
+		if journey.Legs != nil || !errors.Is(err, planner.ErrEndBeyondTolerance) {
+			if journey.Legs != nil {
+				shape := journey.Legs[0].Shape
+				t.Errorf("Plan(%+v) served a leg whose ends lie %.0f m and %.0f m from its locations under a tolerance of %v m; want it refused with planner.ErrEndBeyondTolerance",
+					req, metresFrom(req.Origin, shape[:1]), metresFrom(req.Destination, shape[len(shape)-1:]), testEndTolerance)
+
+				continue
+			}
+
+			t.Errorf("Plan(%+v) gave %v; want the leg refused with planner.ErrEndBeyondTolerance", req, err)
+
+			continue
+		}
+
+		t.Logf("Plan(%+v) refused: %v", req, err)
+	}
 }

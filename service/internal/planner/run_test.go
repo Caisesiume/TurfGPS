@@ -103,7 +103,7 @@ var (
 func plannerOn(t *testing.T, routing RoutingProvider, table *tableFake, opts ...Option) *Planner {
 	t.Helper()
 
-	p, err := New(routing, copyHeld, table, routingData{id: testExtract}, opts...)
+	p, err := New(routing, copyHeld, table, routingData{id: testExtract}, append([]Option{endsAnywhere}, opts...)...)
 	if err != nil {
 		t.Fatal(err)
 	}

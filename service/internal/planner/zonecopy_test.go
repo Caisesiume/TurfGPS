@@ -46,7 +46,7 @@ func TestAJourneyIsPlannedFromAnyZoneCopyHeld(t *testing.T) {
 
 	routing := straightLegs()
 
-	p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
+	p, err := New(routing, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestNoJourneyIsPlannedWhereNoZoneCopyIsHeld(t *testing.T) {
 
 	routing := straightLegs()
 
-	p, err := New(routing, noCopyHeld, clearAccess{}, clearAccess{})
+	p, err := New(routing, noCopyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestAnUnreadableZoneCopyIsNotReportedAsNone(t *testing.T) {
 	errStore := errors.New("store unreachable")
 	routing := straightLegs()
 
-	p, err := New(routing, unreadableCopy{err: errStore}, clearAccess{}, clearAccess{})
+	p, err := New(routing, unreadableCopy{err: errStore}, clearAccess{}, clearAccess{}, endsAnywhere)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

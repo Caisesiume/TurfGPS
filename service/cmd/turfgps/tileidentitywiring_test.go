@@ -44,7 +44,11 @@ const aboveFloat = "fedcba9876543211" + "00112233445566778899aabbccddeeff0011223
 // identityLookup configures the engine and, where record is not empty, the
 // tile record.
 func identityLookup(engine *fakeEngine, record string) config.LookupFunc {
-	vars := map[string]string{config.EnvValhallaURL: engine.URL}
+	vars := map[string]string{
+		config.EnvValhallaURL:        engine.URL,
+		config.EnvEndTolerance:       endsAnywhere,
+		config.EnvEndToleranceOrigin: endsAnywhereOrigin,
+	}
 	if record != "" {
 		vars[config.EnvTileIdentityFile] = record
 	}

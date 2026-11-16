@@ -239,6 +239,11 @@ func straightByCar(req map[string]any) (int, string) {
 	return http.StatusOK, answer(leg{Shape: encodeShape(shape), Summary: aMinuteAndAHalf, Maneuvers: []maneuver{byCar, byCar}})
 }
 
+// endsAnywhere is the end tolerance, in metres, of the tests here, which are
+// not about it (#250): more than half the Earth's greatest circumference, so
+// no answer is refused for where the engine placed its ends.
+const endsAnywhere = 2.1e7
+
 // TestEveryLegIsRequestedForACar is `FR-006` AC1 at the request: every leg of
 // every journey planned through this adapter, intermediate destinations
 // included, is asked of the engine once, between the leg's two locations in
@@ -248,7 +253,7 @@ func TestEveryLegIsRequestedForACar(t *testing.T) {
 
 	engine, c := startEngine(t, straightByCar)
 
-	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{})
+	p, err := planner.New(c, heldCopy{}, clearAccess{}, clearAccess{}, planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}

@@ -40,7 +40,7 @@ func TestAReturnToTheOriginWithNowhereBetweenIsRefused(t *testing.T) {
 
 			routing := straightLegs()
 
-			p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
+			p, err := New(routing, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}
@@ -93,7 +93,7 @@ func TestAReturnToTheOriginThroughADistinctIntermediateIsNotRefusedForIt(t *test
 
 			routing := straightLegs()
 
-			p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
+			p, err := New(routing, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}
@@ -144,7 +144,7 @@ func TestOnlyAReturnWithNowhereBetweenIsRefused(t *testing.T) {
 			want = want && via == req.Origin
 		}
 
-		p, err := New(straightLegs(), copyHeld, clearAccess{}, clearAccess{})
+		p, err := New(straightLegs(), copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}

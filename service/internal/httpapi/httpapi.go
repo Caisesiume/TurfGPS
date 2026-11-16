@@ -35,6 +35,7 @@
 package httpapi
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -47,6 +48,7 @@ type Option func(*options)
 type options struct {
 	planner     *planner.Planner
 	planTimeout time.Duration
+	logger      *slog.Logger
 }
 
 // WithPlanner has `POST /journeys` plan through p. Without it, or with a nil
@@ -72,6 +74,13 @@ func WithPlanTimeout(d time.Duration) Option {
 	return func(o *options) { o.planTimeout = d }
 }
 
+// WithLogger has the request surface log through l. Without it, or with a nil
+// l, it logs through slog.Default(). What it logs, and what it never does, is
+// argued at each line that logs.
+func WithLogger(l *slog.Logger) Option {
+	return func(o *options) { o.logger = l }
+}
+
 // NewMux returns the service's request surface.
 //
 // It takes no zone-sync dependency and must never acquire one. What a request
@@ -84,10 +93,14 @@ func NewMux(opts ...Option) *http.ServeMux {
 		opt(&o)
 	}
 
+	if o.logger == nil {
+		o.logger = slog.Default()
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", root)
-	mux.HandleFunc("POST /journeys", planJourney(o.planner, o.planTimeout))
+	mux.HandleFunc("POST /journeys", planJourney(o.planner, o.planTimeout, o.logger))
 
 	return mux
 }
