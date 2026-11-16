@@ -29,6 +29,18 @@
 // relation, linework whose ends do not close into rings, or a closed way with
 // too few nodes to enclose anything. Node members are not linework and are
 // passed over: they enclose nothing under any reading.
+//
+// AN OLD-STYLE AREA RELATION FAILS THE READ (#301, `RD-087`). In the older
+// tagging an area relation carries no key that defines a feature and the
+// feature's tags sit on its ring's ways. Where those are ways this reader
+// takes neither as areas nor as roads, the marking would be read as a way's
+// and the area the relation draws as no area at all, so the unmarked ways
+// inside it would route as public road. The read fails instead, naming each
+// such relation and member way (oldStyleTags). A member carrying `highway`
+// keeps its marking as a road's and fails nothing (the Owner's decision on PR
+// #306). It fails too on an old-style relation naming a way the
+// file does not hold, as one clipped at the extract's edge may, or naming a
+// relation: neither's ways are checked, and one may carry the marking.
 package accessload
 
 import (
@@ -38,6 +50,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Caisesiume/TurfGPS/service/internal/osmpbf"
@@ -151,17 +164,27 @@ type Extract struct {
 // must hash to the same SHA-256, so a file replaced between them fails the
 // read.
 func ReadFile(path string) (*Extract, error) {
-	rels := &relationsPass{members: map[int64]bool{}}
+	rels := &relationsPass{members: map[int64]bool{}, oldStyle: map[int64][]oldStyleRelation{}}
 
 	sha, err := readHashed(path, rels)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s for its relations: %w", path, err)
 	}
 
-	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}}
+	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}, oldStyle: rels.oldStyle, oldStyleSeen: map[int64]bool{}}
 
 	if err := readAgain(path, sha, "ways", first); err != nil {
 		return nil, err
+	}
+
+	if len(first.oldStyleFound) != 0 {
+		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation carry the marking of the area the relation draws, which would be loaded as unmarked (#301, RD-087): %s",
+			path, len(first.oldStyleFound), strings.Join(first.oldStyleFound, "; "))
+	}
+
+	if missing := rels.oldStyleMissing(first.oldStyleSeen); len(missing) != 0 {
+		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation are not in the file, so whether one carries the marking of the area the relation draws cannot be checked (#301): %s",
+			path, len(missing), strings.Join(missing, "; "))
 	}
 
 	second := &nodesPass{
@@ -285,11 +308,92 @@ func (o *order) at(kind int, what string) error {
 var areaRelationTypes = map[string]bool{"multipolygon": true, "boundary": true}
 
 // relationsPass collects the area relations carrying any of the keys, and the
-// ways they name.
+// ways they name, and the old-style area relations, by the ways they name.
 type relationsPass struct {
 	order
 	areas   []areaRelation
 	members map[int64]bool
+
+	// oldStyle holds, for each way an old-style area relation names, the
+	// relations naming it, in the order they were read; oldStyleRels holds
+	// those relations in that order, with the ways each names.
+	oldStyle     map[int64][]oldStyleRelation
+	oldStyleRels []oldStyleRelation
+}
+
+// oldStyleRelation is an area relation of the older tagging: its id, its type
+// and the ways it names.
+type oldStyleRelation struct {
+	id   int64
+	kind string
+	ways []int64
+}
+
+// oldStyleMissing names each old-style area relation and member way the file
+// does not hold, given the member ways the ways pass saw. Such a way cannot be
+// checked for a marking, and it may be the one that carries it, so the read
+// fails on it as it fails on a missing member of a relation carrying a key.
+func (p *relationsPass) oldStyleMissing(seen map[int64]bool) []string {
+	var missing []string
+
+	for _, r := range p.oldStyleRels {
+		for _, w := range r.ways {
+			if !seen[w] {
+				missing = append(missing, fmt.Sprintf(
+					"relation %d is a type=%s relation carrying no key that defines a feature, and names way %d, which the file does not hold",
+					r.id, r.kind, w))
+			}
+		}
+	}
+
+	return missing
+}
+
+// featureKeys are the keys that say what feature an element is: the top-level
+// keys of OpenStreetMap's wiki page `Top-level tag`, "those that define the
+// nature of map features", both its tables, for standalone and for dependent
+// elements, as revision 2875567 (17 July 2025) lists them; read on 16 November
+// 2026. Any other key, `area=yes`, `layer`, `alt_name` and `wikidata` among
+// them, describes no feature, and neither do the twelve access keys, which a
+// relation carrying is read as an area of its own (relationsPass.Relation).
+// The list is a ceiling: adding a key makes fewer relations old-style, so it
+// is a change to a safety rule (`Architecture.md § Loading from the extract
+// the tiles are built from`), and removing one fails more loads and lets
+// nothing through.
+var featureKeys = map[string]bool{
+	"advertising": true, "aerialway": true, "aeroway": true, "amenity": true, "barrier": true,
+	"boundary": true, "building": true, "club": true, "craft": true, "departures_board": true,
+	"education": true, "emergency": true, "geological": true, "healthcare": true, "highway": true,
+	"historic": true, "landcover": true, "landuse": true, "leisure": true, "man_made": true,
+	"military": true, "natural": true, "office": true, "piste:type": true, "place": true,
+	"power": true, "public_transport": true, "railway": true, "route": true, "shop": true,
+	"telecom": true, "tourism": true, "waterway": true,
+
+	"addr:interpolation": true, "allotments": true, "area:highway": true, "attraction": true,
+	"building:part": true, "bridge:support": true, "cemetery": true, "entrance": true, "ford": true,
+	"golf": true, "indoor": true, "junction": true, "noexit": true, "playground": true,
+	"roller_coaster": true, "traffic_calming": true, "traffic_sign": true,
+}
+
+// oldStyleTags reports whether an area relation's tags are those of the older
+// tagging, which puts the feature's tags on its ring's ways (`RD-087`): it
+// carries no key that defines a feature (featureKeys). Such a relation
+// describes no feature of its own, so a member way carrying an access key and
+// taken neither as an area nor as a road (one carrying `highway`, whose
+// marking is its own, the Owner's decision on PR #306) marks the area the
+// relation draws, and the read
+// fails on it (waysPass.Way); so does a member relation, whose ways the guard
+// does not check (relationsPass.Relation). The test is the lead's ruling on
+// PR #306, cycle 2: a key the list does not name, `area=yes` or `wikidata`,
+// can no longer hide the marking.
+func oldStyleTags(tags map[string]string) bool {
+	for k := range tags {
+		if featureKeys[k] {
+			return false
+		}
+	}
+
+	return true
 }
 
 // areaRelation is an area relation carrying any of the keys: its type, its
@@ -319,6 +423,25 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 
 	v, carrying := valuesOf(r.Tags)
 	if !carrying {
+		// The guard reads no member role, as the area reader reads none.
+		if oldStyleTags(r.Tags) {
+			o := oldStyleRelation{id: r.ID, kind: kind}
+
+			for _, m := range r.Members {
+				switch m.Type {
+				case osmpbf.MemberWay:
+					o.ways = append(o.ways, m.Ref)
+					p.oldStyle[m.Ref] = append(p.oldStyle[m.Ref], o)
+				case osmpbf.MemberRelation:
+					return fmt.Errorf("relation %d is a type=%s relation carrying no key that defines a feature and names relation %d as a member, whose ways this reader does not check for the marking of the area the relation draws (#301)", r.ID, kind, m.Ref)
+				case osmpbf.MemberNode:
+					// A node encloses nothing: it carries no area's marking.
+				}
+			}
+
+			p.oldStyleRels = append(p.oldStyleRels, o)
+		}
+
 		return nil
 	}
 
@@ -356,6 +479,15 @@ type waysPass struct {
 	areaWays    []areaWay
 	members     map[int64]bool
 	memberNodes map[int64][]int64
+
+	// oldStyle is the relations pass's; oldStyleFound names each old-style
+	// area relation and member way that carries a key and is neither an area
+	// nor a road, in the
+	// order the ways were read; oldStyleSeen holds every member way of an
+	// old-style relation the file holds, carrying a key or not.
+	oldStyle      map[int64][]oldStyleRelation
+	oldStyleFound []string
+	oldStyleSeen  map[int64]bool
 }
 
 // areaWay is a closed way that is an area carrying any of the keys.
@@ -403,6 +535,10 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 		p.keep(w.Nodes)
 	}
 
+	if _, ok := p.oldStyle[w.ID]; ok {
+		p.oldStyleSeen[w.ID] = true
+	}
+
 	v, carrying := valuesOf(w.Tags)
 	if !carrying {
 		return nil
@@ -414,6 +550,22 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 
 	if isArea(w) {
 		p.areaWays = append(p.areaWays, areaWay{id: w.ID, values: v, nodes: slices.Clone(w.Nodes)})
+
+		return nil
+	}
+
+	// A road keeps its marking as a road's: it is in access_way, where the
+	// route reads it, and it does not make the relation old-style (the
+	// Owner's decision on PR #306). Only a marked member that is neither an
+	// area nor a road can hold the marking of the area the relation draws.
+	if _, road := w.Tags["highway"]; road {
+		return nil
+	}
+
+	for _, r := range p.oldStyle[w.ID] {
+		p.oldStyleFound = append(p.oldStyleFound, fmt.Sprintf(
+			"relation %d is a type=%s relation carrying no key that defines a feature, and its member way %d carries an access key and is neither an area nor a road",
+			r.id, r.kind, w.ID))
 	}
 
 	return nil

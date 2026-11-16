@@ -5,8 +5,9 @@ builds Valhalla's tiles from, so that the Valhalla adapter's integration tests
 (`../valhalla_integration_test.go`) run against a real engine, and loads into
 the access-marking tables beside them, so that the access-marking check's
 (`../../accessstore/integration_test.go`, #255), the exclusion's
-(`../../accessstore/exclusion_integration_test.go`, #248) and the area
-exclusion's (`../../accessstore/area_integration_test.go`, #253) run against
+(`../../accessstore/exclusion_integration_test.go`, #248), the area
+exclusion's (`../../accessstore/area_integration_test.go`, #253) and the warned
+leg's (`../../accessstore/warned_integration_test.go`, #271) run against
 both. It is committed
 by the Owner's decision on #6 (`#issuecomment-6334699894`, 22 October 2026). The
 full extract of `Architecture.md § D5` is a different thing, and arrives with the
@@ -134,7 +135,7 @@ through the engine:
   take one of these, and no future regeneration can overwrite one.
 - **Every synthetic way carries** `note=synthetic, not from OpenStreetMap: TurfGPS #255 test case`,
   and the tests fail unless the way they measure carries it.
-- **They lie in the Kattegat**, 57.00–57.25 N, 11.700–11.712 E, more than 50 km
+- **They lie in the Kattegat**, 56.80–57.25 N, 11.700–11.950 E, more than 50 km
   from every object from OpenStreetMap in the file, and share no node with one.
   The engine's location search gives up 35 km out, so a point near them cannot
   snap to a real road, nor a point on a real road to them. No route between
@@ -306,6 +307,18 @@ in `src/loki/search.cc` reads, decides whether the engine maps the gate's
 position to the gate or to J. The test does not rely on that reading: it asks
 the engine (`/locate`) which, and requires that at least one is mapped to J.
 
+### #301's cases — not in this file
+
+#301's criteria name area relations of the older tagging, whose marking sits
+on a member way, and most of them must fail the load. A case that fails the
+load cannot be merged into this file, which CI loads, so none of #301's cases
+is in it: `../../accessload/oldstyle_test.go` writes each into an extract of its
+own and reads it with the loader's reader. Their ids are a range of their own
+all the same, so that no later story's synthetic cases take it: nodes
+9×10¹⁸ + 301,000 + 100c + k, ways 9×10¹⁸ + 30,100 + 20c + k and relations
+9×10¹⁸ + 3,010 + c, and every way carries
+`note=synthetic, not from OpenStreetMap: TurfGPS #301 test case`.
+
 Each test establishes its case from the file before measuring it, and asks the
 engine, with `ignore_access`, whether the quickest connection between the ends
 runs along the marking, so a regeneration that loses a case fails them.
@@ -338,7 +351,9 @@ scratch directory, builds tiles from it with the pinned Valhalla image's
 `valhalla_build_config` and `valhalla_build_tiles`, serves them with
 `valhalla_service` on loopback, and runs the integration tests against it. The
 tiles are built without an admin or a time-zone database: this extract carries
-no administrative boundaries, and nothing tested here depends on either.
+no administrative boundary — its one `type=boundary` relation is #253's
+synthetic nature reserve, `boundary=protected_area` — and nothing tested here
+depends on either.
 
 ## Regenerating it
 
