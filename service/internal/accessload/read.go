@@ -479,7 +479,7 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 		return nil
 	}
 
-	for _, r := range p.oldStyle[w.ID][:0] { // RED RUN: the guard neutralised
+	for _, r := range p.oldStyle[w.ID] {
 		p.oldStyleFound = append(p.oldStyleFound, fmt.Sprintf(
 			"relation %d is a type=%s relation carrying no tag but its type, names and housekeeping keys, and its member way %d carries an access key and is no area itself",
 			r.id, r.kind, w.ID))
