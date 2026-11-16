@@ -115,7 +115,7 @@ Acceptance:   server-side application code executed to serve the client: none,
               client load and first successful call to the service in that
               arrangement: both succeed, with the service reachable only over
               HTTP
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   none
 Risk:         Server-side rendering adds a build and a deployment layer
               serving no stated requirement, and the frameworks offering it

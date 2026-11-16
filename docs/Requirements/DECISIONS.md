@@ -4068,3 +4068,675 @@ Affects:        FR-045: `Verification`, a fourth criterion, `Depends-on`
                 gains FR-125, `Volatility` added, `Rationale`. #50 is to gain
                 the matching AC4; that edit is the Owner's.
 ```
+
+## RD-087 — Does the access-marking load read, refuse or pass an area relation whose marking sits on a member way?
+
+```
+Date:           2026-11-16
+Question:       The safety sentinel's N1 on PR #296
+                (`#issuecomment-6904272862`), filed as #301: the loader takes
+                a `type=multipolygon` or `type=boundary` relation as an area
+                only where the relation itself carries one of the twelve
+                access keys. In the older tagging the feature's tags sit on
+                the outer ring's ways instead; where those are open ways, each
+                is read as a way and none as an area, so the area is never
+                stored and the unmarked ways inside it route as public road.
+                What does the load do with such a relation?
+Interpretation: **It fails the load, naming the relation and the member way.**
+                An old-style area relation is a relation of a type the loader
+                reads as an area that carries no tag other than `type`,
+                `name` and its `name:*` forms, and the housekeeping keys
+                `created_by`, `source`, `source:*`, `note`, `note:*`, `fixme`
+                and `FIXME`, and that has at least one member way which
+                carries any of the twelve access keys and which the loader
+                does not itself take as an area. The list of keys is a floor:
+                adding a key can only make more relations old-style, so it
+                fails more loads and lets nothing through, and removing one is
+                a change to a safety rule. The guard reads no member role,
+                because the loader reads none. Taking the member way's tags as
+                the area's is not this reading; if the six-country extract
+                turns out to hold real instances, that reading is a separate
+                proposal to the lead.
+Rung:           7, the most conservative reasonable interpretation, for the
+                list of keys; the outcome rests on rung 2:
+                `Architecture.md § Loading from the extract the tiles are built from`
+                fails the load on a feature carrying the keys that the loader
+                cannot draw. The sentinel found no instance in the Swedish
+                data (Overpass, 2026-11-16), and the other five countries of
+                `Architecture.md § D5` are uncounted. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        FR-128, through the area features its `Volatility` leaves to
+                `Architecture.md § What the tables hold`; its text is
+                unchanged and it gains #301. #301, new.
+                `Architecture.md § Loading from the extract the tiles are built from`
+                and `Architecture.md § What the tables hold`, edited by the
+                PR closing #301.
+```
+
+## RD-088 — Is a closed highway way that also carries an area-only tag an area?
+
+```
+Date:           2026-11-16
+Question:       The safety sentinel's N3 on PR #296
+                (`#issuecomment-6904272862`) and the critic's N3
+                (`#issuecomment-6904384442`), filed as #302: a closed way
+                carrying a `highway` key is an area only where it is tagged
+                `area=yes` or carries one of the four area-only `highway`
+                values. A closed `highway=service` ring that also carries
+                `amenity=parking` and `access=customers` is read as a marked
+                way only, so a leg along the ring is refused while the aisles
+                it encloses route as public road. Is such a way also an area?
+Interpretation: **Yes, and it stays a way.** A closed way carrying a `highway`
+                key is also an area where it also carries a tag, other than
+                its `highway` tag, that OpenStreetMap's wiki documents on
+                areas and never on ways: a tag whose `Tag:<key>=<value>` page
+                states `onWay = no` and `onArea = yes`, or, where the tag has
+                no page of its own, whose `Key:<key>` page does. `area=no`
+                removes nothing from the set: a closed way without a `highway`
+                key is an area whatever its `area` value, and a closed way
+                read here is treated the same way. The set is read over a
+                recorded population, at least every tag carried besides
+                `highway` by a closed way carrying a `highway` key and any of
+                the twelve access keys in the extract of
+                `Architecture.md § D5`; a tag outside that population is not
+                in the set until the reading is redone.
+Rung:           5, existing system behaviour: the method that set the four
+                area-only `highway` values in
+                `Architecture.md § What the tables hold`, applied to the
+                way's other tags; with rung 7, the most conservative
+                reasonable interpretation, since adding a feature to the area
+                set can only refuse more legs and that section records
+                narrowing the set as a change to a safety rule. The fact the
+                case rests on was read, not inferred: taginfo's `wiki_pages`
+                for `amenity=parking`, read on 2026-11-16, gives the English
+                page `on_way: false`, `on_area: true`. The sentinel counted 12
+                such closed ways in the Swedish data, the only car-relevant
+                marked one a `highway=construction` way (818574392), which is
+                not routed. No Turf mechanic is read and no constant is
+                introduced.
+Affects:        FR-128, as `DECISIONS.md § RD-087` does; its text is unchanged
+                and it gains #302. #302, new.
+                `Architecture.md § What the tables hold` and
+                `service/internal/accessload/read.go`, edited by the PR
+                closing #302.
+```
+
+## RD-089 — Does a site relation carrying a marking mark what it groups?
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` on #303 (`#issuecomment-6904544956`),
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/issues/303#issuecomment-6904613397.
+                The relay, verbatim: "Owner decision (AskUserQuestion,
+                2026-11-16): **yes, mark its parts** (the recommendation as
+                stated above: perimeter area marked; way members marked, ways
+                as ways and areas as areas; node members not; no hull without
+                a perimeter; a site not readable whole fails the load). Routed
+                to the analyst for the decision entry, FR-128 amendment or new
+                FR, and replacing this story's _Pending_ line." This entry
+                records a ruling made elsewhere, with five edges the ruling
+                leaves open decided on the ladder below.
+Question:       Does a `type=site` relation carrying a marking (the most
+                specific of the four keys of `DECISIONS.md § RD-059` carrying
+                a value outside the permissive set, as `DECISIONS.md § RD-063`
+                reads it, with `DECISIONS.md § RD-064` to
+                `DECISIONS.md § RD-066`) mark what it groups?
+                `SPECIFICATION.md § Enforceable exclusions` forbids a route
+                through areas the map data marks and says nothing of a site,
+                and `Architecture.md § What the tables hold` says a site is
+                not an area and is not read as one.
+Interpretation: **Yes: a marked site marks its parts, filed as FR-142.** The
+                ruling's parts, as #303 proposed them: (a) where the site has
+                a member in the role `perimeter` that is a closed way or an
+                area relation, the area that member encloses is an area
+                carrying the site's marking; (b) every way member carries the
+                site's marking, an open way as a marked way and a closed way
+                or an area relation the loader takes as an area as a marked
+                area, and node members are not read; (c) no hull is drawn
+                round a site without a perimeter, and a marked site the file
+                cannot read whole fails the load. Five edges are read on the
+                ladder. First, FR-142 treats what a marked site groups as so
+                marked on its own feature for the records FR-128 names, for
+                FR-128 itself and for FR-140, so the rule, the Owner's
+                exception and its bound are stated once; the walking access
+                path's half stays owed with FR-075, as FR-128's does. Second,
+                a member's own keys, permissive or more specific, do not lift
+                the site's marking. Third, a closed way member the loader does
+                not take as an area is marked as the way it is. Fourth, a
+                marked site naming a relation member that is not an area
+                relation fails the load, naming the site and the member, as an
+                area relation naming a relation does; a node member is passed
+                over, as an area relation's is. Fifth, an area a marked site
+                groups that is a parking area is one whose own feature is so
+                marked for FR-140; whether a node member that is a parking
+                area drawn as a point is so marked for FR-140 alone stays owed
+                with the parking areas
+                `Architecture.md § Still owed by this document` lists.
+Rung:           n/a for the ruling — Owner ruling, asked by the lead on the
+                analyst's question in #303. Rung 1 stopped short:
+                `SPECIFICATION.md § Enforceable exclusions` is silent on a
+                site, and whether a marking on a grouping relation binds what
+                it groups is product intent the four documents leave
+                undefined. The first edge rests on rung 4, existing
+                requirements: FR-128 states the member for an area in these
+                terms (`DECISIONS.md § RD-060`'s first edge), and the walking
+                access path's half on rung 6, as `DECISIONS.md § RD-060`'s
+                fourth edge does. The second rests on rung 2:
+                `Architecture.md § What the tables hold` holds that a way's
+                keys never lift the marking of an area enclosing it, with
+                rung 4, `DECISIONS.md § RD-060`'s third edge. The third rests
+                on the ruling's own words, every way member, with rung 7. The
+                fourth rests on rung 2:
+                `Architecture.md § Loading from the extract the tiles are built from`
+                refuses an area relation naming a relation and passes over a
+                node member, and the ruling's (c) reads a site the same way;
+                with rung 4, `DECISIONS.md § RD-087`, which fails rather than
+                reads. Site 11224474, the one site in the Swedish data
+                carrying a marking, names 16 ways, one node and no relation
+                (OpenStreetMap API, read 2026-11-16), so the edge fails no
+                Swedish load. The fifth rests on rung 7 for the area, which
+                can only refuse more stops the system chose, a stop the user
+                places being untouched (FR-139); its node half is a debt with
+                its home named, rung 6. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        FR-142, new; FR-128 gains #301, #302 and #303 in
+                `Resolved-by`, its text unchanged; #303's dependencies,
+                `Resolves:` line and criteria AC6 to AC10, appended;
+                `Architecture.md § What the tables hold`, edited by the PR
+                closing #303 (its AC5).
+```
+
+## RD-090 — Do RD-089's second, fourth and fifth edges stand? (supersedes RD-089's second and fourth edges)
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering three AskUserQuestion items put by
+                `@engineering-lead` on PR #305 (`#issuecomment-6904841975`),
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6910825550,
+                relayed by `@engineering-lead`. The relay, verbatim: "Owner
+                decisions (AskUserQuestion, 2026-11-16), verbatim options.
+                (edge 2) **"Yes, road's tag wins"**, against the lead's
+                recommendation: a member road's own permissive tag reopens it
+                inside a private site. (edge 4) **"Skip that member"**,
+                against the lead's recommendation: a member the load cannot
+                draw as an area (a route, another site) is ignored and the
+                rest loads. (edge 5) **"Don't offer it (Recommended)"**: a
+                parking node member of a private site is private for stop
+                offers only and never blocks driving like a gate." This entry
+                records a ruling made elsewhere; it supersedes RD-089's second
+                and fourth edges, settles the node half RD-089's fifth edge
+                left owed, and leaves RD-089 otherwise standing, with four
+                edges the ruling leaves open decided on the ladder below.
+Question:       RD-089 read five edges of the Owner's ruling on #303 on the
+                ladder, and the lead put three to the Owner with the
+                analyst's reading as the recommendation
+                (`#issuecomment-6904841975`): the second, that a member's own
+                permissive keys do not lift the site's marking; the fourth,
+                that a marked site naming a relation member that is not an
+                area relation fails the load; and the fifth's owed half,
+                whether a parking node member of a marked site counts as
+                marked for FR-140 only, never as a barrier. Do they stand?
+Interpretation: **A member's own access keys lift the marking the site lends
+                it; a relation member the load cannot draw as an area is
+                skipped and the rest of the site loads; a parking area drawn
+                as a point that a marked site names is so marked for FR-140
+                alone and is never a barrier, filed as FR-143.** RD-089's
+                second edge is superseded: a way member, or an area relation
+                member, of a marked site is read as carrying, beside its own
+                access keys, each of the twelve access keys of
+                `Architecture.md § What the tables hold` that the site carries
+                and the member does not, and is marked on the site's account
+                exactly where that reading marks it, as `DECISIONS.md § RD-063`
+                to `DECISIONS.md § RD-066` read one feature. So under a site
+                carrying `access=private`, a member carrying `access=yes`, or
+                `motorcar=yes`, is unmarked on the site's account, and a
+                member carrying none of the twelve keys is marked, as RD-089
+                held. RD-089's fourth edge is superseded: a marked site naming
+                a relation of a type the loader does not read as an area (a
+                route, a site, a restriction) passes over that member, reads
+                nothing it names on the site's account, and loads the rest; a
+                site relation so named is still read on its own account, as
+                every site is. RD-089's fifth edge stands for the area; its
+                node half is settled as FR-143. Four edges are read on the
+                ladder. First, a key the site carries that is more specific
+                than any the member carries still governs, so under a site
+                carrying `motorcar=private` a member carrying `access=yes`
+                stays marked, and a member's directional permission never
+                lifts a plain marking the site lends, as
+                `DECISIONS.md § RD-066` holds of one feature. Second, the
+                lift reaches only the marking the site lends a member: the
+                area a perimeter member encloses carries the site's marking
+                whatever the perimeter member's own keys, and a member way
+                within it lies within an area so marked, whose marking a way's
+                own keys never lift. A feature marked on any account is
+                marked. Third, the skip reaches the member the question named,
+                a relation of a type the loader does not read as an area: a
+                member the file does not hold still fails the load, as
+                RD-089's (c) has it, and an area relation member the loader
+                cannot draw
+                fails as `Architecture.md § Loading from the extract the tiles are built from`
+                fails any feature carrying the keys that it cannot draw.
+                Fourth, the node's own access keys are read with the site's as
+                a member way's are, so a permission on the node lifts the
+                marking the site lends it; and the option "Don't offer it" is
+                read as the question put it, FR-140, which serves no stopping
+                position the system chose at such a node once accepted, while
+                a stop the user places there is not refused (FR-139). Whether
+                the review shows such a candidate as uncertain is owed with
+                #278, as it is for every parking area on its own marking.
+Rung:           n/a for the three answers — Owner ruling, escalated by the
+                lead because the second and fourth edges each read a safety
+                rule and the fifth's node half had no rung that answered it:
+                RD-089 had rested the second on rung 2 and rung 4, the fourth
+                on rung 2 and rung 4, and left the node half a debt on rung
+                6; the Owner chose against the first two. The first ladder
+                edge rests on rung 4, existing requirements: RD-063's
+                precedence orders the keys of one feature, and reading the
+                member as carrying the site's keys beside its own keeps one
+                precedence rather than a second; with rung 7, of the readings
+                "road's tag wins" admits, it lifts the fewest markings. The
+                second rests on rung 2:
+                `Architecture.md § What the tables hold` holds that a way's
+                keys never lift the marking of an area enclosing it, with
+                rung 4, `DECISIONS.md § RD-060`'s third edge and RD-063's
+                sentence that its precedence "does not let a way's own keys
+                lift the marking of an area enclosing it", a ruling loosening
+                the keys of one feature having been read so once already. The
+                third rests on rung 4, RD-089's (c), which the question did
+                not reach, with rung 2,
+                `Architecture.md § Loading from the extract the tiles are built from`.
+                The fourth rests on rung 4, the first edge applied to a node
+                member and FR-140's own wording, a parking area "however that
+                parking area is drawn"; with rung 7, since reading the node as
+                FR-140 alone can only refuse more stops the system chose. No
+                Turf mechanic is read and no constant is introduced.
+Affects:        RD-089's second and fourth edges, superseded, and its fifth
+                edge's node half, settled; FR-142's `Statement`,
+                `Verification`, criteria, `Volatility` and `Rationale`;
+                FR-143, new; #303, gaining AC11 to AC14 with AC8 and AC10
+                superseded, `FR-143` on its `Resolves:` line and a `Basis`
+                line; #276, gaining AC11, `FR-143` on its `Resolves:` line and
+                a soft dependency on #303;
+                `Architecture.md § What the tables hold`, edited by the PR
+                closing #303 (its AC5), which reads this entry with RD-089.
+```
+
+## RD-091 — Do RD-090's first, second and fourth ladder edges stand? (supersedes RD-090's fourth ladder edge where it reads "Don't offer it" as FR-140)
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering two AskUserQuestion items put by
+                `@engineering-lead` on PR #305 on two of the four edges RD-090
+                read on the ladder, and `@engineering-lead`, accepting a third
+                without putting it, in
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6919463842,
+                relayed by `@engineering-lead`. The relay, verbatim: "Owner
+                decisions (AskUserQuestion, 2026-11-16), verbatim options. (a)
+                **"No, area stays closed"**: a member road's own 'yes' reopens
+                it only where the site has no outline; inside a private
+                outline the road stays refused. This matches the analyst's
+                reading (2). (b) **"Leave it out (Recommended)"**: a private
+                site's parking-node member is never shown as a suggestion, the
+                same as FR-138. This corrects the analyst's reading (3), which
+                read it as FR-140, refused once accepted. Lead: reading (1) is
+                accepted on the precedence ladder: a more specific key on the
+                site, such as motorcar=private, still governs over a member's
+                access=yes (RD-063 most-specific-key)." This entry records a
+                ruling made elsewhere; it supersedes RD-090's fourth ladder
+                edge where that edge reads the option "Don't offer it" as
+                FR-140, and with it RD-090's interpretation where it holds the
+                node "so marked for FR-140 alone"; it records RD-090's second
+                ladder edge as the Owner's and its first as the lead's; and it
+                leaves RD-090 otherwise standing, with two edges the ruling
+                leaves open decided on the ladder below.
+Question:       RD-090 read four edges of the Owner's answers on RD-089's
+                edges on the ladder, and the lead took up three, naming them
+                the analyst's readings (1) to (3): (1), RD-090's first ladder
+                edge, that a key the site carries more specific than any the
+                member carries still governs, so under a site carrying
+                `motorcar=private` a member carrying `access=yes` stays
+                marked; (2), its second, that the lift reaches only the
+                marking the site lends a member, so a member way within the
+                area the site's perimeter member encloses lies within an area
+                so marked whatever its own keys; (3), its fourth, that the
+                option "Don't offer it" reads FR-140, which serves no position
+                the system chose at a parking node member once accepted. The
+                relay quotes the options and not the questions, which are read
+                from it. Do the three stand?
+Interpretation: **Readings (1) and (2) stand, and reading (3) is superseded: a
+                parking area drawn as a point that a marked site names
+                establishes no stopping position the system offers, as FR-138
+                withholds a position, and it is still never a barrier.**
+                Reading (2) now rests on the Owner's "No, area stays closed"
+                and no longer on the ladder: within the area a marked site's
+                perimeter member encloses, a member way's own permission
+                reopens nothing. Reading (1) rests on the ladder, accepted by
+                the lead and not put to the Owner. Reading (3) is replaced by
+                the Owner's "Leave it out (Recommended)": FR-143 is restated
+                to withhold such a position from every offer, as a recommended
+                stop, a replacement or a reserve candidate, before a rejection
+                or after one, and no longer as FR-140's refusal of a position
+                once accepted; a position never offered is never accepted, so
+                no FR-140 layer is stated for the node. RD-090's fourth ladder
+                edge stands where it reads the node's own access keys with the
+                site's, so a permission on the node lifts the marking the site
+                lends it, and the Owner's answer in RD-090 that such a node
+                "never blocks driving like a gate" stands. Two edges are read
+                on the ladder. First, the relay's gloss on (a) has a member's
+                own 'yes' reopen it "only where the site has no outline"; read
+                alone, a site with a perimeter member would reopen no member,
+                even one lying outside the area that perimeter encloses. It is
+                read as the option names it, "area stays closed", and as the
+                relay says it matches reading (2): what bars the lift is lying
+                within the area so marked, so a member way of a site with a
+                perimeter member that lies within no area so marked is
+                reopened by its own keys, as FR-142's third criterion holds,
+                and the gloss is read as describing the case put, a member
+                inside the outline. Second, "never shown as a suggestion"
+                admits no warned leg: FR-138 offers a position a warned leg
+                FR-129 admits reaches because there the marking lies between
+                the road and the position, while the Owner puts this marking
+                on the position, so the node is withheld whether or not a
+                warned leg reaches it. A stop the user places there is not
+                refused by FR-143, which reaches only the system's choice
+                (FR-139), and with no barrier and no marked way at the node,
+                no leg to it is refused or warned on its account.
+Rung:           n/a for (a) and (b) — Owner ruling, put by the lead because
+                reading (2) reads a safety rule and reading (3) read an option
+                naming the offer on a question naming FR-140: RD-090 had
+                rested (2) on rung 2 with rung 4, and (3) on rung 4 with rung
+                7, and the Owner kept the first and chose against the second.
+                Reading (1) rests on rung 4, existing requirements,
+                `DECISIONS.md § RD-063`'s most-specific-key precedence and
+                `DECISIONS.md § RD-066`, as RD-090 held it; the lead accepted
+                it on its own authority, the ladder answering it before the
+                Owner's is reached. The first ladder edge rests on rung 4,
+                reading (2) as the Owner now holds it and FR-142's third
+                criterion, with the option's own words; rung 7 was weighed and
+                passed over, since closing every member of a site with a
+                perimeter member would lift fewer markings but would read the
+                relay's gloss over the option the Owner chose and over the
+                reading the relay says it matches. The second rests on rung 4,
+                FR-138's `Rationale`, which offers a warned leg's position
+                because the marking lies between it and the road, with rung 7:
+                the Owner's "never" read whole withholds more stops the system
+                chose and lifts no safety exclusion. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        RD-090's fourth ladder edge, superseded where it reads "Don't
+                offer it" as FR-140, and its interpretation's "so marked for
+                FR-140 alone"; RD-090's first and second ladder edges,
+                recorded as the lead's and the Owner's; FR-143's title,
+                `Statement`, `Source`, `Verification`, criteria, `Depends-on`,
+                `Volatility`, `Risk` and `Rationale`; FR-142's `Volatility`
+                and `Rationale`; #303, gaining AC15, superseding AC14, and
+                AC16, testing the edge read on the ladder for (a), both since
+                superseded by AC17 and AC18 (RD-092), and a `Basis` line;
+                #276, gaining AC12, superseding AC11, and a
+                `Basis` line; `INDEX.md`, `TRACEABILITY.md` and `README.md`,
+                following the records.
+```
+
+## RD-092 — Does a site with an outline reopen a member outside it, does a parking node member's own permission lift FR-143, and is a parking area a marked site names as an area withheld as the point is? (supersedes RD-091's first ladder edge, RD-090's fourth ladder edge where it reads a parking node member's own access keys, and RD-089's fifth edge where it leaves the area to FR-140 alone)
+
+```
+Date:           2026-11-16
+Decided-by:     `@engineering-lead`, ruling on the remand of PR #305 at
+                `11854b2`, its third cycle, on the safety verdict
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6926886895,
+                which blocked on two findings and raised a third as
+                non-blocking; the rulings were carried in the lead's dispatch
+                to the analyst and posted by the lead on PR #305,
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6927568570,
+                and settle the findings without a new Owner question, the
+                first two reading the Owner's answers in
+                `DECISIONS.md § RD-091` literally and the third as the lead's
+                own reading, for the Owner to see at merge. The rulings,
+                verbatim as posted: "B1: follow the Owner's chosen option text
+                literally ('The \"yes\" reopens the road only where the site
+                has no outline. Inside a private outline the road stays
+                refused.'), rung 7, so a site that has an outline reopens no
+                member. B2: the node's own permissive key is no exception to
+                FR-143; the Owner ruled 'never shown as a suggestion' with no
+                exception. N2 (the lead's strict reading, consistent with
+                'Leave it out'): a parking area drawn as an area that a marked
+                site names is withheld from offers too, the same as the point.
+                The Owner sees it at merge." The dispatch also directed the
+                records' changes: `FR-142`'s third criterion restated, RD-091's
+                first ladder edge superseded by a new entry rather than
+                edited, and the exception removed from `FR-143` and from
+                RD-090's and RD-091's readings. This entry records rulings
+                made elsewhere, with two edges they leave open decided on the
+                ladder below.
+Question:       The safety verdict at `11854b2` found two readings of the
+                Owner's answers looser than the Owner's words, and an
+                asymmetry between two drawings of one place. B1: RD-091's
+                first ladder edge reopens a member way of a site with a
+                perimeter member, by the member's own permission, wherever it
+                lies outside the area that member encloses, where the Owner's
+                option has a member's own 'yes' reopen it only where the site
+                has no outline. B2: RD-090's fourth ladder edge, left standing
+                by RD-091, lets a parking node member's own access keys lift
+                the marking the site lends it, where the Owner's answer has
+                such a node never shown as a suggestion. N2: a parking area
+                drawn as an area that a marked site names is offered, shown as
+                uncertain and refused once accepted (FR-140), while the same
+                place drawn as a point is withheld. Do the two readings stand,
+                and is the area withheld as the point is?
+Interpretation: **Neither reading stands, and the area is withheld as the
+                point is: a marked site relation that names a member in the
+                role `perimeter` reopens no member by that member's own access
+                keys, inside the area the perimeter member encloses or outside
+                it; and a parking area that a marked site relation names
+                establishes no stopping position the system offers, drawn as a
+                point or as an area, whatever its own access keys.** RD-091's
+                first ladder edge is superseded: the Owner's option is read as
+                its text says, so a member's own access keys, read with the
+                site's as RD-090 reads them, lift the marking the site lends
+                the member only where the site names no member in the role
+                `perimeter`, and FR-142 is restated so. RD-090's first ladder
+                edge, a more specific key the site carries governing, stands
+                where a member's keys are still read, a site with no perimeter
+                member. RD-090's fourth ladder edge is superseded where it
+                reads a parking node member's own access keys with the site's,
+                and RD-091's interpretation where it holds that part standing:
+                the site's marking alone decides, and a parking node member
+                carrying `access=yes` is withheld as one carrying none of the
+                keys is; that the node is never a barrier stands, the Owner's
+                answer in RD-090. RD-089's fifth edge, which RD-090 left
+                standing for the area, is superseded where it leaves a parking
+                area a marked site names as an area to FR-140 alone: FR-143 is
+                restated to withhold the position such a parking area
+                establishes from every offer, as a recommended stop, a
+                replacement or a reserve candidate, before a rejection or
+                after one, whether or not a warned leg reaches it, drawn as a
+                point or as an area, whatever its own access keys. The area
+                stays marked for FR-140 where FR-142 marks it, as RD-089 held,
+                and FR-140 now has nothing of it the system offered to refuse.
+                A stop the user places at either is not refused by FR-143
+                (FR-139). Two edges are read on the ladder. First, a site has
+                an outline where it names any member in the role `perimeter`,
+                whether or not that member is a closed way or an area relation
+                the loader draws an area from, so a perimeter member that
+                encloses nothing still bars every member's own permission.
+                Second, the area's withholding admits no exception the point's
+                does not, so a parking area drawn as an area that a marked
+                site with no perimeter member names, carrying `access=yes`, is
+                withheld from every offer though FR-142 leaves it unmarked for
+                the leg; and the site names the parking area where it names as
+                a member, in any role, the node, the closed way or the area
+                relation that draws it. A parking area lying within a
+                perimeter's area that the site does not name is FR-138's, a
+                position behind a marking, and not this entry's.
+Rung:           n/a for the three rulings — rulings of `@engineering-lead` on
+                the safety verdict, none put to the Owner on this pass. RD-091
+                had read B1 on rung 4 and passed rung 7 over, which the lead
+                ruled against on rung 7, reading the Owner's option text over
+                the relay's gloss; RD-090 had read the node's keys on rung 4
+                with rung 7, which the lead ruled against on the Owner's
+                "never" read with no exception; the third is the lead's own
+                reading, on rung 7, since withholding the area as the point is
+                withheld lifts no safety exclusion and only withholds more
+                stops the system chose. The first ladder edge rests on rung 7:
+                the Owner's words name no shape of outline, and reading any
+                perimeter member as one lifts the fewest markings. The second
+                rests on rung 7 with rung 4: the lead's "the same as the
+                point" and FR-143 as B2 restates it, which admit no exception
+                for the node's own keys; and RD-089's (a) and (b), which read
+                a member's geometry and not its role, for what the site names.
+                No Turf mechanic is read and no constant is introduced.
+Affects:        RD-091's first ladder edge, superseded; RD-090's fourth ladder
+                edge where it reads a parking node member's own access keys,
+                and RD-091's interpretation where it holds that part standing,
+                superseded; RD-089's fifth edge where it leaves a parking area
+                a marked site names as an area to FR-140 alone, superseded;
+                FR-142's `Statement`, `Verification`, first and third
+                criteria, `Volatility`, `Risk` and `Rationale`; FR-143's
+                title, `Statement`, `Verification`, criteria, `Volatility`,
+                `Risk` and `Rationale`; #303, gaining AC17 to AC19,
+                superseding AC12, AC15 and AC16, and a `Basis` line; #276,
+                gaining AC13, superseding AC12, and a `Basis` line;
+                `INDEX.md`, `TRACEABILITY.md` and `README.md`, following the
+                records.
+```
+
+## RD-093 — Which area relation is old-style, what else of one fails the load, and does a marked member way that is itself a road fail it? (supersedes RD-087's interpretation)
+
+```
+Date:           2026-11-16
+Decided-by:     Four rulings on PR #306, which builds #301, relayed to the
+                analyst in `@engineering-lead`'s dispatch on PR #305 at
+                `f958460`, its fifth cycle, which directed this entry. Three
+                are the lead's. On the developer's question, posted on PR
+                #306,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6919465611,
+                verbatim: "Lead ruling on the developer's open question
+                (p_true 0.8): an old-style area relation whose member way is
+                missing from the file (clipped at the extract edge) fails the
+                load. This follows the existing pattern: a missing member of
+                an area relation already fails the load (#296), and failing
+                closed is the strict direction. It is folded into this PR
+                before review." On the safety sentinel's N1 and N2 at
+                `e9b757e`,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6926890689,
+                the lead's strict ruling, carried in its cycle-2 dispatch to
+                the developer and in this dispatch and not posted as a comment
+                of its own, as this dispatch states it: "a relation is
+                old-style when it carries no feature-defining key (the OSM
+                wiki 'Top-level tag' list, 50 keys), inverting RD-087's
+                housekeeping list; an old-style relation's relation members
+                fail the load". The fourth is the Owner's, on the developer's
+                F1, posted by the lead on PR #306,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6928965719,
+                verbatim: "Owner decision (AskUserQuestion, 2026-11-16),
+                verbatim option **"Road tags stay road tags (Recommended)"**,
+                whose description read: "If the tagged edge is itself a road,
+                its tag stays a road marking (already enforced on that road)
+                and doesn't make the zone old-style. Only non-road edges
+                carrying a tag trigger the check. Sweden loads; the ice road
+                stays closed to cars." This settles the developer's F1
+                (relation 14945917, Luleå). The analyst records it, and the
+                reversed feature-key test, in PR #305 as a new RD entry
+                superseding RD-087's interpretation (F2)." This entry records
+                rulings made elsewhere, with two edges they leave open decided
+                on the ladder below.
+Question:       PR #306 builds `DECISIONS.md § RD-087`, and its review found
+                three cases the reading left open. The developer asked what
+                the load does with an old-style area relation naming a member
+                way the file does not hold, as one clipped at the extract's
+                edge may. The sentinel's N1: a relation carrying, besides
+                `type`, a key outside RD-087's list that describes no feature,
+                `area=yes`, `layer`, `alt_name`, `old_name` or `wikidata`, is
+                not old-style, so a ring-tagged area so drawn still loads with
+                its area unmarked. The sentinel's N2: an old-style relation
+                naming a relation as a member passes that relation's ways
+                unchecked. Under the strict test the developer then counted
+                268 old-style area relations in the Swedish data (Overpass,
+                2026-11-16), none naming a relation, and one failing the load,
+                relation 14945917 at Luleå, a `type=multipolygon` relation
+                carrying `name=Skoterförbudsområde` and `snowmobile=no`, whose
+                outer ways 330543782 and 974971942 are an open
+                `highway=pedestrian` ice road carrying `motor_vehicle=no`; the
+                developer's F1. Which relation is old-style, what else of one
+                fails the load, and does a marked member way that is itself a
+                road fail it?
+Interpretation: **An area relation is old-style where it carries none of the
+                twelve access keys and no key that defines a feature, and its
+                load fails, naming the relation and the member, on a member
+                way carrying any of the twelve access keys that is neither an
+                area of `Architecture.md § What the tables hold` nor a road,
+                on a member relation, and on a member way the file does not
+                hold; a member way that is a road keeps its marking as a way's
+                and fails nothing.** The keys that define a feature are the
+                fifty top-level keys of the OpenStreetMap wiki's
+                `Top-level tag` page, both its tables, as revision 2875567 of
+                17 July 2025 lists them. RD-087's list of the tags a relation
+                may carry and stay old-style, its type, names and housekeeping
+                keys, is superseded, and every relation old-style under that
+                list is old-style under this test, since none of those keys is
+                a top-level key. The list is now a ceiling where RD-087's was
+                a floor: adding a key makes fewer relations old-style, so it
+                is a change to a safety rule, and removing one fails more
+                loads and lets nothing through. A member way is a road where
+                it carries a `highway` key, whatever its value; it is stored
+                with its marking in `access_way`, as every way carrying the
+                keys is, and its marking is not read as the area's, so the
+                area the relation draws is not stored. Since a closed way
+                without a `highway` key is already an area, the load fails on
+                a member way only where the way is open, carries one of the
+                twelve access keys and carries no `highway` key. A relation is
+                old-style by its tags alone, so a member that is a road lifts
+                neither of the other two failures: an old-style relation
+                naming a relation, or naming a way the file does not hold,
+                fails the load whatever its other members are. What RD-087
+                held besides its list and its reading of a road member stands:
+                the load fails rather than reads, the guard reads no member
+                role, and taking a member way's tags as the area's is not this
+                reading.
+Rung:           n/a for the four rulings; the lead put the fourth to the Owner
+                through AskUserQuestion and none of the other three. RD-087
+                read its list as a floor on rung 7; the lead ruled the strict
+                direction, which fails every load RD-087's floor failed and
+                more, and fails closed on the two members the guard cannot
+                read. The Owner's ruling narrows what fails: a road member
+                that RD-087 and the lead's test both failed now loads, with
+                the area its relation draws not stored, which is a change to a
+                safety rule and to accessibility classification, the Owner's
+                (`team-protocol § Escalation and human judgement`). Two edges
+                are read on the ladder. First, a road is a member way carrying
+                a `highway` key, on rung 2:
+                `Architecture.md § What the tables hold` divides a closed way
+                into an area or a way by its `highway` key, and names a
+                highway way as what `access_way_exit` pairs a marked way with;
+                with rung 5, `isArea` in `service/internal/accessload/read.go`
+                at PR #306's head `5fc4cde`, which reads the same key. No
+                narrower set of `highway` values reads the Owner's option as
+                written, since relation 14945917's ways are
+                `highway=pedestrian` and the option has Sweden load. Second, a
+                road member lifts neither other failure, on rung 7: the
+                Owner's option speaks of a tagged edge and the check it
+                triggers, and a member relation or a way the file does not
+                hold cannot be read for whether it is a road; with rung 4, the
+                lead's ruling on a missing member, "failing closed is the
+                strict direction". The fifty keys were read, not inferred:
+                revision 2875567 of `Top-level tag`, read through the wiki's
+                MediaWiki API on 2026-11-16, holds 33 keys in its table for
+                standalone elements and 17 in its table for dependent
+                elements, `highway` and `area:highway` among them, the keys PR
+                #306's `featureKeys` holds. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        RD-087's interpretation, superseded where it lists the tags a
+                relation may carry and stay old-style, where it holds removing
+                a key a change to a safety rule, and where it fails the load
+                on a marked member way that is a road, with its rung for the
+                list; the rest stands, as does `DECISIONS.md § RD-089`'s
+                fourth edge, which cites RD-087 on rung 4 only for failing
+                rather than reading. FR-128, as RD-087 does; its text is
+                unchanged. #301, gaining AC5 to AC9, AC5 superseding AC2's
+                third case, and a `Basis` line.
+                `Architecture.md § Loading from the extract the tiles are built from`,
+                edited by PR #306, which cites RD-087 and is to cite this
+                entry. `README.md`, recording the pass.
+```
