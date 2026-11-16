@@ -2256,47 +2256,59 @@ Resolved-by:  #276
 ```
 Statement:    The system shall treat each way and each area relation that a
               site relation the map data marks as private or access-restricted
-              names as a member, and the area enclosed by that relation's
-              perimeter member, as a way or area so marked on its own feature
-              for FR-125, FR-126, FR-127, FR-128, FR-129, FR-130, FR-131,
-              FR-137, FR-138 and FR-140.
+              names as a member, unless the member's own access keys, read
+              with each that relation carries and the member does not, leave
+              it unmarked, and the area enclosed by that relation's perimeter
+              member, as a way or area so marked on its own feature for
+              FR-125, FR-126, FR-127, FR-128, FR-129, FR-130, FR-131, FR-137,
+              FR-138 and FR-140.
 Category:     Safety exclusions
 Source:       SPECIFICATION.md § Enforceable exclusions
 Priority:     MUST
 Verification: test — against routing data built from a test extract holding
-              a site relation so marked whose member ways, and the ways within
-              the area its perimeter member encloses, carry no marking of
-              their own, a leg whose quickest connection runs along either is
-              produced on a connection avoiding both, while a site relation
-              not so marked, and a node a site relation so marked names, mark
-              nothing
+              a site relation so marked whose member ways carry none of the
+              access keys, and whose perimeter member encloses ways carrying
+              no marking of their own, one of them a member carrying a
+              permissive key, a leg whose quickest connection runs along
+              either is produced on a connection avoiding both, while a
+              member way whose own permissive key lifts the relation's
+              marking, a site relation not so marked, and a node a site
+              relation so marked names, mark nothing beyond what FR-143 reads
 Acceptance:   given two points on ways outside a site relation that the map
               data marks as private or access-restricted, whose quickest
               drivable connection runs along a way that relation names as a
-              member carrying no such marking of its own, or a permissive one,
-              and between which a drivable connection avoiding every such way
-              exists, when the leg is produced, then it runs along no way that
-              relation names as a member
+              member carrying none of the access keys, and between which a
+              drivable connection avoiding every such way exists, when the
+              leg is produced, then it runs along no such way
               given two points on ways outside the area enclosed by the
               perimeter member of such a site relation, whose quickest
-              drivable connection runs along a way within that area that the
-              relation does not name and that carries no such marking of its
-              own, and between which a drivable connection avoiding every such
-              area exists, when the leg is produced, then it runs along no way
-              within that area
-              given a site relation the map data does not so mark, and
-              separately a node that a site relation so marked names as a
-              member, when the journey is planned, then no way, area or
-              barrier is treated as so marked on that relation's account
+              drivable connection runs along a way within that area that
+              carries no such marking of its own, whether or not the relation
+              names it and whatever permissive key it carries, and between
+              which a drivable connection avoiding every such area exists,
+              when the leg is produced, then it runs along no way within that
+              area
+              given a site relation the map data does not so mark; separately
+              a member way of a site relation so marked, lying within no area
+              so marked, whose own access keys, read with each that relation
+              carries and the way does not, leave it unmarked; and separately
+              a node that a site relation so marked names as a member, when
+              the journey is planned, then no way, area or barrier is treated
+              as so marked on that relation's account, the node being read
+              only as FR-143 reads it
 Status:       to-build
 Depends-on:   FR-125; FR-126; FR-127; FR-128; FR-129; FR-130; FR-131; FR-137;
               FR-138; FR-140
 Volatility:   settled — the Owner ruled that a site relation so marked marks
-              what it groups (`DECISIONS.md § RD-089`); the marking is read as
-              FR-128's is, by `DECISIONS.md § RD-063` to
-              `DECISIONS.md § RD-066`; which members the loader can draw, and
-              what fails its load, is `Architecture.md § What the tables hold`'s
-              and `Architecture.md § Loading from the extract the tiles are built from`'s
+              what it groups (`DECISIONS.md § RD-089`) and that a member's own
+              access keys lift the marking it lends (`DECISIONS.md § RD-090`);
+              the access keys are the twelve of
+              `Architecture.md § What the tables hold`, and the marking is
+              read as FR-128's is, by `DECISIONS.md § RD-063` to
+              `DECISIONS.md § RD-066`; which members the loader can draw,
+              which it passes over, and what fails its load, is
+              `Architecture.md § What the tables hold`'s and
+              `Architecture.md § Loading from the extract the tiles are built from`'s
 Risk:         A customers-only car park mapped as a site relation over aisles
               that carry no marking of their own routes as public road: the
               marking the data carries sits on the grouping relation, which no
@@ -2313,18 +2325,101 @@ Rationale:    `SPECIFICATION.md § Enforceable exclusions` forbids a route
               what a marked site groups is crossed, entered, warned and served
               exactly as a feature marked on its own is. FR-140 is named
               because an area a marked site groups that is a parking area is
-              one whose own feature is so marked. A node member is not read,
-              because a site's node is usually its entrance and marking it
-              would refuse the leg that reaches it; no hull is drawn round a
+              one whose own feature is so marked. The Owner ruled on PR #305
+              that a member's own permissive key reopens it
+              (`DECISIONS.md § RD-090`): the member is read as carrying the
+              relation's access keys beside its own, so its own key wins on
+              any key both carry, a more specific key the relation carries
+              still governs, and a directional permission lifts no plain
+              marking, as `DECISIONS.md § RD-066` holds of one feature. The
+              lift reaches only the marking the relation lends a member: the
+              perimeter's area keeps the relation's marking, and a way within
+              it lies within an area so marked, whose marking a way's own keys
+              never lift (`DECISIONS.md § RD-060`). A relation member the
+              loader does not read as an area is passed over and the rest
+              loads, as the Owner ruled. A node member is not read, because a
+              site's node is usually its entrance and marking it would refuse
+              the leg that reaches it, save a parking area drawn as a point,
+              which FR-143 reads for FR-140 alone; no hull is drawn round a
               site without a perimeter member, so no ground the mapper did not
-              group is marked. A member's own keys do not lift the site's
-              marking, as a way's keys do not lift the marking of an area
-              enclosing it (`DECISIONS.md § RD-060`). The record reaches a
-              driving leg; the walking access path's half stays owed with
-              FR-075, as FR-128's does. The criteria test the leg and what is
-              left unmarked; that a feature so treated is then entered, warned
-              and served as one marked on its own is, is each named record's
-              own criteria, which read a marked way or area whatever marks it.
-              No mechanism is named.
+              group is marked. The record reaches a driving leg; the walking
+              access path's half stays owed with FR-075, as FR-128's does. The
+              criteria test the leg and what is left unmarked; that a feature
+              so treated is then entered, warned and served as one marked on
+              its own is, is each named record's own criteria, which read a
+              marked way or area whatever marks it. No mechanism is named.
 Resolved-by:  #303
+```
+
+## FR-143 — Treat a parking area drawn as a point that a marked site relation names as marked for FR-140 alone
+
+```
+Statement:    The system shall treat a parking area drawn as a point that a
+              site relation the map data marks as private or access-restricted
+              names as a member, unless the node's own access keys, read with
+              each that relation carries and the node does not, leave it
+              unmarked, as a parking area whose own feature is so marked for
+              FR-140 alone.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § What establishes a stopping position
+Priority:     MUST
+Verification: test — against routing data built from a test extract, a
+              stopping position the system offered at a parking area drawn as
+              a point beside a way not so marked, carrying none of the access
+              keys, that a site relation marked customers-only names as a
+              member, accepted by the user, is served by no driving leg,
+              warned or not; while a leg running over that node is produced
+              along it, and the same node carrying a permissive key of its own
+              is served
+Acceptance:   given a stopping position the system offered — a recommended
+              stop, a replacement or a reserve candidate — at a parking area
+              drawn as a point beside a way not so marked, carrying none of
+              the access keys, that a site relation the map data marks as
+              private or access-restricted names as a member, when the user
+              accepts it and the journey is planned, then no driving leg ends
+              at it or short of it, warned or not, and the journey includes no
+              stop there
+              given such a node lying on a drivable way, between two points
+              whose quickest drivable connection runs over it, when the leg is
+              produced, then it runs over that node, and no leg is refused,
+              warned or produced on another connection on its account
+              given such a node carrying an access key of its own whose value,
+              read with each that relation carries and the node does not,
+              leaves it unmarked, when the user accepts the position offered
+              there and the journey is planned, then this record refuses
+              neither the leg reaching it nor the stop
+Status:       to-build
+Depends-on:   FR-140; FR-142
+Volatility:   open-question — the Owner ruled that such a node is so marked
+              for stop offers only and never blocks driving
+              (`DECISIONS.md § RD-090`); the access keys and the marking are
+              read as FR-142 reads a member's; which features are parking
+              areas is owed with the OSM-derived feature tables
+              `SPECIFICATION.md § What establishes a stopping position` names,
+              as FR-140's `Volatility` records
+Risk:         A customers-only car park mapped as a point that a site relation
+              carrying the marking names, with no marking of its own, is
+              served on acceptance as the system's, and the car is sent into a
+              car park the data closes to it. Built as a barrier instead, the
+              node refuses or warns every leg that passes it, which the Owner
+              ruled out.
+Rationale:    FR-142 reads no node member, because a site's node is usually
+              its entrance and marking it would refuse the leg that reaches
+              it. The Owner ruled on PR #305 that a parking node member of a
+              site so marked is private for stop offers only and never blocks
+              driving like a gate (`DECISIONS.md § RD-090`). This record
+              treats it as FR-140 treats a parking area marked on its own
+              feature, which serves no position the system chose there once
+              accepted while a stop the user places there is not refused
+              (FR-139), and for no other record, so the node is never a
+              barrier, whatever `DECISIONS.md § RD-064` reads of a node
+              carrying a marking of its own. Its own access keys are read with
+              the relation's as FR-142 reads a member way's, so a permission
+              on the node lifts the marking the relation lends it, as the
+              Owner ruled for a member road. The Owner's option read "Don't
+              offer it" on a question asking whether such a node counts as
+              marked for FR-140; whether the review shows such a candidate as
+              uncertain is owed with #278, as it is for every parking area on
+              its own marking. No mechanism is named.
+Resolved-by:  #276, #303
 ```

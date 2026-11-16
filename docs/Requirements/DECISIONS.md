@@ -4247,3 +4247,119 @@ Affects:        FR-142, new; FR-128 gains #301, #302 and #303 in
                 `Architecture.md § What the tables hold`, edited by the PR
                 closing #303 (its AC5).
 ```
+
+## RD-090 — Do RD-089's second, fourth and fifth edges stand? (supersedes RD-089's second and fourth edges)
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering three AskUserQuestion items put by
+                `@engineering-lead` on PR #305 (`#issuecomment-6904841975`),
+                in
+                https://github.com/Caisesiume/TurfGPS/pull/305#issuecomment-6910825550,
+                relayed by `@engineering-lead`. The relay, verbatim: "Owner
+                decisions (AskUserQuestion, 2026-11-16), verbatim options.
+                (edge 2) **"Yes, road's tag wins"**, against the lead's
+                recommendation: a member road's own permissive tag reopens it
+                inside a private site. (edge 4) **"Skip that member"**,
+                against the lead's recommendation: a member the load cannot
+                draw as an area (a route, another site) is ignored and the
+                rest loads. (edge 5) **"Don't offer it (Recommended)"**: a
+                parking node member of a private site is private for stop
+                offers only and never blocks driving like a gate." This entry
+                records a ruling made elsewhere; it supersedes RD-089's second
+                and fourth edges, settles the node half RD-089's fifth edge
+                left owed, and leaves RD-089 otherwise standing, with four
+                edges the ruling leaves open decided on the ladder below.
+Question:       RD-089 read five edges of the Owner's ruling on #303 on the
+                ladder, and the lead put three to the Owner with the
+                analyst's reading as the recommendation
+                (`#issuecomment-6904841975`): the second, that a member's own
+                permissive keys do not lift the site's marking; the fourth,
+                that a marked site naming a relation member that is not an
+                area relation fails the load; and the fifth's owed half,
+                whether a parking node member of a marked site counts as
+                marked for FR-140 only, never as a barrier. Do they stand?
+Interpretation: **A member's own access keys lift the marking the site lends
+                it; a relation member the load cannot draw as an area is
+                skipped and the rest of the site loads; a parking area drawn
+                as a point that a marked site names is so marked for FR-140
+                alone and is never a barrier, filed as FR-143.** RD-089's
+                second edge is superseded: a way member, or an area relation
+                member, of a marked site is read as carrying, beside its own
+                access keys, each of the twelve access keys of
+                `Architecture.md § What the tables hold` that the site carries
+                and the member does not, and is marked on the site's account
+                exactly where that reading marks it, as `DECISIONS.md § RD-063`
+                to `DECISIONS.md § RD-066` read one feature. So under a site
+                carrying `access=private`, a member carrying `access=yes`, or
+                `motorcar=yes`, is unmarked on the site's account, and a
+                member carrying none of the twelve keys is marked, as RD-089
+                held. RD-089's fourth edge is superseded: a marked site naming
+                a relation of a type the loader does not read as an area (a
+                route, a site, a restriction) passes over that member, reads
+                nothing it names on the site's account, and loads the rest; a
+                site relation so named is still read on its own account, as
+                every site is. RD-089's fifth edge stands for the area; its
+                node half is settled as FR-143. Four edges are read on the
+                ladder. First, a key the site carries that is more specific
+                than any the member carries still governs, so under a site
+                carrying `motorcar=private` a member carrying `access=yes`
+                stays marked, and a member's directional permission never
+                lifts a plain marking the site lends, as
+                `DECISIONS.md § RD-066` holds of one feature. Second, the
+                lift reaches only the marking the site lends a member: the
+                area a perimeter member encloses carries the site's marking
+                whatever the perimeter member's own keys, and a member way
+                within it lies within an area so marked, whose marking a way's
+                own keys never lift. A feature marked on any account is
+                marked. Third, the skip reaches the member the question named,
+                a relation of a type the loader does not read as an area: a
+                member the file does not hold still fails the load, as
+                RD-089's (c) has it, and an area relation member the loader
+                cannot draw
+                fails as `Architecture.md § Loading from the extract the tiles are built from`
+                fails any feature carrying the keys that it cannot draw.
+                Fourth, the node's own access keys are read with the site's as
+                a member way's are, so a permission on the node lifts the
+                marking the site lends it; and the option "Don't offer it" is
+                read as the question put it, FR-140, which serves no stopping
+                position the system chose at such a node once accepted, while
+                a stop the user places there is not refused (FR-139). Whether
+                the review shows such a candidate as uncertain is owed with
+                #278, as it is for every parking area on its own marking.
+Rung:           n/a for the three answers — Owner ruling, escalated by the
+                lead because the second and fourth edges each read a safety
+                rule and the fifth's node half had no rung that answered it:
+                RD-089 had rested the second on rung 2 and rung 4, the fourth
+                on rung 2 and rung 4, and left the node half a debt on rung
+                6; the Owner chose against the first two. The first ladder
+                edge rests on rung 4, existing requirements: RD-063's
+                precedence orders the keys of one feature, and reading the
+                member as carrying the site's keys beside its own keeps one
+                precedence rather than a second; with rung 7, of the readings
+                "road's tag wins" admits, it lifts the fewest markings. The
+                second rests on rung 2:
+                `Architecture.md § What the tables hold` holds that a way's
+                keys never lift the marking of an area enclosing it, with
+                rung 4, `DECISIONS.md § RD-060`'s third edge and RD-063's
+                sentence that its precedence "does not let a way's own keys
+                lift the marking of an area enclosing it", a ruling loosening
+                the keys of one feature having been read so once already. The
+                third rests on rung 4, RD-089's (c), which the question did
+                not reach, with rung 2,
+                `Architecture.md § Loading from the extract the tiles are built from`.
+                The fourth rests on rung 4, the first edge applied to a node
+                member and FR-140's own wording, a parking area "however that
+                parking area is drawn"; with rung 7, since reading the node as
+                FR-140 alone can only refuse more stops the system chose. No
+                Turf mechanic is read and no constant is introduced.
+Affects:        RD-089's second and fourth edges, superseded, and its fifth
+                edge's node half, settled; FR-142's `Statement`,
+                `Verification`, criteria, `Volatility` and `Rationale`;
+                FR-143, new; #303, gaining AC11 to AC14 with AC8 and AC10
+                superseded, `FR-143` on its `Resolves:` line and a `Basis`
+                line; #276, gaining AC11, `FR-143` on its `Resolves:` line and
+                a soft dependency on #303;
+                `Architecture.md § What the tables hold`, edited by the PR
+                closing #303 (its AC5), which reads this entry with RD-089.
+```
