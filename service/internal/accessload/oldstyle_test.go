@@ -329,6 +329,48 @@ func TestAnAreaRelationThatIsNotOldStyleIsRead(t *testing.T) {
 	})
 }
 
+// TestAnOldStyleAreaRelationMissingAMemberFailsTheRead holds the lead's
+// ruling on PR #306: an old-style area relation naming a way the file does not
+// hold, as one clipped at the extract's edge may, fails the read, naming the
+// relation and the way. The missing way cannot be checked for a marking and may
+// be the one carrying it, so the read fails closed, as it does on a missing
+// member of a relation carrying a key. The same extract holding the way, which
+// carries no key, is read whole, so the failure is the missing way's.
+func TestAnOldStyleAreaRelationMissingAMemberFailsTheRead(t *testing.T) {
+	t.Parallel()
+
+	whole := ringCase(6, map[string]string{"type": "multipolygon"}, []int{1, 2}, nil)
+
+	if _, err := ReadFile(whole.write(t)); err != nil {
+		t.Fatalf("the premise does not hold: the extract holding every member way is refused: %v", err)
+	}
+
+	clipped := whole
+	clipped.ways = slices.DeleteFunc(slices.Clone(whole.ways), func(w osmWay) bool { return w.id == way301(6, 2) })
+
+	ex, err := ReadFile(clipped.write(t))
+	if err == nil {
+		t.Fatalf("the extract missing member way %d of old-style relation %d is read, with %d areas and %d ways, want it refused",
+			way301(6, 2), rel301(6), len(ex.Areas), len(ex.Ways))
+	}
+
+	t.Logf("%v", err)
+
+	if ex != nil {
+		t.Errorf("a refused read returned an extract, which a load could write")
+	}
+
+	for _, want := range []string{fmt.Sprintf("relation %d ", rel301(6)), fmt.Sprintf("names way %d, which the file does not hold", way301(6, 2))} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the read fails with %q, which does not name %q", err, strings.TrimSpace(want))
+		}
+	}
+
+	if strings.Contains(err.Error(), fmt.Sprintf("way %d,", way301(6, 1))) {
+		t.Errorf("the read fails with %q, which names member way %d, which the file holds", err, way301(6, 1))
+	}
+}
+
 // TestWhichRelationsAreOldStyle holds the list of tags `RD-087` sets aside:
 // `type`, `name` and `name:*`, and `created_by`, `source`, `source:*`,
 // `note`, `note:*`, `fixme` and `FIXME`; any other tag describes a feature.

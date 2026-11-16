@@ -35,7 +35,10 @@
 // its ring's ways. Where those are ways this reader does not take as areas, the
 // marking would be read as a way's and the area the relation draws as no area
 // at all, so the unmarked ways inside it would route as public road. The read
-// fails instead, naming each such relation and member way (oldStyleTags).
+// fails instead, naming each such relation and member way (oldStyleTags). It
+// fails too on an old-style relation naming a way the file does not hold, as
+// one clipped at the extract's edge may: that way cannot be checked, and it may
+// be the one carrying the marking.
 package accessload
 
 import (
@@ -166,7 +169,7 @@ func ReadFile(path string) (*Extract, error) {
 		return nil, fmt.Errorf("reading %s for its relations: %w", path, err)
 	}
 
-	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}, oldStyle: rels.oldStyle}
+	first := &waysPass{nodesOf: map[int64]bool{}, members: rels.members, memberNodes: map[int64][]int64{}, oldStyle: rels.oldStyle, oldStyleSeen: map[int64]bool{}}
 
 	if err := readAgain(path, sha, "ways", first); err != nil {
 		return nil, err
@@ -175,6 +178,11 @@ func ReadFile(path string) (*Extract, error) {
 	if len(first.oldStyleFound) != 0 {
 		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation carry the marking of the area the relation draws, which would be loaded as unmarked (#301, RD-087): %s",
 			path, len(first.oldStyleFound), strings.Join(first.oldStyleFound, "; "))
+	}
+
+	if missing := rels.oldStyleMissing(first.oldStyleSeen); len(missing) != 0 {
+		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation are not in the file, so whether one carries the marking of the area the relation draws cannot be checked (#301): %s",
+			path, len(missing), strings.Join(missing, "; "))
 	}
 
 	second := &nodesPass{
@@ -305,14 +313,38 @@ type relationsPass struct {
 	members map[int64]bool
 
 	// oldStyle holds, for each way an old-style area relation names, the
-	// relations naming it, in the order they were read.
-	oldStyle map[int64][]oldStyleRelation
+	// relations naming it, in the order they were read; oldStyleRels holds
+	// those relations in that order, with the ways each names.
+	oldStyle     map[int64][]oldStyleRelation
+	oldStyleRels []oldStyleRelation
 }
 
-// oldStyleRelation is an area relation of the older tagging: its id and type.
+// oldStyleRelation is an area relation of the older tagging: its id, its type
+// and the ways it names.
 type oldStyleRelation struct {
 	id   int64
 	kind string
+	ways []int64
+}
+
+// oldStyleMissing names each old-style area relation and member way the file
+// does not hold, given the member ways the ways pass saw. Such a way cannot be
+// checked for a marking, and it may be the one that carries it, so the read
+// fails on it as it fails on a missing member of a relation carrying a key.
+func (p *relationsPass) oldStyleMissing(seen map[int64]bool) []string {
+	var missing []string
+
+	for _, r := range p.oldStyleRels {
+		for _, w := range r.ways {
+			if !seen[w] {
+				missing = append(missing, fmt.Sprintf(
+					"relation %d is a type=%s relation carrying no tag but its type, names and housekeeping keys, and names way %d, which the file does not hold",
+					r.id, r.kind, w))
+			}
+		}
+	}
+
+	return missing
 }
 
 // oldStyleTags reports whether an area relation's tags are those of the older
@@ -367,11 +399,16 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 	if !carrying {
 		// The guard reads no member role, as the area reader reads none.
 		if oldStyleTags(r.Tags) {
+			o := oldStyleRelation{id: r.ID, kind: kind}
+
 			for _, m := range r.Members {
 				if m.Type == osmpbf.MemberWay {
-					p.oldStyle[m.Ref] = append(p.oldStyle[m.Ref], oldStyleRelation{id: r.ID, kind: kind})
+					o.ways = append(o.ways, m.Ref)
+					p.oldStyle[m.Ref] = append(p.oldStyle[m.Ref], o)
 				}
 			}
+
+			p.oldStyleRels = append(p.oldStyleRels, o)
 		}
 
 		return nil
@@ -414,9 +451,11 @@ type waysPass struct {
 
 	// oldStyle is the relations pass's; oldStyleFound names each old-style
 	// area relation and member way that carries a key and is no area, in the
-	// order the ways were read.
+	// order the ways were read; oldStyleSeen holds every member way of an
+	// old-style relation the file holds, carrying a key or not.
 	oldStyle      map[int64][]oldStyleRelation
 	oldStyleFound []string
+	oldStyleSeen  map[int64]bool
 }
 
 // areaWay is a closed way that is an area carrying any of the keys.
@@ -462,6 +501,10 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 	if p.members[w.ID] {
 		p.memberNodes[w.ID] = slices.Clone(w.Nodes)
 		p.keep(w.Nodes)
+	}
+
+	if _, ok := p.oldStyle[w.ID]; ok {
+		p.oldStyleSeen[w.ID] = true
 	}
 
 	v, carrying := valuesOf(w.Tags)
