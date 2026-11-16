@@ -18,7 +18,9 @@ A disagreement between the two directions is a finding for `@requirements-engine
 
 **This allocation opened no interval at all, which is the shape every batch but batch 4 has held.** The signature and the allocation both fell on 7 August 2026 and were written into this file in a single pass, so `FR-055` … `FR-057` never held the state batch 4 was the first — and so far the only — batch to commit: `Resolved-by: —` never meant *signed off, story pass due* for any of the three. Their `—` carried one meaning throughout and it was the earlier one, *filed and not yet signed*; that is the state they were committed in on 6 August 2026 and the state they left on 7 August. Story creation is still a pass of its own and still gated on sign-off — what is absent here is a **committed** interval between the two, not the second pass. The distinction is the one that matters to a later reader, because it is this file they consult and not the calendar: an interval no commit ever held is one the corpus never had.
 
-**Batch 5 filed, 7 August 2026 — no story allocation has run for it.** `FR-058` … `FR-093`, `NFR-006` and `NFR-007` were filed the same day and take a row apiece in the first table below reading `—` under both columns, which is the ordinary interval between a filing pass and the story pass that follows it: sign-off gates story creation, not the reverse, so no epic and no story exists for any of the thirty-eight. Nothing was added in the *Story → requirement* direction, which carries one row per story and has no story to carry. The em-dash means *not yet allocated* and never *unknown*, and for these thirty-eight it carries the earlier of its two readings — *filed and not yet signed* — as batch 3b's did and as `FR-055` … `FR-057`'s did. **It is the largest such interval the corpus has held**, batch 4's seventeen being the previous largest, and the first to open on the day one closed: the three rows `FR-055` … `FR-057` vacated earlier on 7 August 2026 were replaced by thirty-eight in this pass.
+**Batch 5 filed, 7 August 2026 — no story allocation had run for it by then.** `FR-058` … `FR-093`, `NFR-006` and `NFR-007` were filed the same day and take a row apiece in the first table below reading `—` under both columns, which is the ordinary interval between a filing pass and the story pass that follows it: sign-off gates story creation, not the reverse, so no epic and no story exists for any of the thirty-eight. Nothing was added in the *Story → requirement* direction, which carries one row per story and has no story to carry. The em-dash means *not yet allocated* and never *unknown*, and for these thirty-eight it carries the earlier of its two readings — *filed and not yet signed* — as batch 3b's did and as `FR-055` … `FR-057`'s did. **It is the largest such interval the corpus has held**, batch 4's seventeen being the previous largest, and the first to open on the day one closed: the three rows `FR-055` … `FR-057` vacated earlier on 7 August 2026 were replaced by thirty-eight in this pass.
+
+**Story allocation — 14 August 2026, batch 5.** The story pass for `FR-058` … `FR-093`, `NFR-006` and `NFR-007` ran on the day of their transition to `to-build`: nine epics cut as GitHub Milestones and thirty-eight stories as GitHub Issues, `#68` … `#105`, one story per requirement and one requirement per story, which left the corpus at twenty-two epics. **Neither direction below was filled in that pass.** `FR-058` … `FR-062` were transcribed with `#68` … `#72` on 15 November 2026 and the other thirty-three with `#73` … `#105` on 16 November 2026, each from the issue's `Resolves:` line, and from that date no batch-5 row reads `—`.
 
 **Batch 6 filed, 28 August 2026 — no story allocation is due for it, which is a different thing from one being outstanding.** `FR-094` … `FR-118` and `NFR-008` … `NFR-018` were filed already `to-build` and take a row apiece in the first table below, reading `—` under both columns. Every previous `—` in this file has been an **interval**: a filing pass waiting on a signature, or a transition waiting on the story pass that follows it. These thirty-six are neither. Under the Owner's sequencing directive the platform is specified before stories are made, so no story pass stands behind them and their `—` is deliberate rather than pending. Nothing was added in the *Story → requirement* direction, which carries one row per story and has no story to carry. The em-dash still means *not yet allocated* and never *unknown*; what is new is that nothing is yet waiting to allocate it, and `README.md § ID allocation ledger` records that third reading together with the directive it rests on. **It is the second-largest block of `—` rows this table has held**, after batch 5's thirty-eight, and the first to open while an earlier block is still open — the two blocks are told apart by their reason and never by their appearance, which is why the reason is written here rather than left to be inferred from the rows.
 
@@ -69,7 +71,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `NFR-002` — Lower confidence as the Turf data behind a recommendation ages | The synced zone set, and how current it is | #36 |
 | `NFR-003` — Build the service as one self-contained executable | The service's runtime and deployment shape | #19 |
 | `NFR-004` — Run the service as one long-running process | The service's runtime and deployment shape | #25 |
-| `NFR-005` — Serve the client as static files | The service's runtime and deployment shape | #26 |
+| `NFR-005` — Serve the client as static files | The service's runtime and deployment shape | #26, #224 |
 | `FR-038` — Plan no journey without an additional-time limit the user entered | The additional time the user agreed to spend | #41 |
 | `FR-039` — Derive no additional-time limit from the journey's length | The additional time the user agreed to spend | #42 |
 | `FR-040` — Admit an additional-time limit anywhere in the realistic range | The additional time the user agreed to spend | #43 |
@@ -90,44 +92,44 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-055` — Open the planner with no additional-time limit entered | The additional time the user agreed to spend | #60 |
 | `FR-056` — Refuse an additional-time limit that is not positive | The additional time the user agreed to spend | #58 |
 | `FR-057` — Impose no maximum admissible additional-time limit | The additional time the user agreed to spend | #59 |
-| `FR-058` — Generate more than one general road route | — | — |
-| `FR-059` — Produce general road routes that are different drives | — | — |
-| `FR-060` — Build on more than the fastest conventional route | — | — |
-| `FR-061` — Test the stated limit and the ceiling against the whole additional time | — | — |
-| `FR-062` — Keep the general-route deviation separable from the Turf stop time | — | — |
-| `FR-063` — Bound a corridor set by the corridor half-width | — | — |
-| `FR-064` — Promote no more candidates to full evaluation than the cap | — | — |
-| `FR-065` — Record where the promotion cap bound | — | — |
-| `FR-066` — Tell the user where the promotion cap shaped the result | — | — |
-| `FR-067` — Assign exactly one access class to every classified candidate | — | — |
-| `FR-068` — Choose the validation regime from the direct-access tolerance | — | — |
-| `FR-069` — Reject a direct-access tolerance above the permitted value | — | — |
-| `FR-070` — Require compatible levels and no barrier for direct road access | — | — |
-| `FR-071` — Send an established level or barrier failure to the park-and-walk branch | — | — |
-| `FR-072` — Classify uncertain where the direct-access evidence is ambiguous | — | — |
-| `FR-073` — Measure a candidate's access route to the zone's coordinate | — | — |
-| `FR-074` — Compute access cost from the routed path and its elevation profile | — | — |
-| `FR-075` — Build no access path from a way the data bars to pedestrians | — | — |
-| `FR-076` — Exclude an absent, disconnected, or implausibly steep access path | — | — |
-| `FR-077` — Let no zone's value admit an unsafe or infeasible access route | — | — |
-| `FR-078` — Validate every leg of a multi-zone walking route | — | — |
-| `FR-079` — Price a park-and-walk stop over the set of zones it serves | — | — |
-| `FR-080` — Apply the configured maximum walking distance as a bound | — | — |
-| `FR-081` — Assign a confidence level to every access estimate | — | — |
-| `FR-082` — Classify a low-confidence access estimate as uncertain | — | — |
-| `FR-083` — Admit park-and-walk only on a routed path and an obtained elevation profile | — | — |
-| `FR-084` — Keep uncertain candidates out of the optimization | — | — |
-| `FR-085` — Classify a zone accessible only on an identified connection | — | — |
-| `FR-086` — Route a detour's cost through the proposed stopping position | — | — |
-| `FR-087` — Reuse no candidate's detour cost across journeys | — | — |
-| `FR-088` — State the material uncertainty in an access estimate | — | — |
-| `FR-089` — Propose no stop on a road the exclusions refuse | — | — |
-| `FR-090` — Reject a maximum stopping speed above the permitted value | — | — |
-| `FR-091` — Plan no journey while an owed enforcement constant is unconfigured | — | — |
-| `FR-092` — Identify a stopping position rather than manufacture one | — | — |
-| `FR-093` — Compute both halves of a stop against one resolved stopping position | — | — |
-| `NFR-006` — Fall access confidence with the evidence behind the estimate | — | — |
-| `NFR-007` — Classify no zone confidently and wrongly | — | — |
+| `FR-058` — Generate more than one general road route | General road routes, and what they add to the journey | #68 |
+| `FR-059` — Produce general road routes that are different drives | General road routes, and what they add to the journey | #69 |
+| `FR-060` — Build on more than the fastest conventional route | General road routes, and what they add to the journey | #70 |
+| `FR-061` — Test the stated limit and the ceiling against the whole additional time | General road routes, and what they add to the journey | #71 |
+| `FR-062` — Keep the general-route deviation separable from the Turf stop time | General road routes, and what they add to the journey | #72 |
+| `FR-063` — Bound a corridor set by the corridor half-width | Bounding the candidate set | #73 |
+| `FR-064` — Promote no more candidates to full evaluation than the cap | Bounding the candidate set | #74 |
+| `FR-065` — Record where the promotion cap bound | Bounding the candidate set | #75 |
+| `FR-066` — Tell the user where the promotion cap shaped the result | Bounding the candidate set | #76 |
+| `FR-067` — Assign exactly one access class to every classified candidate | The stopping position, and the roads a stop may be proposed on | #77 |
+| `FR-068` — Choose the validation regime from the direct-access tolerance | Direct road access, and its tolerance | #83 |
+| `FR-069` — Reject a direct-access tolerance above the permitted value | Direct road access, and its tolerance | #84 |
+| `FR-070` — Require compatible levels and no barrier for direct road access | Direct road access, and its tolerance | #85 |
+| `FR-071` — Send an established level or barrier failure to the park-and-walk branch | Direct road access, and its tolerance | #86 |
+| `FR-072` — Classify uncertain where the direct-access evidence is ambiguous | Direct road access, and its tolerance | #87 |
+| `FR-073` — Measure a candidate's access route to the zone's coordinate | Park-and-walk: what the walking estimate is computed from | #88 |
+| `FR-074` — Compute access cost from the routed path and its elevation profile | Park-and-walk: what the walking estimate is computed from | #89 |
+| `FR-075` — Build no access path from a way the data bars to pedestrians | Park-and-walk: what the walking estimate is computed from | #90 |
+| `FR-076` — Exclude an absent, disconnected, or implausibly steep access path | The access-path exclusions | #95 |
+| `FR-077` — Let no zone's value admit an unsafe or infeasible access route | The access-path exclusions | #96 |
+| `FR-078` — Validate every leg of a multi-zone walking route | One stop serving several zones | #93 |
+| `FR-079` — Price a park-and-walk stop over the set of zones it serves | One stop serving several zones | #94 |
+| `FR-080` — Apply the configured maximum walking distance as a bound | Park-and-walk: what the walking estimate is computed from | #91 |
+| `FR-081` — Assign a confidence level to every access estimate | Access confidence, and the uncertain bucket | #98 |
+| `FR-082` — Classify a low-confidence access estimate as uncertain | Access confidence, and the uncertain bucket | #100 |
+| `FR-083` — Admit park-and-walk only on a routed path and an obtained elevation profile | Park-and-walk: what the walking estimate is computed from | #92 |
+| `FR-084` — Keep uncertain candidates out of the optimization | Access confidence, and the uncertain bucket | #101 |
+| `FR-085` — Classify a zone accessible only on an identified connection | The stopping position, and the roads a stop may be proposed on | #79 |
+| `FR-086` — Route a detour's cost through the proposed stopping position | Detour cost is routed, from the position the car stops at | #103 |
+| `FR-087` — Reuse no candidate's detour cost across journeys | Detour cost is routed, from the position the car stops at | #104 |
+| `FR-088` — State the material uncertainty in an access estimate | Access confidence, and the uncertain bucket | #102 |
+| `FR-089` — Propose no stop on a road the exclusions refuse | The stopping position, and the roads a stop may be proposed on | #80 |
+| `FR-090` — Reject a maximum stopping speed above the permitted value | The stopping position, and the roads a stop may be proposed on | #81 |
+| `FR-091` — Plan no journey while an owed enforcement constant is unconfigured | The access-path exclusions | #97 |
+| `FR-092` — Identify a stopping position rather than manufacture one | The stopping position, and the roads a stop may be proposed on | #78 |
+| `FR-093` — Compute both halves of a stop against one resolved stopping position | Detour cost is routed, from the position the car stops at | #105 |
+| `NFR-006` — Fall access confidence with the evidence behind the estimate | Access confidence, and the uncertain bucket | #99 |
+| `NFR-007` — Classify no zone confidently and wrongly | The stopping position, and the roads a stop may be proposed on | #82 |
 | `FR-094` — Keep a confirmed plan reopenable within its retention bound | — | — |
 | `FR-095` — Add a new stored plan without displacing an existing one | — | — |
 | `FR-096` — Retain with a stored plan the state a later re-solve needs | — | — |
@@ -162,7 +164,7 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `FR-125` — Route no driving leg through a private or access-restricted way or barrier | Drivable legs and journey cost | #248, #255, #256, #271 |
 | `FR-126` — Bound the private run that reaches a location the user entered | Drivable legs and journey cost | #248, #256 |
 | `FR-127` — Serve no stopping position past a private or access-restricted way or barrier | Drivable legs and journey cost | #256 |
-| `FR-128` — Treat the ways inside an area marked private or access-restricted as marked | Drivable legs and journey cost | #253 |
+| `FR-128` — Treat the ways inside an area marked private or access-restricted as marked | Drivable legs and journey cost | #253, #292, #293 |
 | `FR-129` — Produce a warned leg where nothing avoids a marking between two locations the user entered | Drivable legs and journey cost | #271 |
 | `FR-130` — Keep every avoidable marking off a warned leg | Drivable legs and journey cost | #271 |
 | `FR-131` — Identify every marked stretch of a warned leg | Drivable legs and journey cost | #271 |
@@ -188,9 +190,9 @@ One row per non-retired requirement. Every requirement in the corpus appears her
 | `NFR-017` — Read the per-caller retrieval limit and window from configuration | — | — |
 | `NFR-018` — Bound what a hand-off carries to the target application | — | — |
 
-159 of 159 requirements listed. `FR-140` and `FR-141`, added on 15 November 2026, carry their epics and #276, or #278. `FR-138` and `FR-139`, added on 15 November 2026, carry their epics and #276, or #277 and #278. `FR-136` and `FR-137`, added on 15 November 2026, carry their epic and #275. `FR-129` … `FR-135`, added on 15 November 2026, carry their epic and #271 or #273, and `FR-125` gained #271. `FR-126` … `FR-128`, added on 5 November 2026, carry their epic and #248 or #253. `FR-125`, added on 22 October 2026, carries its epic and #248. On 14 November 2026 #248 was split: `FR-125` and `FR-126` now carry #256 as well, `FR-125` #255 too, and `FR-127` #256 alone. `FR-119` … `FR-124`, added on 20 October 2026, carry their epic and #232 or #233; the figures in the rest of this paragraph were counted before them. **Sixty-two carry an epic and at least one story** — thirteen epics and fifty-nine stories, allocated in six passes — and **seventy-four read `—` under both columns**: batch 5's thirty-eight, filed 7 August 2026 ahead of any sign-off and therefore ahead of any story, and batch 6's thirty-six, filed 28 August 2026 already `to-build` and ahead of a story pass that is not due. The rule stays one row per non-retired requirement rather than one row per requirement that has a story: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters. **The rule was first exercised by batch 3b** — between its filing and its story allocation, both on 6 August 2026, `FR-035` … `FR-037` were the first three rows this table had ever held with no story behind them — and batch 4 was the second and much larger instance of the same shape, and the first in which the requirements were **signed off** rather than `draft`. `FR-055` … `FR-057` were the third, in the `draft` shape, from their filing on 6 August 2026 until their sign-off and allocation on 7 August 2026; batch 5 is the fourth and by some distance the largest. The first three intervals are closed and each was the length of a pass. **An earlier wording of this paragraph said the next filing pass would put `—` rows back and that they would be correct**; batch 5 was that pass and they were, and the sentence is kept because it is the prediction the completeness rule was defended with. **Batch 6 is the fifth block of such rows and the first that is not an interval at all**, a story pass being not due rather than outstanding for it — the completeness rule is what makes that distinction survivable, since the rows are here to be counted either way and only the paragraph above says why they are empty.
+159 of 159 requirements listed. `FR-063` … `FR-093`, `NFR-006` and `NFR-007` gained their epics and #73 … #105 on 16 November 2026, one story apiece, and `NFR-005` gained #224 beside #26, each transcribed from the issue's `Resolves:` line; `FR-058` … `FR-062` gained their epic, *General road routes, and what they add to the journey*, and #68 … #72 on 15 November 2026, transcribed the same way. The seventy-four rows counted below as reading `—` under both columns were sixty-nine after the first of those passes and are thirty-six since the second, batch 6's alone. `FR-140` and `FR-141`, added on 15 November 2026, carry their epics and #276, or #278. `FR-138` and `FR-139`, added on 15 November 2026, carry their epics and #276, or #277 and #278. `FR-136` and `FR-137`, added on 15 November 2026, carry their epic and #275. `FR-129` … `FR-135`, added on 15 November 2026, carry their epic and #271 or #273, and `FR-125` gained #271. `FR-126` … `FR-128`, added on 5 November 2026, carry their epic and #248 or #253; on 15 November 2026 #253 was split on the lead's ruling, and `FR-128` carries #292 and #293 as well. `FR-125`, added on 22 October 2026, carries its epic and #248. On 14 November 2026 #248 was split: `FR-125` and `FR-126` now carry #256 as well, `FR-125` #255 too, and `FR-127` #256 alone. `FR-119` … `FR-124`, added on 20 October 2026, carry their epic and #232 or #233; the figures in the rest of this paragraph were counted before them. **Sixty-two carry an epic and at least one story** — thirteen epics and fifty-nine stories, allocated in six passes — and **seventy-four read `—` under both columns**: batch 5's thirty-eight, filed 7 August 2026 ahead of any sign-off and therefore ahead of any story, and batch 6's thirty-six, filed 28 August 2026 already `to-build` and ahead of a story pass that is not due. The rule stays one row per non-retired requirement rather than one row per requirement that has a story: a requirement missing from this table is a filing error whatever its status, and a row added only once a story exists would make the table's completeness unverifiable exactly when it matters. **The rule was first exercised by batch 3b** — between its filing and its story allocation, both on 6 August 2026, `FR-035` … `FR-037` were the first three rows this table had ever held with no story behind them — and batch 4 was the second and much larger instance of the same shape, and the first in which the requirements were **signed off** rather than `draft`. `FR-055` … `FR-057` were the third, in the `draft` shape, from their filing on 6 August 2026 until their sign-off and allocation on 7 August 2026; batch 5 is the fourth and by some distance the largest. The first three intervals are closed and each was the length of a pass. Batch 5's closed on the board with its story pass on 14 August 2026, and in this table only on 16 November 2026, when the last of its stories was transcribed. **An earlier wording of this paragraph said the next filing pass would put `—` rows back and that they would be correct**; batch 5 was that pass and they were, and the sentence is kept because it is the prediction the completeness rule was defended with. **Batch 6 is the fifth block of such rows and the first that is not an interval at all**, a story pass being not due rather than outstanding for it — the completeness rule is what makes that distinction survivable, since the rows are here to be counted either way and only the paragraph above says why they are empty.
 
-**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **Seventy-four rows read `—` today and none of them is an orphan**, because each also reads `—` under *Epic (Milestone)* — no epic has been cut for batch 5 or batch 6, so none of the seventy-four has reached the test. The rule bites on the first of them to still read `—` under *Stories* once its epic is cut. **The rule is now exercised rather than merely unexercised**, which is the state the previous wording of this paragraph said it would need to return to: it was satisfied vacuously while the table was full, and it is satisfied by argument today. **Batch 6 neither weakens the rule nor exercises it further**: no story pass is due for those thirty, so no epic is in flight above them and the test has nothing to bite on — a directive that defers story creation defers the orphan question with it, rather than exempting anything from it. **Sign-off does not bite, and the point survives the three cases that prompted it**: the test is an epic in flight, not a signature, so a signed-off requirement with no epic is exactly as far from being an orphan as a `draft` one. `FR-035` … `FR-037` held that shape for part of 6 August 2026, `FR-038` … `FR-054` for another part of the same day, and `FR-055` … `FR-057` from that day until 7 August 2026 — none of the twenty-three was ever an orphan, for the same reason. The last three are additionally the case where sign-off and allocation shared a pass, so their `—` was never even read against a signature. Every requirement code here that names a story appears in the second table below, and every code there appears here — a code with a story in one direction and no counterpart in the other is a finding. A requirement with no story is absent from that table by construction and is not that finding.
+**The orphan rule is scoped to an epic in flight**: a requirement reading `—` under *Stories* while its epic is in flight is an orphan and a finding, and a requirement with no epic at all has not reached that test yet. **Thirty-six rows read `—` today and none of them is an orphan.** They are batch 6's thirty-six, and they read `—` under *Epic (Milestone)* as well because no epic has been cut for batch 6, so none of them has reached the test. Batch 5's thirty-eight carry their epic and a story apiece, `FR-058` … `FR-062` since 15 November 2026 and the other thirty-three since 16 November 2026. Until then those thirty-three read `—` under both columns only because #73 … #105 were not yet transcribed: a requirement with a story is not an orphan, so that was a transcription gap and never this finding. The rule bites on the first batch-6 row still reading `—` under *Stories* once an epic is cut above it. **The rule is now exercised rather than merely unexercised**, which is the state the previous wording of this paragraph said it would need to return to: it was satisfied vacuously while the table was full, and it is satisfied by argument today. **Batch 6 neither weakens the rule nor exercises it further**: no story pass is due for those thirty-six, so no epic is in flight above them and the test has nothing to bite on — a directive that defers story creation defers the orphan question with it, rather than exempting anything from it. **Sign-off does not bite, and the point survives the three cases that prompted it**: the test is an epic in flight, not a signature, so a signed-off requirement with no epic is exactly as far from being an orphan as a `draft` one. `FR-035` … `FR-037` held that shape for part of 6 August 2026, `FR-038` … `FR-054` for another part of the same day, and `FR-055` … `FR-057` from that day until 7 August 2026 — none of the twenty-three was ever an orphan, for the same reason. The last three are additionally the case where sign-off and allocation shared a pass, so their `—` was never even read against a signature. Every requirement code here that names a story appears in the second table below, and every code there appears here — a code with a story in one direction and no counterpart in the other is a finding. A requirement with no story is absent from that table by construction and is not that finding.
 
 ## Story → requirement
 
@@ -259,6 +261,45 @@ One row per story, transcribed from the issue's `Resolves:` line.
 | #58 | The additional time the user agreed to spend | `FR-056` |
 | #59 | The additional time the user agreed to spend | `FR-057` |
 | #60 | The additional time the user agreed to spend | `FR-055` |
+| #68 | General road routes, and what they add to the journey | `FR-058` |
+| #69 | General road routes, and what they add to the journey | `FR-059` |
+| #70 | General road routes, and what they add to the journey | `FR-060` |
+| #71 | General road routes, and what they add to the journey | `FR-061` |
+| #72 | General road routes, and what they add to the journey | `FR-062` |
+| #73 | Bounding the candidate set | `FR-063` |
+| #74 | Bounding the candidate set | `FR-064` |
+| #75 | Bounding the candidate set | `FR-065` |
+| #76 | Bounding the candidate set | `FR-066` |
+| #77 | The stopping position, and the roads a stop may be proposed on | `FR-067` |
+| #78 | The stopping position, and the roads a stop may be proposed on | `FR-092` |
+| #79 | The stopping position, and the roads a stop may be proposed on | `FR-085` |
+| #80 | The stopping position, and the roads a stop may be proposed on | `FR-089` |
+| #81 | The stopping position, and the roads a stop may be proposed on | `FR-090` |
+| #82 | The stopping position, and the roads a stop may be proposed on | `NFR-007` |
+| #83 | Direct road access, and its tolerance | `FR-068` |
+| #84 | Direct road access, and its tolerance | `FR-069` |
+| #85 | Direct road access, and its tolerance | `FR-070` |
+| #86 | Direct road access, and its tolerance | `FR-071` |
+| #87 | Direct road access, and its tolerance | `FR-072` |
+| #88 | Park-and-walk: what the walking estimate is computed from | `FR-073` |
+| #89 | Park-and-walk: what the walking estimate is computed from | `FR-074` |
+| #90 | Park-and-walk: what the walking estimate is computed from | `FR-075` |
+| #91 | Park-and-walk: what the walking estimate is computed from | `FR-080` |
+| #92 | Park-and-walk: what the walking estimate is computed from | `FR-083` |
+| #93 | One stop serving several zones | `FR-078` |
+| #94 | One stop serving several zones | `FR-079` |
+| #95 | The access-path exclusions | `FR-076` |
+| #96 | The access-path exclusions | `FR-077` |
+| #97 | The access-path exclusions | `FR-091` |
+| #98 | Access confidence, and the uncertain bucket | `FR-081` |
+| #99 | Access confidence, and the uncertain bucket | `NFR-006` |
+| #100 | Access confidence, and the uncertain bucket | `FR-082` |
+| #101 | Access confidence, and the uncertain bucket | `FR-084` |
+| #102 | Access confidence, and the uncertain bucket | `FR-088` |
+| #103 | Detour cost is routed, from the position the car stops at | `FR-086` |
+| #104 | Detour cost is routed, from the position the car stops at | `FR-087` |
+| #105 | Detour cost is routed, from the position the car stops at | `FR-093` |
+| #224 | The service's runtime and deployment shape | `NFR-005` |
 | #232 | The synced zone set, and how current it is | `FR-119`, `FR-120`, `FR-121`, `FR-122`, `FR-026` |
 | #233 | The synced zone set, and how current it is | `FR-123`, `FR-124` |
 | #248 | Drivable legs and journey cost | `FR-125`, `FR-126` |
@@ -271,5 +312,7 @@ One row per story, transcribed from the issue's `Resolves:` line.
 | #276 | Drivable legs and journey cost | `FR-138`, `FR-140` |
 | #277 | The stopping position, and the roads a stop may be proposed on | `FR-139` |
 | #278 | The stopping position, and the roads a stop may be proposed on | `FR-139`, `FR-141` |
+| #292 | Drivable legs and journey cost | `FR-128` |
+| #293 | Drivable legs and journey cost | `FR-128` |
 
-71 stories listed, transcribed as filed — `#271`, `#273`, `#275`, `#276`, `#277` and `#278` added on 15 November 2026, and before them `#232` and `#233` added on 20 October 2026, `#248` on 22 October 2026, `#253` on 5 November 2026, and `#255` and `#256` on 14 November 2026, when `#248`'s row lost `FR-127` to `#256`. **Not every story is listed:** the User Story issues `#68` … `#105` and `#224` are not yet transcribed here, a gap found on that date and left for a pass of its own; the rest of this paragraph was written before them. **The numbers run to `#60` and are not contiguous, which is not a missing row.** `#37` is the only absent number and this table carries one row per story, while the board numbers stories alongside items that are not stories and resolve no requirement; a number absent from this column says only that the board issued it to something this table does not carry. What *would* be a missing row is a story whose `Resolves:` line names a requirement and has no entry here. Neither the batch-2 nor the batch-3 rows run in requirement order, nor do batch 4's, and that is how they were filed rather than a transcription slip: `#17` resolves `FR-016` and `#15` resolves `FR-017`; `#22` resolves `FR-030` and `#34` resolves `FR-021`; `#47` resolves `FR-043` while `#43` resolves `FR-040`. The last three invert cleanly — `#58` resolves `FR-056`, `#59` resolves `FR-057` and `#60` resolves `FR-055` — and they are transcribed from the issues rather than sorted into agreement, which is the whole of the rule this paragraph states. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A row naming two codes is the same case seen from the other side — `#29` and `#33` each resolve two records — and is likewise transcribed as it stands rather than split into a row apiece. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.
+112 stories listed, transcribed as filed — `#73` … `#105` and `#224` added on 16 November 2026 in a pass of their own, `#73` … `#105` resolving one batch-5 record apiece under eight epics and `#224` resolving `NFR-005` beside `#26`; before them `#292` and `#293` added on 15 November 2026 when `#253` was split on the lead's ruling (`#253`, `#issuecomment-6902709772`), each resolving `FR-128` beside `#253`, whose row is unchanged; before them `#68` … `#72` added the same day in a pass of their own, then `#271`, `#273`, `#275`, `#276`, `#277` and `#278` added on 15 November 2026, and before them `#232` and `#233` added on 20 October 2026, `#248` on 22 October 2026, `#253` on 5 November 2026, and `#255` and `#256` on 14 November 2026, when `#248`'s row lost `FR-127` to `#256`. **The User Story issues `#68` … `#105` and `#224` were found not transcribed here on 15 November 2026**; `#68` … `#72` were transcribed that day and `#73` … `#105` and `#224` on 16 November 2026, which leaves every User Story issue on the board, 112 of them, with a row here. The rest of this paragraph was written before them. **The numbers run to `#60` and are not contiguous, which is not a missing row.** `#37` is the only absent number and this table carries one row per story, while the board numbers stories alongside items that are not stories and resolve no requirement; a number absent from this column says only that the board issued it to something this table does not carry. What *would* be a missing row is a story whose `Resolves:` line names a requirement and has no entry here. Neither the batch-2 nor the batch-3 rows run in requirement order, nor do batch 4's, and that is how they were filed rather than a transcription slip: `#17` resolves `FR-016` and `#15` resolves `FR-017`; `#22` resolves `FR-030` and `#34` resolves `FR-021`; `#47` resolves `FR-043` while `#43` resolves `FR-040`. The last three invert cleanly — `#58` resolves `FR-056`, `#59` resolves `FR-057` and `#60` resolves `FR-055` — and they are transcribed from the issues rather than sorted into agreement, which is the whole of the rule this paragraph states. A requirement code appearing in more than one row here is not a disagreement between the two directions and is never normalized away: `FR-001` is resolved by two stories, and both tables record it. A row naming two codes is the same case seen from the other side — `#29` and `#33` each resolve two records — and is likewise transcribed as it stands rather than split into a row apiece. A story here naming a requirement code that has no row in `INDEX.md` — the list of every ID ever issued — is a finding, not a row to keep.

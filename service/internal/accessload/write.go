@@ -11,11 +11,11 @@ import (
 
 // Record is what one load wrote.
 type Record struct {
-	ID                           int64
-	SHA256                       string
-	WayRows, BarrierRows         int64
-	BarrierWayRows, WayExitRows  int64
-	WayFeatures, BarrierFeatures int64
+	ID                                         int64
+	SHA256                                     string
+	WayRows, BarrierRows, AreaRows             int64
+	BarrierWayRows, WayExitRows                int64
+	WayFeatures, BarrierFeatures, AreaFeatures int64
 }
 
 // keyColumns are the twelve access keys' columns, in Keys' order.
@@ -37,6 +37,13 @@ var staging = []string{
 	) ON COMMIT DROP`,
 	`CREATE TEMP TABLE access_load_barrier_way (way_id bigint NOT NULL, node_id bigint NOT NULL) ON COMMIT DROP`,
 	`CREATE TEMP TABLE access_load_junction (way_id bigint NOT NULL, node_id bigint NOT NULL) ON COMMIT DROP`,
+	`CREATE TEMP TABLE access_load_area (
+		osm_type char(1) NOT NULL, osm_id bigint NOT NULL, ` + typedKeys() + `
+	) ON COMMIT DROP`,
+	`CREATE TEMP TABLE access_load_area_line (
+		osm_type char(1) NOT NULL, osm_id bigint NOT NULL, way_id bigint NOT NULL,
+		lons double precision[] NOT NULL, lats double precision[] NOT NULL
+	) ON COMMIT DROP`,
 }
 
 // typedKeys declares each key's column as text.
@@ -103,13 +110,45 @@ SELECT DISTINCT m.way_id, j.node_id
  WHERE m.marked
    AND (o.way_id IS NULL OR NOT o.marked)`
 
+	// An area, drawn from its linework: each way a line, the lines noded
+	// together, every face they enclose, and the union of the faces. Every
+	// face is taken, so a ring inside another fills rather than cuts a hole:
+	// an inner ring's interior is inside the area (the reader takes no role,
+	// read.go), which can only refuse more legs, never fewer, and a leg
+	// reaching a hole crosses the area round it anyway. An area whose
+	// linework encloses nothing yields no row, and the count below then
+	// fails the load.
+	insertAreas = `
+INSERT INTO public.access_area (osm_type, osm_id, ` + keyColumns + `, geom)
+SELECT a.osm_type, a.osm_id, ` + keyColumns + `, d.geom::geography
+  FROM pg_temp.access_load_area a
+ CROSS JOIN LATERAL (
+       SELECT ST_Multi(ST_CollectionExtract(ST_Union(f.geom), 3)) AS geom
+         FROM ST_Dump(ST_Polygonize(ARRAY[(
+                  SELECT ST_UnaryUnion(ST_Collect(
+                             (SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(p.lon, p.lat), 4326) ORDER BY p.ord)
+                                FROM unnest(l.lons, l.lats) WITH ORDINALITY AS p(lon, lat, ord))))
+                    FROM pg_temp.access_load_area_line l
+                   WHERE l.osm_type = a.osm_type AND l.osm_id = a.osm_id)])) AS f
+       ) d
+ WHERE d.geom IS NOT NULL AND NOT ST_IsEmpty(d.geom) AND ST_Area(d.geom) > 0`
+
+	// The areas staged that the insert drew no row for, to name in the
+	// failure.
+	undrawnAreas = `
+SELECT a.osm_type || a.osm_id
+  FROM pg_temp.access_load_area a
+ WHERE NOT EXISTS (SELECT 1 FROM public.access_area t WHERE t.osm_type = a.osm_type AND t.osm_id = a.osm_id)
+ ORDER BY 1
+ LIMIT 20`
+
 	retireCurrent = `UPDATE public.osm_extract_load SET current = false WHERE current`
 
 	insertRecord = `
 INSERT INTO public.osm_extract_load
        (extract_sha256, extract_timestamp, way_features, way_rows, barrier_features, barrier_rows,
         barrier_way_rows, way_exit_rows, area_features, area_rows, current)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, NULL, true)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
 RETURNING id`
 )
 
@@ -136,7 +175,7 @@ func Load(ctx context.Context, pool *pgxpool.Pool, ex *Extract) (Record, error) 
 		return Record{}, err
 	}
 
-	rec := Record{SHA256: ex.SHA256, WayFeatures: ex.WayFeatures, BarrierFeatures: ex.BarrierFeatures}
+	rec := Record{SHA256: ex.SHA256, WayFeatures: ex.WayFeatures, BarrierFeatures: ex.BarrierFeatures, AreaFeatures: ex.AreaFeatures}
 
 	if _, err := tx.Exec(ctx, truncateFeatures); err != nil {
 		return Record{}, fmt.Errorf("emptying the feature tables: %w", err)
@@ -151,6 +190,7 @@ func Load(ctx context.Context, pool *pgxpool.Pool, ex *Extract) (Record, error) 
 		{"the barriers", insertBarriers, &rec.BarrierRows},
 		{"the barriers' ways", insertBarrierWays, &rec.BarrierWayRows},
 		{"the ways' exits", insertExits, &rec.WayExitRows},
+		{"the areas", insertAreas, &rec.AreaRows},
 	} {
 		tag, err := tx.Exec(ctx, step.sql)
 		if err != nil {
@@ -161,6 +201,10 @@ func Load(ctx context.Context, pool *pgxpool.Pool, ex *Extract) (Record, error) 
 	}
 
 	// The record's own CHECK refuses counts that differ; this says which.
+	if rec.AreaRows != ex.AreaFeatures {
+		return Record{}, fmt.Errorf("a feature was lost on load: %d areas read and %d drawn; not drawn: %v", ex.AreaFeatures, rec.AreaRows, undrawn(ctx, tx))
+	}
+
 	if rec.WayRows != ex.WayFeatures || rec.BarrierRows != ex.BarrierFeatures || rec.BarrierWayRows != int64(len(ex.BarrierWays)) {
 		return Record{}, fmt.Errorf("a feature was lost on load: %d ways read and %d written, %d barriers read and %d written, %d barrier-way pairs read and %d written",
 			ex.WayFeatures, rec.WayRows, ex.BarrierFeatures, rec.BarrierRows, len(ex.BarrierWays), rec.BarrierWayRows)
@@ -176,7 +220,7 @@ func Load(ctx context.Context, pool *pgxpool.Pool, ex *Extract) (Record, error) 
 	}
 
 	if err := tx.QueryRow(ctx, insertRecord, ex.SHA256, timestamp, ex.WayFeatures, rec.WayRows, ex.BarrierFeatures,
-		rec.BarrierRows, rec.BarrierWayRows, rec.WayExitRows).Scan(&rec.ID); err != nil {
+		rec.BarrierRows, rec.BarrierWayRows, rec.WayExitRows, ex.AreaFeatures, rec.AreaRows).Scan(&rec.ID); err != nil {
 		return Record{}, fmt.Errorf("recording the load: %w", err)
 	}
 
@@ -185,6 +229,22 @@ func Load(ctx context.Context, pool *pgxpool.Pool, ex *Extract) (Record, error) 
 	}
 
 	return rec, nil
+}
+
+// undrawn names the areas the insert drew no row for, for the failure's
+// message. The load fails whatever it returns.
+func undrawn(ctx context.Context, tx pgx.Tx) []string {
+	rows, err := tx.Query(ctx, undrawnAreas)
+	if err != nil {
+		return []string{"(unreadable: " + err.Error() + ")"}
+	}
+
+	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return []string{"(unreadable: " + err.Error() + ")"}
+	}
+
+	return names
 }
 
 // stage copies ex into the staging tables.
@@ -217,6 +277,19 @@ func stage(ctx context.Context, tx pgx.Tx, ex *Extract) error {
 		barriers[i] = append(append([]any{b.ID, b.Barrier}, values(b.Values)...), b.Lon, b.Lat)
 	}
 
+	areaCols := append([]string{"osm_type", "osm_id"}, keyCols...)
+	areas := make([][]any, len(ex.Areas))
+
+	var lines [][]any
+
+	for i, a := range ex.Areas {
+		areas[i] = append([]any{string(a.Type), a.ID}, values(a.Values)...)
+
+		for _, l := range a.Lines {
+			lines = append(lines, []any{string(a.Type), a.ID, l.Way, l.Lons, l.Lats})
+		}
+	}
+
 	pairs := func(ps []Pair) [][]any {
 		out := make([][]any, len(ps))
 		for i, p := range ps {
@@ -235,6 +308,8 @@ func stage(ctx context.Context, tx pgx.Tx, ex *Extract) error {
 		{"access_load_barrier", barrierCols, barriers},
 		{"access_load_barrier_way", []string{"way_id", "node_id"}, pairs(ex.BarrierWays)},
 		{"access_load_junction", []string{"way_id", "node_id"}, pairs(ex.Junctions)},
+		{"access_load_area", areaCols, areas},
+		{"access_load_area_line", []string{"osm_type", "osm_id", "way_id", "lons", "lats"}, lines},
 	} {
 		n, err := tx.CopyFrom(ctx, pgx.Identifier{"pg_temp", c.table}, c.cols, pgx.CopyFromRows(c.rows))
 		if err != nil {

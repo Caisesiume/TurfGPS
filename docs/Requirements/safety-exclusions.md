@@ -57,7 +57,10 @@ Priority:     MUST
 Verification: test — an alternative whose additional time exceeds the ceiling
               is absent from the offered set, and one exceeding it while
               capturing the zone that carries the user's highest-ranked
-              attribute is equally absent
+              attribute is equally absent, and one whose leg was produced on a
+              connection avoiding a marking is absent where the figures of
+              that connection carry it past the ceiling though those of the
+              connection avoided would not
 Acceptance:   given a produced journey alternative whose additional time
               exceeds the ceiling, when recommendations are offered, then that
               alternative is not among them
@@ -68,8 +71,18 @@ Acceptance:   given a produced journey alternative whose additional time
               given a journey for which every produced alternative exceeds the
               ceiling, when recommendations are offered, then no alternative
               above the ceiling is offered in place of an empty set
+              given a produced journey alternative one of whose legs FR-125
+              produced on a connection avoiding a marking, and whose
+              additional time exceeds the ceiling at the figures of that
+              connection though not at those of the connection it avoided,
+              when recommendations are offered, then that alternative is not
+              among them
 Status:       to-build
-Depends-on:   FR-008; FR-044
+Depends-on:   FR-008; FR-044; FR-125
+Volatility:   settled — `CalculationSpecification.md § The absolute additional-time ceiling`
+              makes enforcement binding whatever value the constant holds; the
+              multiplier is a proposed default there, and this record states
+              no figure, so a revision of it moves nothing here
 Risk:         This is the product's one absolute promise about the user's
               time, and the pressure to break it arrives where it is least
               visible — a single highly valued zone just past the line, on a
@@ -90,8 +103,15 @@ Rationale:    The obligation is enforcement, not arithmetic: whatever value
               helpfulness: where everything produced is above the ceiling, the
               honest outcome is owned by
               `DESIGN.md § When nothing fits at all` and it is not an
-              above-ceiling recommendation. The re-check after every change
-              during review is a separate obligation, created by
+              above-ceiling recommendation. The fourth reads the figures
+              `Architecture.md § The route check` allows the ceiling check,
+              those of the leg that passed it and never those of the leg
+              before it was avoided (`DECISIONS.md § RD-086`): a leg avoided
+              around a marking is ordinarily slower than the one refused, so
+              a check reading the earlier figure passes every other criterion
+              while the journey served runs past the ceiling. The re-check
+              after every change during review is a separate obligation,
+              created by
               `SPECIFICATION.md § Consequences for the optimizer`, and is not
               authored here. Time is never grounds for relaxing a safety rule
               and value is never grounds for relaxing this one, per
@@ -260,7 +280,7 @@ Rationale:    Three readings of the quantity are available and two of them
               same quantity across a journey's legs and this record fixes what
               enters it on each leg; neither states the other. The arithmetic
               has one home and is cited, per `docs/README.md § Conventions`.
-Resolved-by:  —
+Resolved-by:  #71
 ```
 
 ## FR-069 — Reject a direct-access tolerance above the permitted value
@@ -312,7 +332,7 @@ Rationale:    The cited section names this an enforcement constant whose
               misconfiguration behind correct behaviour. The second criterion
               is what keeps this record from hardening a proposed default into
               a fixed figure.
-Resolved-by:  —
+Resolved-by:  #84
 ```
 
 ## FR-070 — Require compatible levels and no barrier for direct road access
@@ -377,7 +397,7 @@ Rationale:    This is one of the exclusions under
               `SPECIFICATION.md § Enforceable exclusions`, which FR-089
               carries for both branches and this record does not — so it
               cannot be read as the whole test for the class.
-Resolved-by:  —
+Resolved-by:  #85
 ```
 
 ## FR-076 — Exclude an absent, disconnected, or implausibly steep access path
@@ -483,7 +503,7 @@ Rationale:    The cited section lists the conditions on which a candidate is
               walk is priced for it. The fourth criterion is the branch this
               record ever fires on, on FR-045's precedent — an excluded
               candidate nobody wanted needs no rule.
-Resolved-by:  —
+Resolved-by:  #95
 ```
 
 ## FR-077 — Let no zone's value admit an unsafe or infeasible access route
@@ -554,7 +574,7 @@ Rationale:    Both cited sections state the same precedence from opposite
               which is the one kind the corpus rejects. Its antecedent is
               FR-076's threshold precisely because that quantity does not move
               with the user's setting.
-Resolved-by:  —
+Resolved-by:  #96
 ```
 
 ## FR-089 — Propose no stop on a road the exclusions refuse
@@ -653,7 +673,7 @@ Rationale:    The obligation is on the stop and not on a class, because that
               than making it. The constant those attributes are compared
               against has one home and is never quoted here, and that it may
               not be configured upward is FR-090's.
-Resolved-by:  —
+Resolved-by:  #80
 ```
 
 ## FR-090 — Reject a maximum stopping speed above the permitted value
@@ -716,7 +736,7 @@ Rationale:    `CalculationSpecification.md § Conventions` names the maximum
               is deliberately absent from `Source`: it measures the
               consequence of the constant against the zone corpus and states
               outright that it is not a source for the constant itself.
-Resolved-by:  —
+Resolved-by:  #81
 ```
 
 ## FR-091 — Plan no journey while an owed enforcement constant is unconfigured
@@ -804,7 +824,7 @@ Rationale:    The cited section records these constants as required for the
               batch that owns it, and this record states what may not happen
               meanwhile. Neither value nor shape is quoted, since neither
               exists.
-Resolved-by:  —
+Resolved-by:  #97
 ```
 
 ## FR-125 — Route no driving leg through a private or access-restricted way or barrier
@@ -1358,7 +1378,7 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               reaches a driving leg; the walking access path's half stays owed
               with FR-075 until an access path is built. No mechanism is
               named, and a penalty is not an exclusion.
-Resolved-by:  #253
+Resolved-by:  #253, #292, #293
 ```
 
 ## FR-129 — Produce a warned leg where nothing avoids a marking between two locations the user entered

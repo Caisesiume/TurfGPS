@@ -75,12 +75,22 @@ func input(t *testing.T, name string) string {
 type feature struct {
 	tags     map[string]string
 	nodes    []int64
-	lon, lat float64 // a node's
+	lon, lat float64  // a node's
+	members  []member // a relation's
+}
+
+// member is one member of a relation, as OPL writes it: its type's letter,
+// its id and its role.
+type member struct {
+	kind byte
+	ref  int64
+	role string
 }
 
 type oplExtract struct {
-	nodes map[int64]feature
-	ways  map[int64]feature
+	nodes     map[int64]feature
+	ways      map[int64]feature
+	relations map[int64]feature
 }
 
 var oplEscape = regexp.MustCompile(`%([0-9a-fA-F]+)%`)
@@ -100,7 +110,8 @@ func unescape(s string) string {
 // (https://osmcode.org/opl-file-format/): one object a line, its fields
 // separated by spaces, its tags in the field opening with T, a way's nodes in
 // the field opening with N, and a node's longitude and latitude in the fields
-// opening with x and y.
+// opening with x and y, and a relation's members in the field opening with M,
+// each its type's letter, its id, @ and its role.
 func readOPL(t *testing.T) *oplExtract {
 	t.Helper()
 
@@ -110,7 +121,7 @@ func readOPL(t *testing.T) *oplExtract {
 	}
 	defer func() { _ = f.Close() }()
 
-	ex := &oplExtract{nodes: map[int64]feature{}, ways: map[int64]feature{}}
+	ex := &oplExtract{nodes: map[int64]feature{}, ways: map[int64]feature{}, relations: map[int64]feature{}}
 
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 1<<20), 1<<24)
@@ -144,6 +155,21 @@ func readOPL(t *testing.T) *oplExtract {
 
 					ft.nodes = append(ft.nodes, ref)
 				}
+			case strings.HasPrefix(fl, "M") && len(fl) > 1:
+				for _, m := range strings.Split(fl[1:], ",") {
+					if len(m) < 2 {
+						t.Fatalf("relation %d's member %q", id, m)
+					}
+
+					ref, role, _ := strings.Cut(m[1:], "@")
+
+					r, err := strconv.ParseInt(ref, 10, 64)
+					if err != nil {
+						t.Fatalf("relation %d's member %q", id, m)
+					}
+
+					ft.members = append(ft.members, member{kind: m[0], ref: r, role: unescape(role)})
+				}
 			case strings.HasPrefix(fl, "x") && len(fl) > 1:
 				if ft.lon, err = strconv.ParseFloat(fl[1:], 64); err != nil {
 					t.Fatalf("node %d's longitude %q", id, fl)
@@ -160,6 +186,8 @@ func readOPL(t *testing.T) *oplExtract {
 			ex.nodes[id] = ft
 		case 'w':
 			ex.ways[id] = ft
+		case 'r':
+			ex.relations[id] = ft
 		}
 	}
 

@@ -69,7 +69,7 @@ Rationale:    The obligation is created by the cited section requiring the
               'It wouldn't be a large selection, since the routes will be
               prioritizing attribute zones, so there will be significantly
               less zones than the total number'.
-Resolved-by:  —
+Resolved-by:  #73
 ```
 
 ## FR-064 — Promote no more candidates to full evaluation than the cap
@@ -117,7 +117,7 @@ Rationale:    The cap binds per route alternative because that is the unit the
               illustrates; that example is fictional in its identity alone,
               and the duty it draws on is created here and is owed a real
               record.
-Resolved-by:  —
+Resolved-by:  #74
 ```
 
 ## FR-065 — Record where the promotion cap bound
@@ -162,7 +162,7 @@ Rationale:    The cited calculation section states that where the cap binds it
               system can record this perfectly and say nothing, which is the
               state the cited section's own reasoning rules out, and the Owner
               ruled on 7 August 2026 that both halves are owed.
-Resolved-by:  —
+Resolved-by:  #75
 ```
 
 ## FR-080 — Apply the configured maximum walking distance as a bound
@@ -216,5 +216,5 @@ Rationale:    The cited section states both halves: the configured maximum
               and neither is restated here. Per-attribute limits are permitted
               by the source and are not obliged here: the source's word is
               may, and a record obliging them would fail Necessary.
-Resolved-by:  —
+Resolved-by:  #91
 ```

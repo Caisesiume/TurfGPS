@@ -24,7 +24,7 @@ Acceptance:   given a journey alternative holding at least one Turf stop, when
               corresponding journey without Turf stops
               given a journey alternative holding no Turf stop, when its cost
               is computed, then no additional time is attributed to it
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   FR-001
 Volatility:   settled — the record names what cost is measured against and
               cites the arithmetic rather than restating it, so no proposed
@@ -53,7 +53,12 @@ Rationale:    The section states what cost is measured against; the arithmetic
               computable and two Turf strategies on one road comparable. Only
               `Risk` moved, which had claimed the additional-time target and
               the ceiling rest on this record's quantity; they rest on
-              FR-061's, and this one is what FR-061's is built from.
+              FR-061's, and this one is what FR-061's is built from. An
+              alternative whose estimated duration falls below that of its
+              general route is charged the negative difference as it stands,
+              never a figure clamped at zero (`DECISIONS.md § RD-084`): the
+              first criterion is an equality, and FR-062's two quantities sum
+              to the total FR-061 tests only unclamped.
 Resolved-by:  #7
 ```
 
@@ -79,7 +84,7 @@ Acceptance:   given a journey alternative capturing a zone that lies on the
               driving deviation, when its additional time is computed, then
               that time carries both the changed driving time and the stop's
               time
-Status:       to-build
+Status:       implemented-verified
 Depends-on:   FR-008
 Risk:         A zone priced at its detour alone is free whenever it sits on
               the route, so the optimizer fills the journey with roadside
@@ -184,7 +189,7 @@ Rationale:    The section obliges the system to distinguish general route
               Risk is omitted and its argument folded here, on FR-025's
               precedent: the ceiling and the stated limit are tested against
               the total by FR-061 whether or not the halves are separable.
-Resolved-by:  —
+Resolved-by:  #72
 ```
 
 ## FR-074 — Compute access cost from the routed path and its elevation profile
@@ -242,7 +247,7 @@ Rationale:    The cited section permits a straight-line measurement as an
               forbidding the fallback where it is the honest estimate; that a
               candidate priced by it may never hold a confident class is
               FR-083's.
-Resolved-by:  —
+Resolved-by:  #89
 ```
 
 ## FR-079 — Price a park-and-walk stop over the set of zones it serves
@@ -307,7 +312,7 @@ Rationale:    The cited section makes a stop serving several zones the common
               with no walking is returned with this batch rather than authored
               here. The order in which the zones are walked is method rather
               than outcome and is not authored.
-Resolved-by:  —
+Resolved-by:  #94
 ```
 
 ## FR-093 — Compute both halves of a stop against one resolved stopping position
@@ -397,5 +402,5 @@ Rationale:    The cited section chains the walk from the proposed stopping
               restates either cost model — what each half computes is FR-074's
               and FR-086's, and this record binds only that they agree about
               where the car stopped.
-Resolved-by:  —
+Resolved-by:  #105
 ```

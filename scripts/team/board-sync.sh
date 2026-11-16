@@ -7,7 +7,8 @@
 #   Ordered Revision  ...and that PR carries judge:remanded
 #   Backlog           an open item with no Status at all — auto-add leaves it empty
 #   Ready             a Backlog item `scripts/loop/dependents.sh --all` lists as eligible:
-#                     it declares blockers and every one is satisfied
+#                     it declares blockers, every one is satisfied, and no `_Pending …_`
+#                     placeholder is left in its `## Dependencies` (#295)
 # Flagged, never moved: an issue closed NOT_PLANNED or DUPLICATE outside Done, an open
 # issue sitting in Done, and an item In review or Ordered Revision with no open PR.
 # It never sets `In progress` — the lead does when it dispatches — and never promotes

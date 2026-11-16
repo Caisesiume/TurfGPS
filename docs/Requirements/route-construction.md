@@ -51,7 +51,7 @@ Rationale:    The cited section states the rule and the failures it prevents:
               charged once follows from this record together with FR-008 and
               is not authored separately. That the resulting cost is specific
               to one journey and one direction is FR-087's.
-Resolved-by:  —
+Resolved-by:  #103
 ```
 
 ## FR-087 — Reuse no candidate's detour cost across journeys
@@ -102,5 +102,5 @@ Rationale:    The cited section states that a candidate's cost is meaningful
               — FR-086's is visible in one journey's numbers, this one's only
               in the second journey, which is exactly why it survives the
               tests written for the first.
-Resolved-by:  —
+Resolved-by:  #104
 ```

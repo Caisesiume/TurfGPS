@@ -163,7 +163,7 @@ Rationale:    The cited calculation section's stated reason for recording the
               its argument folded here, on FR-025's precedent: the failure
               withholds a caveat rather than sending a driver anywhere, and
               FR-065 carries the diagnostic loss.
-Resolved-by:  —
+Resolved-by:  #76
 ```
 
 ## FR-088 — State the material uncertainty in an access estimate
@@ -226,7 +226,7 @@ Rationale:    The cited section obliges the recommendation to communicate
               the labelling of an unverified stop an obligation in the same
               list as the exclusions, and the record is on the safety set on
               the sentinel's ruling of 7 August 2026.
-Resolved-by:  —
+Resolved-by:  #102
 ```
 
 ## FR-131 — Identify every marked stretch of a warned leg
