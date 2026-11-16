@@ -15,8 +15,14 @@ import (
 // API's route or payload: `Architecture.md § The call budget` draws the request
 // as origin, destination and budget and fixes no form. This is the smallest
 // shape `FR-001` and `FR-002` need — an origin, a destination and an optional
-// ordered list of intermediate destinations in (#2), the journey out — and the
+// ordered list of intermediate destinations in (#2), the journey out, each leg
+// saying whether it is warned and naming its marked stretches (#271) — and the
 // story that designs the API replaces it rather than extends it.
+//
+// A JOURNEY WITH A WARNED LEG IS ANSWERED, NOT REFUSED (#271, `RD-067`). Where
+// nothing avoids a marking between two locations the user entered, the
+// planner produces the leg warned, and it is answered 200 with the journey; a
+// journey it still refuses is the 502 below.
 //
 // Locations are coordinates. Search, pins and zone names (`DESIGN.md
 // § Locations`) resolve to one before planning, through the `Geocoder` port,
@@ -73,8 +79,31 @@ type journeyResponse struct {
 	Legs      []wireLeg   `json:"legs"`
 }
 
+// wireLeg is a leg of the journey. warned is always written, so a client
+// reading the shape is never left to infer from an absent field that the leg
+// is an ordinary road (#271, `FR-129`); marked names each marked stretch of a
+// warned leg on the shape (`FR-131`), and is absent from a leg not warned.
+//
+// NO CLIENT READS IT YET. Showing the warned leg, its warning and the
+// confirmation is the frontend story's (`FR-132` to `FR-134`); until it lands,
+// a client must show a journey holding a warned leg as not planned.
 type wireLeg struct {
-	Shape []wirePoint `json:"shape"`
+	Shape  []wirePoint  `json:"shape"`
+	Warned bool         `json:"warned"`
+	Marked []wireMarked `json:"marked,omitempty"`
+}
+
+// wireMarked is one marked stretch of a warned leg: the feature, "way" or
+// "barrier" with its OpenStreetMap type and id, and the stretch as indices
+// into the leg's shape, from and to both included. A barrier carries the
+// point the leg passes it at as well.
+type wireMarked struct {
+	Kind    string     `json:"kind"`
+	OSMType string     `json:"osm_type"`
+	OSMID   int64      `json:"osm_id"`
+	From    int        `json:"from"`
+	To      int        `json:"to"`
+	At      *wirePoint `json:"at,omitempty"`
 }
 
 // errPlanTimedOut is the cause a plan's own deadline is given, so that the
@@ -219,7 +248,17 @@ func encodeJourney(j planner.Journey) journeyResponse {
 	out := journeyResponse{Locations: encodePoints(j.Locations), Legs: make([]wireLeg, len(j.Legs))}
 
 	for i, leg := range j.Legs {
-		out.Legs[i] = wireLeg{Shape: encodePoints(leg.Shape)}
+		out.Legs[i] = wireLeg{Shape: encodePoints(leg.Shape), Warned: leg.Warned}
+
+		for _, m := range leg.Marked {
+			w := wireMarked{Kind: m.Kind, OSMType: m.OSMType, OSMID: m.OSMID, From: m.From, To: m.To}
+			if m.Kind == "barrier" {
+				at := wirePoint(m.At)
+				w.At = &at
+			}
+
+			out.Legs[i].Marked = append(out.Legs[i].Marked, w)
+		}
 	}
 
 	return out

@@ -43,12 +43,14 @@ type legEnds struct {
 	toEntered   bool
 }
 
-// refusing returns the crossings that refuse the leg, and the places to ask
-// the provider to avoid in a new answer. No crossing refusing is a leg
-// admitted. An error means the leg could not be read and is not served.
-func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossing, ends legEnds) ([]Crossing, []Point, error) {
+// refusing returns the crossings that refuse the leg, the places to ask the
+// provider to avoid in a new answer, and whether any refused crossing lies on
+// the run at a location the user entered, which was then not admitted. No
+// crossing refusing is a leg admitted. An error means the leg could not be
+// read and is not served.
+func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossing, ends legEnds) ([]Crossing, []place, bool, error) {
 	if len(crossings) == 0 {
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 
 	admitted := make([]bool, len(crossings))
@@ -56,7 +58,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 	// An end's run is the edges from it; at the leg's far end that is its
 	// edges reversed, so one reading serves both.
 	var (
-		places []Point
+		places []place
 		run    = [2][]int{}
 	)
 
@@ -88,7 +90,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 		case errors.Is(err, ErrNoLeastRun):
 			continue
 		case err != nil:
-			return nil, nil, err
+			return nil, nil, false, err
 		case !measurable(measure.Marked) || !measurable(measure.Least):
 			// A length that is not one is no bound.
 			continue
@@ -97,7 +99,7 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 			// use; never the location's own way, where every run starts.
 			for _, e := range order[1:k] {
 				if w := edges[e].WayID; w != edges[order[0]].WayID && !slices.Contains(measure.LeastWays, w) {
-					places = append(places, onEdge(edges[e]))
+					places = append(places, place{at: onEdge(edges[e]), ways: []int64{w}})
 				}
 			}
 
@@ -116,7 +118,10 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 		}
 	}
 
-	var refused []Crossing
+	var (
+		refused    []Crossing
+		runRefused bool
+	)
 
 	for j, c := range crossings {
 		if admitted[j] {
@@ -129,18 +134,20 @@ func (p *Planner) refusing(ctx context.Context, edges []Edge, crossings []Crossi
 		// own ways are the location's way out, and the longer-than-least case
 		// above names what to avoid on it.
 		if slices.Contains(run[0], c.Edge) || slices.Contains(run[1], c.Edge) {
+			runRefused = true
+
 			continue
 		}
 
 		switch c.Kind {
 		case "way":
-			places = append(places, onEdge(edges[c.Edge]))
+			places = append(places, place{at: onEdge(edges[c.Edge]), ways: []int64{edges[c.Edge].WayID}})
 		case "barrier":
-			places = append(places, c.At)
+			places = append(places, place{at: c.At, ways: barrierWays(edges, crossings, c.OSMID)})
 		}
 	}
 
-	return refused, places, nil
+	return refused, places, runRefused, nil
 }
 
 // edgeOrder is the leg's edge indices from one end: from its start, or from
@@ -190,11 +197,17 @@ func passes(crossings []Crossing, edge int, node int64) bool {
 }
 
 // onEdge is the point the provider is asked to avoid for an edge: the middle
-// of its longest segment, which lies on the edge's own way and at no junction,
-// so the roads at it are the edge's way alone. The middle is the mean of the
-// segment's ends, which lies on the segment to within far less than any road's
-// width at a segment's length; where a provider maps it to the roads at it,
-// the way it lies on is the nearest.
+// of its longest segment, which lies on the edge's own way and as far from the
+// segment's ends as any point of it. It is not thereby at no junction. A
+// provider may map a point near a junction to the junction and keep a route
+// off every road there — Valhalla does within its node snap tolerance, so on
+// an edge whose longest segment is shorter than twice that, the point is
+// mapped to an end of the edge and the roads at that end are kept off with it
+// (`internal/valhalla`'s Excluded cites where). What a provider keeps off for
+// the point is therefore never assumed: a no-route answer is believed only
+// where the provider names the edge's way alone (noRouteShown). The middle is
+// the mean of the segment's ends, which lies on the segment to within far less
+// than any road's width at a segment's length.
 func onEdge(e Edge) Point {
 	best, at := -1.0, 0
 

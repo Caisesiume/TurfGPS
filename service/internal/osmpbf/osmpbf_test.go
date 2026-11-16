@@ -255,7 +255,7 @@ func TestTheCommittedExtractReadsWhole(t *testing.T) {
 		t.Fatalf("Read: %v", err)
 	}
 
-	if got := []int{len(c.nodes), len(c.ways), len(c.rels)}; got[0] != 14744 || got[1] != 4364 || got[2] != 64 {
-		t.Errorf("the extract holds %v nodes, ways and relations, want [14744 4364 64] as its README records", got)
+	if got := []int{len(c.nodes), len(c.ways), len(c.rels)}; got[0] != 14796 || got[1] != 4397 || got[2] != 64 {
+		t.Errorf("the extract holds %v nodes, ways and relations, want [14796 4397 64] as its README records", got)
 	}
 }

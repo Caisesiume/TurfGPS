@@ -22,10 +22,10 @@ This file is a derivative database of OpenStreetMap. It is licensed under the
 ODbL, and **not** under this repository's `LICENSE`, which covers the code. Anything
 derived from it is subject to the ODbL's share-alike terms.
 
-**Not everything in it is from OpenStreetMap.** 411 ways, 555 nodes and two
-relations are synthetic, written for #255's, #248's and #253's tests: every
-object with an id of 9,000,000,000,000,000,000 or above. *The synthetic cases*,
-below, says which and why.
+**Not everything in it is from OpenStreetMap.** 444 ways, 607 nodes and two
+relations are synthetic, written for #255's, #248's, #253's and #271's tests:
+every object with an id of 9,000,000,000,000,000,000 or above. *The synthetic
+cases*, below, says which and why.
 
 ## What it holds
 
@@ -33,7 +33,7 @@ below, says which and why.
 |---|---|
 | Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 56.80–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the box's area features carrying an access key (#253), with the member ways and nodes they reference; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 209,480 bytes; SHA-256 `fbb19417dcc0c40dc72e93172f406aff1f3dd76b0d5c22382ed3a4a78e78269f` — 14,744 nodes, 4,364 ways, 64 relations |
+| Size | 209,882 bytes; SHA-256 `6deb1da6cf43655a54728c45a4f878db2b600b68314f7e28e7731e88ee0b3fb6` — 14,796 nodes, 4,397 ways, 64 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z; the box's areas: `osm_base` 2026-11-15T22:56:51Z; each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, the box's areas on 15 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; the box's areas: `access-area-cases.overpassql`; all beside this file. The synthetic cases are `access-marking-synthetic.osm` and `access-area-synthetic.osm`, beside it too |
@@ -58,7 +58,20 @@ cases and before the cases of its safety review (PR #296: S1 and S2, cases 21
 to 23), the file was 209,197 bytes, SHA-256
 `7fd5c62d55d17eb680b945e43c49e8d70d57f47e744b059a37d97ed3c401d885`; adding
 them changed none of its 19,104 objects and added 68, compared object by
-object.
+object. With all of #253's cases and before #271's, the file was 209,480
+bytes, SHA-256
+`fbb19417dcc0c40dc72e93172f406aff1f3dd76b0d5c22382ed3a4a78e78269f`; adding
+#271's, layouts j=0 to j=3, changed none of its 19,172 objects and added 85,
+compared object by object (PR #297). They were first merged into the file
+holding #248's cases and not #253's, 199,930 bytes, SHA-256
+`6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113`: layouts
+j=0 to j=2 added 39 objects, giving 200,117 bytes, SHA-256
+`74d751f8a248d8a8bff88fba2cbda6da9c705872f9a06fe64b910e90b7f986d4`, and
+layout j=3 46 more, giving 200,327 bytes, SHA-256
+`b192646dd793ab0da32a9f45530fd7031eb6c29ff11e53e28d1f1d00dc71df51`; each
+changed none of the objects before it. Merging that last file into #253's
+gives the committed file byte for byte, as merging
+`access-marking-synthetic.osm` into it does.
 
 ## The box's areas (#253)
 
@@ -237,6 +250,62 @@ what a regeneration keeps:
 | 21 | `access=no`, on a `type=boundary` relation, `boundary=protected_area` `leisure=nature_reserve` | yes | AC2; S1 on PR #296 |
 | 22, 23 | `access=private`, on a closed `highway=rest_area`; on a closed `highway=services`; neither with `area=yes` | yes | AC2; S2 on PR #296 |
 
+### #271's cases
+
+#271's criteria name two layouts the file held no instance of — a marking
+every connection passes with a second one further on that a way round avoids,
+and two connections each through a marking of its own — and a warned leg past
+both a marked way and a marked barrier, which #248's cases name only along a
+run. They were written by a script for #271 and are the `#271` block of
+`access-marking-synthetic.osm`; their ids are a range of their own:
+
+- **Layout j lies along 57.034 + 0.005j ° N**, 11.700–11.712 E, between #255's
+  last case (57.030 N) and #248's first (57.050 N), so the band of *The
+  synthetic cases* holds; its node ids are 9×10¹⁸ + 271,000 + 100j + k and its
+  way ids 9×10¹⁸ + 27,100 + 20j + k, a range named for the story so that no
+  other story's synthetic cases take it. Every way is `highway=residential` and
+  carries `note=synthetic, not from OpenStreetMap: TurfGPS #271 test case`.
+- **Every gate is a node `barrier=lift_gate` `access=residents`**, the tagging
+  of #248's AC3 and AC12 cases, which the engine routes through where nothing
+  goes round it (#248's AC12, second case). **The marked way is tagged
+  `motorcar=yes` `motor_vehicle:backward=no`, drawn east**, which the check
+  marks in both directions (`RD-065`) and the engine drives east, as #255's
+  case on way 2 shows, so the engine's own first answer runs along it and the
+  warned leg's search for less, not the engine's own avoidance, is what keeps
+  it off the leg.
+
+| Layout | Ways (k) | Gate (node k) | Round it | Criterion |
+|---|---|---|---|---|
+| j=0 | 1, 2 (through the gate), 3 (the marked way, 11.706–11.709 E), 4 | 3, at 11.7045 E, on way 2 | ways 5–7, 0.002° north of way 3; nothing round the gate | AC4 |
+| j=1 | 1, 2 (through gate 3), 3; ways 4–6, 0.002° north, through gate 7 | 3 and 7, each at 11.7045 E | each connection is the way round the other's gate | AC5 |
+| j=2 | 1, 2 (the marked way, 11.703–11.706 E), 3 (through the gate), 4 | 4, at 11.7075 E, on way 3 | nothing | AC6 |
+
+The ends of each are points at 11.7010 E and, on the last way, 11.7080 E
+(j=1) or 11.7100 E (j=0, j=2).
+
+**Layout j=3 is the snap of a place to avoid to a junction** (S1 of PR #297's
+safety verdict), and lies east of 11.715 E, where the synthetic band holds
+nothing else. It has three blocks, each a public road through a junction J,
+a marked branch leaving J south whose place to avoid lies within Valhalla's
+node snap tolerance (5 m by default) of J, and a way round the branch that
+continues through J, so that an exclusion reaching J keeps a route off the
+way round too. Its ids follow the rule above; one way, the footway, is
+`highway=footway` and not `residential`.
+
+| Block | Along | J (node k) | The branch | Round it | Ends |
+|---|---|---|---|---|---|
+| A | 57.049 N, 11.718–11.724 E | 3, on way 2 | way 3, tagged `motorcar=yes` `motor_vehicle:backward=no`, drawn J → K → M; footway 4 crosses it at K (node 5), 4 m south of J, so its first edge is J–K alone | way 5, then way 6 back to M | 11.7190 E on way 1 and on way 6, 57.047 N |
+| B1 | 57.044 N, 11.735–11.741 E | 23, on way 8 | way 9, through a `lift_gate` `access=residents` at node 25, 3 m south of J | way 10, 0.2° east and back, about 25 km | 11.7360 E on way 7 and on way 11, 57.042 N |
+| B2 | 57.039 N, 11.734–11.740 E | 43, on way 13 | way 14, through the same gate at node 45, 3 m south of J | way 15, the same | 11.7350 E on way 12 and on way 16, 57.037 N |
+
+The way round B1 and B2's gate is long so that the engine's own route, which
+the gate's penalties do not outweigh, passes the gate. B1 and B2 differ in
+where J falls in the tile's spatial order of nodes against the gate
+(`src/mjolnir/graphbuilder.cc`, SortGraph, at 3.9.1), which, as the search
+in `src/loki/search.cc` reads, decides whether the engine maps the gate's
+position to the gate or to J. The test does not rely on that reading: it asks
+the engine (`/locate`) which, and requires that at least one is mapped to J.
+
 Each test establishes its case from the file before measuring it, and asks the
 engine, with `ignore_access`, whether the quickest connection between the ends
 runs along the marking, so a regeneration that loses a case fails them.
@@ -302,7 +371,8 @@ box's areas from `access-area-cases.overpassql`, into `access-area-cases.osm`,
 and merge them and both synthetic files into the box's PBF. pyosmium 4.3.2's merge sorts
 and de-duplicates, and gave the committed file byte for byte on two runs (#248's
 cases were merged the same way into the file before them, which holds the box
-and #255's cases, with the same result on two runs):
+and #255's cases, and #271's into the file holding #248's, each with the same
+result on two runs):
 
 ```bash
 python -c "import osmium, sys; r = osmium.MergeInputReader(); [r.add_file(f) for f in sys.argv[1:-1]]; h = osmium.WriteHandler(sys.argv[-1]); r.apply(h); h.close()" \
@@ -311,7 +381,8 @@ python -c "import osmium, sys; r = osmium.MergeInputReader(); [r.add_file(f) for
 
 #253's areas and synthetic cases were merged the same way into the file before
 them, which holds the box and #255's and #248's cases, with the same result on
-two runs; so were cases 21 to 23, into the file holding the rest of #253's.
+two runs; so were cases 21 to 23, into the file holding the rest of #253's,
+and #271's, into the file holding all of #253's (PR #297).
 
 where `box.osm.pbf` is the box converted as above, under that name. Delete
 `access-marking-cases.osm`, `access-area-cases.osm`, the box's `.osm` and

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- NOT FROM OPENSTREETMAP. Synthetic access-marking cases for #255 and #248,
+<!-- NOT FROM OPENSTREETMAP. Synthetic access-marking cases for #255, #248 and #271,
      written for their tests because the extract holds no instance of them
      (README.md beside this file, "The synthetic cases"). Every id is 9000000000000000000 or above, a
      range OpenStreetMap's ids cannot reach; every way carries a note saying so.
      They lie in the Kattegat, more than 35 km from every other object of the
      extract, joined to nothing else. -->
-<osm version="0.6" generator="written for TurfGPS #255 and #248">
+<osm version="0.6" generator="written for TurfGPS #255, #248 and #271">
   <!-- AC6 third clause and AC7 third case: a road of three ways running east,
        the middle one tagged motorcar=yes with motor_vehicle:backward=no. -->
   <node id="9000000000000000101" lat="57.0000000" lon="11.7000000"/>
@@ -1577,5 +1577,311 @@
     <nd ref="9000000000000013207"/>
     <tag k="highway" v="residential"/>
     <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #248 test case"/>
+  </way>
+  <!-- #271: three road layouts of the warned leg, along 57.034 + 0.005j N.
+       j=0 (AC4): a lift_gate on the only way between the two halves, then a
+       way tagged motorcar=yes with motor_vehicle:backward=no, with three
+       unmarked ways round it to the north. j=1 (AC5): two connections, each
+       through a lift_gate of its own. j=2 (AC6): the same marked way, then a
+       lift_gate, nothing round either. -->
+  <node id="9000000000000271001" lat="57.0340000" lon="11.7000000"/>
+  <node id="9000000000000271002" lat="57.0340000" lon="11.7030000"/>
+  <node id="9000000000000271004" lat="57.0340000" lon="11.7060000"/>
+  <node id="9000000000000271005" lat="57.0340000" lon="11.7090000"/>
+  <node id="9000000000000271006" lat="57.0340000" lon="11.7120000"/>
+  <node id="9000000000000271003" lat="57.0340000" lon="11.7045000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <node id="9000000000000271007" lat="57.0360000" lon="11.7060000"/>
+  <node id="9000000000000271008" lat="57.0360000" lon="11.7090000"/>
+  <node id="9000000000000271101" lat="57.0390000" lon="11.7000000"/>
+  <node id="9000000000000271102" lat="57.0390000" lon="11.7030000"/>
+  <node id="9000000000000271104" lat="57.0390000" lon="11.7060000"/>
+  <node id="9000000000000271105" lat="57.0390000" lon="11.7090000"/>
+  <node id="9000000000000271103" lat="57.0390000" lon="11.7045000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <node id="9000000000000271106" lat="57.0410000" lon="11.7030000"/>
+  <node id="9000000000000271108" lat="57.0410000" lon="11.7060000"/>
+  <node id="9000000000000271107" lat="57.0410000" lon="11.7045000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <node id="9000000000000271201" lat="57.0440000" lon="11.7000000"/>
+  <node id="9000000000000271202" lat="57.0440000" lon="11.7030000"/>
+  <node id="9000000000000271203" lat="57.0440000" lon="11.7060000"/>
+  <node id="9000000000000271205" lat="57.0440000" lon="11.7090000"/>
+  <node id="9000000000000271206" lat="57.0440000" lon="11.7120000"/>
+  <node id="9000000000000271204" lat="57.0440000" lon="11.7075000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <way id="9000000000000027101">
+    <nd ref="9000000000000271001"/>
+    <nd ref="9000000000000271002"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027102">
+    <nd ref="9000000000000271002"/>
+    <nd ref="9000000000000271003"/>
+    <nd ref="9000000000000271004"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027103">
+    <nd ref="9000000000000271004"/>
+    <nd ref="9000000000000271005"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motorcar" v="yes"/>
+    <tag k="motor_vehicle:backward" v="no"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027104">
+    <nd ref="9000000000000271005"/>
+    <nd ref="9000000000000271006"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027105">
+    <nd ref="9000000000000271004"/>
+    <nd ref="9000000000000271007"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027106">
+    <nd ref="9000000000000271007"/>
+    <nd ref="9000000000000271008"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027107">
+    <nd ref="9000000000000271008"/>
+    <nd ref="9000000000000271005"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027121">
+    <nd ref="9000000000000271101"/>
+    <nd ref="9000000000000271102"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027122">
+    <nd ref="9000000000000271102"/>
+    <nd ref="9000000000000271103"/>
+    <nd ref="9000000000000271104"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027123">
+    <nd ref="9000000000000271104"/>
+    <nd ref="9000000000000271105"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027124">
+    <nd ref="9000000000000271102"/>
+    <nd ref="9000000000000271106"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027125">
+    <nd ref="9000000000000271106"/>
+    <nd ref="9000000000000271107"/>
+    <nd ref="9000000000000271108"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027126">
+    <nd ref="9000000000000271108"/>
+    <nd ref="9000000000000271104"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027141">
+    <nd ref="9000000000000271201"/>
+    <nd ref="9000000000000271202"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027142">
+    <nd ref="9000000000000271202"/>
+    <nd ref="9000000000000271203"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motorcar" v="yes"/>
+    <tag k="motor_vehicle:backward" v="no"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027143">
+    <nd ref="9000000000000271203"/>
+    <nd ref="9000000000000271204"/>
+    <nd ref="9000000000000271205"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027144">
+    <nd ref="9000000000000271205"/>
+    <nd ref="9000000000000271206"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <!-- #271, layout j=3: the snap of a place to avoid to a junction (S1 of
+       PR #297's safety verdict), east of 11.715 E. Block A, along 57.049 N:
+       a public road through junction J, and a way tagged motorcar=yes with
+       motor_vehicle:backward=no leaving J whose first edge, cut by a
+       footway 4 m from J, is that short; a way round it through J. Blocks B1
+       and B2, along 57.044 and 57.039 N: the same road, a lift_gate 3 m
+       from J on the branch, and a way round it through J, 0.2 deg east and
+       back. -->
+  <node id="9000000000000271301" lat="57.0490000" lon="11.7180000"/>
+  <node id="9000000000000271302" lat="57.0490000" lon="11.7200000"/>
+  <node id="9000000000000271303" lat="57.0490000" lon="11.7210000"/>
+  <node id="9000000000000271304" lat="57.0490000" lon="11.7240000"/>
+  <node id="9000000000000271305" lat="57.0489640" lon="11.7210000"/>
+  <node id="9000000000000271306" lat="57.0470000" lon="11.7210000"/>
+  <node id="9000000000000271307" lat="57.0470000" lon="11.7240000"/>
+  <node id="9000000000000271308" lat="57.0470000" lon="11.7180000"/>
+  <node id="9000000000000271309" lat="57.0489640" lon="11.7205000"/>
+  <node id="9000000000000271310" lat="57.0489640" lon="11.7215000"/>
+  <node id="9000000000000271321" lat="57.0440000" lon="11.7350000"/>
+  <node id="9000000000000271322" lat="57.0440000" lon="11.7370000"/>
+  <node id="9000000000000271323" lat="57.0440000" lon="11.7380000"/>
+  <node id="9000000000000271324" lat="57.0440000" lon="11.7410000"/>
+  <node id="9000000000000271325" lat="57.0439730" lon="11.7380000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <node id="9000000000000271326" lat="57.0420000" lon="11.7380000"/>
+  <node id="9000000000000271327" lat="57.0420000" lon="11.7410000"/>
+  <node id="9000000000000271328" lat="57.0420000" lon="11.7350000"/>
+  <node id="9000000000000271329" lat="57.0440000" lon="11.9500000"/>
+  <node id="9000000000000271330" lat="57.0420000" lon="11.9500000"/>
+  <node id="9000000000000271341" lat="57.0390000" lon="11.7340000"/>
+  <node id="9000000000000271342" lat="57.0390000" lon="11.7360000"/>
+  <node id="9000000000000271343" lat="57.0390000" lon="11.7370000"/>
+  <node id="9000000000000271344" lat="57.0390000" lon="11.7400000"/>
+  <node id="9000000000000271345" lat="57.0389730" lon="11.7370000">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access" v="residents"/>
+  </node>
+  <node id="9000000000000271346" lat="57.0370000" lon="11.7370000"/>
+  <node id="9000000000000271347" lat="57.0370000" lon="11.7400000"/>
+  <node id="9000000000000271348" lat="57.0370000" lon="11.7340000"/>
+  <node id="9000000000000271349" lat="57.0390000" lon="11.9500000"/>
+  <node id="9000000000000271350" lat="57.0370000" lon="11.9500000"/>
+  <way id="9000000000000027161">
+    <nd ref="9000000000000271301"/>
+    <nd ref="9000000000000271302"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027162">
+    <nd ref="9000000000000271302"/>
+    <nd ref="9000000000000271303"/>
+    <nd ref="9000000000000271304"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027163">
+    <nd ref="9000000000000271303"/>
+    <nd ref="9000000000000271305"/>
+    <nd ref="9000000000000271306"/>
+    <tag k="highway" v="residential"/>
+    <tag k="motorcar" v="yes"/>
+    <tag k="motor_vehicle:backward" v="no"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027164">
+    <nd ref="9000000000000271309"/>
+    <nd ref="9000000000000271305"/>
+    <nd ref="9000000000000271310"/>
+    <tag k="highway" v="footway"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027165">
+    <nd ref="9000000000000271304"/>
+    <nd ref="9000000000000271307"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027166">
+    <nd ref="9000000000000271307"/>
+    <nd ref="9000000000000271306"/>
+    <nd ref="9000000000000271308"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027167">
+    <nd ref="9000000000000271321"/>
+    <nd ref="9000000000000271322"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027168">
+    <nd ref="9000000000000271322"/>
+    <nd ref="9000000000000271323"/>
+    <nd ref="9000000000000271324"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027169">
+    <nd ref="9000000000000271323"/>
+    <nd ref="9000000000000271325"/>
+    <nd ref="9000000000000271326"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027170">
+    <nd ref="9000000000000271324"/>
+    <nd ref="9000000000000271329"/>
+    <nd ref="9000000000000271330"/>
+    <nd ref="9000000000000271327"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027171">
+    <nd ref="9000000000000271327"/>
+    <nd ref="9000000000000271326"/>
+    <nd ref="9000000000000271328"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027172">
+    <nd ref="9000000000000271341"/>
+    <nd ref="9000000000000271342"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027173">
+    <nd ref="9000000000000271342"/>
+    <nd ref="9000000000000271343"/>
+    <nd ref="9000000000000271344"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027174">
+    <nd ref="9000000000000271343"/>
+    <nd ref="9000000000000271345"/>
+    <nd ref="9000000000000271346"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027175">
+    <nd ref="9000000000000271344"/>
+    <nd ref="9000000000000271349"/>
+    <nd ref="9000000000000271350"/>
+    <nd ref="9000000000000271347"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
+  </way>
+  <way id="9000000000000027176">
+    <nd ref="9000000000000271347"/>
+    <nd ref="9000000000000271346"/>
+    <nd ref="9000000000000271348"/>
+    <tag k="highway" v="residential"/>
+    <tag k="note" v="synthetic, not from OpenStreetMap: TurfGPS #271 test case"/>
   </way>
 </osm>

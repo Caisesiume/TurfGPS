@@ -80,6 +80,22 @@
 // Everything else on the leg is in transit (`FR-125`'s fourth criterion), and
 // a run whose least is undefined refuses the leg. run.go holds the reading.
 //
+// WHERE NOTHING AVOIDS A MARKING BETWEEN TWO LOCATIONS THE USER ENTERED, THE
+// LEG IS WARNED, NOT REFUSED (#271, `FR-129`, `FR-130`, `FR-131`, `RD-067`,
+// `RD-068`). Where avoidance ends because the provider finds no route keeping
+// off the places (ErrNoRoute), and both ends of the leg are locations the user
+// entered, the leg is produced as a warned leg instead of refused: its Warned
+// set, and every marked stretch on it, the run's included, named in Marked
+// where it lies on the shape. It carries no marking a connection avoids: the
+// provider is asked, marking by marking, for a connection keeping off it and
+// crossing nothing the leg does not, and the leg is replaced by any it finds
+// (`FR-130`). warned.go holds the reading. Only ErrNoRoute opens it, and only
+// where the provider then says it kept a route off no way but the ones the
+// places were found on (Exclusions) — a provider that fails otherwise, an
+// avoidance bound spent, or an exclusion reaching another road has shown
+// nothing unavoidable and leaves the leg refused — and a leg one end of which
+// is a stopping position the system chose is never warned.
+//
 // A REFUSED LEG IS ASKED FOR AGAIN, AVOIDING WHAT IT CROSSED (ADR-0008 D4,
 // `§ Avoiding, not only refusing`). The provider is told the places the check
 // found — a point on each marked way in transit, each marked barrier in
@@ -113,7 +129,15 @@
 //     crossing of a marked area is refused wherever it lies on the leg, and
 //     is not avoided.
 //   - The stopping positions the system chooses, and the gap short of one
-//     (`FR-127`, #256).
+//     (`FR-127`, #256). Until they land, one is told to the planner directly
+//     through PlanLeg, and a leg reaching one is never warned: `FR-129`'s
+//     bound on the legs to a stop the system chose along a warned leg
+//     (`RD-079` to `RD-083`, #271's AC8 to AC17) is not built, so such a leg
+//     is refused wherever it crosses a marking beyond a run, the stricter
+//     state.
+//   - A warned leg whose run at a location the user entered is not admitted —
+//     a leg that never leaves marked ways, or one crossing a marked area — is
+//     refused rather than warned.
 //   - Refusing a request with no destination (`FR-005`, #4). Request has no way
 //     to omit one, so that refusal belongs to whatever decodes a request.
 //   - Zone selection, scoring, and the time budget, which later stories own.
@@ -137,7 +161,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 )
@@ -175,6 +198,13 @@ var ErrAccessUnchecked = errors.New("not checked against the access markings")
 // routing data were not built from one extract, or either changed while the
 // journey was planned.
 var ErrExtractMismatch = errors.New("the access markings and the routing data are not from one extract")
+
+// ErrNoRoute is the error a RoutingProvider wraps where it finds no route a car
+// can drive between the two locations keeping off the places it was asked to
+// avoid. It is a statement about the road network, and the only provider error
+// a warned leg is produced on (`FR-129`); a provider that cannot say so wraps
+// it nowhere, and its legs are refused where a warned leg would be.
+var ErrNoRoute = errors.New("no route a car can drive keeps off the places to avoid")
 
 // ErrCrossesMarking is the error a CrossingError matches: a leg ran along a
 // way, passed a barrier or crossed an area the map data marks private or
@@ -235,6 +265,38 @@ type Leg struct {
 	// (`Architecture.md § The route check`, "Only a built, checked leg's
 	// figures count").
 	Duration time.Duration
+
+	// Warned says the leg is a warned leg (`FR-129`): both its ends are
+	// locations the user entered, and every drivable connection between them
+	// the provider was asked for crosses a marking beyond the run at either.
+	// A client that does not read it draws a private crossing as a road the
+	// driver may take.
+	Warned bool
+
+	// Marked names every marked stretch of a warned leg, in the order the leg
+	// reaches them — each way it runs along and each barrier it passes that
+	// the map data marks, the run's included (`FR-131`). It is nil on a leg
+	// that is not warned.
+	Marked []Marked
+}
+
+// Marked is one marked stretch of a warned leg, located on the leg's shape so
+// a client can draw it where it lies (`FR-131`).
+type Marked struct {
+	// Kind is "way" or "barrier"; OSMType and OSMID name the feature as
+	// Crossing does.
+	Kind    string
+	OSMType string
+	OSMID   int64
+
+	// From and To index the leg's Shape, both included: Shape[From:To+1] is
+	// the stretch. For a way it is the leg's travel along it; for a barrier,
+	// the stretch of the edges found passing it within the barrier tolerance.
+	From, To int
+
+	// At is a barrier's position, the point the leg passes it at. It is the
+	// zero Point for a way.
+	At Point
 }
 
 // Route is a routing provider's answer for one car leg.
@@ -291,6 +353,17 @@ type Edge struct {
 // again. An empty avoid asks for the route a car is given with nothing
 // avoided.
 //
+// WHERE IT FINDS NO ROUTE, IT SAYS SO WITH ErrNoRoute, AND ONLY THEN (#271).
+// The error is what makes a leg between two locations the user entered a
+// warned leg rather than a refused one (`FR-129`), and what keeps a marking
+// on a warned leg as one nothing avoids (`FR-130`). A provider wraps it only
+// where the engine has answered that no route keeps off the places; a
+// timeout, an engine it could not reach, a limit on how many places it may be
+// sent, or an answer it cannot read wraps it never, since none of them says
+// anything of the roads. ErrNoRoute is believed only from a provider that is
+// also Exclusions, and only where it names, at every place, no way but the
+// ones that place was found on; see Exclusions.
+//
 // A CAR LEG COMES WITH ITS DRIVING TIME (`FR-008`, #7). The cost of a journey
 // alternative is a difference of estimated durations, per
 // `CalculationSpecification.md § Additional journey time`, whose driving half
@@ -303,6 +376,37 @@ type RoutingProvider interface {
 	// kept off the places avoid lists, as the edges it runs along, at least
 	// one, with the time a car is estimated to take along them.
 	Route(ctx context.Context, from, to Point, avoid []Point) (Route, error)
+}
+
+// Exclusions is what the planner needs of a routing provider before it reads
+// ErrNoRoute as a statement about the markings (#271; S1 of PR #297's safety
+// verdict). A provider implements it beside RoutingProvider, and the planner
+// asks the routing provider it was given, so the answer is about the engine
+// every leg is routed through.
+//
+// WHY IT IS NEEDED. A place to avoid is a point on a marked way or a marked
+// barrier's position, and the provider keeps a route off the roads it maps
+// the point to, not off the marking. Valhalla maps a point within its node
+// snap tolerance of a junction to the junction, and keeps a route off every
+// road there (`internal/valhalla`'s Excluded says where): a short edge of a
+// marked way, or a gate a few metres from a junction, keeps a route off the
+// public road through that junction too, and the engine's no-route answer is
+// then no statement that nothing avoids the marking.
+//
+// So a no-route answer warns a leg, or keeps a marking on one (`FR-129`,
+// `FR-130`), only where the provider names, for every place it was sent, the
+// ways it keeps a route off there, and every one is a way the place was found
+// on: the edge's way for a point on a marked way, and for a barrier a way of
+// an edge the check found passing it. Anything else — a provider that is not
+// Exclusions, one that fails, a place it names no way at, or a way the place
+// was not found on — leaves the leg refused, the state it had before warned
+// legs existed (`Architecture.md § Avoiding, not only refusing`).
+type Exclusions interface {
+	// Excluded returns, for each place in avoid and in its order, the
+	// OpenStreetMap ids of the ways of every road the provider keeps a route
+	// off for that place when avoid is sent to Route. An error means it could
+	// not say, never that it keeps off nothing.
+	Excluded(ctx context.Context, avoid []Point) ([][]int64, error)
 }
 
 // Crossing is one access marking a leg crosses.
@@ -517,7 +621,8 @@ func New(routing RoutingProvider, zones ZoneCopy, markings AccessMarkings, data 
 // Plan plans the journey req names. Every journey it returns begins at
 // req.Origin, passes through req.Intermediates in the order they were entered,
 // and ends at req.Destination, and no leg of it crosses an access marking but
-// along the run at a location the user entered.
+// along the run at a location the user entered, or as a warned leg, which says
+// so and names every marked stretch on it.
 //
 // A location that is not a coordinate is refused before the provider is asked,
 // with an error wrapping ErrNotACoordinate, and a return to the origin naming
@@ -589,80 +694,209 @@ func (p *Planner) Plan(ctx context.Context, req Request) (Journey, error) {
 	return journey, nil
 }
 
+// LegEnd is one end of a leg told to the planner directly (PlanLeg).
+type LegEnd struct {
+	At Point
+
+	// EnteredByUser says the end is a location the user entered — an origin,
+	// a destination, an intermediate destination or a stopping position the
+	// user chose (`RD-056`, `RD-061`). The zero value is a stopping position
+	// the system chose, the stricter of the two: no run is admitted at it,
+	// and no leg reaching it is warned (`RD-052`, `RD-068`).
+	EnteredByUser bool
+}
+
+// PlanLeg plans one driving leg between two ends, each told to the planner as
+// a location the user entered or a stopping position the system chose. It is
+// how a stopping position the system chose reaches the planner until the
+// stories choosing one build their own way in (#256, #271's AC2), and it
+// holds the leg to everything Plan holds a leg to: the zone copy's gate, one
+// extract read before and after, and the check, run and avoidance of
+// checkedLeg. A leg with an end the system chose that crosses a marking
+// beyond a run is refused with a *CrossingError, warned or not.
+func (p *Planner) PlanLeg(ctx context.Context, from, to LegEnd) (Leg, error) {
+	for i, end := range []LegEnd{from, to} {
+		if !validPoint(end.At) {
+			return Leg{}, fmt.Errorf("end %d of the leg: %w", i, ErrNotACoordinate)
+		}
+	}
+
+	if err := p.requireZoneCopy(ctx); err != nil {
+		return Leg{}, err
+	}
+
+	extract, err := p.oneExtract(ctx)
+	if err != nil {
+		return Leg{}, err
+	}
+
+	leg, err := p.checkedLeg(ctx, 0, from.At, to.At, legEnds{fromEntered: from.EnteredByUser, toEntered: to.EnteredByUser})
+	if err != nil {
+		return Leg{}, err
+	}
+
+	again, err := p.oneExtract(ctx)
+	if err != nil {
+		return Leg{}, err
+	}
+
+	if again != extract {
+		return Leg{}, fmt.Errorf("%w: the extract changed while the leg was planned", ErrExtractMismatch)
+	}
+
+	return leg, nil
+}
+
 // checkedLeg routes one leg and checks it against the access markings. It is
 // the only caller of the routing provider, so every route the planner obtains
-// is checked before it is used (#255 AC4), each answer to avoidance included.
+// is checked before it is used (#255 AC4), each answer to avoidance included:
+// ask, below, is the one way to the provider for a route, and it hands back
+// only answers the check has read; shown is the one way to ask it what a
+// no-route answer kept a route off (noRouteShown).
 //
 // An answer that crosses a marking in transit, or runs a run it is not
 // admitted along, is asked for again up to avoidUpTo times, each time avoiding
 // every place found so far, and the leg is refused where no answer passes. A
 // provider that errs on a later ask — finding no route keeping off the places,
 // or refusing as many as were sent — leaves the leg refused for the crossings
-// of the last answer checked, unless the plan itself has ended.
+// of the last answer checked, unless the plan itself has ended, or unless it
+// found no route (ErrNoRoute) between two locations the user entered, and
+// said that it kept off no road but the ones the places were found on
+// (noRouteShown), where the leg is warned instead (warnedLeg).
 func (p *Planner) checkedLeg(ctx context.Context, i int, from, to Point, ends legEnds) (Leg, error) {
+	ask := func(avoid []Point) (answer, error) {
+		route, err := p.routing.Route(ctx, from, to, avoid)
+		if err != nil {
+			return answer{}, &routeFailure{err: err}
+		}
+
+		return p.read(ctx, i, route, ends)
+	}
+
+	shown := func(av avoidance) error { return noRouteShown(ctx, p.routing, av) }
+	via := provider{ask: ask, shown: shown}
+
 	var (
-		avoid   []Point
+		avoid   avoidance
 		refusal *CrossingError
+		seen    []answer
 	)
 
 	for attempt := 0; ; attempt++ {
-		route, err := p.routing.Route(ctx, from, to, avoid)
-		if err != nil {
+		a, err := ask(avoid.points)
+
+		var failed *routeFailure
+
+		switch {
+		case errors.As(err, &failed):
 			if refusal == nil || ctx.Err() != nil {
-				return Leg{}, fmt.Errorf("routing leg %d: %w", i, err)
+				return Leg{}, fmt.Errorf("routing leg %d: %w", i, failed.err)
 			}
 
 			refusal.Avoided = attempt
 
+			if errors.Is(failed.err, ErrNoRoute) && ends.fromEntered && ends.toEntered {
+				switch err := shown(avoid); {
+				case errors.Is(err, errUnproven):
+					return Leg{}, refusal
+				case err != nil:
+					return Leg{}, fmt.Errorf("routing leg %d: %w", i, err)
+				}
+
+				return p.warnedLeg(ctx, via, seen, refusal)
+			}
+
 			return Leg{}, refusal
-		}
-
-		// A negative estimate would subtract from every cost the leg enters,
-		// so it is refused as an answer the provider's contract rules out.
-		if route.Duration < 0 {
-			return Leg{}, fmt.Errorf("routing leg %d: the routing provider estimated a duration of %v", i, route.Duration)
-		}
-
-		edges := route.Edges
-
-		shape, err := joinEdges(edges)
-		if err != nil {
-			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
-		}
-
-		crossings, err := p.markings.Crossings(ctx, edges)
-		if err != nil {
-			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
-		}
-
-		refused, places, err := p.refusing(ctx, edges, crossings, ends)
-		if err != nil {
-			return Leg{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+		case err != nil:
+			return Leg{}, err
 		}
 
 		// The leg carries this answer's estimate and no earlier one's: an
 		// avoided leg may be slower than the answer it replaces, and the cost
 		// and the ceiling read the leg that passed (`§ Avoiding, not only
 		// refusing`).
-		if len(refused) == 0 {
-			return Leg{Shape: shape, Edges: edges, Duration: route.Duration}, nil
+		if len(a.refused) == 0 {
+			return a.leg(), nil
 		}
 
-		refusal = &CrossingError{Leg: i, Edges: edges, Crossings: refused, Avoided: attempt}
+		seen = append(seen, a)
+		refusal = &CrossingError{Leg: i, Edges: a.edges, Crossings: a.refused, Avoided: attempt}
 
-		more := 0
-
-		for _, pl := range places {
-			if !slices.Contains(avoid, pl) {
-				avoid = append(avoid, pl)
-				more++
-			}
-		}
+		more := avoid.add(a.places)
 
 		if attempt >= p.avoidUpTo || more == 0 {
 			return Leg{}, refusal
 		}
 	}
+}
+
+// provider is checkedLeg's way to the routing provider for one leg, handed to
+// the search for a warned leg: ask for an answer the check has read, and
+// shown for whether a no-route answer to a request may be believed.
+type provider struct {
+	ask   func(avoid []Point) (answer, error)
+	shown func(av avoidance) error
+}
+
+// routeFailure is an error the routing provider returned, told apart from one
+// the check returned, which never warns a leg.
+type routeFailure struct{ err error }
+
+func (f *routeFailure) Error() string { return f.err.Error() }
+func (f *routeFailure) Unwrap() error { return f.err }
+
+// answer is one routing answer as the check read it.
+type answer struct {
+	edges     []Edge
+	shape     []Point
+	duration  time.Duration
+	crossings []Crossing
+
+	// refused are the crossings refusing the answer, and places what to avoid
+	// in a new one, as refusing gives them.
+	refused []Crossing
+	places  []place
+
+	// runRefused says a refused crossing lies on the run at a location the
+	// user entered, which was not admitted.
+	runRefused bool
+}
+
+// leg is the answer as a leg not warned.
+func (a answer) leg() Leg {
+	return Leg{Shape: a.shape, Edges: a.edges, Duration: a.duration}
+}
+
+// read checks one routing answer. An error means the answer could not be
+// held to the provider's contract or checked, and the leg is not served.
+func (p *Planner) read(ctx context.Context, i int, route Route, ends legEnds) (answer, error) {
+	// A negative estimate would subtract from every cost the leg enters, so
+	// it is refused as an answer the provider's contract rules out.
+	if route.Duration < 0 {
+		return answer{}, fmt.Errorf("routing leg %d: the routing provider estimated a duration of %v", i, route.Duration)
+	}
+
+	edges := route.Edges
+
+	shape, err := joinEdges(edges)
+	if err != nil {
+		return answer{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+	}
+
+	crossings, err := p.markings.Crossings(ctx, edges)
+	if err != nil {
+		return answer{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+	}
+
+	refused, places, runRefused, err := p.refusing(ctx, edges, crossings, ends)
+	if err != nil {
+		return answer{}, fmt.Errorf("leg %d is %w: %w", i, ErrAccessUnchecked, err)
+	}
+
+	return answer{
+		edges: edges, shape: shape, duration: route.Duration, crossings: crossings,
+		refused: refused, places: places, runRefused: runRefused,
+	}, nil
 }
 
 // joinEdges holds a provider's edges to the contract RoutingProvider states and

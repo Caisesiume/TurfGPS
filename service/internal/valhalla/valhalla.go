@@ -71,6 +71,25 @@
 // an avoiding request is checked like any other, so an engine that ignored the
 // exclusions would give a refused leg, never a crossing one.
 //
+// WHAT THE ENGINE KEEPS A ROUTE OFF FOR THOSE PLACES IS READ BACK FROM IT,
+// through `/locate`, before its no-route answer is believed (#271; S1 of PR
+// #297's safety verdict). At 3.9.1 a place goes through the same search as a
+// route's locations (`src/loki/worker.cc`, parse_costing, lines 180–181), and
+// every edge it is correlated to is excluded (lines 185–195). That search maps
+// a point whose distance to an end of the nearest edge is within the node snap
+// tolerance — 5 m by default (route API reference, § Locations, line 45) — to
+// the node at that end, and passes back every edge entering and leaving it
+// (`src/loki/search.cc`, finalize, lines 914–930, and correlate_node, from
+// line 321): the public road through a junction a few metres from a gate, or
+// at the end of a short edge of a marked way, is kept off with the marking.
+// Excluded asks `/locate` for the same places with the same costing; its
+// request takes "the inputs for the two APIs [as] identical" (locate API
+// reference, `docs/docs/api/locate.md`, line 21), searches them the same way
+// (`src/loki/locate_action.cc`, lines 12–16 and 43), and answers "one JSON
+// object per input location in the order specified" (line 34) whose `edges`
+// are the same correlated edges, each with its `way_id`
+// (`src/tyr/locate_serializer.cc`, lines 251 and 271).
+//
 // EVERY LEG COMES WITH THE ENGINE'S ESTIMATE OF ITS DRIVING TIME (#7): the
 // leg's `summary.time`. A leg's summary carries the trip summary's items
 // "applied to the single leg of the trip" (§ Trip legs and maneuvers), and
@@ -156,16 +175,21 @@ type Client struct {
 	routeURL  string
 	traceURL  string
 	statusURL string
+	locateURL string
 	timeout   time.Duration
 	http      *http.Client
 }
 
-var _ planner.RoutingProvider = (*Client)(nil)
+var (
+	_ planner.RoutingProvider = (*Client)(nil)
+	_ planner.Exclusions      = (*Client)(nil)
+)
 
 // New returns a Client for the Valhalla instance at baseURL, whose route API
 // is the `route` path under it, whose map-matching API is the
-// `trace_attributes` path and whose status is the `status` path, and which
-// allows each call timeout to answer.
+// `trace_attributes` path, whose status is the `status` path and whose search
+// for the roads at a point is the `locate` path, and which allows each call
+// timeout to answer.
 //
 // baseURL is taken as `config.LoadValhalla` holds it; New refuses only what it
 // cannot join a path onto.
@@ -189,10 +213,16 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 		return nil, fmt.Errorf("the routing engine's URL cannot carry the status path: %w", err)
 	}
 
+	locateURL, err := url.JoinPath(baseURL, "locate")
+	if err != nil {
+		return nil, fmt.Errorf("the routing engine's URL cannot carry the locate path: %w", err)
+	}
+
 	return &Client{
 		routeURL:  routeURL,
 		traceURL:  traceURL,
 		statusURL: statusURL,
+		locateURL: locateURL,
 		timeout:   timeout,
 		http: &http.Client{
 			// A redirect is refused rather than followed. The engine is the
@@ -206,6 +236,16 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 // ErrNotDriven is the error Route wraps when the engine answers with a leg it
 // does not report as driven by car.
 var ErrNotDriven = errors.New("the routing engine did not route the leg for a car")
+
+// noPathCode is the error code Valhalla answers a route with where its search
+// finds no path between the locations: "No path could be found for input",
+// 442 in `docs/docs/api/route/api-reference.md` at 3.9.1, the engine CI builds
+// (§ Internal error codes and conditions, line 733; answered with HTTP 400,
+// line 633). It is the one code Route reports
+// as planner.ErrNoRoute (#271): every other code — a location with no road
+// near it (171), too many places to avoid (157), a limit, an input the engine
+// refuses — says nothing of whether a route keeping off the places exists.
+const noPathCode = 442
 
 // ErrWaysUnnamed is the error Route wraps when the engine could not name the
 // ways a leg runs along, so the leg cannot be checked against the access
@@ -283,6 +323,12 @@ type errorResponse struct {
 // reported as driven by car, which wraps ErrNotDriven, a leg whose ways the
 // engine could not name, which wraps ErrWaysUnnamed, and a leg with no usable
 // estimate of its time. The route's duration is the leg's `summary.time`.
+//
+// An answer that no path keeps off the places — the engine's error 442 to the
+// route request, and to no other — wraps planner.ErrNoRoute, the one failure
+// a warned leg is produced on (#271). The trace request's errors never do: a
+// route the engine found and cannot then name the ways of is no statement
+// about the roads.
 func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []planner.Point) (planner.Route, error) {
 	var excluded []location
 	for _, p := range avoid {
@@ -295,7 +341,13 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []plan
 		Costing:          costingCar,
 		DirectionsType:   directionsManeuvers,
 	})
-	if err != nil {
+
+	var engine *engineFailure
+
+	switch {
+	case errors.As(err, &engine) && engine.code == noPathCode:
+		return planner.Route{}, fmt.Errorf("%w: %w", planner.ErrNoRoute, err)
+	case err != nil:
 		return planner.Route{}, err
 	}
 
@@ -320,6 +372,71 @@ func (c *Client) Route(ctx context.Context, from, to planner.Point, avoid []plan
 	}
 
 	return planner.Route{Edges: edges, Duration: duration}, nil
+}
+
+// locateRequest asks for the roads the engine maps each location to, by the
+// costing a route is asked for with, so the search is the one exclude_locations
+// goes through. verbose stays unsent: its default, false, still names each
+// edge's way (locate API reference, line 34).
+type locateRequest struct {
+	Locations []location `json:"locations"`
+	Costing   string     `json:"costing"`
+}
+
+type locateResult struct {
+	Edges []struct {
+		WayID *int64 `json:"way_id"`
+	} `json:"edges"`
+}
+
+// Excluded returns, for each place in avoid and in its order, the ways of the
+// edges the engine correlates it to, which are the edges Route keeps a route
+// off for it (planner.Exclusions). An answer that holds a result for another
+// number of places, a place with no edges — which the engine answers as
+// `"edges": null` where it found no road (`locate_serializer.cc`, line 348) —
+// or an edge naming no way, is an error: the engine has not said what it
+// keeps off.
+func (c *Client) Excluded(ctx context.Context, avoid []planner.Point) ([][]int64, error) {
+	if len(avoid) == 0 {
+		return nil, nil
+	}
+
+	locations := make([]location, len(avoid))
+	for i, p := range avoid {
+		locations[i] = location{Lat: p.Latitude, Lon: p.Longitude}
+	}
+
+	raw, err := c.post(ctx, c.locateURL, locateRequest{Locations: locations, Costing: costingCar})
+	if err != nil {
+		return nil, err
+	}
+
+	var results []locateResult
+	if err := json.Unmarshal(raw, &results); err != nil {
+		return nil, fmt.Errorf("the routing engine's answer is not a locate result: %w", err)
+	}
+
+	if len(results) != len(avoid) {
+		return nil, fmt.Errorf("the routing engine located %d places, and was asked for %d", len(results), len(avoid))
+	}
+
+	out := make([][]int64, len(results))
+
+	for i, r := range results {
+		if len(r.Edges) == 0 {
+			return nil, fmt.Errorf("the routing engine maps place %d to no road", i)
+		}
+
+		for _, e := range r.Edges {
+			if e.WayID == nil {
+				return nil, fmt.Errorf("the routing engine maps place %d to an edge naming no way", i)
+			}
+
+			out[i] = append(out[i], *e.WayID)
+		}
+	}
+
+	return out, nil
 }
 
 // post sends one request to the engine under the call timeout and returns the
@@ -362,15 +479,31 @@ func (c *Client) post(ctx context.Context, target string, request any) ([]byte, 
 	return raw, nil
 }
 
+// engineFailure is an answer other than 200, with the code the engine's error
+// body carries, or zero where it carries none.
+type engineFailure struct {
+	status int
+	code   int
+	msg    string
+}
+
+func (e *engineFailure) Error() string {
+	if e.code == 0 {
+		return fmt.Sprintf("the routing engine answered %d", e.status)
+	}
+
+	return fmt.Sprintf("the routing engine answered %d, error %d: %s", e.status, e.code, e.msg)
+}
+
 // engineError describes an answer other than 200 by the code and message the
 // engine's error body carries, where it carries them.
 func engineError(status int, raw []byte) error {
 	var e errorResponse
 	if err := json.Unmarshal(raw, &e); err != nil || e.ErrorCode == 0 {
-		return fmt.Errorf("the routing engine answered %d", status)
+		return &engineFailure{status: status}
 	}
 
-	return fmt.Errorf("the routing engine answered %d, error %d: %s", status, e.ErrorCode, e.Error)
+	return &engineFailure{status: status, code: e.ErrorCode, msg: e.Error}
 }
 
 // driven returns the encoded shape of the one leg a two-location route answer

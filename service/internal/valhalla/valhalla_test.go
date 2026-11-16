@@ -9,6 +9,8 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -444,6 +446,50 @@ func TestAnEngineErrorIsAnError(t *testing.T) {
 	}
 }
 
+// TestOnlyNoPathToTheRouteIsNoRoute is #271's port obligation at the adapter:
+// the engine's 442 to the route request — no path keeps off the places —
+// wraps planner.ErrNoRoute, the one failure a warned leg is produced on, and
+// nothing else does: another code to the route, a 442 to the trace, and an
+// answer with no code each say nothing of the roads.
+func TestOnlyNoPathToTheRouteIsNoRoute(t *testing.T) {
+	t.Parallel()
+
+	noPath := `{"error_code":442,"status":"Bad Request","status_code":400,"error":"No path could be found for input"}`
+	avoid := []planner.Point{{Latitude: 57.705, Longitude: 11.965}}
+
+	for _, tc := range []struct {
+		name         string
+		route, trace func(map[string]any) (int, string)
+		want         bool
+	}{
+		{"no path to the route", func(map[string]any) (int, string) { return http.StatusBadRequest, noPath }, nil, true},
+		{"no suitable edges near a location", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error_code":171,"status":"Bad Request","status_code":400,"error":"No suitable edges near location"}`
+		}, nil, false},
+		{"too many places to avoid", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error_code":157,"status":"Bad Request","status_code":400,"error":"Exceeded max avoid locations"}`
+		}, nil, false},
+		{"an answer with no code", func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error":"No path could be found for input"}`
+		}, nil, false},
+		{"no path to the trace", straightByCar, func(map[string]any) (int, string) { return http.StatusBadRequest, noPath }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			engine, c := startEngine(t, tc.route)
+			engine.trace = tc.trace
+
+			_, err := c.Route(t.Context(), planner.Point{Latitude: 57.70, Longitude: 11.96}, planner.Point{Latitude: 57.71, Longitude: 11.97}, avoid)
+			if err == nil {
+				t.Fatal("Route gave no error")
+			}
+
+			if got := errors.Is(err, planner.ErrNoRoute); got != tc.want {
+				t.Errorf("errors.Is(%q, planner.ErrNoRoute) = %v, want %v", err, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestAnOversizedAnswerIsRefused: an answer past maxResponseBytes is refused
 // by an error rather than held in memory whole.
 func TestAnOversizedAnswerIsRefused(t *testing.T) {
@@ -563,6 +609,10 @@ func TestTheRoutePathIsJoinedOntoTheBaseURL(t *testing.T) {
 
 		if wantTrace := strings.TrimSuffix(want, "route") + "trace_attributes"; c.traceURL != wantTrace {
 			t.Errorf("New(%q) traces at %q, want %q", base, c.traceURL, wantTrace)
+		}
+
+		if wantLocate := strings.TrimSuffix(want, "route") + "locate"; c.locateURL != wantLocate {
+			t.Errorf("New(%q) locates at %q, want %q", base, c.locateURL, wantLocate)
 		}
 	}
 
@@ -758,4 +808,82 @@ func TestTheAvoidingRequestBodyIsTheDocumentedOne(t *testing.T) {
 	if string(b) != want {
 		t.Errorf("the route request is\n%s\nwant\n%s", b, want)
 	}
+}
+
+// TestThePlacesToAvoidAreLocatedAsTheyAreExcluded is the adapter's half of the
+// guard on a no-route answer (#271; S1 of PR #297's safety verdict): Excluded
+// asks `/locate` for exactly the places, in order, by the car costing a route
+// is asked for with and nothing else, and returns each place's ways in that
+// order, every correlated edge's way_id among them.
+func TestThePlacesToAvoidAreLocatedAsTheyAreExcluded(t *testing.T) {
+	t.Parallel()
+
+	engine, c := startEngine(t, func(map[string]any) (int, string) {
+		return http.StatusOK, `[{"input_lat":57.705,"input_lon":11.965,"edges":[{"way_id":7,"percent_along":0.5},{"way_id":7,"percent_along":0.5}],"nodes":[]},` +
+			`{"input_lat":57.706,"input_lon":11.966,"edges":[{"way_id":9000000000000027162,"percent_along":0},{"way_id":3,"percent_along":1}],"nodes":[{"lat":57.706,"lon":11.966}]}]`
+	})
+
+	avoid := []planner.Point{{Latitude: 57.705, Longitude: 11.965}, {Latitude: 57.706, Longitude: 11.966}}
+
+	got, err := c.Excluded(t.Context(), avoid)
+	if err != nil {
+		t.Fatalf("Excluded: %v", err)
+	}
+
+	if want := [][]int64{{7, 7}, {9000000000000027162, 3}}; len(got) != 2 || !slices.Equal(got[0], want[0]) || !slices.Equal(got[1], want[1]) {
+		t.Errorf("Excluded = %v, want %v", got, want)
+	}
+
+	if len(engine.asked) != 1 {
+		t.Fatalf("Excluded sent %d requests, want 1", len(engine.asked))
+	}
+
+	req := engine.asked[0]
+	if req.Method != http.MethodPost || !strings.HasSuffix(req.Path, "/locate") {
+		t.Errorf("Excluded sent %s %s, want POST to the locate path", req.Method, req.Path)
+	}
+
+	want := map[string]any{
+		"locations": []any{map[string]any{"lat": 57.705, "lon": 11.965}, map[string]any{"lat": 57.706, "lon": 11.966}},
+		"costing":   "auto",
+	}
+	if !reflect.DeepEqual(req.Body, want) {
+		t.Errorf("Excluded sent %v, want %v", req.Body, want)
+	}
+}
+
+// TestALocateAnswerThatDoesNotSayWhatIsKeptOffIsAnError: an answer for another
+// number of places, a place mapped to no road, an edge naming no way, an
+// answer that is no locate result and an engine error each leave Excluded
+// unable to say, which is an error and never an empty answer.
+func TestALocateAnswerThatDoesNotSayWhatIsKeptOffIsAnError(t *testing.T) {
+	t.Parallel()
+
+	one := `{"input_lat":57.705,"input_lon":11.965,"edges":[{"way_id":7}],"nodes":[]}`
+
+	for name, body := range map[string]string{
+		"a result for one place of two": `[` + one + `]`,
+		"a place mapped to no road":     `[` + one + `,{"input_lat":57.706,"input_lon":11.966,"edges":null,"nodes":null}]`,
+		"an edge naming no way":         `[` + one + `,{"input_lat":57.706,"input_lon":11.966,"edges":[{"percent_along":0}],"nodes":[]}]`,
+		"an answer that is no result":   `{"error":"nothing"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, c := startEngine(t, func(map[string]any) (int, string) { return http.StatusOK, body })
+
+			got, err := c.Excluded(t.Context(), []planner.Point{{Latitude: 57.705, Longitude: 11.965}, {Latitude: 57.706, Longitude: 11.966}})
+			if err == nil {
+				t.Errorf("Excluded = %v and no error, want an error", got)
+			}
+		})
+	}
+
+	t.Run("an engine error", func(t *testing.T) {
+		_, c := startEngine(t, func(map[string]any) (int, string) {
+			return http.StatusBadRequest, `{"error_code":171,"status":"Bad Request","status_code":400,"error":"No suitable edges near location"}`
+		})
+
+		if got, err := c.Excluded(t.Context(), []planner.Point{{Latitude: 57.705, Longitude: 11.965}}); err == nil {
+			t.Errorf("Excluded = %v and no error, want an error", got)
+		}
+	})
 }
