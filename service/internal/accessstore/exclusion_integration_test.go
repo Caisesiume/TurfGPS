@@ -29,6 +29,7 @@ package accessstore_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -271,6 +272,17 @@ func (c *counting) Route(ctx context.Context, from, to planner.Point, avoid []pl
 	c.mu.Unlock()
 
 	return c.RoutingProvider.Route(ctx, from, to, avoid)
+}
+
+// Excluded is the engine's, so the planner asks it what a no-route answer kept
+// a route off as it asks the engine without the record (planner.Exclusions).
+func (c *counting) Excluded(ctx context.Context, avoid []planner.Point) ([][]int64, error) {
+	ex, ok := c.RoutingProvider.(planner.Exclusions)
+	if !ok {
+		return nil, errors.New("the engine recorded cannot say what it keeps a route off")
+	}
+
+	return ex.Excluded(ctx, avoid)
 }
 
 // avoiding is the planner #248 builds: every leg checked, and a refused one

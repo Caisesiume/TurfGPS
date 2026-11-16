@@ -17,17 +17,70 @@ import (
 // points, quickest first. Asked to keep off a place, it keeps off the whole
 // way at it, as Valhalla's exclude_locations keeps off the road a place is
 // mapped to: a point on an edge it answered names that edge's way, and a
-// barrier's position names every way the table puts the barrier on. Where no
+// barrier's position names every way the table puts the barrier on. spill
+// adds, to a way so named, the ways it keeps off with it, as Valhalla's snap
+// of a point near a junction to the junction adds the roads there. Where no
 // connection keeps off every way so named it answers with ErrNoRoute, or with
-// fail where that is set.
+// fail where that is set. Asked what it keeps off (Exclusions), it says.
 type network struct {
 	table       *tableFake
 	connections [][]int64
 	fail        error
+	spill       map[int64][]int64
 
 	mu    sync.Mutex
 	at    map[Point]int64
 	asked [][]Point
+}
+
+// waysAt is what a fake engine keeps a route off for a place: every way the
+// table puts a barrier at the place on, or else the way of an edge it
+// answered whose point the place is, and what spill adds to each. A barrier's
+// position is a node of its ways alone; the fakes' straight-line edges may
+// have their middle there too, which a real way passing a barrier's node
+// without being one of its ways does not.
+func waysAt(table *tableFake, at map[Point]int64, spill map[int64][]int64, pl Point) []int64 {
+	var named []int64
+
+	if table != nil {
+		for way, nodes := range table.barriers {
+			for _, b := range nodes {
+				if barrierAt(b) == pl && !slices.Contains(named, way) {
+					named = append(named, way)
+				}
+			}
+		}
+	}
+
+	if w, ok := at[pl]; ok && len(named) == 0 {
+		named = append(named, w)
+	}
+
+	out := slices.Clone(named)
+
+	for _, w := range named {
+		for _, x := range spill[w] {
+			if !slices.Contains(out, x) {
+				out = append(out, x)
+			}
+		}
+	}
+
+	slices.Sort(out)
+
+	return out
+}
+
+func (n *network) Excluded(_ context.Context, avoid []Point) ([][]int64, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	out := make([][]int64, len(avoid))
+	for i, pl := range avoid {
+		out[i] = waysAt(n.table, n.at, n.spill, pl)
+	}
+
+	return out, nil
 }
 
 func (n *network) Route(_ context.Context, from, to Point, avoid []Point) (Route, error) {
@@ -43,16 +96,8 @@ func (n *network) Route(_ context.Context, from, to Point, avoid []Point) (Route
 	off := map[int64]bool{}
 
 	for _, pl := range avoid {
-		if w, ok := n.at[pl]; ok {
+		for _, w := range waysAt(n.table, n.at, n.spill, pl) {
 			off[w] = true
-		}
-
-		for way, nodes := range n.table.barriers {
-			for _, b := range nodes {
-				if barrierAt(b) == pl {
-					off[way] = true
-				}
-			}
 		}
 	}
 
@@ -77,10 +122,14 @@ func (n *network) Route(_ context.Context, from, to Point, avoid []Point) (Route
 }
 
 // stepped answers the n'th request with steps[n], the last repeated: a way
-// list, or nil for ErrNoRoute.
+// list, or nil for ErrNoRoute. Asked what it keeps off, it names what network
+// would: the way of an edge it answered, at that edge's point, and the ways
+// table puts a barrier on, at the barrier's position.
 type stepped struct {
+	table *tableFake
 	steps [][]int64
 	asked [][]Point
+	at    map[Point]int64
 }
 
 func (s *stepped) Route(_ context.Context, from, to Point, avoid []Point) (Route, error) {
@@ -91,7 +140,25 @@ func (s *stepped) Route(_ context.Context, from, to Point, avoid []Point) (Route
 		return Route{}, ErrNoRoute
 	}
 
-	return Route{Edges: lineOf(from, to, ways)}, nil
+	if s.at == nil {
+		s.at = map[Point]int64{}
+	}
+
+	edges := lineOf(from, to, ways)
+	for _, e := range edges {
+		s.at[onEdge(e)] = e.WayID
+	}
+
+	return Route{Edges: edges}, nil
+}
+
+func (s *stepped) Excluded(_ context.Context, avoid []Point) ([][]int64, error) {
+	out := make([][]int64, len(avoid))
+	for i, pl := range avoid {
+		out[i] = waysAt(s.table, s.at, nil, pl)
+	}
+
+	return out, nil
 }
 
 func barrierOn(ways ...int64) map[int64][]int64 {
@@ -165,8 +232,8 @@ func TestOnlyANoRouteAnswerWarnsALeg(t *testing.T) {
 		{"no avoidance configured", &tableFake{barriers: barrierOn(9)}, func(tb *tableFake) RoutingProvider {
 			return &network{table: tb, connections: [][]int64{{1, 9, 2}}}
 		}, 0},
-		{"an engine failing otherwise on the search for less", &tableFake{marked: map[int64]bool{7: true}, barriers: barrierOn(9)}, func(*tableFake) RoutingProvider {
-			return &failingAfter{RoutingProvider: &stepped{steps: [][]int64{{1, 9, 7, 2}, nil}}, after: 2}
+		{"an engine failing otherwise on the search for less", &tableFake{marked: map[int64]bool{7: true}, barriers: barrierOn(9)}, func(tb *tableFake) RoutingProvider {
+			return &failingAfter{RoutingProvider: &stepped{table: tb, steps: [][]int64{{1, 9, 7, 2}, nil}}, after: 2}
 		}, 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -195,6 +262,12 @@ func (f *failingAfter) Route(ctx context.Context, from, to Point, avoid []Point)
 	}
 
 	return f.RoutingProvider.Route(ctx, from, to, avoid)
+}
+
+// Excluded is its provider's, which the case's must be: the search reaches
+// the failure only past a no-route answer the planner believed.
+func (f *failingAfter) Excluded(ctx context.Context, avoid []Point) ([][]int64, error) {
+	return f.RoutingProvider.(Exclusions).Excluded(ctx, avoid)
 }
 
 // TestALegToAStopTheSystemChoseIsNeverWarned is #271 AC2 at the planner
@@ -242,7 +315,7 @@ func TestALegAConnectionAvoidingEveryMarkingJoinsIsNotWarned(t *testing.T) {
 		routing RoutingProvider
 	}{
 		{"a way round the gate", &network{table: table, connections: [][]int64{{1, 9, 2}, {1, 3, 4, 2}}}},
-		{"an engine that finds it only on the search for less", &stepped{steps: [][]int64{{1, 9, 2}, nil, {1, 3, 4, 2}}}},
+		{"an engine that finds it only on the search for less", &stepped{table: table, steps: [][]int64{{1, 9, 2}, nil, {1, 3, 4, 2}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			journey, err := plannerOn(t, tc.routing, table, AvoidUpTo(3)).Plan(t.Context(), Request{Origin: home, Destination: shops})
@@ -370,5 +443,127 @@ func TestAWarnedLegItCannotVouchForIsRefused(t *testing.T) {
 				t.Fatalf("Plan gave %v and %v, want no leg and a CrossingError", waysOf(journey.Legs), err)
 			}
 		})
+	}
+}
+
+// opaque is a routing provider that is not Exclusions: it cannot say what it
+// keeps a route off.
+type opaque struct{ RoutingProvider }
+
+// saying answers Route as its network does and Excluded as excluded says,
+// given the network's own answer and how many times it was asked before.
+type saying struct {
+	*network
+	excluded func(ctx context.Context, calls int, honest [][]int64) ([][]int64, error)
+	calls    int
+}
+
+func (s *saying) Excluded(ctx context.Context, avoid []Point) ([][]int64, error) {
+	honest, err := s.network.Excluded(ctx, avoid)
+	if err != nil {
+		return nil, err
+	}
+
+	s.calls++
+
+	return s.excluded(ctx, s.calls-1, honest)
+}
+
+// TestANoRouteAnswerWiderThanTheMarkingWarnsNoLeg is S1 of PR #297's safety
+// verdict at the planner (`FR-129`, fourth criterion; `FR-130`): the engine
+// answers no route because what it kept a route off at a place reaches a way
+// round the marking — the snap of a point near a junction to the junction —
+// and the planner, told so, produces no warned leg, and keeps no marking a
+// connection avoids. The leg is refused: a lost leg, never a warned one a
+// connection avoids.
+func TestANoRouteAnswerWiderThanTheMarkingWarnsNoLeg(t *testing.T) {
+	t.Parallel()
+
+	gate := func() *tableFake { return &tableFake{barriers: barrierOn(9)} }
+	way := func() *tableFake { return &tableFake{marked: map[int64]bool{7: true}} }
+
+	for _, tc := range []struct {
+		name    string
+		table   *tableFake
+		routing func(*tableFake) RoutingProvider
+	}{
+		{"a gate whose place also keeps off the way round it", gate(), func(tb *tableFake) RoutingProvider {
+			return &network{table: tb, connections: [][]int64{{1, 9, 2}, {1, 3, 2}}, spill: map[int64][]int64{9: {3}}}
+		}},
+		{"a point on a marked way that also keeps off the way round it", way(), func(tb *tableFake) RoutingProvider {
+			return &network{table: tb, connections: [][]int64{{1, 7, 2}, {1, 3, 2}}, spill: map[int64][]int64{7: {3}}}
+		}},
+		{"a no-route answer on the search for less, wider than its marking", &tableFake{marked: map[int64]bool{7: true}, barriers: barrierOn(9)}, func(tb *tableFake) RoutingProvider {
+			return &saying{network: &network{table: tb, connections: [][]int64{{1, 9, 7, 2}, {1, 9, 3, 4, 2}}}, excluded: func(_ context.Context, calls int, honest [][]int64) ([][]int64, error) {
+				if calls == 0 {
+					return honest, nil
+				}
+
+				return [][]int64{append(slices.Clone(honest[0]), 3)}, nil
+			}}
+		}},
+		{"a provider that cannot say what it keeps off", gate(), func(tb *tableFake) RoutingProvider {
+			return opaque{&network{table: tb, connections: [][]int64{{1, 9, 2}}}}
+		}},
+		{"a provider failing to say", gate(), func(tb *tableFake) RoutingProvider {
+			return &saying{network: &network{table: tb, connections: [][]int64{{1, 9, 2}}}, excluded: func(context.Context, int, [][]int64) ([][]int64, error) {
+				return nil, errors.New("the engine is gone")
+			}}
+		}},
+		{"a provider keeping off no road at a place", gate(), func(tb *tableFake) RoutingProvider {
+			return &saying{network: &network{table: tb, connections: [][]int64{{1, 9, 2}}}, excluded: func(_ context.Context, _ int, honest [][]int64) ([][]int64, error) {
+				return make([][]int64, len(honest)), nil
+			}}
+		}},
+		{"a provider answering for fewer places than it was sent", gate(), func(tb *tableFake) RoutingProvider {
+			return &saying{network: &network{table: tb, connections: [][]int64{{1, 9, 2}}}, excluded: func(context.Context, int, [][]int64) ([][]int64, error) {
+				return nil, nil
+			}}
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			journey, err := plannerOn(t, tc.routing(tc.table), tc.table, AvoidUpTo(3)).Plan(t.Context(), Request{Origin: home, Destination: shops})
+
+			var refusal *CrossingError
+			if journey.Legs != nil || !errors.As(err, &refusal) {
+				var warned []bool
+				for _, l := range journey.Legs {
+					warned = append(warned, l.Warned)
+				}
+
+				t.Fatalf("Plan gave a journey along %v, warned %v, and %v; want no leg and a CrossingError, since the no-route answer was not shown to be about the marking", waysOf(journey.Legs), warned, err)
+			}
+		})
+	}
+}
+
+// TestANoRouteAnswerKeepingOffTheBarriersOwnWaysIsBelieved: a gate where two
+// ways meet is kept off on both, and both are its ways, so the engine's
+// no-route answer is believed and the leg warned; and a plan ending while the
+// planner asks what was kept off ends with the plan's error, not a refusal.
+func TestANoRouteAnswerKeepingOffTheBarriersOwnWaysIsBelieved(t *testing.T) {
+	t.Parallel()
+
+	table := &tableFake{barriers: map[int64][]int64{9: {50}, 10: {50}}}
+	routing := &network{table: table, connections: [][]int64{{1, 9, 10, 2}}}
+
+	journey, err := plannerOn(t, routing, table, AvoidUpTo(3)).Plan(t.Context(), Request{Origin: home, Destination: shops})
+	if err != nil || !journey.Legs[0].Warned {
+		t.Fatalf("Plan gave %v and %v, want a warned leg past the gate on ways 9 and 10", waysOf(journey.Legs), err)
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	ending := &saying{network: &network{table: table, connections: [][]int64{{1, 9, 10, 2}}}, excluded: func(ctx context.Context, _ int, _ [][]int64) ([][]int64, error) {
+		cancel()
+		return nil, ctx.Err()
+	}}
+
+	_, err = plannerOn(t, ending, table, AvoidUpTo(3)).Plan(ctx, Request{Origin: home, Destination: shops})
+
+	var refusal *CrossingError
+	if !errors.Is(err, context.Canceled) || errors.As(err, &refusal) {
+		t.Errorf("a plan ended while asking what was kept off gave %v, want context.Canceled and no refusal", err)
 	}
 }

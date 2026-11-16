@@ -461,6 +461,17 @@ func (gatedRouting) Route(_ context.Context, from, to planner.Point, avoid []pla
 	return planner.Route{Edges: []planner.Edge{{WayID: 9, Shape: []planner.Point{from, to}}}}, nil
 }
 
+// Excluded says it keeps a route off way 9 alone at every place, the gate's
+// way, so its no-route answer is believed (planner.Exclusions).
+func (gatedRouting) Excluded(_ context.Context, avoid []planner.Point) ([][]int64, error) {
+	out := make([][]int64, len(avoid))
+	for i := range avoid {
+		out[i] = []int64{9}
+	}
+
+	return out, nil
+}
+
 // gateOn9 is access markings finding a marked gate on every edge along way 9.
 type gateOn9 struct{ clearAccess }
 

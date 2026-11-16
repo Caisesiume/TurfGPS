@@ -20,7 +20,7 @@ This file is a derivative database of OpenStreetMap. It is licensed under the
 ODbL, and **not** under this repository's `LICENSE`, which covers the code. Anything
 derived from it is subject to the ODbL's share-alike terms.
 
-**Not everything in it is from OpenStreetMap.** 218 ways and 267 nodes are
+**Not everything in it is from OpenStreetMap.** 234 ways and 297 nodes are
 synthetic, written for #255's, #248's and #271's tests: every object with an id of
 9,000,000,000,000,000,000 or above. *The synthetic cases*, below, says which and
 why.
@@ -31,7 +31,7 @@ why.
 |---|---|
 | Area | 57.6980–57.7120 N, 11.9500–11.9850 E — Inom Vallgraven and the streets around it, about 1.6 km by 2.1 km (3.2 km²); seven small islands elsewhere, below; and the synthetic cases, in the Kattegat, 57.00–57.25 N |
 | Content | every way tagged `highway`, every `type=restriction` relation, and the nodes and member ways they reference, which reach slightly past the box; the access-marking cases below, with the nodes of their ways; and the synthetic cases |
-| Size | 200,117 bytes; SHA-256 `74d751f8a248d8a8bff88fba2cbda6da9c705872f9a06fe64b910e90b7f986d4` — 13,808 nodes, 4,095 ways, 57 relations |
+| Size | 200,327 bytes; SHA-256 `b192646dd793ab0da32a9f45530fd7031eb6c29ff11e53e28d1f1d00dc71df51` — 13,838 nodes, 4,111 ways, 57 relations |
 | Data as of | the box: `osm_base` 2026-10-22T07:05:28Z; the cases: `osm_base` 2026-11-14T22:32:02Z, each as the Overpass API reported it. The synthetic cases are no OpenStreetMap data and have no such date |
 | Retrieved | the box on 22 October 2026, the cases on 14 November 2026, from `https://overpass-api.de/api/interpreter` |
 | Query | the box: `goteborg-inom-vallgraven.overpassql`; the cases: `access-marking-cases.overpassql`; both beside this file. The synthetic cases are `access-marking-synthetic.osm`, beside it too |
@@ -50,7 +50,10 @@ by object (PR #270). With #248's cases and before #271's, the file was 199,930
 bytes, SHA-256
 `6696a7087571a26f4e7611d8fbae20864bf86baeda14452dd74da70e33448113`; adding
 #271's changed none of its 17,921 objects and added 39, compared object by
-object (#271).
+object (#271). With those and before #271's layout j=3, it was 200,117 bytes,
+SHA-256 `74d751f8a248d8a8bff88fba2cbda6da9c705872f9a06fe64b910e90b7f986d4`;
+adding layout j=3 changed none of its 17,960 objects and added 46, compared
+object by object (PR #297).
 
 ## The access-marking cases
 
@@ -194,6 +197,29 @@ run. They were written by a script for #271 and are the `#271` block of
 
 The ends of each are points at 11.7010 E and, on the last way, 11.7080 E
 (j=1) or 11.7100 E (j=0, j=2).
+
+**Layout j=3 is the snap of a place to avoid to a junction** (S1 of PR #297's
+safety verdict), and lies east of 11.715 E, where the synthetic band holds
+nothing else. It has three blocks, each a public road through a junction J,
+a marked branch leaving J south whose place to avoid lies within Valhalla's
+node snap tolerance (5 m by default) of J, and a way round the branch that
+continues through J, so that an exclusion reaching J keeps a route off the
+way round too. Its ids follow the rule above; one way, the footway, is
+`highway=footway` and not `residential`.
+
+| Block | Along | J (node k) | The branch | Round it | Ends |
+|---|---|---|---|---|---|
+| A | 57.049 N, 11.718–11.724 E | 3, on way 2 | way 3, tagged `motorcar=yes` `motor_vehicle:backward=no`, drawn J → K → M; footway 4 crosses it at K (node 5), 4 m south of J, so its first edge is J–K alone | way 5, then way 6 back to M | 11.7190 E on way 1 and on way 6, 57.047 N |
+| B1 | 57.044 N, 11.735–11.741 E | 23, on way 8 | way 9, through a `lift_gate` `access=residents` at node 25, 3 m south of J | way 10, 0.2° east and back, about 25 km | 11.7360 E on way 7 and on way 11, 57.042 N |
+| B2 | 57.039 N, 11.734–11.740 E | 43, on way 13 | way 14, through the same gate at node 45, 3 m south of J | way 15, the same | 11.7350 E on way 12 and on way 16, 57.037 N |
+
+The way round B1 and B2's gate is long so that the engine's own route, which
+the gate's penalties do not outweigh, passes the gate. B1 and B2 differ in
+where J falls in the tile's spatial order of nodes against the gate
+(`src/mjolnir/graphbuilder.cc`, SortGraph, at 3.9.1), which, as the search
+in `src/loki/search.cc` reads, decides whether the engine maps the gate's
+position to the gate or to J. The test does not rely on that reading: it asks
+the engine (`/locate`) which, and requires that at least one is mapped to J.
 
 Each test establishes its case from the file before measuring it, and asks the
 engine, with `ignore_access`, whether the quickest connection between the ends

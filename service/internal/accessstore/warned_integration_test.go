@@ -2,11 +2,12 @@
 
 package accessstore_test
 
-// #271's acceptance criteria, AC1 to AC7, against the committed extract: the
-// tables loaded from it, the tiles a real Valhalla serves built from the same
-// file, and the extract read independently as OPL, as integration_test.go
-// (#255) and exclusion_integration_test.go (#248) do, whose helpers these
-// share.
+// #271's acceptance criteria, AC1 to AC7, and S1 of PR #297's safety verdict
+// (TestANoRouteAnswerToAnExclusionReachingAJunctionWarnsNoLeg), against the
+// committed extract: the tables loaded from it, the tiles a real Valhalla
+// serves built from the same file, and the extract read independently as OPL,
+// as integration_test.go (#255) and exclusion_integration_test.go (#248) do,
+// whose helpers these share.
 //
 // EACH TEST ESTABLISHES ITS PREMISE FROM THE EXTRACT FIRST: the markings with
 // their tags, the ends on ways the reading leaves unmarked, and — for a
@@ -619,5 +620,196 @@ func TestAC7TheRunOnAWarnedLegIsNamedToo(t *testing.T) {
 				t.Errorf("the warned leg names %+v, want the run along the private road %d named from the home's end of the shape", leg.Marked, road)
 			}
 		})
+	}
+}
+
+// --- S1 of PR #297's safety verdict: a place snapped to a junction -----------
+
+// snapLayout is #271's layout j=3 (`testdata/README.md` § #271's cases): three
+// blocks, each a public road through a junction with a marked branch whose
+// place to avoid lies within the engine's node snap tolerance of it, and a
+// way round the branch through the same junction.
+const snapLayout = 3
+
+// snapBlock is one block of layout j=3: the public road through the junction,
+// the marking on the branch, and the ends.
+type snapBlock struct {
+	name     string
+	public   int64
+	kind     string
+	marking  int64
+	from, to planner.Point
+}
+
+// snapBlocks establishes layout j=3's premises from the extract: each way
+// with its tags and no access key beyond them, the public road through the
+// junction J and the branch leaving it, the marking on the branch within the
+// engine's default node snap tolerance of J, and the block's ways every way at
+// their nodes.
+func (fx *fixture) snapBlocks(t *testing.T) []snapBlock {
+	t.Helper()
+
+	j := snapLayout
+	w := func(k int) int64 { return wWay(j, k) }
+	n := func(k int) int64 { return wNode(j, k) }
+
+	// Block A: way 3, the marked branch, cut 4 m from J by footway 4.
+	synthetic271(t, fx.opl.ways, "way", w(3), backwardTags)
+	synthetic271(t, fx.opl.ways, "way", w(4), map[string]string{"highway": "footway"})
+
+	for _, k := range []int{1, 2, 5, 6} {
+		synthetic271(t, fx.opl.ways, "way", w(k), nil)
+	}
+
+	fx.on(t, w(2), n(2), n(3), n(4))
+	fx.on(t, w(3), n(3), n(5), n(6))
+	fx.on(t, w(4), n(9), n(5), n(10))
+	fx.isolated(t, w(1), w(2), w(3), w(4), w(5), w(6))
+
+	if d := metres(fx.opl.nodes[n(3)], fx.opl.nodes[n(5)]); d >= 5 {
+		t.Fatalf("the premise does not hold: the marked branch's first edge is %.1f m, want it within the engine's default node snap tolerance of 5 m", d)
+	}
+
+	blocks := []snapBlock{{
+		name:   "a marked way whose first edge, 4 m long, leaves a junction a public road runs through",
+		public: w(2), kind: "way", marking: w(3),
+		from: planner.Point{Latitude: 57.049, Longitude: 11.719}, to: planner.Point{Latitude: 57.047, Longitude: 11.719},
+	}}
+
+	// Blocks B1 and B2: a gate 3 m from J on the branch.
+	for i, b := range []struct {
+		k0, w0   int
+		lat, lon float64
+	}{{20, 6, 57.044, 11.736}, {40, 11, 57.039, 11.735}} {
+		gate := n(b.k0 + 5)
+
+		synthetic271(t, fx.opl.nodes, "node", gate, gateTags)
+
+		for k := 1; k <= 5; k++ {
+			synthetic271(t, fx.opl.ways, "way", w(b.w0+k), nil)
+		}
+
+		fx.on(t, w(b.w0+2), n(b.k0+2), n(b.k0+3), n(b.k0+4))
+		fx.on(t, w(b.w0+3), n(b.k0+3), gate, n(b.k0+6))
+		fx.isolated(t, w(b.w0+1), w(b.w0+2), w(b.w0+3), w(b.w0+4), w(b.w0+5))
+
+		if d := metres(fx.opl.nodes[n(b.k0+3)], fx.opl.nodes[gate]); d >= 5 {
+			t.Fatalf("the premise does not hold: the gate is %.1f m from the junction, want it within the engine's default node snap tolerance of 5 m", d)
+		}
+
+		blocks = append(blocks, snapBlock{
+			name:   fmt.Sprintf("a gate 3 m from a junction a public road runs through (B%d)", i+1),
+			public: w(b.w0 + 2), kind: "barrier", marking: gate,
+			from: planner.Point{Latitude: b.lat, Longitude: b.lon}, to: planner.Point{Latitude: b.lat - 0.002, Longitude: b.lon},
+		})
+	}
+
+	return blocks
+}
+
+// metres is the distance between two nodes, near enough for a premise of a
+// few metres: an equirectangular reading at their latitude.
+func metres(a, b feature) float64 {
+	const perDegree = 111_320.0
+
+	dy := (a.lat - b.lat) * perDegree
+	dx := (a.lon - b.lon) * perDegree * math.Cos(a.lat*math.Pi/180)
+
+	return math.Hypot(dx, dy)
+}
+
+// reachesPublic reports whether any request the planner made asked the engine
+// to keep off a place it maps to the public road, by the engine's own account
+// (`/locate`), and logs the first.
+func (fx *fixture) reachesPublic(t *testing.T, avoids [][]planner.Point, public int64) bool {
+	t.Helper()
+
+	for _, av := range avoids {
+		if len(av) == 0 {
+			continue
+		}
+
+		got, err := fx.routing.Excluded(t.Context(), av)
+		if err != nil {
+			t.Fatalf("asked what it keeps a route off for %v, the engine answered %v", av, err)
+		}
+
+		for i, ways := range got {
+			if slices.Contains(ways, public) {
+				t.Logf("asked to keep off %v, place %d of %v, the engine keeps a route off ways %v, the public road %d among them", av[i], i, av, ways, public)
+
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// TestANoRouteAnswerToAnExclusionReachingAJunctionWarnsNoLeg is S1 of PR
+// #297's safety verdict (`FR-129`, fourth criterion; `FR-130`): between two
+// locations the user entered that a connection avoiding every marking joins,
+// the engine's own route takes a marked branch whose place to avoid lies
+// within its node snap tolerance of the junction it leaves, so asked to keep
+// off the branch it keeps off the public road through that junction too, the
+// way round with it, and answers that no route does. No leg of the journey is
+// warned, and none runs along the marked way or passes the gate: the journey
+// is the way round, not warned, or it is not planned — a lost leg, which a
+// no-route answer the engine cannot show to be about the marking alone gives
+// (`Architecture.md § Avoiding, not only refusing`).
+//
+// Each block first establishes that the engine's own route crosses the
+// marking. That the planner's request reached the public road is asked of the
+// engine afterwards, and must hold for block A and for one of B1 and B2.
+func TestANoRouteAnswerToAnExclusionReachingAJunctionWarnsNoLeg(t *testing.T) {
+	fx := setUp(t)
+
+	blocks := fx.snapBlocks(t)
+	reached := make([]bool, len(blocks))
+
+	for i, b := range blocks {
+		t.Run(b.name, func(t *testing.T) {
+			route, err := fx.routing.Route(t.Context(), b.from, b.to, nil)
+			if err != nil {
+				t.Fatalf("the premise does not hold: the engine routes nothing between the ends: %v", err)
+			}
+
+			if !slices.ContainsFunc(fx.markingsOn(route.Edges), func(m marking) bool { return m.kind == b.kind && m.id == b.marking }) {
+				t.Fatalf("the premise does not hold: the engine's own route, along %v, does not cross the %s %d, so nothing is asked to keep off it", wayIDs(route.Edges), b.kind, b.marking)
+			}
+
+			p, routing := fx.avoiding(t)
+
+			journey, err := p.Plan(t.Context(), planner.Request{Origin: b.from, Destination: b.to})
+
+			reached[i] = fx.reachesPublic(t, routing.avoids, b.public)
+
+			var refusal *planner.CrossingError
+
+			switch {
+			case errors.As(err, &refusal):
+				t.Logf("the journey is not planned, a lost leg: %v (asked to avoid %v)", err, routing.avoids)
+			case err != nil:
+				t.Fatalf("Plan failed otherwise: %v", err)
+			default:
+				for k, leg := range journey.Legs {
+					if leg.Warned || len(fx.markingsOn(leg.Edges)) > 0 {
+						t.Errorf("leg %d runs along %v, warned=%v naming %+v, though the way round avoids the %s %d (`FR-129`, fourth criterion): the engine's no-route answer was to an exclusion reaching the public road %d at the junction", k, wayIDs(leg.Edges), leg.Warned, leg.Marked, b.kind, b.marking, b.public)
+					}
+				}
+
+				for k, leg := range journey.Legs {
+					t.Logf("leg %d runs along %v, not warned", k, wayIDs(leg.Edges))
+				}
+			}
+		})
+	}
+
+	if !reached[0] {
+		t.Errorf("the premise does not hold: no request for block A kept a route off the public road %d, so the case measured no snap to the junction", blocks[0].public)
+	}
+
+	if !reached[1] && !reached[2] {
+		t.Errorf("the premise does not hold: no request for B1 or B2 kept a route off the public road, so the gate case measured no snap to the junction")
 	}
 }
