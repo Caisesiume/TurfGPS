@@ -1,5 +1,5 @@
 // Package osmpbf reads an OpenStreetMap `.osm.pbf` file: its header, and its
-// nodes and ways with their tags, exactly as the file holds them.
+// nodes, ways and relations with their tags, exactly as the file holds them.
 //
 // It exists for the access-marking loader (`Architecture.md § The
 // access-marking tables`, § Loading from the extract the tiles are built
@@ -16,8 +16,9 @@
 // would load a table missing features, and a feature missing from the table
 // reads as unmarked.
 //
-// Relations are counted and not decoded; nothing reads them yet. The area
-// features of `access_area`, multipolygon relations among them, are #253's.
+// A relation is read with its tags and its members, each member's type, id
+// and role as the file holds them; assembling a multipolygon from them is the
+// loader's (#253), not this package's.
 //
 // The format is https://wiki.openstreetmap.org/wiki/PBF_Format, and the
 // messages are `osmformat.proto` and `fileformat.proto` of the OSM-binary
@@ -68,6 +69,30 @@ type Way struct {
 	Tags  map[string]string
 }
 
+// MemberType is the type of the object a relation member references.
+type MemberType int
+
+// The member types, numbered as `osmformat.proto`'s Relation.MemberType.
+const (
+	MemberNode     MemberType = 0
+	MemberWay      MemberType = 1
+	MemberRelation MemberType = 2
+)
+
+// Member is one member of a relation: what it references, and its role.
+type Member struct {
+	Type MemberType
+	Ref  int64
+	Role string
+}
+
+// Relation is an OSM relation: its members in order, and its tags.
+type Relation struct {
+	ID      int64
+	Members []Member
+	Tags    map[string]string
+}
+
 // Handler receives a file's contents in file order: the header first, then
 // each node, way and relation as it is read. An error from any of them stops
 // the read and is returned.
@@ -75,7 +100,7 @@ type Handler interface {
 	Header(Header) error
 	Node(Node) error
 	Way(Way) error
-	Relation(id int64) error
+	Relation(Relation) error
 }
 
 // Read reads the whole file r holds into h.
@@ -647,6 +672,15 @@ func (b *block) way(data []byte, h Handler) error {
 }
 
 func (b *block) relation(data []byte, h Handler) error {
+	var (
+		r          Relation
+		hasID      bool
+		keys, vals []uint64
+		roles      []uint64
+		refs       []int64
+		types      []uint64
+	)
+
 	m := message{buf: data}
 	for {
 		f, ok, err := m.next()
@@ -655,11 +689,64 @@ func (b *block) relation(data []byte, h Handler) error {
 		}
 
 		if !ok {
-			return errors.New("a relation without an id")
+			break
 		}
 
-		if f.num == 1 {
-			return h.Relation(int64(f.value))
+		switch f.num {
+		case 1:
+			r.ID, hasID = int64(f.value), true
+		case 2:
+			keys, err = packed(f, keys)
+		case 3:
+			vals, err = packed(f, vals)
+		case 8:
+			roles, err = packed(f, roles)
+		case 9:
+			refs, err = packedSigned(f, refs)
+		case 10:
+			types, err = packed(f, types)
+		}
+
+		if err != nil {
+			return fmt.Errorf("relation %d: %w", r.ID, err)
 		}
 	}
+
+	if !hasID {
+		return errors.New("a relation without an id")
+	}
+
+	// The three member fields are parallel arrays; members a writer left
+	// unequal cannot be paired, and a relation read with fewer members than
+	// it has would assemble a smaller area than it draws.
+	if len(roles) != len(refs) || len(types) != len(refs) {
+		return fmt.Errorf("relation %d: %d member roles, %d member ids and %d member types", r.ID, len(roles), len(refs), len(types))
+	}
+
+	tags, err := b.tags(keys, vals)
+	if err != nil {
+		return fmt.Errorf("relation %d: %w", r.ID, err)
+	}
+
+	r.Tags = tags
+	r.Members = make([]Member, len(refs))
+
+	var id int64
+
+	for i, d := range refs {
+		id += d
+
+		if types[i] > uint64(MemberRelation) {
+			return fmt.Errorf("relation %d: member %d has the type %d, which the format does not define", r.ID, i, types[i])
+		}
+
+		role, err := b.str(roles[i])
+		if err != nil {
+			return fmt.Errorf("relation %d, member %d's role: %w", r.ID, i, err)
+		}
+
+		r.Members[i] = Member{Type: MemberType(types[i]), Ref: id, Role: role}
+	}
+
+	return h.Relation(r)
 }

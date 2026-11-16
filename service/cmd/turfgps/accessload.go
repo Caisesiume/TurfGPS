@@ -73,7 +73,7 @@ func loadAccessMarkings(args []string, lookup config.LookupFunc) error {
 
 	slog.Info("the access markings are loaded and current",
 		"extract_sha256", rec.SHA256, "load", rec.ID,
-		"ways", rec.WayRows, "barriers", rec.BarrierRows,
+		"ways", rec.WayRows, "barriers", rec.BarrierRows, "areas", rec.AreaRows,
 		"barrier_ways", rec.BarrierWayRows, "way_exits", rec.WayExitRows)
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"os"
+	"slices"
 	"testing"
 	"time"
 )
@@ -80,10 +81,29 @@ func headerBlock(features ...string) []byte {
 
 // dataBlock is a PrimitiveBlock of one group holding two dense nodes — the
 // second tagged access=private — and one way through both, tagged
-// highway=service.
+// highway=service, and a second group holding a multipolygon relation tagged
+// access=private whose members are way 99 as its outer, way 120 as its
+// inner, and node 10 with no role.
 func dataBlock() []byte {
+	return dataBlockWith(relationMessage(pbPacked(8, 7, 8, 0), pbPacked(9, pbZig(99), pbZig(21), pbZig(-110)), pbPacked(10, 1, 1, 0)))
+}
+
+// relationMessage is relation 500, tagged type=multipolygon and
+// access=private, with the given member fields.
+func relationMessage(members ...[]byte) []byte {
+	rel := append(pbUint(1, 500), pbPacked(2, 5, 1)...)
+	rel = append(rel, pbPacked(3, 6, 2)...)
+
+	for _, m := range members {
+		rel = append(rel, m...)
+	}
+
+	return rel
+}
+
+func dataBlockWith(rel []byte) []byte {
 	strs := pbBytes(1, nil)
-	for _, s := range []string{"access", "private", "highway", "service"} {
+	for _, s := range []string{"access", "private", "highway", "service", "type", "multipolygon", "outer", "inner"} {
 		strs = append(strs, pbBytes(1, []byte(s))...)
 	}
 
@@ -98,20 +118,22 @@ func dataBlock() []byte {
 
 	group := append(pbBytes(2, dense), pbBytes(3, way)...)
 
-	return append(pbBytes(1, strs), pbBytes(2, group)...)
+	block := append(pbBytes(1, strs), pbBytes(2, group)...)
+
+	return append(block, pbBytes(2, pbBytes(4, rel))...)
 }
 
 type collect struct {
 	header Header
 	nodes  []Node
 	ways   []Way
-	rels   []int64
+	rels   []Relation
 }
 
-func (c *collect) Header(h Header) error   { c.header = h; return nil }
-func (c *collect) Node(n Node) error       { c.nodes = append(c.nodes, n); return nil }
-func (c *collect) Way(w Way) error         { c.ways = append(c.ways, w); return nil }
-func (c *collect) Relation(id int64) error { c.rels = append(c.rels, id); return nil }
+func (c *collect) Header(h Header) error     { c.header = h; return nil }
+func (c *collect) Node(n Node) error         { c.nodes = append(c.nodes, n); return nil }
+func (c *collect) Way(w Way) error           { c.ways = append(c.ways, w); return nil }
+func (c *collect) Relation(r Relation) error { c.rels = append(c.rels, r); return nil }
 
 // TestAFileIsReadAsWritten: the header's timestamp, dense nodes with their
 // coordinates and tags, and a way's delta-coded node ids, from raw and from
@@ -141,6 +163,32 @@ func TestAFileIsReadAsWritten(t *testing.T) {
 
 		if len(c.ways) != 1 || c.ways[0].ID != 99 || c.ways[0].Tags["highway"] != "service" || len(c.ways[0].Nodes) != 2 || c.ways[0].Nodes[1] != 11 {
 			t.Errorf("%s: the ways are %+v", compression, c.ways)
+		}
+
+		want := []Member{{MemberWay, 99, "outer"}, {MemberWay, 120, "inner"}, {MemberNode, 10, ""}}
+		if len(c.rels) != 1 || c.rels[0].ID != 500 || c.rels[0].Tags["type"] != "multipolygon" || c.rels[0].Tags["access"] != "private" ||
+			!slices.Equal(c.rels[0].Members, want) {
+			t.Errorf("%s: the relations are %+v, want relation 500 tagged type=multipolygon and access=private with the members %+v", compression, c.rels, want)
+		}
+	}
+}
+
+// TestARelationWhoseMembersCannotBePairedIsRefused: a relation's members are
+// three parallel arrays, and one read with fewer members than it has would
+// draw a smaller area, so arrays of unequal length, or a member type the
+// format does not define, refuse the file.
+func TestARelationWhoseMembersCannotBePairedIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for name, rel := range map[string][]byte{
+		"a role missing":        relationMessage(pbPacked(8, 6), pbPacked(9, pbZig(99), pbZig(21)), pbPacked(10, 1, 1)),
+		"a type missing":        relationMessage(pbPacked(8, 6, 7), pbPacked(9, pbZig(99), pbZig(21)), pbPacked(10, 1)),
+		"an undefined type":     relationMessage(pbPacked(8, 6), pbPacked(9, pbZig(99)), pbPacked(10, 3)),
+		"a role not in strings": relationMessage(pbPacked(8, 60), pbPacked(9, pbZig(99)), pbPacked(10, 1)),
+	} {
+		file := append(fileBlock("OSMHeader", headerBlock(), "raw"), fileBlock("OSMData", dataBlockWith(rel), "raw")...)
+		if err := Read(bytes.NewReader(file), &collect{}); err == nil {
+			t.Errorf("a relation with %s was read without an error", name)
 		}
 	}
 }
@@ -207,7 +255,7 @@ func TestTheCommittedExtractReadsWhole(t *testing.T) {
 		t.Fatalf("Read: %v", err)
 	}
 
-	if got := []int{len(c.nodes), len(c.ways), len(c.rels)}; got[0] != 13786 || got[1] != 4078 || got[2] != 57 {
-		t.Errorf("the extract holds %v nodes, ways and relations, want [13786 4078 57] as its README records", got)
+	if got := []int{len(c.nodes), len(c.ways), len(c.rels)}; got[0] != 14744 || got[1] != 4364 || got[2] != 64 {
+		t.Errorf("the extract holds %v nodes, ways and relations, want [14744 4364 64] as its README records", got)
 	}
 }
