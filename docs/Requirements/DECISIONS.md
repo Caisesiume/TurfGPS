@@ -4601,3 +4601,142 @@ Affects:        RD-091's first ladder edge, superseded; RD-090's fourth ladder
                 `INDEX.md`, `TRACEABILITY.md` and `README.md`, following the
                 records.
 ```
+
+## RD-093 — Which area relation is old-style, what else of one fails the load, and does a marked member way that is itself a road fail it? (supersedes RD-087's interpretation)
+
+```
+Date:           2026-11-16
+Decided-by:     Four rulings on PR #306, which builds #301, relayed to the
+                analyst in `@engineering-lead`'s dispatch on PR #305 at
+                `f958460`, its fifth cycle, which directed this entry. Three
+                are the lead's. On the developer's question, posted on PR
+                #306,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6919465611,
+                verbatim: "Lead ruling on the developer's open question
+                (p_true 0.8): an old-style area relation whose member way is
+                missing from the file (clipped at the extract edge) fails the
+                load. This follows the existing pattern: a missing member of
+                an area relation already fails the load (#296), and failing
+                closed is the strict direction. It is folded into this PR
+                before review." On the safety sentinel's N1 and N2 at
+                `e9b757e`,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6926890689,
+                the lead's strict ruling, carried in its cycle-2 dispatch to
+                the developer and in this dispatch and not posted as a comment
+                of its own, as this dispatch states it: "a relation is
+                old-style when it carries no feature-defining key (the OSM
+                wiki 'Top-level tag' list, 50 keys), inverting RD-087's
+                housekeeping list; an old-style relation's relation members
+                fail the load". The fourth is the Owner's, on the developer's
+                F1, posted by the lead on PR #306,
+                https://github.com/Caisesiume/TurfGPS/pull/306#issuecomment-6928965719,
+                verbatim: "Owner decision (AskUserQuestion, 2026-11-16),
+                verbatim option **"Road tags stay road tags (Recommended)"**,
+                whose description read: "If the tagged edge is itself a road,
+                its tag stays a road marking (already enforced on that road)
+                and doesn't make the zone old-style. Only non-road edges
+                carrying a tag trigger the check. Sweden loads; the ice road
+                stays closed to cars." This settles the developer's F1
+                (relation 14945917, Luleå). The analyst records it, and the
+                reversed feature-key test, in PR #305 as a new RD entry
+                superseding RD-087's interpretation (F2)." This entry records
+                rulings made elsewhere, with two edges they leave open decided
+                on the ladder below.
+Question:       PR #306 builds `DECISIONS.md § RD-087`, and its review found
+                three cases the reading left open. The developer asked what
+                the load does with an old-style area relation naming a member
+                way the file does not hold, as one clipped at the extract's
+                edge may. The sentinel's N1: a relation carrying, besides
+                `type`, a key outside RD-087's list that describes no feature,
+                `area=yes`, `layer`, `alt_name`, `old_name` or `wikidata`, is
+                not old-style, so a ring-tagged area so drawn still loads with
+                its area unmarked. The sentinel's N2: an old-style relation
+                naming a relation as a member passes that relation's ways
+                unchecked. Under the strict test the developer then counted
+                268 old-style area relations in the Swedish data (Overpass,
+                2026-11-16), none naming a relation, and one failing the load,
+                relation 14945917 at Luleå, a `type=multipolygon` relation
+                carrying `name=Skoterförbudsområde` and `snowmobile=no`, whose
+                outer ways 330543782 and 974971942 are an open
+                `highway=pedestrian` ice road carrying `motor_vehicle=no`; the
+                developer's F1. Which relation is old-style, what else of one
+                fails the load, and does a marked member way that is itself a
+                road fail it?
+Interpretation: **An area relation is old-style where it carries none of the
+                twelve access keys and no key that defines a feature, and its
+                load fails, naming the relation and the member, on a member
+                way carrying any of the twelve access keys that is neither an
+                area of `Architecture.md § What the tables hold` nor a road,
+                on a member relation, and on a member way the file does not
+                hold; a member way that is a road keeps its marking as a way's
+                and fails nothing.** The keys that define a feature are the
+                fifty top-level keys of the OpenStreetMap wiki's
+                `Top-level tag` page, both its tables, as revision 2875567 of
+                17 July 2025 lists them. RD-087's list of the tags a relation
+                may carry and stay old-style, its type, names and housekeeping
+                keys, is superseded, and every relation old-style under that
+                list is old-style under this test, since none of those keys is
+                a top-level key. The list is now a ceiling where RD-087's was
+                a floor: adding a key makes fewer relations old-style, so it
+                is a change to a safety rule, and removing one fails more
+                loads and lets nothing through. A member way is a road where
+                it carries a `highway` key, whatever its value; it is stored
+                with its marking in `access_way`, as every way carrying the
+                keys is, and its marking is not read as the area's, so the
+                area the relation draws is not stored. Since a closed way
+                without a `highway` key is already an area, the load fails on
+                a member way only where the way is open, carries one of the
+                twelve access keys and carries no `highway` key. A relation is
+                old-style by its tags alone, so a member that is a road lifts
+                neither of the other two failures: an old-style relation
+                naming a relation, or naming a way the file does not hold,
+                fails the load whatever its other members are. What RD-087
+                held besides its list and its reading of a road member stands:
+                the load fails rather than reads, the guard reads no member
+                role, and taking a member way's tags as the area's is not this
+                reading.
+Rung:           n/a for the four rulings; the lead put the fourth to the Owner
+                through AskUserQuestion and none of the other three. RD-087
+                read its list as a floor on rung 7; the lead ruled the strict
+                direction, which fails every load RD-087's floor failed and
+                more, and fails closed on the two members the guard cannot
+                read. The Owner's ruling narrows what fails: a road member
+                that RD-087 and the lead's test both failed now loads, with
+                the area its relation draws not stored, which is a change to a
+                safety rule and to accessibility classification, the Owner's
+                (`team-protocol § Escalation and human judgement`). Two edges
+                are read on the ladder. First, a road is a member way carrying
+                a `highway` key, on rung 2:
+                `Architecture.md § What the tables hold` divides a closed way
+                into an area or a way by its `highway` key, and names a
+                highway way as what `access_way_exit` pairs a marked way with;
+                with rung 5, `isArea` in `service/internal/accessload/read.go`
+                at PR #306's head `5fc4cde`, which reads the same key. No
+                narrower set of `highway` values reads the Owner's option as
+                written, since relation 14945917's ways are
+                `highway=pedestrian` and the option has Sweden load. Second, a
+                road member lifts neither other failure, on rung 7: the
+                Owner's option speaks of a tagged edge and the check it
+                triggers, and a member relation or a way the file does not
+                hold cannot be read for whether it is a road; with rung 4, the
+                lead's ruling on a missing member, "failing closed is the
+                strict direction". The fifty keys were read, not inferred:
+                revision 2875567 of `Top-level tag`, read through the wiki's
+                MediaWiki API on 2026-11-16, holds 33 keys in its table for
+                standalone elements and 17 in its table for dependent
+                elements, `highway` and `area:highway` among them, the keys PR
+                #306's `featureKeys` holds. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        RD-087's interpretation, superseded where it lists the tags a
+                relation may carry and stay old-style, where it holds removing
+                a key a change to a safety rule, and where it fails the load
+                on a marked member way that is a road, with its rung for the
+                list; the rest stands, as does `DECISIONS.md § RD-089`'s
+                fourth edge, which cites RD-087 on rung 4 only for failing
+                rather than reading. FR-128, as RD-087 does; its text is
+                unchanged. #301, gaining AC5 to AC9, AC5 superseding AC2's
+                third case, and a `Basis` line.
+                `Architecture.md § Loading from the extract the tiles are built from`,
+                edited by PR #306, which cites RD-087 and is to cite this
+                entry. `README.md`, recording the pass.
+```
