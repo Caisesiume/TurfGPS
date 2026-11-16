@@ -384,10 +384,7 @@ var featureKeys = map[string]bool{
 // can no longer hide the marking.
 func oldStyleTags(tags map[string]string) bool {
 	for k := range tags {
-		switch {
-		case k == "type", k == "name", k == "created_by", k == "source", k == "note", k == "fixme", k == "FIXME":
-		case strings.HasPrefix(k, "name:"), strings.HasPrefix(k, "source:"), strings.HasPrefix(k, "note:"):
-		default:
+		if featureKeys[k] {
 			return false
 		}
 	}
@@ -431,7 +428,9 @@ func (p *relationsPass) Relation(r osmpbf.Relation) error {
 				case osmpbf.MemberWay:
 					o.ways = append(o.ways, m.Ref)
 					p.oldStyle[m.Ref] = append(p.oldStyle[m.Ref], o)
-				case osmpbf.MemberRelation, osmpbf.MemberNode:
+				case osmpbf.MemberRelation:
+					return fmt.Errorf("relation %d is a type=%s relation carrying no key that defines a feature and names relation %d as a member, whose ways this reader does not check for the marking of the area the relation draws (#301)", r.ID, kind, m.Ref)
+				case osmpbf.MemberNode:
 					// A node encloses nothing: it carries no area's marking.
 				}
 			}
