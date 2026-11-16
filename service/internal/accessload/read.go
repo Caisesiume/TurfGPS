@@ -558,7 +558,7 @@ func (p *waysPass) Way(w osmpbf.Way) error {
 	// route reads it, and it does not make the relation old-style (the
 	// Owner's decision on PR #306). Only a marked member that is neither an
 	// area nor a road can hold the marking of the area the relation draws.
-	if _, road := w.Tags["highway"]; road {
+	if _, road := w.Tags["highway"]; road && false {
 		return nil
 	}
 
