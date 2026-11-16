@@ -1378,7 +1378,7 @@ Rationale:    The cited section binds the area, and FR-125 reads the area's
               reaches a driving leg; the walking access path's half stays owed
               with FR-075 until an access path is built. No mechanism is
               named, and a penalty is not an exclusion.
-Resolved-by:  #253, #292, #293
+Resolved-by:  #253, #292, #293, #301, #302, #303
 ```
 
 ## FR-129 — Produce a warned leg where nothing avoids a marking between two locations the user entered
@@ -1674,7 +1674,7 @@ Rationale:    FR-125 refuses a leg nothing joins without a marking, and the
               warned leg of its own; and zones are taken from every stop these
               legs reach and from no other behind a marking (FR-137). No
               mechanism and no wire shape is named.
-Resolved-by:  #271
+Resolved-by:  #271, #300
 ```
 
 ## FR-130 — Keep every avoidable marking off a warned leg
@@ -2249,4 +2249,82 @@ Rationale:    `SPECIFICATION.md § What establishes a stopping position` holds
               (`DECISIONS.md § RD-075`), so this record reaches only the
               position on its own marking. No mechanism is named.
 Resolved-by:  #276
+```
+
+## FR-142 — Treat what a site relation marked private or access-restricted groups as marked
+
+```
+Statement:    The system shall treat each way and each area relation that a
+              site relation the map data marks as private or access-restricted
+              names as a member, and the area enclosed by that relation's
+              perimeter member, as a way or area so marked on its own feature
+              for FR-125, FR-126, FR-127, FR-128, FR-129, FR-130, FR-131,
+              FR-137, FR-138 and FR-140.
+Category:     Safety exclusions
+Source:       SPECIFICATION.md § Enforceable exclusions
+Priority:     MUST
+Verification: test — against routing data built from a test extract holding
+              a site relation so marked whose member ways, and the ways within
+              the area its perimeter member encloses, carry no marking of
+              their own, a leg whose quickest connection runs along either is
+              produced on a connection avoiding both, while a site relation
+              not so marked, and a node a site relation so marked names, mark
+              nothing
+Acceptance:   given two points on ways outside a site relation that the map
+              data marks as private or access-restricted, whose quickest
+              drivable connection runs along a way that relation names as a
+              member carrying no such marking of its own, or a permissive one,
+              and between which a drivable connection avoiding every such way
+              exists, when the leg is produced, then it runs along no way that
+              relation names as a member
+              given two points on ways outside the area enclosed by the
+              perimeter member of such a site relation, whose quickest
+              drivable connection runs along a way within that area that the
+              relation does not name and that carries no such marking of its
+              own, and between which a drivable connection avoiding every such
+              area exists, when the leg is produced, then it runs along no way
+              within that area
+              given a site relation the map data does not so mark, and
+              separately a node that a site relation so marked names as a
+              member, when the journey is planned, then no way, area or
+              barrier is treated as so marked on that relation's account
+Status:       to-build
+Depends-on:   FR-125; FR-126; FR-127; FR-128; FR-129; FR-130; FR-131; FR-137;
+              FR-138; FR-140
+Volatility:   settled — the Owner ruled that a site relation so marked marks
+              what it groups (`DECISIONS.md § RD-089`); the marking is read as
+              FR-128's is, by `DECISIONS.md § RD-063` to
+              `DECISIONS.md § RD-066`; which members the loader can draw, and
+              what fails its load, is `Architecture.md § What the tables hold`'s
+              and `Architecture.md § Loading from the extract the tiles are built from`'s
+Risk:         A customers-only car park mapped as a site relation over aisles
+              that carry no marking of their own routes as public road: the
+              marking the data carries sits on the grouping relation, which no
+              check reading a way's or an area's own markings sees, and the
+              leg cuts through the aisles exactly where that saves time.
+Rationale:    `SPECIFICATION.md § Enforceable exclusions` forbids a route
+              through what the map data marks as private or access-restricted,
+              and the Owner ruled on #303 that a site relation (`type=site`) so
+              marked marks what it groups: the area its perimeter member
+              encloses, and its way and area members, each as the feature it
+              is (`DECISIONS.md § RD-089`). Treating them as so marked on their
+              own feature, for the records FR-128 names and for FR-128 itself,
+              states the rule, the Owner's exception and its bound once, so
+              what a marked site groups is crossed, entered, warned and served
+              exactly as a feature marked on its own is. FR-140 is named
+              because an area a marked site groups that is a parking area is
+              one whose own feature is so marked. A node member is not read,
+              because a site's node is usually its entrance and marking it
+              would refuse the leg that reaches it; no hull is drawn round a
+              site without a perimeter member, so no ground the mapper did not
+              group is marked. A member's own keys do not lift the site's
+              marking, as a way's keys do not lift the marking of an area
+              enclosing it (`DECISIONS.md § RD-060`). The record reaches a
+              driving leg; the walking access path's half stays owed with
+              FR-075, as FR-128's does. The criteria test the leg and what is
+              left unmarked; that a feature so treated is then entered, warned
+              and served as one marked on its own is, is each named record's
+              own criteria, which read a marked way or area whatever marks it.
+              No mechanism is named.
+Resolved-by:  #303
 ```

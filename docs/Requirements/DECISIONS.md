@@ -4068,3 +4068,182 @@ Affects:        FR-045: `Verification`, a fourth criterion, `Depends-on`
                 gains FR-125, `Volatility` added, `Rationale`. #50 is to gain
                 the matching AC4; that edit is the Owner's.
 ```
+
+## RD-087 — Does the access-marking load read, refuse or pass an area relation whose marking sits on a member way?
+
+```
+Date:           2026-11-16
+Question:       The safety sentinel's N1 on PR #296
+                (`#issuecomment-6904272862`), filed as #301: the loader takes
+                a `type=multipolygon` or `type=boundary` relation as an area
+                only where the relation itself carries one of the twelve
+                access keys. In the older tagging the feature's tags sit on
+                the outer ring's ways instead; where those are open ways, each
+                is read as a way and none as an area, so the area is never
+                stored and the unmarked ways inside it route as public road.
+                What does the load do with such a relation?
+Interpretation: **It fails the load, naming the relation and the member way.**
+                An old-style area relation is a relation of a type the loader
+                reads as an area that carries no tag other than `type`,
+                `name` and its `name:*` forms, and the housekeeping keys
+                `created_by`, `source`, `source:*`, `note`, `note:*`, `fixme`
+                and `FIXME`, and that has at least one member way which
+                carries any of the twelve access keys and which the loader
+                does not itself take as an area. The list of keys is a floor:
+                adding a key can only make more relations old-style, so it
+                fails more loads and lets nothing through, and removing one is
+                a change to a safety rule. The guard reads no member role,
+                because the loader reads none. Taking the member way's tags as
+                the area's is not this reading; if the six-country extract
+                turns out to hold real instances, that reading is a separate
+                proposal to the lead.
+Rung:           7, the most conservative reasonable interpretation, for the
+                list of keys; the outcome rests on rung 2:
+                `Architecture.md § Loading from the extract the tiles are built from`
+                fails the load on a feature carrying the keys that the loader
+                cannot draw. The sentinel found no instance in the Swedish
+                data (Overpass, 2026-11-16), and the other five countries of
+                `Architecture.md § D5` are uncounted. No Turf mechanic is read
+                and no constant is introduced.
+Affects:        FR-128, through the area features its `Volatility` leaves to
+                `Architecture.md § What the tables hold`; its text is
+                unchanged and it gains #301. #301, new.
+                `Architecture.md § Loading from the extract the tiles are built from`
+                and `Architecture.md § What the tables hold`, edited by the
+                PR closing #301.
+```
+
+## RD-088 — Is a closed highway way that also carries an area-only tag an area?
+
+```
+Date:           2026-11-16
+Question:       The safety sentinel's N3 on PR #296
+                (`#issuecomment-6904272862`) and the critic's N3
+                (`#issuecomment-6904384442`), filed as #302: a closed way
+                carrying a `highway` key is an area only where it is tagged
+                `area=yes` or carries one of the four area-only `highway`
+                values. A closed `highway=service` ring that also carries
+                `amenity=parking` and `access=customers` is read as a marked
+                way only, so a leg along the ring is refused while the aisles
+                it encloses route as public road. Is such a way also an area?
+Interpretation: **Yes, and it stays a way.** A closed way carrying a `highway`
+                key is also an area where it also carries a tag, other than
+                its `highway` tag, that OpenStreetMap's wiki documents on
+                areas and never on ways: a tag whose `Tag:<key>=<value>` page
+                states `onWay = no` and `onArea = yes`, or, where the tag has
+                no page of its own, whose `Key:<key>` page does. `area=no`
+                removes nothing from the set: a closed way without a `highway`
+                key is an area whatever its `area` value, and a closed way
+                read here is treated the same way. The set is read over a
+                recorded population, at least every tag carried besides
+                `highway` by a closed way carrying a `highway` key and any of
+                the twelve access keys in the extract of
+                `Architecture.md § D5`; a tag outside that population is not
+                in the set until the reading is redone.
+Rung:           5, existing system behaviour: the method that set the four
+                area-only `highway` values in
+                `Architecture.md § What the tables hold`, applied to the
+                way's other tags; with rung 7, the most conservative
+                reasonable interpretation, since adding a feature to the area
+                set can only refuse more legs and that section records
+                narrowing the set as a change to a safety rule. The fact the
+                case rests on was read, not inferred: taginfo's `wiki_pages`
+                for `amenity=parking`, read on 2026-11-16, gives the English
+                page `on_way: false`, `on_area: true`. The sentinel counted 12
+                such closed ways in the Swedish data, the only car-relevant
+                marked one a `highway=construction` way (818574392), which is
+                not routed. No Turf mechanic is read and no constant is
+                introduced.
+Affects:        FR-128, as `DECISIONS.md § RD-087` does; its text is unchanged
+                and it gains #302. #302, new.
+                `Architecture.md § What the tables hold` and
+                `service/internal/accessload/read.go`, edited by the PR
+                closing #302.
+```
+
+## RD-089 — Does a site relation carrying a marking mark what it groups?
+
+```
+Date:           2026-11-16
+Decided-by:     the Owner, answering an AskUserQuestion item put by
+                `@engineering-lead` on #303 (`#issuecomment-6904544956`),
+                relayed in
+                https://github.com/Caisesiume/TurfGPS/issues/303#issuecomment-6904613397.
+                The relay, verbatim: "Owner decision (AskUserQuestion,
+                2026-11-16): **yes, mark its parts** (the recommendation as
+                stated above: perimeter area marked; way members marked, ways
+                as ways and areas as areas; node members not; no hull without
+                a perimeter; a site not readable whole fails the load). Routed
+                to the analyst for the decision entry, FR-128 amendment or new
+                FR, and replacing this story's _Pending_ line." This entry
+                records a ruling made elsewhere, with five edges the ruling
+                leaves open decided on the ladder below.
+Question:       Does a `type=site` relation carrying a marking (the most
+                specific of the four keys of `DECISIONS.md § RD-059` carrying
+                a value outside the permissive set, as `DECISIONS.md § RD-063`
+                reads it, with `DECISIONS.md § RD-064` to
+                `DECISIONS.md § RD-066`) mark what it groups?
+                `SPECIFICATION.md § Enforceable exclusions` forbids a route
+                through areas the map data marks and says nothing of a site,
+                and `Architecture.md § What the tables hold` says a site is
+                not an area and is not read as one.
+Interpretation: **Yes: a marked site marks its parts, filed as FR-142.** The
+                ruling's parts, as #303 proposed them: (a) where the site has
+                a member in the role `perimeter` that is a closed way or an
+                area relation, the area that member encloses is an area
+                carrying the site's marking; (b) every way member carries the
+                site's marking, an open way as a marked way and a closed way
+                or an area relation the loader takes as an area as a marked
+                area, and node members are not read; (c) no hull is drawn
+                round a site without a perimeter, and a marked site the file
+                cannot read whole fails the load. Five edges are read on the
+                ladder. First, FR-142 treats what a marked site groups as so
+                marked on its own feature for the records FR-128 names, for
+                FR-128 itself and for FR-140, so the rule, the Owner's
+                exception and its bound are stated once; the walking access
+                path's half stays owed with FR-075, as FR-128's does. Second,
+                a member's own keys, permissive or more specific, do not lift
+                the site's marking. Third, a closed way member the loader does
+                not take as an area is marked as the way it is. Fourth, a
+                marked site naming a relation member that is not an area
+                relation fails the load, naming the site and the member, as an
+                area relation naming a relation does; a node member is passed
+                over, as an area relation's is. Fifth, an area a marked site
+                groups that is a parking area is one whose own feature is so
+                marked for FR-140; whether a node member that is a parking
+                area drawn as a point is so marked for FR-140 alone stays owed
+                with the parking areas
+                `Architecture.md § Still owed by this document` lists.
+Rung:           n/a for the ruling — Owner ruling, asked by the lead on the
+                analyst's question in #303. Rung 1 stopped short:
+                `SPECIFICATION.md § Enforceable exclusions` is silent on a
+                site, and whether a marking on a grouping relation binds what
+                it groups is product intent the four documents leave
+                undefined. The first edge rests on rung 4, existing
+                requirements: FR-128 states the member for an area in these
+                terms (`DECISIONS.md § RD-060`'s first edge), and the walking
+                access path's half on rung 6, as `DECISIONS.md § RD-060`'s
+                fourth edge does. The second rests on rung 2:
+                `Architecture.md § What the tables hold` holds that a way's
+                keys never lift the marking of an area enclosing it, with
+                rung 4, `DECISIONS.md § RD-060`'s third edge. The third rests
+                on the ruling's own words, every way member, with rung 7. The
+                fourth rests on rung 2:
+                `Architecture.md § Loading from the extract the tiles are built from`
+                refuses an area relation naming a relation and passes over a
+                node member, and the ruling's (c) reads a site the same way;
+                with rung 4, `DECISIONS.md § RD-087`, which fails rather than
+                reads. Site 11224474, the one site in the Swedish data
+                carrying a marking, names 16 ways, one node and no relation
+                (OpenStreetMap API, read 2026-11-16), so the edge fails no
+                Swedish load. The fifth rests on rung 7 for the area, which
+                can only refuse more stops the system chose, a stop the user
+                places being untouched (FR-139); its node half is a debt with
+                its home named, rung 6. No Turf mechanic is read and no
+                constant is introduced.
+Affects:        FR-142, new; FR-128 gains #301, #302 and #303 in
+                `Resolved-by`, its text unchanged; #303's dependencies,
+                `Resolves:` line and criteria AC6 to AC10, appended;
+                `Architecture.md § What the tables hold`, edited by the PR
+                closing #303 (its AC5).
+```
