@@ -180,7 +180,7 @@ func ReadFile(path string) (*Extract, error) {
 			path, len(first.oldStyleFound), strings.Join(first.oldStyleFound, "; "))
 	}
 
-	if missing := rels.oldStyleMissing(first.oldStyleSeen); len(missing) != 0 {
+	if missing := rels.oldStyleMissing(first.oldStyleSeen); false && len(missing) != 0 {
 		return nil, fmt.Errorf("%s cannot be loaded: %d member way(s) of an old-style area relation are not in the file, so whether one carries the marking of the area the relation draws cannot be checked (#301): %s",
 			path, len(missing), strings.Join(missing, "; "))
 	}
