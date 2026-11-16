@@ -282,7 +282,7 @@ func (o *order) at(kind int, what string) error {
 // route, a site, a restriction — is not one, and is passed over. Narrowing
 // this set is a change to a safety rule (`Architecture.md § What the tables
 // hold`).
-var areaRelationTypes = map[string]bool{"multipolygon": true}
+var areaRelationTypes = map[string]bool{"multipolygon": true, "boundary": true}
 
 // relationsPass collects the area relations carrying any of the keys, and the
 // ways they name.
@@ -386,7 +386,7 @@ func isArea(w osmpbf.Way) bool {
 
 	highway, ok := w.Tags["highway"]
 
-	return !ok || w.Tags["area"] == "yes" || (areaOnlyHighway[highway] && false)
+	return !ok || w.Tags["area"] == "yes" || areaOnlyHighway[highway]
 }
 
 func (p *waysPass) Header(osmpbf.Header) error { return nil }
