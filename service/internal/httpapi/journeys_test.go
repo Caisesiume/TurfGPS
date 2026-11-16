@@ -79,10 +79,15 @@ func withFakePlanner(t *testing.T, routing planner.RoutingProvider) Option {
 	return withPlannerOver(t, routing, zoneCopy{held: true})
 }
 
+// endsAnywhere is the end tolerance, in metres, of the tests here, which are
+// not about it (#250): more than half the Earth's greatest circumference, so
+// no answer is refused for where the engine placed its ends.
+const endsAnywhere = 2.1e7
+
 func withPlannerOver(t *testing.T, routing planner.RoutingProvider, zones planner.ZoneCopy) Option {
 	t.Helper()
 
-	p, err := planner.New(routing, zones, clearAccess{}, clearAccess{})
+	p, err := planner.New(routing, zones, clearAccess{}, clearAccess{}, planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -499,7 +504,7 @@ func TestAJourneyWithAWarnedLegIsAnsweredWithIt(t *testing.T) {
 
 	const body = `{"origin":{"latitude":59.3293,"longitude":18.0686},"destination":{"latitude":57.7089,"longitude":11.9746}}`
 
-	p, err := planner.New(gatedRouting{}, zoneCopy{held: true}, gateOn9{}, clearAccess{}, planner.AvoidUpTo(2))
+	p, err := planner.New(gatedRouting{}, zoneCopy{held: true}, gateOn9{}, clearAccess{}, planner.AvoidUpTo(2), planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatal(err)
 	}

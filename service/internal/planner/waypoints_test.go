@@ -106,7 +106,7 @@ func TestACostlyMandatoryWaypointIsNotDropped(t *testing.T) {
 
 		routing := straightLegs()
 
-		p, err := New(routing, copyHeld, clearAccess{}, clearAccess{})
+		p, err := New(routing, copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -171,7 +171,7 @@ func TestABetterScoringNearbyLocationIsNotSubstituted(t *testing.T) {
 	t.Run("the planner", func(t *testing.T) {
 		t.Parallel()
 
-		p, err := New(straightLegs(), copyHeld, clearAccess{}, clearAccess{})
+		p, err := New(straightLegs(), copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -264,7 +264,7 @@ func TestOnlyAlternativesHoldingTheEnteredSetAreProduced(t *testing.T) {
 	for c := range cases {
 		req := randomRequest(r, 1, 6)
 
-		p, err := New(randomShapes(r), copyHeld, clearAccess{}, clearAccess{})
+		p, err := New(randomShapes(r), copyHeld, clearAccess{}, clearAccess{}, endsAnywhere)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}

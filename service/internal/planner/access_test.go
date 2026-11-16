@@ -111,7 +111,7 @@ func TestNoRouteReachesAJourneyUnchecked(t *testing.T) {
 		routing := &alongMarkedWay{}
 		markings := &markingsOn{}
 
-		p, err := New(routing, copyHeld, markings, routingData{id: testExtract})
+		p, err := New(routing, copyHeld, markings, routingData{id: testExtract}, endsAnywhere)
 		if err != nil {
 			t.Fatalf("New: %v", err)
 		}
@@ -167,7 +167,7 @@ func TestEveryLegIsCheckedNotOnlyTheFirst(t *testing.T) {
 	routing := &markedOnLastLeg{last: req.Destination}
 	markings := &markingsOn{}
 
-	p, err := New(routing, copyHeld, markings, routingData{id: testExtract})
+	p, err := New(routing, copyHeld, markings, routingData{id: testExtract}, endsAnywhere)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestEveryLegIsCheckedNotOnlyTheFirst(t *testing.T) {
 func TestARefusalNamesWhatItFoundAndWhere(t *testing.T) {
 	t.Parallel()
 
-	p, err := New(&alongMarkedWay{}, copyHeld, &markingsOn{}, routingData{id: testExtract})
+	p, err := New(&alongMarkedWay{}, copyHeld, &markingsOn{}, routingData{id: testExtract}, endsAnywhere)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestNoJourneyWithoutOneExtract(t *testing.T) {
 
 			routing := straightLegs()
 
-			p, err := New(routing, copyHeld, tc.markings, tc.data)
+			p, err := New(routing, copyHeld, tc.markings, tc.data, endsAnywhere)
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}
@@ -287,7 +287,7 @@ func TestALegTheCheckCannotReadIsNotProduced(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := New(edgesRouting{edges: tc.edges}, copyHeld, &markingsOn{err: tc.checkErr}, routingData{id: testExtract})
+			p, err := New(edgesRouting{edges: tc.edges}, copyHeld, &markingsOn{err: tc.checkErr}, routingData{id: testExtract}, endsAnywhere)
 			if err != nil {
 				t.Fatalf("New: %v", err)
 			}

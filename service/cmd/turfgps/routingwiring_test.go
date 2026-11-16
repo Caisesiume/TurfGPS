@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"net/http"
@@ -65,6 +66,14 @@ func (clearAccess) Crossings(context.Context, []planner.Edge) ([]planner.Crossin
 func (clearAccess) Run(context.Context, []planner.Edge) (planner.RunMeasure, error) {
 	return planner.RunMeasure{}, planner.ErrNoLeastRun
 }
+
+// endsAnywhere is an end tolerance, with its origin, under which no answer is
+// refused for where the engine placed its ends, for the tests here that are
+// not about it (#250): more than half the Earth's greatest circumference.
+const (
+	endsAnywhere       = "2.1e7"
+	endsAnywhereOrigin = "a test's: farther than any two points on the Earth lie apart"
+)
 
 func lookupOnly(vars map[string]string) config.LookupFunc {
 	return func(name string) (string, bool) {
@@ -279,8 +288,10 @@ func TestJourneysAreRoutedForACarThroughTheConfiguredEngine(t *testing.T) {
 
 	engine := newFakeEngine(t, tileStamp(t, clearSHA256))
 	lookup := lookupOnly(map[string]string{
-		config.EnvValhallaURL:      engine.URL,
-		config.EnvTileIdentityFile: writeTileRecord(t, clearSHA256),
+		config.EnvValhallaURL:        engine.URL,
+		config.EnvTileIdentityFile:   writeTileRecord(t, clearSHA256),
+		config.EnvEndTolerance:       endsAnywhere,
+		config.EnvEndToleranceOrigin: endsAnywhereOrigin,
 	})
 
 	handler, err := newHandler(lookup, httpapi.WithPlanner(rootPlanner(t, lookup, heldZoneCopy{}, clearAccess{})))
@@ -355,7 +366,8 @@ func TestEveryPlanIsBoundedBelowTheWriteTimeout(t *testing.T) {
 
 	routing := &deadlineRouting{}
 
-	plans, err := planner.New(routing, heldZoneCopy{}, clearAccess{}, clearAccess{})
+	// endsAnywhere's tolerance: this test is not about the end tolerance.
+	plans, err := planner.New(routing, heldZoneCopy{}, clearAccess{}, clearAccess{}, planner.EndsWithin(2.1e7))
 	if err != nil {
 		t.Fatalf("planner.New: %v", err)
 	}
@@ -437,5 +449,65 @@ func TestStartupRefusesAMalformedAvoidanceBound(t *testing.T) {
 
 	if plans, err := newPlanner(lookupOnly(env), unreachedPool()); err != nil || plans == nil {
 		t.Errorf("newPlanner with a bound and its origin gave %v, %v; want a planner", plans, err)
+	}
+}
+
+// TestStartupRefusesAMalformedEndTolerance (#250): an end tolerance set
+// without its origin, or not a number of metres at or above zero, stops the
+// service at start.
+func TestStartupRefusesAMalformedEndTolerance(t *testing.T) {
+	t.Parallel()
+
+	for _, env := range []map[string]string{
+		{config.EnvEndTolerance: "25"},
+		{config.EnvEndToleranceOrigin: "measured"},
+		{config.EnvEndTolerance: "-1", config.EnvEndToleranceOrigin: "measured"},
+		{config.EnvEndTolerance: "25 m", config.EnvEndToleranceOrigin: "measured"},
+	} {
+		env[config.EnvValhallaURL] = "http://127.0.0.1:8002"
+
+		if plans, err := newPlanner(lookupOnly(env), unreachedPool()); err == nil || plans != nil {
+			t.Errorf("newPlanner with %v gave %v, %v; want a refusal", env, plans, err)
+		}
+	}
+}
+
+// TestTheRootHoldsEveryLegToTheEndToleranceItReads (#250): the planner the
+// root builds serves no leg while no end tolerance is configured, and holds
+// each leg to the one configured. The fake engine answers every leg from
+// journeyRequest's origin to its destination exactly, so it is served under
+// a tolerance of zero, and refused under 50 m for an origin some 111 m north.
+func TestTheRootHoldsEveryLegToTheEndToleranceItReads(t *testing.T) {
+	t.Parallel()
+
+	engine := newFakeEngine(t, tileStamp(t, clearSHA256))
+	record := writeTileRecord(t, clearSHA256)
+
+	north := journeyRequest
+	north.Origin.Latitude += 0.001
+
+	for _, tc := range []struct {
+		name      string
+		tolerance string
+		req       planner.Request
+		want      error
+	}{
+		{"no tolerance configured", "", journeyRequest, planner.ErrNoEndTolerance},
+		{"a tolerance of zero, the leg at its locations", "0", journeyRequest, nil},
+		{"a tolerance of 50 m, the origin 111 m from the leg", "50", north, planner.ErrEndBeyondTolerance},
+	} {
+		vars := map[string]string{config.EnvValhallaURL: engine.URL, config.EnvTileIdentityFile: record}
+		if tc.tolerance != "" {
+			vars[config.EnvEndTolerance], vars[config.EnvEndToleranceOrigin] = tc.tolerance, "this test's own figure"
+		}
+
+		journey, err := rootPlanner(t, lookupOnly(vars), heldZoneCopy{}, clearAccess{}).Plan(t.Context(), tc.req)
+
+		switch {
+		case tc.want == nil && err != nil:
+			t.Errorf("%s: Plan refused the journey: %v", tc.name, err)
+		case tc.want != nil && (journey.Legs != nil || !errors.Is(err, tc.want)):
+			t.Errorf("%s: Plan gave %d leg(s) and %v; want no journey and an error wrapping %v", tc.name, len(journey.Legs), err, tc.want)
+		}
 	}
 }

@@ -292,7 +292,7 @@ func (fx *fixture) avoiding(t *testing.T) (*planner.Planner, *counting) {
 
 	routing := &counting{RoutingProvider: fx.routing}
 
-	p, err := planner.New(routing, heldCopy{}, fx.store, tilesFrom(fx.tiles), planner.AvoidUpTo(testAvoidance))
+	p, err := planner.New(routing, heldCopy{}, fx.store, tilesFrom(fx.tiles), planner.AvoidUpTo(testAvoidance), planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatal(err)
 	}

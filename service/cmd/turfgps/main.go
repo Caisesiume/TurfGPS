@@ -571,12 +571,13 @@ type planning struct {
 	engine    *config.Valhalla
 	access    *config.AccessMarkings
 	avoidance *config.AccessAvoidance
+	ends      *config.EndTolerance
 }
 
 // loadPlanning reads the planner's configuration, nil where no engine is
-// configured. The barrier tolerance and the avoidance bound are read all the
-// same, so a malformed one stops the start rather than waiting for the engine
-// it would configure.
+// configured. The barrier tolerance, the avoidance bound and the end tolerance
+// are read all the same, so a malformed one stops the start rather than
+// waiting for the engine it would configure.
 func loadPlanning(lookup config.LookupFunc) (*planning, error) {
 	engine, err := config.LoadValhalla(lookup)
 	if err != nil {
@@ -593,6 +594,11 @@ func loadPlanning(lookup config.LookupFunc) (*planning, error) {
 		return nil, err
 	}
 
+	ends, err := config.LoadEndTolerance(lookup)
+	if err != nil {
+		return nil, err
+	}
+
 	if engine == nil {
 		slog.Info("no routing engine is configured, so journey planning answers 503",
 			"configure", config.EnvValhallaURL)
@@ -600,7 +606,7 @@ func loadPlanning(lookup config.LookupFunc) (*planning, error) {
 		return nil, nil
 	}
 
-	return &planning{engine: engine, access: access, avoidance: avoidance}, nil
+	return &planning{engine: engine, access: access, avoidance: avoidance, ends: ends}, nil
 }
 
 // barrierTolerance is the configured barrier tolerance, nil where none is:
@@ -632,6 +638,15 @@ func (p *planning) build(zones planner.ZoneCopy, markings planner.AccessMarkings
 	var opts []planner.Option
 	if p.avoidance != nil {
 		opts = append(opts, planner.AvoidUpTo(p.avoidance.Attempts))
+	}
+
+	// Without a configured end tolerance no leg is served, so nothing is
+	// planned (#250).
+	if p.ends != nil {
+		opts = append(opts, planner.EndsWithin(p.ends.Metres))
+	} else {
+		slog.Info("no end tolerance is configured, so no leg is served and no journey is planned",
+			"configure", config.EnvEndTolerance+", with "+config.EnvEndToleranceOrigin)
 	}
 
 	plans, err := planner.New(routing, zones, markings, routing.TileIdentity(p.engine.TileIdentityFile), opts...)

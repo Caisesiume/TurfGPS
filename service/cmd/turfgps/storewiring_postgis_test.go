@@ -112,6 +112,8 @@ func rootOnStore(t *testing.T, dsn, tileSHA string) (*planner.Planner, *pgxpool.
 		config.EnvTileIdentityFile:             writeTileRecord(t, tileSHA),
 		config.EnvAccessBarrierTolerance:       "2",
 		config.EnvAccessBarrierToleranceOrigin: "this test's own figure",
+		config.EnvEndTolerance:                 endsAnywhere,
+		config.EnvEndToleranceOrigin:           endsAnywhereOrigin,
 	})
 
 	plans, err := newPlanner(lookup, pools.request())

@@ -327,10 +327,15 @@ type heldCopy struct{}
 
 func (heldCopy) Held(context.Context) (bool, error) { return true, nil }
 
+// endsAnywhere is the end tolerance, in metres, of the tests here, which are
+// not about it (#250): more than half the Earth's greatest circumference, so
+// no answer is refused for where the engine placed its ends.
+const endsAnywhere = 2.1e7
+
 func (fx *fixture) planner(t *testing.T, routing planner.RoutingProvider, markings planner.AccessMarkings, tiles string) *planner.Planner {
 	t.Helper()
 
-	p, err := planner.New(routing, heldCopy{}, markings, tilesFrom(tiles))
+	p, err := planner.New(routing, heldCopy{}, markings, tilesFrom(tiles), planner.EndsWithin(endsAnywhere))
 	if err != nil {
 		t.Fatal(err)
 	}
